@@ -8,7 +8,8 @@
 // the page passes `transparentHeader` to PageLayout so the header sits over it
 // see-through until the page scrolls. The gradient's tail is mixed toward
 // `--blume-background`, so it lands on white in light mode and on the dark
-// surface in dark mode. The install box copy
+// surface in dark mode; dark mode also swaps the blue stops for a night-sky
+// navy so toggling the theme reads as day turning to night. The install box copy
 // button uses the page-level delegated `data-blume-copy-install` handler in
 // index.astro.
 import data from "blume:data";
@@ -97,7 +98,7 @@ const latestVersion = latestRelease
             rel="noreferrer"
             target="_blank"
           >
-            View the code
+            View source
             <svg
               class="size-3.5"
               fill="none"
@@ -124,18 +125,36 @@ const latestVersion = latestRelease
 </section>
 
 <style>
+  /* Day sky in light mode, night sky in dark mode: the same radial shape with
+     the stops swapped for deep navy, so the theme toggle reads as day → night.
+     The tail mixes toward `--blume-background` in both. */
   .hero-gradient {
+    --sky-1: rgb(31 83 144);
+    --sky-2: rgb(38 88 150);
+    --sky-3: rgb(47 95 156);
+    --sky-4: rgb(55 104 163);
+    --sky-5: rgb(72 120 176);
+    --sky-6: rgb(93 137 186);
     background-image: radial-gradient(
       150% 108% at 50% -4%,
-      rgb(31 83 144) 0%,
-      rgb(38 88 150) 8%,
-      rgb(47 95 156) 18%,
-      rgb(55 104 163) 29%,
-      rgb(72 120 176) 44%,
-      rgb(93 137 186) 60%,
-      color-mix(in oklab, rgb(93 137 186) 55%, var(--blume-background)) 72%,
-      color-mix(in oklab, rgb(93 137 186) 22%, var(--blume-background)) 84%,
-      var(--blume-background) 93%
+      var(--sky-1) 0%,
+      var(--sky-2) 8%,
+      var(--sky-3) 18%,
+      var(--sky-4) 29%,
+      var(--sky-5) 44%,
+      var(--sky-6) 60%,
+      color-mix(in oklab, var(--sky-6) 55%, var(--blume-background)) 70%,
+      color-mix(in oklab, var(--sky-6) 22%, var(--blume-background)) 80%,
+      var(--blume-background) 88%
     );
+  }
+
+  :global([data-theme="dark"]) .hero-gradient {
+    --sky-1: rgb(3 8 22);
+    --sky-2: rgb(5 12 30);
+    --sky-3: rgb(8 17 40);
+    --sky-4: rgb(11 24 52);
+    --sky-5: rgb(16 33 68);
+    --sky-6: rgb(22 44 84);
   }
 </style>

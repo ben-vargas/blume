@@ -53,7 +53,7 @@ export default defineConfig({
   content: {
     sources: [
       filesystem({ root: "docs" }),
-      mdxRemote({ github: { owner: "comet", repo: "docs", path: "docs" } }),
+      mdxRemote({ github: { owner: "acme", repo: "docs", path: "docs" } }),
       sanity({ projectId: "p1", dataset: "production", query: "*[_type == 'doc']" }),
       notion({ database: process.env.NOTION_DB }),
     ],

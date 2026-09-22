@@ -64,10 +64,12 @@ const features = [
   },
 ];
 
-// Same rAF-throttled scroll tracker as the homepage's Batteries section: dims
-// the feature blocks that aren't nearest the viewport center and crossfades
-// the sticky terminal to the active feature's transcript.
-const commandsScript = `(()=>{const r=document.querySelector("[data-blume-cli]");if(!r)return;const items=[...r.querySelectorAll("[data-feature]")];if(!items.length)return;const panels=[...r.querySelectorAll("[data-panel]")];let raf=0,cur=-1;const update=()=>{raf=0;const mid=innerHeight/2;let best=0,bd=Infinity;items.forEach((it,j)=>{const b=it.getBoundingClientRect();const d=Math.abs(b.top+b.height/2-mid);if(d<bd){bd=d;best=j;}});if(best===cur)return;cur=best;items.forEach((it,j)=>{it.dataset.active=String(j===best);});panels.forEach((p,j)=>{p.dataset.active=String(j===best);});};const onScroll=()=>{if(!raf)raf=requestAnimationFrame(update);};addEventListener("scroll",onScroll,{passive:true});addEventListener("resize",onScroll,{passive:true});update();})();`;
+// Scroll-driven command switcher: whichever command block is nearest the
+// viewport's vertical middle is active, and its terminal panel crossfades in.
+// Astro's ClientRouter runs an inline script once per session, so this binds
+// its window listeners once (guarded by a global flag) and re-queries the DOM
+// on every update, re-stamping after each router swap replaces the section.
+const commandsScript = `(()=>{if(window.__blumeCli){return;}window.__blumeCli=true;let raf=0,cur=-1;const update=()=>{raf=0;const r=document.querySelector("[data-blume-cli]");if(!r){return;}const items=[...r.querySelectorAll("[data-feature]")];if(!items.length){return;}const panels=[...r.querySelectorAll("[data-panel]")];const mid=innerHeight/2;let best=0,bd=Infinity;items.forEach((it,j)=>{const b=it.getBoundingClientRect();const d=Math.abs(b.top+b.height/2-mid);if(d<bd){bd=d;best=j;}});if(best===cur){return;}cur=best;items.forEach((it,j)=>{it.dataset.active=String(j===best);});panels.forEach((p,j)=>{p.dataset.active=String(j===best);});};const onScroll=()=>{if(!raf){raf=requestAnimationFrame(update);}};addEventListener("scroll",onScroll,{passive:true});addEventListener("resize",onScroll,{passive:true});document.addEventListener("astro:after-swap",()=>{cur=-1;onScroll();});onScroll();})();`;
 ---
 
 <!-- One sticky terminal whose transcript morphs per command (x.ai/cli-style) -->

@@ -1,6 +1,6 @@
 ---
 // A faithful, static mock of a docs site built with Blume — the fictional
-// "Comet" brand (see `sampleBrand` in shared.ts) — framed by a thin frosted
+// "Acme" brand (see `sampleBrand` in shared.ts) — framed by a thin frosted
 // white strip so it reads as a window floating over the hero gradient (the
 // strip wraps the top and sides; the bottom is clipped by the height cap). The
 // code block is the
@@ -53,20 +53,20 @@ const onThisPage = [
 const nextSteps = ["Authentication", "Webhooks reference", "API reference"];
 
 // Code shown in the mock. Strings highlighted at build time by <CodeBlock>.
-const installCode = "npm install comet";
-const mockupCode = `import { Comet } from "comet";
+const installCode = "npm install acme";
+const mockupCode = `import { Acme } from "acme";
 
-const comet = new Comet(process.env.COMET_API_KEY);
+const acme = new Acme(process.env.ACME_API_KEY);
 
-const { id } = await comet.messages.send({
+const { id } = await acme.messages.send({
   to: "ada@example.com",
   template: "welcome",
 });
 
 console.log(\`Queued \${id}\`);`;
 
-const webhookCode = `app.post("/webhooks/comet", (req, res) => {
-  const event = comet.webhooks.verify(req);
+const webhookCode = `app.post("/webhooks/acme", (req, res) => {
+  const event = acme.webhooks.verify(req);
 
   if (event.type === "message.delivered") {
     markDelivered(event.data.id);
@@ -76,7 +76,13 @@ const webhookCode = `app.post("/webhooks/comet", (req, res) => {
 });`;
 ---
 
-<section>
+<!-- data-nosnippet keeps the sample copy out of search snippets and AI
+     overviews; the screen-reader-only figcaption and chrome badge label it for
+     assistive tech and crawlers without adding visible chrome. -->
+<figure class="relative" data-nosnippet>
+  <figcaption class="sr-only">
+    {sampleBrand.caption}
+  </figcaption>
   <div
     class="h-[660px] overflow-hidden rounded-t-[28px] bg-white/25 p-2 shadow-[0_100px_68px_0_rgba(28,40,64,0.18)] backdrop-blur-[24px]"
   >
@@ -102,6 +108,7 @@ const webhookCode = `app.post("/webhooks/comet", (req, res) => {
             }
             {title}
           </span>
+          <span class="sr-only">{sampleBrand.badge}</span>
           <nav
             class="hidden items-center gap-5 text-muted-foreground text-sm sm:flex"
           >
@@ -229,7 +236,7 @@ const webhookCode = `app.post("/webhooks/comet", (req, res) => {
             Quickstart
           </div>
           <p class="mt-4 text-muted-foreground leading-relaxed">
-            Send your first transactional message in minutes. Comet's REST API
+            Send your first transactional message in minutes. Acme's REST API
             works with any language — this guide uses the official TypeScript
             SDK.
           </p>
@@ -244,7 +251,7 @@ const webhookCode = `app.post("/webhooks/comet", (req, res) => {
             Install the SDK
           </div>
           <p class="mt-3 text-muted-foreground text-sm leading-relaxed">
-            Add Comet to your project with your package manager of choice. The
+            Add Acme to your project with your package manager of choice. The
             SDK ships with TypeScript types and runs on Node, Bun, and Deno.
           </p>
           <div class="relative mt-4 [&_pre]:my-0!">
@@ -274,7 +281,7 @@ const webhookCode = `app.post("/webhooks/comet", (req, res) => {
             Use a template
           </div>
           <p class="mt-3 text-muted-foreground text-sm leading-relaxed">
-            Reference a template by slug and pass variables — Comet renders the
+            Reference a template by slug and pass variables — Acme renders the
             subject and body server-side, so your app never ships copy.
           </p>
 
@@ -338,4 +345,46 @@ const webhookCode = `app.post("/webhooks/comet", (req, res) => {
       </div>
     </div>
   </div>
-</section>
+  <!-- Progressive blur + fade over the bottom edge so the clipped window
+       dissolves into the page instead of ending on a hard line: two stacked
+       backdrop-blur layers, each masked so the blur ramps up toward the
+       bottom, under a veil that fades to the page background. It reaches past
+       the figure's sides so the frame's drop shadow fades with it rather than
+       getting clipped flat by the section edge, and one pixel below the
+       figure so a fractional section height can't leave a blended hairline. -->
+  <div
+    aria-hidden="true"
+    class="preview-fade -inset-x-24 -bottom-px pointer-events-none absolute h-72"
+  >
+    <div class="preview-blur preview-blur-soft"></div>
+    <div class="preview-blur preview-blur-hard"></div>
+    <div class="preview-veil"></div>
+  </div>
+</figure>
+
+<style>
+  .preview-blur,
+  .preview-veil {
+    position: absolute;
+    inset: 0;
+  }
+
+  .preview-blur-soft {
+    backdrop-filter: blur(6px);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 55%);
+  }
+
+  .preview-blur-hard {
+    backdrop-filter: blur(18px);
+    mask-image: linear-gradient(to bottom, transparent 35%, black 90%);
+  }
+
+  .preview-veil {
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      color-mix(in oklab, var(--blume-background) 60%, transparent) 50%,
+      var(--blume-background) 85%
+    );
+  }
+</style>

@@ -38,7 +38,7 @@ export const icons = {
   sun: glyph("sun"),
 };
 
-// A fictional brand ("Comet", a transactional email & SMS API) used by the
+// A fictional brand ("Acme", a transactional email & SMS API) used by the
 // homepage mock browser windows (ProductPreview + FeatureBrowser) so they read
 // as a real docs site built with Blume rather than a mock of Blume's own docs.
 // Single source of truth for the name, logo, and docs/API information
@@ -62,8 +62,15 @@ export const sampleBrand = {
       label: "Templates",
     },
   ],
+  // Screen-reader-only disclosure for the mock windows — a badge in the app
+  // chrome and a figcaption on the window — so assistive tech and crawlers
+  // know the brand is a stand-in for "your product", not a Blume product or a
+  // real company, without adding visible chrome to the design.
+  badge: "Example site",
+  caption:
+    "An example docs site for Acme, a fictional email and SMS API, built with Blume.",
   logo: '<svg fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 1.5l2.45 6.4a3 3 0 0 0 1.65 1.65L22.5 12l-6.4 2.45a3 3 0 0 0-1.65 1.65L12 22.5l-2.45-6.4a3 3 0 0 0-1.65-1.65L1.5 12l6.4-2.45a3 3 0 0 0 1.65-1.65z"/></svg>',
-  name: "Comet",
+  name: "Acme",
   nav: ["Docs", "API", "Changelog"],
   sidebar: [
     {

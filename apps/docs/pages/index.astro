@@ -70,9 +70,11 @@ const pageDescription =
 
     <Cli />
 
-    <Migrate />
-
-    <Sponsors />
+    <!-- Migrate and sponsors sit side by side as two soft cards -->
+    <div class="grid gap-6 lg:grid-cols-2">
+      <Migrate />
+      <Sponsors />
+    </div>
 
     <InstallCta />
   </div>

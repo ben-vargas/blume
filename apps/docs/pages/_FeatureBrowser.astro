@@ -5,7 +5,7 @@
 // It mirrors the hero product preview: app header + a three-pane docs layout
 // (sidebar · content · on-this-page). Only the content morphs — except the
 // `changelog` kind, which goes single-pane like the generated /changelog
-// timeline it mirrors. Every kind depicts the fictional "Comet" brand (see
+// timeline it mirrors. Every kind depicts the fictional "Acme" brand (see
 // `sampleBrand` in _home/shared.ts).
 import { glyph, sampleBrand } from "./_home/shared.ts";
 
@@ -48,7 +48,7 @@ const meta = {
     active: "Introduction",
     crumb: "Get started",
     heading: "Introduction",
-    toc: ["Why Comet", "What's included", "Next steps"],
+    toc: ["Why Acme", "What's included", "Next steps"],
   },
   // The search kind opens a ⌘K modal over a normal docs page, so its "view"
   // mirrors the Introduction page that sits (dimmed) behind the overlay.
@@ -56,7 +56,7 @@ const meta = {
     active: "Introduction",
     crumb: "Get started",
     heading: "Introduction",
-    toc: ["Why Comet", "What's included", "Next steps"],
+    toc: ["Why Acme", "What's included", "Next steps"],
   },
 };
 const view = meta[kind as keyof typeof meta] ?? meta.page;
@@ -90,7 +90,7 @@ const changelogEntries = [
   {
     date: "July 8, 2026",
     heading: "Minor Changes",
-    label: "comet@2.1.0",
+    label: "acme@2.1.0",
     notes: [
       {
         code: "segments",
@@ -110,7 +110,7 @@ const changelogEntries = [
   {
     date: "June 26, 2026",
     heading: "Patch Changes",
-    label: "comet@2.0.4",
+    label: "acme@2.0.4",
     notes: [
       {
         code: "retry.backoff",
@@ -130,7 +130,7 @@ const changelogEntries = [
   {
     date: "June 12, 2026",
     heading: "Major Changes",
-    label: "comet@2.0.0",
+    label: "acme@2.0.0",
     notes: [
       {
         code: "v2",
@@ -158,6 +158,7 @@ const changelogEntries = [
         />
         {sampleBrand.name}
       </span>
+      <span class="sr-only">{sampleBrand.badge}</span>
       <nav class="hidden items-center gap-3 text-[11px] text-muted-foreground sm:flex">
         <span
           class={kind === "api" || kind === "changelog" ? "" : "text-foreground"}
@@ -284,7 +285,7 @@ const changelogEntries = [
         (kind === "page" || kind === "search") && (
           <div>
             <p class="mt-2 text-muted-foreground text-xs leading-relaxed">
-              Comet is a transactional email & SMS API. Send your first message in
+              Acme is a transactional email & SMS API. Send your first message in
               minutes, then add templates, webhooks, and analytics as you grow.
             </p>
             <div class="mt-4 grid grid-cols-2 gap-3">

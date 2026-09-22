@@ -24,7 +24,7 @@ const aiResources = [
 
 // The connect command shown in the MCP card's mock terminal.
 const mcpConnectCommand =
-  "claude mcp add --transport http comet-docs https://docs.comet.dev/mcp";
+  "claude mcp add --transport http acme-docs https://docs.acme.dev/mcp";
 ---
 
 <!-- Built for humans and models: the AI surfaces (Ask AI, MCP, llms.txt,
@@ -46,9 +46,11 @@ const mcpConnectCommand =
     <div
       class="flex flex-col overflow-hidden rounded-blume border border-border"
     >
-      <!-- Mock chat panel (flush graphic) -->
+      <!-- Mock chat panel (flush graphic); nosnippet keeps the sample Acme
+           answer out of search snippets -->
       <div
         class="flex flex-1 flex-col gap-3 border-border border-b bg-muted/30 p-6"
+        data-nosnippet
       >
         <div class="flex justify-end">
           <span
@@ -78,7 +80,7 @@ const mcpConnectCommand =
             class="rounded-blume border border-border bg-background px-3 py-1.5 text-foreground text-sm leading-relaxed"
           >
             Install the SDK, set your API key, then call{" "}
-            <code class="font-mono">comet.messages.send()</code> with a recipient
+            <code class="font-mono">acme.messages.send()</code> with a recipient
             and template.
           </span>
         </div>
@@ -145,7 +147,10 @@ const mcpConnectCommand =
       class="flex flex-col overflow-hidden rounded-blume border border-border"
     >
       <!-- Mock terminal (flush graphic) -->
-      <div class="flex flex-1 flex-col border-border border-b bg-muted/30">
+      <div
+        class="flex flex-1 flex-col border-border border-b bg-muted/30"
+        data-nosnippet
+      >
         <div class="p-6 font-mono text-[13px] leading-relaxed">
           <p class="break-all text-foreground">
             <span class="text-muted-foreground">$</span>{" "}

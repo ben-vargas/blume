@@ -3,7 +3,7 @@
 // browser-window graphic that stays centred in the viewport and crossfades its
 // contents as you scroll. `kind` selects which mock <FeatureBrowser> renders.
 import FeatureBrowser from "../_FeatureBrowser.astro";
-import { icons } from "./shared.ts";
+import { icons, sampleBrand } from "./shared.ts";
 
 const features = [
   {
@@ -63,18 +63,19 @@ const features = [
   },
 ];
 
-// Tracks whichever feature block is nearest the viewport center: dims the others
-// and crossfades the sticky browser graphic to that feature's panel. A rAF-
-// throttled scroll handler (rather than IntersectionObserver) keeps it reliable;
-// with no JS every block stays legible and the first panel shows. The initial
-// highlight also goes through the rAF (measuring synchronously mid-parse forces
-// a reflow — Lighthouse flags it — while a rAF read lands where layout runs
-// anyway, still before first paint).
-const featuresScript = `(()=>{const r=document.querySelector("[data-blume-features]");if(!r)return;const items=[...r.querySelectorAll("[data-feature]")];if(!items.length)return;const panels=[...r.querySelectorAll("[data-panel]")];let raf=0,cur=-1;const update=()=>{raf=0;const mid=innerHeight/2;let best=0,bd=Infinity;items.forEach((it,j)=>{const b=it.getBoundingClientRect();const d=Math.abs(b.top+b.height/2-mid);if(d<bd){bd=d;best=j;}});if(best===cur)return;cur=best;items.forEach((it,j)=>{it.dataset.active=String(j===best);});panels.forEach((p,j)=>{p.dataset.active=String(j===best);});};const onScroll=()=>{if(!raf)raf=requestAnimationFrame(update);};addEventListener("scroll",onScroll,{passive:true});addEventListener("resize",onScroll,{passive:true});onScroll();})();`;
+// Scroll-driven feature switcher: whichever feature block is nearest the
+// viewport's vertical middle is active, and its panel crossfades in. Astro's
+// ClientRouter runs an inline script once per session, so this binds its
+// window listeners once (guarded by a global flag) and re-queries the DOM on
+// every update, re-stamping after each router swap replaces the section.
+const featuresScript = `(()=>{if(window.__blumeFeatures){return;}window.__blumeFeatures=true;let raf=0,cur=-1;const update=()=>{raf=0;const r=document.querySelector("[data-blume-features]");if(!r){return;}const items=[...r.querySelectorAll("[data-feature]")];if(!items.length){return;}const panels=[...r.querySelectorAll("[data-panel]")];const mid=innerHeight/2;let best=0,bd=Infinity;items.forEach((it,j)=>{const b=it.getBoundingClientRect();const d=Math.abs(b.top+b.height/2-mid);if(d<bd){bd=d;best=j;}});if(best===cur){return;}cur=best;items.forEach((it,j)=>{it.dataset.active=String(j===best);});panels.forEach((p,j)=>{p.dataset.active=String(j===best);});};const onScroll=()=>{if(!raf){raf=requestAnimationFrame(update);}};addEventListener("scroll",onScroll,{passive:true});addEventListener("resize",onScroll,{passive:true});document.addEventListener("astro:after-swap",()=>{cur=-1;onScroll();});onScroll();})();`;
 ---
 
 <!-- Batteries included: one sticky browser window whose contents morph per feature (x.ai/cli-style) -->
-<section data-blume-features>
+<section
+  class="rounded-[20px] bg-muted px-6 py-12 sm:px-10 sm:py-16"
+  data-blume-features
+>
   <div class="mx-auto max-w-2xl text-center">
     <h2 class="font-medium text-3xl sm:text-4xl">
       Batteries included.
@@ -98,7 +99,7 @@ const featuresScript = `(()=>{const r=document.querySelector("[data-blume-featur
             data-feature={index}
           >
             <div class="pt-10 lg:pt-0">
-              <span class="inline-flex size-10 items-center justify-center rounded-blume bg-muted text-accent">
+              <span class="inline-flex size-10 items-center justify-center rounded-blume bg-background text-accent">
                 <svg
                   class="size-5"
                   fill="none"
@@ -139,11 +140,14 @@ const featuresScript = `(()=>{const r=document.querySelector("[data-blume-featur
               </ul>
             </div>
             {/* Inline browser graphic for mobile; desktop uses the shared sticky one. */}
-            <div class="pt-6 pb-10 lg:hidden">
+            <figure class="pt-6 pb-10 lg:hidden" data-nosnippet>
               <div class="overflow-hidden rounded-blume border border-border bg-background shadow-xl shadow-foreground/[0.06]">
                 <FeatureBrowser kind={feature.kind} />
               </div>
-            </div>
+              <figcaption class="sr-only">
+                {sampleBrand.caption}
+              </figcaption>
+            </figure>
           </article>
         ))
       }
@@ -154,7 +158,10 @@ const featuresScript = `(()=>{const r=document.querySelector("[data-blume-featur
          window centred in the viewport for the whole section — no transform
          overshoot, no per-feature offset math. -->
     <div class="hidden lg:block">
-      <div class="sticky top-0 flex h-screen flex-col justify-center">
+      <figure
+        class="sticky top-0 flex h-screen flex-col justify-center"
+        data-nosnippet
+      >
         <div class="relative h-[460px] overflow-hidden rounded-blume border border-border bg-background shadow-2xl shadow-foreground/10">
           {
             features.map((feature, index) => (
@@ -168,7 +175,10 @@ const featuresScript = `(()=>{const r=document.querySelector("[data-blume-featur
             ))
           }
         </div>
-      </div>
+        <figcaption class="sr-only">
+          {sampleBrand.caption}
+        </figcaption>
+      </figure>
     </div>
   </div>
 </section>
