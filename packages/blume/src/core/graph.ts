@@ -1,5 +1,9 @@
 import { withBasePath } from "./base-path.ts";
-import { localizeRoute, resolveFallbackLocale } from "./i18n.ts";
+import {
+  localizeInternalPath,
+  localizeRoute,
+  resolveFallbackLocale,
+} from "./i18n.ts";
 import { validateNavIcons, validateNavStructure } from "./nav-diagnostics.ts";
 import { buildNavigation } from "./navigation.ts";
 import type {
@@ -141,14 +145,11 @@ const buildLocaleNavigation = (
   // Localize internal tab paths — the tab's own and its dropdown items' — so a
   // header tab points to its in-locale route (e.g. `/docs` -> `/fr/docs`);
   // external paths pass through. Selectors are left alone: a language
-  // selector's items intentionally target specific locales.
-  // `//host/path` is protocol-relative — an external URL that happens to start
-  // with a slash, so it must not pick up a locale prefix. `withBasePath` draws
-  // the same line for the same reason.
+  // selector's items intentionally target specific locales. The header's brand
+  // link (`Logo.astro`) runs through the same helper, so the logo and the tabs
+  // beside it always agree on the reader's locale.
   const localizePath = (path: string): string =>
-    path.startsWith("/") && !path.startsWith("//")
-      ? localizeRoute(path, code, i18n)
-      : path;
+    localizeInternalPath(path, code, i18n);
   const tabs = resolveTabLabels(
     options.navigation.tabs,
     code,

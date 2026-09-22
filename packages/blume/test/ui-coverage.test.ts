@@ -663,6 +663,30 @@ describe("layout chrome sources", () => {
     expect(root).toContain("strings={navStrings}");
   });
 
+  it("links the header logo to the active locale's root", async () => {
+    // The brand link follows the reader's locale like the tabs beside it:
+    // Logo.astro localizes the configured href (default `/`) with the same
+    // helper the per-locale tab paths use, and every layout that renders the
+    // header hands it the page locale to do so.
+    const logo = await layoutSource("Logo.astro");
+    expect(logo).toContain(
+      "localizeInternalPath(configuredHref, locale, data.config.i18n)"
+    );
+    expect(logo).toContain('const configuredHref = logo?.href ?? "/";');
+    const header = await layoutSource("Header.astro");
+    expect(header).toContain(
+      "<LogoSlot locale={locale} logo={logo} site={site} />"
+    );
+    const layouts = await Promise.all(
+      ["RootLayout.astro", "PageLayout.astro", "ReferenceLayout.astro"].map(
+        layoutSource
+      )
+    );
+    for (const layout of layouts) {
+      expect(layout).toMatch(/<Header(?:Slot)?\s[^>]*locale=\{locale\}/u);
+    }
+  });
+
   it("mirrors the NavTree back arrow and drill-in chevron under RTL", async () => {
     const source = await layoutSource("NavTree.astro");
     expect(source).toContain('class="rtl:-scale-x-100" name="arrow-left"');

@@ -114,11 +114,13 @@ The SVG can live at your project root or in `public/`. The brand is a mark (`ima
 logo: {
   image: "/logo.svg", // string, or { light, dark, alt } for themed raster art
   text: "Acme",       // wordmark beside the mark
-  href: "/",          // overrides the brand link (defaults to "/")
+  href: "/",          // overrides the brand link (defaults to "/"; follows the reader's locale)
 },
 ```
 
 `image` takes the same value as the shorthand — a single path, or `{ light, dark, alt }` for separate light/dark artwork (raster images must live in `public/`).
+
+`href` is a default-locale path like a tab path: on a [multi-locale site](/docs/content/i18n) the brand link moves into the reader's locale (`/` becomes `/en` under `/en/…`), so clicking the logo never leaves the language they were reading. An absolute URL is used as-is.
 
 `text` controls the wordmark independently of the mark:
 

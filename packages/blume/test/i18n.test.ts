@@ -16,6 +16,7 @@ import {
   localePlacement,
   localePrefix,
   localeTargetPath,
+  localizeInternalPath,
   localizeRoute,
   resolveFallbackLocale,
 } from "../src/core/i18n.ts";
@@ -190,6 +191,33 @@ describe("i18n helpers", () => {
     expect(localizeRoute("/guides/x", "fr", i18n)).toBe("/fr/guides/x");
     expect(localizeRoute("/", "fr", i18n)).toBe("/fr");
     expect(localizeRoute("/guides/x", "en", i18n)).toBe("/guides/x");
+  });
+
+  it("localizes a configured link target like a tab path", () => {
+    const i18n = i18nOf();
+    // The header logo default (`/`) and an internal `logo.href` move into the
+    // prefixed locale and stay put for the hidden default locale.
+    expect(localizeInternalPath("/", "fr", i18n)).toBe("/fr");
+    expect(localizeInternalPath("/docs", "fr", i18n)).toBe("/fr/docs");
+    expect(localizeInternalPath("/", "en", i18n)).toBe("/");
+    expect(
+      localizeInternalPath(
+        "/",
+        "en",
+        i18nOf({ hideDefaultLocalePrefix: false })
+      )
+    ).toBe("/en");
+    // Absolute, protocol-relative, relative, and fragment targets pass through.
+    expect(localizeInternalPath("https://acme.dev", "fr", i18n)).toBe(
+      "https://acme.dev"
+    );
+    expect(localizeInternalPath("//acme.dev/x", "fr", i18n)).toBe(
+      "//acme.dev/x"
+    );
+    expect(localizeInternalPath("docs", "fr", i18n)).toBe("docs");
+    expect(localizeInternalPath("#top", "fr", i18n)).toBe("#top");
+    // A single-locale site (no i18n) leaves the target alone.
+    expect(localizeInternalPath("/", "fr", null)).toBe("/");
   });
 
   it("resolves the fallback locale (default, explicit, disabled)", () => {

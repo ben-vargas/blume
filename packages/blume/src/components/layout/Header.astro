@@ -34,6 +34,11 @@ interface Props {
   route: string;
   searchEnabled: boolean;
   /**
+   * Active locale of the page, forwarded to the `Logo` slot so the brand link
+   * resolves to the locale's root like the tabs beside it.
+   */
+  locale?: string;
+  /**
    * Whether the search modal offers an "Ask AI" hand-off. Defaults to whether
    * Ask AI is configured, so no page has to pass it; a layout can still opt a
    * shell out explicitly.
@@ -85,6 +90,7 @@ const {
   navigation,
   route,
   searchEnabled,
+  locale,
   // `config.ask` is null whenever Ask AI is off, so the header is the one place
   // that has to know — the Ask trigger below and the search modal's hand-off to
   // it both switch on this, and every page gets both for free.
@@ -183,7 +189,7 @@ const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-b
       </button>
     )
   }
-  <LogoSlot logo={logo} site={site} />
+  <LogoSlot locale={locale} logo={logo} site={site} />
   {
     navigation.selectors.length > 0 && (
       <div class="flex items-center gap-1.5">

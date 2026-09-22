@@ -80,6 +80,23 @@ export const localizeRoute = (
 };
 
 /**
+ * Localize a configured link target the way header tabs are: a root-relative
+ * internal path (`/`, `/docs`) moves into `code`'s prefix, and anything else —
+ * an absolute URL, a fragment, a relative path — passes through. `//host/path`
+ * is protocol-relative, an external URL that happens to start with a slash, so
+ * it must not pick up a locale prefix (`withBasePath` draws the same line).
+ * With no i18n (`null`) the path is returned as-is.
+ */
+export const localizeInternalPath = (
+  path: string,
+  code: string,
+  i18n: LocaleRouting | null
+): string =>
+  i18n && path.startsWith("/") && !path.startsWith("//")
+    ? localizeRoute(path, code, i18n)
+    : path;
+
+/**
  * Detect a leading non-default locale directory in a path's segments. The
  * default locale lives at the content root, so only non-default codes are
  * matched as a leading segment. Returns the resolved locale and the remaining
