@@ -67,6 +67,13 @@ export interface AssetContext {
    * download at once. Defaults to no gate.
    */
   limit?: <T>(task: () => Promise<T>) => Promise<T>;
+  /**
+   * Downloads in progress, keyed by asset stem. A source shares one table
+   * (alongside `limit`) across every page it materializes, so two pages that
+   * reference the same asset share one download instead of racing to publish
+   * the same file. Defaults to a table private to this call.
+   */
+  inFlight?: Map<string, Promise<string>>;
   /** Abort a download that hasn't completed within this many milliseconds. */
   timeoutMs?: number;
 }
@@ -128,6 +135,7 @@ export const materializeAssets = async (
 ): Promise<{ markdown: string; diagnostics: Diagnostic[] }> => {
   const doFetch = ctx.fetchImpl ?? globalThis.fetch;
   const limit = ctx.limit ?? ((task) => task());
+  const inFlight = ctx.inFlight ?? new Map<string, Promise<string>>();
   const timeoutMs = ctx.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const diagnostics: Diagnostic[] = [];
 
@@ -151,13 +159,7 @@ export const materializeAssets = async (
   }
 
   /** Fetch one asset into the asset dir and return its file name. */
-  const download = async (url: string): Promise<string> => {
-    // Hash the query-less URL: CMS asset URLs are pre-signed, so the query
-    // changes on every fetch of the same file — hashing it would mint a new
-    // file each refresh and re-dirty the content digest. Two real assets
-    // sharing scheme+host+path and differing only in query are rare enough to
-    // accept colliding.
-    const stem = hashText(url.split("?")[0] ?? url);
+  const download = async (url: string, stem: string): Promise<string> => {
     const urlExt = extFromUrl(url);
     // The name is known up front whenever the path has an extension (every
     // Notion upload does), so a file from an earlier run is reused as is;
@@ -189,9 +191,8 @@ export const materializeAssets = async (
     // megabytes where an image was a hundred kilobytes. Write to a temporary
     // name unique to this attempt and rename on completion, so a download that
     // dies midway never leaves a truncated file the next run would trust as
-    // complete, and two pages fetching the same asset at once (the gate bounds
-    // concurrency, it doesn't dedupe) never write into each other's file —
-    // both publish identical bytes and the last rename wins.
+    // complete. Two pages fetching the same asset at once share one download
+    // through `inFlight` (below), so no two attempts ever publish one file.
     const part = `${target}.${randomUUID()}${PART_SUFFIX}`;
     try {
       await writeFile(part, res.body);
@@ -203,11 +204,46 @@ export const materializeAssets = async (
     return file;
   };
 
+  /**
+   * Publish one asset, joining a download another page already has in
+   * flight. The gate sits inside the shared promise, so a page waiting on
+   * another page's download holds no slot of its own. A waiter whose
+   * publisher failed makes its own attempt, exactly as it would have without
+   * sharing — one transient error must not fail every page naming the asset.
+   */
+  const publish = async (url: string): Promise<string> => {
+    // Hash the query-less URL: CMS asset URLs are pre-signed, so the query
+    // changes on every fetch of the same file — hashing it would mint a new
+    // file each refresh and re-dirty the content digest. Two real assets
+    // sharing scheme+host+path and differing only in query are rare enough to
+    // accept colliding.
+    const stem = hashText(url.split("?")[0] ?? url);
+    const pending = inFlight.get(stem);
+    if (pending) {
+      try {
+        return await pending;
+      } catch {
+        // The failed download has left the table by now: join whichever
+        // waiter retried first, or go it alone.
+        return await publish(url);
+      }
+    }
+    const own = (async () => {
+      try {
+        return await limit(() => download(url, stem));
+      } finally {
+        inFlight.delete(stem);
+      }
+    })();
+    inFlight.set(stem, own);
+    return await own;
+  };
+
   const rewrites = new Map<string, string>();
   await Promise.all(
     [...urls].map(async (url) => {
       try {
-        const file = await limit(() => download(url));
+        const file = await publish(url);
         rewrites.set(url, `${ctx.assetsBaseUrl}/${file}`);
       } catch (error) {
         // SAFETY: everything thrown in this block is an Error — the manual

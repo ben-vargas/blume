@@ -96,7 +96,21 @@ export const surfaceAdapterOutput = async (
   // ERR_MODULE_NOT_FOUND. Verbatim, the links stay relative and internal to the
   // bundle, surviving both this move and the platform's own (Vercel mounts the
   // bundle at `/var/task`).
-  await cp(from, to, { recursive: true, verbatimSymlinks: true });
+  try {
+    await cp(from, to, { recursive: true, verbatimSymlinks: true });
+  } catch (error) {
+    // SAFETY: a rejected `cp` always yields a Node system error, whose `code`
+    // is the only field read here.
+    if ((error as NodeJS.ErrnoException).code !== "EPERM") {
+      throw error;
+    }
+    // `EPERM` is Windows refusing to create a symlink without Developer Mode
+    // or admin rights (the same answer `symlinkDir` handles for the deps
+    // link). Copy through the links instead: each becomes an ordinary
+    // directory holding its target's files — bigger, but self-contained.
+    await rm(to, { force: true, recursive: true });
+    await cp(from, to, { dereference: true, recursive: true });
+  }
   await rm(from, { force: true, recursive: true });
   return { from, moved: true, to };
 };

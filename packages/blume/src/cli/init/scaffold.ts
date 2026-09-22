@@ -186,6 +186,25 @@ export const detectPackageManager = (userAgent?: string): PackageManager => {
 };
 
 /**
+ * The nearest directory at or above `root` holding `.git` (a directory, or
+ * the file a worktree or submodule carries), or null outside a repository.
+ * Checked by presence rather than by asking git, so no path spelling is ever
+ * compared: git prints its toplevel with symlinks and Windows 8.3 short
+ * names resolved, which nothing in Node canonicalizes to.
+ */
+const repositoryRootOf = (root: string): string | null => {
+  let dir = root;
+  while (!existsSync(join(dir, ".git"))) {
+    const parent = dirname(dir);
+    if (parent === dir) {
+      return null;
+    }
+    dir = parent;
+  }
+  return dir;
+};
+
+/**
  * Detect an existing project's package manager from its lockfile /
  * `packageManager` field (package-manager-detector), falling back to the
  * user agent. Right for `eject`: the CLI is often run directly (`npx blume
@@ -196,7 +215,15 @@ export const detectPackageManager = (userAgent?: string): PackageManager => {
 export const detectProjectPackageManager = async (
   root: string
 ): Promise<PackageManager> => {
-  const detected = await detect({ cwd: root });
+  // A workspace package keeps its lockfile and `packageManager` field at the
+  // repository root, so the walk climbs that far — but no further, or a
+  // `package.json` in an unrelated ancestor (a user's home directory, say)
+  // decides the project's commands. Outside a repository the project root is
+  // the only directory that can be trusted.
+  const detected = await detect({
+    cwd: root,
+    stopDir: repositoryRootOf(root) ?? root,
+  });
   const name = detected?.name;
   return name !== undefined && isPackageManager(name)
     ? name
