@@ -844,6 +844,58 @@ describe("layout chrome sources", () => {
     expect(source).toContain("{strings.page.skipToContent}");
   });
 
+  it("advertises agent discovery from the snapshot in every shell", async () => {
+    // A custom page on `PageLayout` (the generated 404 included) never passes a
+    // `discovery` prop, so the shell has to fall back to the resolved snapshot
+    // or that page silently loses the `describedby` / `ai-catalog` / `ard`
+    // links the docs pages carry. `RootLayout` and the Scalar `ReferenceLayout`
+    // default it too, so every page shell is covered without wiring anything
+    // up — and all three render the one `DiscoveryLinks` partial, so the head
+    // block has a single definition to keep in sync.
+    const shells = [
+      "PageLayout.astro",
+      "ReferenceLayout.astro",
+      "RootLayout.astro",
+    ];
+    const sources = await Promise.all(shells.map(layoutSource));
+    for (const source of sources) {
+      expect(source).toContain("discovery = data.config.discovery,");
+      expect(source).toContain("<DiscoveryLinks discovery={discovery}");
+    }
+    const partial = await layoutSource("DiscoveryLinks.astro");
+    expect(partial).toContain('rel="describedby"');
+    expect(partial).toContain('rel="ai-catalog"');
+    expect(partial).toContain('rel="ard"');
+    // `discovery={null}` drops every link the partial renders, the Markdown
+    // alternate included — it must not survive the opt-out on its own.
+    expect(partial).toContain("discovery && markdownMirror && (");
+    expect(partial).toContain('rel="alternate" type="text/markdown"');
+  });
+
+  it("advertises the homepage Markdown mirror from PageLayout", async () => {
+    // `/index.md` always exists (`markdownRoutePaths` appends the root; a
+    // landing page gets the synthesized llms.txt index), and the homepage HTTP
+    // `Link` header already advertises it — so a PageLayout homepage must carry
+    // the same `alternate` in its head for hosts that can't set that header,
+    // while any other custom route (no mirror) must not advertise one.
+    const source = await layoutSource("PageLayout.astro");
+    expect(source).toContain(
+      'const markdownMirror = route === "/" ? withBase("/index.md") : null;'
+    );
+    // The documented homepage examples omit `page.route`; a non-root page that
+    // copies them must resolve its own route from the request URL, or it
+    // would advertise `/index.md` (and the homepage canonical) as its own.
+    expect(source).toContain(
+      'stripBase(import.meta.env.BASE_URL ?? "/", Astro.url.pathname)'
+    );
+    expect(source).toContain(
+      "<DiscoveryLinks discovery={discovery} markdownMirror={markdownMirror} />"
+    );
+    // The reference shell has no mirror to advertise: no `markdownMirror` prop.
+    const reference = await layoutSource("ReferenceLayout.astro");
+    expect(reference).toContain("<DiscoveryLinks discovery={discovery} />");
+  });
+
   it("scopes search to the page locale from the i18n snapshot in every shell", async () => {
     // The switcher list only exists on catch-all content pages; deriving the
     // search locale from it left custom pages, the changelog index, the 404

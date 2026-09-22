@@ -23,6 +23,7 @@ import type {
   BlumeDataConfig,
   BlumeFavicon,
   BlumeLogo,
+  DiscoveryHeadLinks,
 } from "../../core/data.ts";
 import data from "blume:data";
 import { EN_UI } from "../../core/i18n-ui.ts";
@@ -36,13 +37,14 @@ import {
 } from "../../og/dimensions.ts";
 import { buildStructuredData } from "../../seo/jsonld.ts";
 import { normalizeXHandle } from "../../seo/x-handle.ts";
-import { withBase } from "../islands/base-path.ts";
+import { stripBase, withBase } from "../islands/base-path.ts";
 import { pageDirection, pageLocale } from "./page-locale.ts";
 import { searchLocaleFor } from "./search-locale.ts";
 import "blume:theme";
 import { ClientRouter } from "astro:transitions";
 import Analytics from "./Analytics.astro";
 import Banner from "./Banner.astro";
+import DiscoveryLinks from "./DiscoveryLinks.astro";
 import Favicon from "./Favicon.astro";
 import Fonts from "./Fonts.astro";
 import {
@@ -65,7 +67,10 @@ interface Props {
   /**
    * Title/description/route for `<title>`, `og:*`, and the header active link.
    * Unlike RootLayout, `title` is used verbatim (no `- siteTitle` suffix), since
-   * marketing pages usually set their own complete document title.
+   * marketing pages usually set their own complete document title. An omitted
+   * `route` is read from the request URL (base-less), so a page that never
+   * passes one still gets its own canonical, OG card, and Markdown mirror
+   * rather than the homepage's.
    */
   page?: { title?: string; description?: string; route?: string };
   themeMode: "system" | "light" | "dark";
@@ -113,6 +118,14 @@ interface Props {
    */
   structuredDataEnabled?: boolean;
   /**
+   * Which agent-discovery resources exist, advertised as `describedby` head
+   * links plus the AI Catalog/ARD pair — the same `DiscoveryLinks` partial
+   * RootLayout renders. A custom page gets this from the `blume:data` snapshot
+   * without wiring anything up; pass it to override, or `null` to drop the
+   * links.
+   */
+  discovery?: DiscoveryHeadLinks | null;
+  /**
    * X (Twitter) attribution (`data.config.x`): the site's account and an author
    * handle, emitted as `twitter:site`/`twitter:creator`.
    */
@@ -158,6 +171,7 @@ const {
   ogImageSize,
   canonical,
   structuredDataEnabled,
+  discovery = data.config.discovery,
   x,
   noindex,
   locale: localeProp,
@@ -188,8 +202,21 @@ const navStrings = { ...EN_UI.nav, ...strings.nav };
 const searchLocale = searchLocaleFor(data.config.i18n, locale);
 const pageTitle = page?.title ?? site.title;
 const description = page?.description ?? site.description;
-const route = page?.route ?? "/";
+// An omitted `page.route` falls back to the request pathname with the
+// deployment base stripped, not to `/`: a non-root page that copies the
+// homepage example would otherwise claim the homepage's canonical, OG card,
+// and `/index.md` mirror. `trailingSlash: "never"` keeps the pathname bare.
+const route =
+  page?.route ??
+  stripBase(import.meta.env.BASE_URL ?? "/", Astro.url.pathname);
 const activeTab = currentTabForRoute(navigation.tabs, route, navigation.root);
+
+// A custom page has no raw-Markdown mirror — except the homepage: `/index.md`
+// always exists (see `markdownRoutePaths`; a landing page gets the synthesized
+// llms.txt index), and the homepage HTTP `Link` header already advertises it,
+// so the head is its HTML counterpart on hosts that can't set that header.
+// Advertising a mirror for any other custom route would 404.
+const markdownMirror = route === "/" ? withBase("/index.md") : null;
 
 // Derive canonical + og:image from the site URL the same way the catch-all does
 // for content pages, so a custom page gets both for free. The matching OG card
@@ -329,6 +356,9 @@ createIconSprite(Astro.locals);
     {description && <meta content={description} name="twitter:description" />}
     {xSite && <meta content={xSite} name="twitter:site" />}
     {xCreator && <meta content={xCreator} name="twitter:creator" />}
+    {/* Agent discovery on every page, so a custom page built on PageLayout is
+        covered without passing a prop, the same way the docs pages are. */}
+    <DiscoveryLinks discovery={discovery} markdownMirror={markdownMirror} />
     {
       structuredDataJson && (
         <script

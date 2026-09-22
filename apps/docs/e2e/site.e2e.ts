@@ -36,6 +36,43 @@ test.describe("navigation", () => {
   });
 });
 
+test.describe("agent discovery", () => {
+  // The homepage and `/cli` are hand-built PageLayout pages, the docs routes
+  // are RootLayout ones; the AI Catalog / ARD pair and the `describedby`
+  // resources are promised for every page's head, so a custom page must not
+  // silently drop out of the agent-facing surface (issue #298).
+  for (const path of ["/", "/cli", "/docs"]) {
+    test(`${path} carries the catalog head links`, async ({ page }) => {
+      await page.goto(path);
+      await expect(page.locator('link[rel="ai-catalog"]')).toHaveCount(1);
+      await expect(page.locator('link[rel="ard"]')).toHaveCount(1);
+      await expect(
+        page.locator('link[rel="describedby"][href$="/agent-readability.json"]')
+      ).toHaveCount(1);
+      await expect(
+        page.locator('link[rel="describedby"][href$="/llms.txt"]')
+      ).toHaveCount(1);
+    });
+  }
+
+  test("/ advertises its Markdown mirror", async ({ page }) => {
+    // The homepage is a PageLayout page, but `/index.md` always exists, so its
+    // head carries the same `alternate` the docs pages do.
+    await page.goto("/");
+    await expect(
+      page.locator('link[rel="alternate"][type="text/markdown"]')
+    ).toHaveAttribute("href", "/index.md");
+  });
+
+  test("/cli advertises no Markdown mirror", async ({ page }) => {
+    // A non-root custom page has no `.md` mirror, so advertising one would 404.
+    await page.goto("/cli");
+    await expect(
+      page.locator('link[rel="alternate"][type="text/markdown"]')
+    ).toHaveCount(0);
+  });
+});
+
 test.describe("theme toggle", () => {
   test("flips the color scheme", async ({ page }) => {
     await page.goto("/docs");
