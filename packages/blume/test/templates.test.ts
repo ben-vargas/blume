@@ -512,8 +512,20 @@ describe("changelogIndexTemplate", () => {
     // Route lookup keyed by the collection entry id (matches the manifest);
     // the manifest route is base-less, so the row rebases it like the
     // catch-all's canonical does, and falls back to the row's own anchor.
+    // Every locale's route for an entry shares its id (translations and
+    // fallback copies alike), so only the default locale's routes fill the
+    // map — a map over all of them kept the last locale's permalink — and an
+    // entry with no default-locale page (a translated changelog file) is
+    // left off the unlocalized index rather than listed twice.
     expect(out).toContain(
-      "data.routes.map((route) => [route.entryId, route.path])"
+      "const defaultLocale = i18n ? i18n.defaultLocale : null;"
+    );
+    expect(out).toContain(
+      "if (defaultLocale === null || route.locale === defaultLocale) {"
+    );
+    expect(out).toContain("routeByEntry.set(route.entryId, route.path);");
+    expect(out).toContain(
+      "(defaultLocale === null || routeByEntry.has(entry.id))"
     );
     expect(out).toContain("const route = routeByEntry.get(entry.id);");
     expect(out).toContain("href: route ? withBase(route) : null,");

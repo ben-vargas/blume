@@ -2400,10 +2400,21 @@ const slugify = (text: string) =>
   "update";
 
 // Map each entry to its own generated page so the row can link to it. The
-// collection entry id matches the route manifest's \`entryId\`.
-const routeByEntry = new Map(
-  data.routes.map((route) => [route.entryId, route.path])
-);
+// collection entry id matches the route manifest's \`entryId\` — and under
+// i18n every locale serves a page for it (its translations plus fallback
+// copies of an untranslated one), all sharing that id, so a map over every
+// route would keep whichever locale came last: a Portuguese permalink on an
+// unlocalized index. Only the default locale's routes are kept, and an entry
+// is listed only when it has one, so a translated changelog file (a distinct
+// entry that lives under its own locale) does not add a second row for the
+// same release.
+const defaultLocale = i18n ? i18n.defaultLocale : null;
+const routeByEntry = new Map<string, string>();
+for (const route of data.routes) {
+  if (defaultLocale === null || route.locale === defaultLocale) {
+    routeByEntry.set(route.entryId, route.path);
+  }
+}
 
 const changelogEntries = [
   ...(await getCollection("docs")),${stagedSpread}
@@ -2412,7 +2423,8 @@ const changelogEntries = [
     (entry) =>
       entry.data.type === "changelog" &&
       !entry.data.draft &&
-      !entry.data.sidebar?.hidden
+      !entry.data.sidebar?.hidden &&
+      (defaultLocale === null || routeByEntry.has(entry.id))
   )
   .toSorted(
     (a, b) =>
