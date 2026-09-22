@@ -42,7 +42,6 @@ export const de: UIStringsOverride = {
   banner: { dismiss: "Ankündigung schließen" },
   changelog: {
     description: "Produkt-Updates und Versionshinweise.",
-    showReleases: "Releases für {version} anzeigen",
     title: "Änderungsprotokoll",
   },
   content: { diagramError: "Dieses Diagramm konnte nicht dargestellt werden." },

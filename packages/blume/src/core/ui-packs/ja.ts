@@ -42,7 +42,6 @@ export const ja: UIStringsOverride = {
   banner: { dismiss: "お知らせを閉じる" },
   changelog: {
     description: "製品のアップデートとリリースノート。",
-    showReleases: "{version} のリリースを表示",
     title: "変更履歴",
   },
   content: {

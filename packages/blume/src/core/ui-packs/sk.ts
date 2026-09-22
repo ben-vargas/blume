@@ -41,7 +41,6 @@ export const sk: UIStringsOverride = {
   banner: { dismiss: "Zavrieť oznámenie" },
   changelog: {
     description: "Novinky produktu a poznámky k vydaniu.",
-    showReleases: "Zobraziť vydania {version}",
     title: "Zoznam zmien",
   },
   content: { diagramError: "Tento diagram sa nepodarilo vykresliť." },

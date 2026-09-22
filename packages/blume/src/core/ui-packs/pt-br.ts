@@ -42,7 +42,6 @@ export const ptBR: UIStringsOverride = {
   banner: { dismiss: "Fechar o anúncio" },
   changelog: {
     description: "Atualizações do produto e notas de lançamento.",
-    showReleases: "Mostrar versões {version}",
     title: "Registro de alterações",
   },
   content: {

@@ -41,7 +41,6 @@ export const fi: UIStringsOverride = {
   banner: { dismiss: "Sulje ilmoitus" },
   changelog: {
     description: "Tuotepäivitykset ja julkaisutiedot.",
-    showReleases: "Näytä version {version} julkaisut",
     title: "Muutosloki",
   },
   content: { diagramError: "Tätä kaaviota ei voitu näyttää." },

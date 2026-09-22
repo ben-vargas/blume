@@ -41,7 +41,6 @@ export const fa: UIStringsOverride = {
   banner: { dismiss: "بستن اطلاعیه" },
   changelog: {
     description: "به‌روزرسانی‌های محصول و یادداشت‌های انتشار.",
-    showReleases: "نمایش انتشارهای {version}",
     title: "گزارش تغییرات",
   },
   content: { diagramError: "نمایش این نمودار ممکن نشد." },

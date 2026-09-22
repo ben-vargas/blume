@@ -42,7 +42,6 @@ export const ko: UIStringsOverride = {
   banner: { dismiss: "공지 닫기" },
   changelog: {
     description: "제품 업데이트 및 릴리스 노트.",
-    showReleases: "{version} 릴리스 보기",
     title: "변경 로그",
   },
   content: {

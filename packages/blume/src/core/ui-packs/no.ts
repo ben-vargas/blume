@@ -42,7 +42,6 @@ export const no: UIStringsOverride = {
   banner: { dismiss: "Lukk kunngjøringen" },
   changelog: {
     description: "Produktoppdateringer og utgivelsesnotater.",
-    showReleases: "Vis utgivelser for {version}",
     title: "Endringslogg",
   },
   content: { diagramError: "Kunne ikke vise dette diagrammet." },

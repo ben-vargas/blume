@@ -42,7 +42,6 @@ export const ro: UIStringsOverride = {
   banner: { dismiss: "Închide anunțul" },
   changelog: {
     description: "Actualizări ale produsului și note de lansare.",
-    showReleases: "Afișează lansările {version}",
     title: "Jurnal de modificări",
   },
   content: { diagramError: "Nu s-a putut reda această diagramă." },

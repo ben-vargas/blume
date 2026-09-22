@@ -42,7 +42,6 @@ export const sv: UIStringsOverride = {
   banner: { dismiss: "Stäng meddelandet" },
   changelog: {
     description: "Produktuppdateringar och versionsinformation.",
-    showReleases: "Visa utgåvor för {version}",
     title: "Ändringslogg",
   },
   content: { diagramError: "Det här diagrammet kunde inte visas." },

@@ -42,7 +42,6 @@ export const tr: UIStringsOverride = {
   banner: { dismiss: "Duyuruyu kapat" },
   changelog: {
     description: "Ürün güncellemeleri ve sürüm notları.",
-    showReleases: "{version} sürümlerini göster",
     title: "Değişiklik günlüğü",
   },
   content: { diagramError: "Bu diyagram görüntülenemedi." },

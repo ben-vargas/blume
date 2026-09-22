@@ -2332,14 +2332,13 @@ export const generateRuntime = async (
     );
   }
 
-  // Changelog index (`/changelog`), rendered through the Update timeline layout.
+  // Changelog index (`/changelog`): every release as a row, grouped by year.
   if (changelogIndex) {
     await write(
       join(srcDir, "pages", "changelog.astro"),
       changelogIndexTemplate({
         exportEpub,
         exportPdf,
-        mathEnabled: usesMath,
         needsReact,
         staged: hasStaged,
       })

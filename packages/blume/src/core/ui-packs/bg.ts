@@ -42,7 +42,6 @@ export const bg: UIStringsOverride = {
   banner: { dismiss: "Затваряне на съобщението" },
   changelog: {
     description: "Актуализации на продукта и бележки към изданията.",
-    showReleases: "Покажи изданията на {version}",
     title: "Дневник на промените",
   },
   content: { diagramError: "Тази диаграма не можа да бъде показана." },

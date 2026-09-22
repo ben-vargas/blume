@@ -41,7 +41,6 @@ export const hi: UIStringsOverride = {
   banner: { dismiss: "घोषणा बंद करें" },
   changelog: {
     description: "उत्पाद अपडेट और रिलीज़ नोट्स।",
-    showReleases: "{version} रिलीज़ दिखाएँ",
     title: "परिवर्तन लॉग",
   },
   content: { diagramError: "यह डायग्राम रेंडर नहीं हो सका।" },

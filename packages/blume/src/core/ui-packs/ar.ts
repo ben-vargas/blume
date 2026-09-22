@@ -41,7 +41,6 @@ export const ar: UIStringsOverride = {
   banner: { dismiss: "إغلاق الإعلان" },
   changelog: {
     description: "تحديثات المنتج وملاحظات الإصدارات.",
-    showReleases: "عرض إصدارات {version}",
     title: "سجل التغييرات",
   },
   content: { diagramError: "تعذّر عرض هذا المخطط." },

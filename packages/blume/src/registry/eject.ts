@@ -563,7 +563,6 @@ export const eject = async (
     ...changelogFiles(project, pages, srcDir, {
       exportEpub,
       exportPdf,
-      mathEnabled: usesMath,
       needsReact,
       staged: hasStaged,
     })

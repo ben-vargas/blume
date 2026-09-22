@@ -42,7 +42,6 @@ export const nl: UIStringsOverride = {
   banner: { dismiss: "Aankondiging sluiten" },
   changelog: {
     description: "Productupdates en releaseopmerkingen.",
-    showReleases: "Releases voor {version} tonen",
     title: "Wijzigingslogboek",
   },
   content: { diagramError: "Dit diagram kon niet worden weergegeven." },

@@ -42,7 +42,6 @@ export const ca: UIStringsOverride = {
   banner: { dismiss: "Tanca l'anunci" },
   changelog: {
     description: "Actualitzacions del producte i notes de la versió.",
-    showReleases: "Mostra les versions {version}",
     title: "Registre de canvis",
   },
   content: {

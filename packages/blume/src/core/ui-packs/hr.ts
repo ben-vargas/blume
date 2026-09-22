@@ -42,7 +42,6 @@ export const hr: UIStringsOverride = {
   banner: { dismiss: "Zatvori obavijest" },
   changelog: {
     description: "Ažuriranja proizvoda i napomene o izdanjima.",
-    showReleases: "Prikaži izdanja {version}",
     title: "Popis promjena",
   },
   content: { diagramError: "Ovaj dijagram nije moguće prikazati." },

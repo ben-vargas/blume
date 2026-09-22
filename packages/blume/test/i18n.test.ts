@@ -996,8 +996,6 @@ describe("UI dictionaries", () => {
     expect(EN_UI.nav.toggleTheme).toBe("Toggle color theme");
     expect(EN_UI.search.results).toBe("Results");
     expect(EN_UI.search.error).toBe("Something went wrong. Please try again.");
-    // Parameterized: `{version}` is replaced with the major line at render time.
-    expect(EN_UI.changelog.showReleases).toContain("{version}");
     expect(EN_UI.content.diagramError).toBe("Could not render this diagram.");
     expect(EN_UI.ask.you).toBe("You");
     // A locale with no shipped pack still resolves every key to English.

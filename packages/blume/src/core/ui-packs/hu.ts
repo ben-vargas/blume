@@ -42,7 +42,6 @@ export const hu: UIStringsOverride = {
   banner: { dismiss: "Közlemény bezárása" },
   changelog: {
     description: "Termékfrissítések és kiadási megjegyzések.",
-    showReleases: "{version} kiadások megjelenítése",
     title: "Változásnapló",
   },
   content: { diagramError: "Ezt a diagramot nem sikerült megjeleníteni." },

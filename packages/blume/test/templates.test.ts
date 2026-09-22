@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 
@@ -408,7 +408,7 @@ describe("examplesPageTemplate", () => {
   });
 });
 
-const changelogOpts = { ...exportOpts, mathEnabled: false };
+const changelogOpts = exportOpts;
 
 const componentMapOf = (source: string) =>
   /const components = \{[^}]*\};/u.exec(source)?.[0];
@@ -416,44 +416,45 @@ const componentMapOf = (source: string) =>
 describe("changelogIndexTemplate", () => {
   it("imports layout overrides and passes them to RootLayout", () => {
     const out = changelogIndexTemplate({ ...changelogOpts, staged: false });
+    // Only the layout slots: no entry body renders, so no MDX component map.
     expect(out).toContain(
-      'import { mdxComponents as userMdx, layoutOverrides } from "../generated/components.ts"'
+      'import { layoutOverrides } from "../generated/components.ts"'
     );
+    expect(out).not.toContain("mdxComponents");
     expect(out).toContain("layout={layoutOverrides}");
   });
 
-  it("renders every entry body with the same component map as the catch-all", () => {
+  it("lists each release as a linked row without rendering its body", () => {
     const out = changelogIndexTemplate({ ...changelogOpts, staged: false });
-    const page = catchAllPageTemplate({ ...exportOpts, mathEnabled: false });
-    // A `:::` directive compiles to `<Callout>`; without the map, an MDX body
-    // that uses one throws "Expected component `Callout` to be defined" on the
-    // index (build and dev) while the entry's own page renders it fine.
-    expect(out).toContain(
-      'import Callout from "blume/components/content/Callout.astro"'
-    );
-    expect(out).toContain(
-      'import { mdxComponents as userMdx, layoutOverrides } from "../generated/components.ts"'
-    );
-    expect(componentMapOf(out)).toBeDefined();
-    expect(componentMapOf(out)).toBe(componentMapOf(page));
-    expect(out).not.toContain("<Content />");
-    expect(out.match(/<Content components=\{components\} \/>/gu)).toHaveLength(
-      3
-    );
+    // The index is title, tag, and date only: a body per release would grow
+    // the page past what an agent can read in one context window, and every
+    // entry has its own page. So neither the component map nor MDX rendering
+    // is wired in.
+    expect(out).not.toContain("import { getCollection, render }");
+    expect(out).not.toContain("Update.astro");
+    expect(componentMapOf(out)).toBeUndefined();
+    expect(out).not.toContain("<Content");
+    expect(out).toContain('href={item.href ?? "#" + item.id}');
+    expect(out).toContain("{item.label}");
+    expect(out).toContain("tag: entry.data.changelog?.category ?? null,");
+    expect(out).toContain("datetime={item.dateTime}");
+    // The layout gets no outline: the bare layout has no TOC to feed.
+    expect(out).toContain("headings={[]}");
   });
 
-  it("adds Math to the entry component map when math is enabled", () => {
-    const out = changelogIndexTemplate({
-      ...changelogOpts,
-      mathEnabled: true,
-      staged: false,
-    });
+  it("groups the rows by year in the configured date format's zone", () => {
+    const out = changelogIndexTemplate({ ...changelogOpts, staged: false });
+    expect(out).toContain("last.year === item.year");
+    expect(out).toContain("timeZone: dateFormatOptions.timeZone,");
+    expect(out).toContain('year: "numeric",');
+    // A row drops the year its group already shows: a preset style keeps its
+    // month wording, a component format just loses the `year` key.
     expect(out).toContain(
-      'import Math from "blume/components/content/Math.astro"'
+      "const { dateStyle, year: _year, ...dateComponents } = dateFormatOptions;"
     );
-    expect(out).toContain("  Math,\n  ...userMdx,");
-    const off = changelogIndexTemplate({ ...changelogOpts, staged: false });
-    expect(off).not.toContain("Math.astro");
+    expect(out).toContain('month: dateStyle === "medium" ? "short" : "long",');
+    expect(out).toContain("<h2 class=");
+    expect(out).toContain("{group.year}");
   });
 
   it("reads only the docs collection when no staged sources exist", () => {
@@ -506,37 +507,25 @@ describe("changelogIndexTemplate", () => {
     expect(out).not.toContain('data.config.title + " " + changelogTitle');
   });
 
-  it("links each timeline heading to its own generated page", () => {
+  it("links each row to its own generated page, under the deployment base", () => {
     const out = changelogIndexTemplate({ ...changelogOpts, staged: false });
-    // Route lookup keyed by the collection entry id (matches the manifest).
+    // Route lookup keyed by the collection entry id (matches the manifest);
+    // the manifest route is base-less, so the row rebases it like the
+    // catch-all's canonical does, and falls back to the row's own anchor.
     expect(out).toContain(
       "data.routes.map((route) => [route.entryId, route.path])"
     );
-    expect(out).toContain("href: routeByEntry.get(entry.id) ?? undefined");
-    expect(out).toContain("href={href}");
-  });
-
-  it("timeline heading links resolve under the deployment base", async () => {
-    // The template passes deploy-base-less routes; Update.astro rebases at
-    // emit time like a markdown link (composed deployment.base + basePath,
-    // idempotent per layer), and pure-anchor `#id` fallbacks pass through.
-    const source = await readFile(
-      new URL("../src/components/content/Update.astro", import.meta.url),
-      "utf-8"
-    );
-    expect(source).toContain('import { contentHref } from "./base-href.ts"');
-    expect(source).toContain(`href={contentHref(href ?? \`#\${id}\`)}`);
+    expect(out).toContain("const route = routeByEntry.get(entry.id);");
+    expect(out).toContain("href: route ? withBase(route) : null,");
+    expect(out).toContain('href={item.href ?? "#" + item.id}');
   });
 
   it("suffixes repeated heading slugs so each entry keeps its own anchor", () => {
     const out = changelogIndexTemplate({ ...changelogOpts, staged: false });
     const start = out.indexOf("const seenIds");
-    const end = out.indexOf("// A changelog is semver-paginated");
+    const end = out.indexOf("// Consecutive releases from the same year");
     expect(start).toBeGreaterThan(-1);
     expect(end).toBeGreaterThan(start);
-    // The headings list is built after the dedupe pass, so the rendered ids
-    // and the TOC slugs stay in agreement.
-    expect(out.indexOf("const headings")).toBeGreaterThan(end);
     // Run the generated dedupe pass to pin its behavior.
     // SAFETY: the generated snippet sliced above maps heading items to their
     // deduplicated id strings — the exact signature asserted below.
@@ -592,20 +581,14 @@ describe("changelogIndexTemplate", () => {
     );
   });
 
-  it("paginates by major version when the releases are semver", () => {
+  it("shows the whole history at once, with no major-version reveal", () => {
     const out = changelogIndexTemplate({ ...changelogOpts, staged: false });
-    // Detects a full major.minor.patch and groups older majors behind a button.
-    expect(out).toContain("const majorVersion");
-    expect(out).toContain("const paginate = majors.length > 1");
-    expect(out).toContain("<blume-changelog");
-    expect(out).toContain("data-changelog-major={group.major}");
-    expect(out).toContain("data-changelog-more");
-    // The reveal button's label comes from the translatable UI dictionary.
-    expect(out).toContain("data-i18n-more={data.ui.changelog?.showReleases}");
-    // The progressive-reveal element is loaded on the changelog page.
-    expect(out).toContain(
-      'import "blume/components/content/changelog-element.ts"'
-    );
+    // Rows are small enough that collapsing older majors buys nothing, so the
+    // progressive-reveal element and its localized button are gone.
+    expect(out).not.toContain("blume-changelog");
+    expect(out).not.toContain("majorVersion");
+    expect(out).not.toContain("showReleases");
+    expect(out).not.toContain("<script>");
   });
 });
 

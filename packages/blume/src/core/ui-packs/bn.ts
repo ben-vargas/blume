@@ -41,7 +41,6 @@ export const bn: UIStringsOverride = {
   banner: { dismiss: "ঘোষণা বন্ধ করুন" },
   changelog: {
     description: "পণ্য আপডেট এবং রিলিজ নোট।",
-    showReleases: "{version} রিলিজ দেখান",
     title: "পরিবর্তন লগ",
   },
   content: { diagramError: "এই ডায়াগ্রামটি রেন্ডার করা যায়নি।" },

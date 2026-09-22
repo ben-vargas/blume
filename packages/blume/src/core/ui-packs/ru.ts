@@ -42,7 +42,6 @@ export const ru: UIStringsOverride = {
   banner: { dismiss: "Закрыть объявление" },
   changelog: {
     description: "Обновления продукта и примечания к выпускам.",
-    showReleases: "Показать выпуски {version}",
     title: "Журнал изменений",
   },
   content: { diagramError: "Не удалось отобразить эту диаграмму." },

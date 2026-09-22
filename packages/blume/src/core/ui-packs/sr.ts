@@ -41,7 +41,6 @@ export const sr: UIStringsOverride = {
   banner: { dismiss: "Затвори обавештење" },
   changelog: {
     description: "Ажурирања производа и белешке о издањима.",
-    showReleases: "Прикажи издања {version}",
     title: "Дневник измена",
   },
   content: { diagramError: "Није могуће приказати овај дијаграм." },

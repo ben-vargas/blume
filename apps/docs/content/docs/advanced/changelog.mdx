@@ -3,7 +3,7 @@ title: Changelog
 description: Author release notes as ordinary content files or source them from GitHub Releases, and Blume builds a timeline page and an RSS feed automatically.
 ---
 
-Blume ships a changelog out of the box. Write each release as a normal content file, mark it `type: changelog`, and Blume collects every entry into a generated timeline page and an RSS feed — no layout to build, no list to maintain. Or skip the files entirely and [source your changelog from GitHub Releases](#from-github-releases).
+Blume ships a changelog out of the box. Write each release as a normal content file, mark it `type: changelog`, and Blume collects every entry into a generated index page and an RSS feed — no layout to build, no list to maintain. Or skip the files entirely and [source your changelog from GitHub Releases](#from-github-releases).
 
 ## Write an entry
 
@@ -25,11 +25,11 @@ A big batch of components landed this release — columns, frames, trees, and to
 - `CodeGroup` tabs with flush code blocks
 ```
 
-Give every entry a `date` so the timeline and feed sort newest-first. An unquoted YAML date is fine — Blume normalizes it.
+Give every entry a `date` so the index and feed sort newest-first. An unquoted YAML date is fine — Blume normalizes it.
 
 ### The `changelog` object
 
-The optional `changelog` object adds richer metadata for the timeline and feed:
+The optional `changelog` object adds richer metadata for the index and feed:
 
 <TypeTable
   type={{
@@ -46,20 +46,21 @@ The optional `changelog` object adds richer metadata for the timeline and feed:
     "changelog.date": {
       type: "string",
       description:
-        "Publish date. May live here or at the top level — both feed the timeline and RSS feed.",
+        "Publish date. May live here or at the top level — both feed the index and RSS feed.",
     },
   }}
 />
 
-## The timeline page
+## The index page
 
-Once you have at least one `type: changelog` entry, Blume generates a **`/changelog`** page automatically. It renders as a focused, full-width timeline — no sidebar or table of contents — with each entry newest-first, showing its date, label, and `category` tag in a left rail beside its content:
+Once you have at least one `type: changelog` entry, Blume generates a **`/changelog`** page automatically. It's a focused, full-width index — no sidebar or table of contents — that lists every release as one row, newest-first and grouped by year, so a long history stays a short page (well under the size an agent can read in a single context window):
 
-- The entry **title** becomes its label — or `v{version}` when there's no title. It links to that entry's own page, so a release is both a line in the timeline and a shareable permalink.
-- The `category` renders as a tag next to the date.
+- The entry **title** is the row's label — or `v{version}` when there's no title. It links to that entry's own page, which is where the release notes render in full.
+- The `category` renders as a tag beside the title, so a reader can tell a release from a prerelease, or features from fixes, at a glance.
+- The date follows the configured [`dateFormat`](/docs/configuration#date-format), minus the year the row's group already shows.
 - Drafts and `sidebar.hidden` entries are skipped.
 
-The page appears only when nothing already occupies the `/changelog` route. To replace it with your own design, add a [custom page](/docs/advanced/custom-pages) at `pages/changelog.astro` — it takes over and Blume stops generating the default timeline.
+The page appears only when nothing already occupies the `/changelog` route. To replace it with your own design, add a [custom page](/docs/advanced/custom-pages) at `pages/changelog.astro` — it takes over and Blume stops generating the default index. The `<Update>` component the previous timeline was built from is still available for a hand-authored page that wants inline release notes.
 
 Because this page is generated rather than authored, it isn't part of the content tree — so a header [tab](/docs/content/navigation#tabs) pointing at `/changelog` resolves to the newest entry instead. Give the tab an `href` to land on the index itself:
 
@@ -70,14 +71,6 @@ navigation: {
   ],
 }
 ```
-
-### Grouped by major version
-
-When your versions follow [semver](https://semver.org) and span more than one major, Blume paginates the timeline by major version. Only the newest major line is shown, with a **Show N.x releases** button at the bottom that reveals the next-oldest major one click at a time:
-
-- Detection is automatic — no configuration. It kicks in only when every listed release parses as `major.minor.patch` and there is more than one major; otherwise the timeline stays flat.
-- It tolerates the scoped tags monorepos publish, so `pkg@2.0.0` groups under `2.x` and `pkg@1.4.0` under `1.x`.
-- It's progressive enhancement: every release is still in the page's HTML (and its RSS feed and search index), so readers without JavaScript — and crawlers — see the complete history. The button only collapses older majors once the page hydrates.
 
 ## From GitHub Releases
 

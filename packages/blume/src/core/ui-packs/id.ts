@@ -42,7 +42,6 @@ export const id: UIStringsOverride = {
   banner: { dismiss: "Tutup pengumuman" },
   changelog: {
     description: "Pembaruan produk dan catatan rilis.",
-    showReleases: "Tampilkan rilis {version}",
     title: "Log perubahan",
   },
   content: { diagramError: "Tidak dapat menampilkan diagram ini." },

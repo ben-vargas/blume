@@ -42,7 +42,6 @@ export const pl: UIStringsOverride = {
   banner: { dismiss: "Zamknij ogłoszenie" },
   changelog: {
     description: "Aktualizacje produktu i informacje o wydaniach.",
-    showReleases: "Pokaż wydania {version}",
     title: "Dziennik zmian",
   },
   content: { diagramError: "Nie udało się wyświetlić tego diagramu." },

@@ -41,7 +41,6 @@ export const he: UIStringsOverride = {
   banner: { dismiss: "סגירת ההודעה" },
   changelog: {
     description: "עדכוני מוצר והערות גרסה.",
-    showReleases: "הצג גרסאות {version}",
     title: "יומן שינויים",
   },
   content: { diagramError: "לא ניתן להציג את התרשים הזה." },

@@ -41,7 +41,6 @@ export const vi: UIStringsOverride = {
   banner: { dismiss: "Đóng thông báo" },
   changelog: {
     description: "Cập nhật sản phẩm và ghi chú phát hành.",
-    showReleases: "Hiện các bản phát hành {version}",
     title: "Nhật ký thay đổi",
   },
   content: {

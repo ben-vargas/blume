@@ -42,7 +42,6 @@ export const el: UIStringsOverride = {
   banner: { dismiss: "Κλείσιμο ανακοίνωσης" },
   changelog: {
     description: "Ενημερώσεις προϊόντος και σημειώσεις έκδοσης.",
-    showReleases: "Εμφάνιση εκδόσεων {version}",
     title: "Ιστορικό αλλαγών",
   },
   content: {
