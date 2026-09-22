@@ -88,6 +88,10 @@ export const emitCloudflareNegotiation = async (
   // Vercel routing config.
   const rawMarkdown = await buildRawMarkdown(project);
   const home = rawMarkdown["/"];
+  // The 404 twins the wrapper may substitute for the HTML shell; only wired
+  // when the build actually emitted them (a project that owns `/404` gets
+  // neither), like the Vercel routing config.
+  const staticDir = clientDir(context);
   const injected = injectWorkerNegotiation(
     await readFile(wranglerPath, "utf-8"),
     {
@@ -98,6 +102,10 @@ export const emitCloudflareNegotiation = async (
       contentRoutePaths: project.manifest.routes.map((route) => route.path),
       homeLinkHeader: buildHomeLinkHeader(config, routePaths),
       homeTokens: home ? markdownTokenCount(agentMarkdown(home)) : undefined,
+      notFound: {
+        json: existsSync(join(staticDir, "404.json")),
+        markdown: existsSync(join(staticDir, "404.md")),
+      },
       // Exactly the per-page JSON documents the API emits (see `pageParams`):
       // the non-hidden routes with agent Markdown, when the API is on.
       pageJsonPaths: config.agents.api

@@ -13,10 +13,11 @@
  * Negotiation therefore needs two coordinated pieces, both applied to the
  * adapter's emitted deploy bundle after `astro build`:
  *
- * 1. `assets.run_worker_first` in `dist/server/wrangler.json`, scoped to the
- *    content routes so the platform routes their requests to the Worker
- *    instead of serving the static HTML directly (other assets keep their
- *    zero-Worker fast path).
+ * 1. `assets.run_worker_first` in `dist/server/wrangler.json`, claiming every
+ *    path except the static files that never negotiate, so the platform
+ *    routes page requests — and requests for pages that do not exist — to
+ *    the Worker instead of serving the static HTML directly (see
+ *    `buildRunWorkerFirstRules`).
  * 2. A generated entry Worker that fronts the adapter's: when the client
  *    prefers `text/markdown` it serves the page's prerendered `.md` mirror
  *    from the ASSETS binding, and it delegates everything else to the Astro
@@ -32,11 +33,9 @@
  * they sit in the manifest's asset set, which the handler serves from the
  * binding first. So whenever a worker-first rule claims a page JSON URL, the
  * wrapper answers it from the binding itself, keyed by the exact set of
- * documents the build emitted. The generated rule sets that would claim every
- * `.json` file — a subpath base and the coarse fallback — exempt `*.json`
+ * documents the build emitted. The generated rule set exempts `*.json`
  * outright, keeping those files on the zero-Worker path; the wrapper branch
- * covers the remaining claims (a content section under `/api`, or
- * user-configured rules).
+ * covers the claims user-configured rules (or a bare `true`) make.
  *
  * Cloudflare does not apply `_headers` to worker-first routes, so the wrapper
  * also re-stamps what the static layer would otherwise add on the routes it
@@ -62,9 +61,25 @@
  * its keys are full served URLs, which is exactly what the Worker sees.
  * Redirects outside every worker-first rule still never invoke the Worker;
  * the static layer serves them from `_redirects` as before.
+ *
+ * Missing pages negotiate too. Under an explicit `run_worker_first` list the
+ * platform answers every request outside the rules from the static layer —
+ * an asset miss included, as the nearest `404.html` — which is why the rules
+ * claim every path: a request for a URL no page backs then reaches the
+ * Worker, and the Astro Worker answers it with the HTML 404 shell from the
+ * binding (`not_found_handling: "404-page"`). When the client prefers
+ * Markdown the wrapper swaps that shell for the prerendered `/404.md` twin,
+ * and when it prefers JSON for the `/404.json` problem document, keeping the
+ * 404 status either way — the counterpart of the miss-phase routes in
+ * `deploy/vercel-negotiation.ts`. A raw `.md` or `.json` URL no file backs
+ * asks for the same twin implicitly, but on this platform such a request only
+ * reaches the Worker under a user-configured rule (the generated set keeps
+ * those extensions on the static layer for their `_headers`). Only an HTML 404
+ * is swapped, so an API endpoint's own problem document is never overwritten.
  */
 
 import { normalizePath } from "../core/base-path.ts";
+import type { NotFoundVariants } from "./vercel-negotiation.ts";
 
 /** Filename of the generated wrapper Worker, next to the adapter's entry. */
 export const NEGOTIATION_WORKER_FILE = "blume-worker.mjs";
@@ -72,28 +87,30 @@ export const NEGOTIATION_WORKER_FILE = "blume-worker.mjs";
 /**
  * Wrangler's limits on `assets.run_worker_first`: at most 100 rules of at
  * most 100 characters each. A rule set over either limit fails
- * `wrangler deploy` outright, so the builder falls back to a coarse set.
+ * `wrangler deploy` outright, so the injection is skipped instead — only
+ * user-configured rules can push the generated set over.
  */
 const MAX_RULES = 100;
 const MAX_RULE_LENGTH = 100;
 
 /**
- * Coarse fallback when the grouped rules would exceed Wrangler's limits:
- * route everything through the Worker except the fingerprinted build assets
- * and the raw AI-ready endpoints, whose `charset=utf-8` comes from `_headers`
- * (not applied on worker-first routes) and whose responses never negotiate.
- * The prerendered `.json` documents are exempted for the same reason, and
- * because the Astro Worker would hand the per-page ones to the `/api/`
- * catch-all (see the module comment); a miss on an exempted path still
- * invokes the Worker, so unknown `.json` URLs keep their problem document.
+ * The paths the generated rules leave on the static layer, relative to the
+ * deployment base: the fingerprinted build assets, and the files whose
+ * response headers come from `_headers` — which Cloudflare does not apply to
+ * a response the Worker produced — and which never negotiate. Those are the
+ * raw AI-ready endpoints (`charset=utf-8` on `.md`/`.mdx`/`.txt`), the
+ * prerendered `.json` documents (the Astro Worker would also hand the
+ * per-page ones to the `/api/` catch-all, see the module comment), and the
+ * `.well-known` discovery documents (the extensionless api-catalog's content
+ * type, the CORS headers).
  */
-const FALLBACK_RULES = [
-  "/*",
-  "!/_astro/*",
-  "!/*.md",
-  "!/*.mdx",
-  "!/*.txt",
-  "!/*.json",
+const STATIC_EXEMPTIONS = [
+  "/_astro/*",
+  "/*.md",
+  "/*.mdx",
+  "/*.txt",
+  "/*.json",
+  "/.well-known/*",
 ];
 
 /**
@@ -129,68 +146,26 @@ const ruleBody = (rule: string): string =>
   isNegativeRule(rule) ? rule.slice(1) : rule;
 
 /**
- * The `run_worker_first` rules for the given content routes: the routes that
- * must reach the Worker for negotiation, grouped by first path segment so the
- * set stays far under Wrangler's 100-rule cap on real sites. Nested groups
- * get a `/{segment}/*` glob plus negative rules exempting their raw
- * `.md`/`.mdx` mirrors; a bare route gets its exact path in both request
- * spellings (with and without the trailing slash) so no unrelated URL pays
- * the Worker hop. On a subpath deploy the whole base is routed as one group —
- * every route lives under it anyway — with the raw endpoints and the
- * prerendered `.json` documents exempted like the coarse fallback does.
+ * The `run_worker_first` rules: every path under the deployment base goes
+ * through the Worker except the {@link STATIC_EXEMPTIONS}. Claiming
+ * everything — rather than only the content routes — is what lets a
+ * *missing* page negotiate: under an explicit rule list the platform answers
+ * any request outside every rule from the static layer, an asset miss
+ * included (as the nearest `404.html`), so a rule set scoped to the content
+ * routes would never let the Worker see a request for a URL that has no
+ * page. The price is a Worker hop on every page request the site does serve.
+ * On a subpath deploy the base is claimed in both request spellings.
  *
  * Configured redirects need no exemption from these rules: the wrapper Worker
  * answers any it claims from its baked-in redirect table with the configured
  * status (see the module comment).
  */
-export const buildRunWorkerFirstRules = (
-  routePaths: readonly string[],
-  base?: string
-): string[] => {
+export const buildRunWorkerFirstRules = (base?: string): string[] => {
   const prefix = encodeURI(basePrefix(base));
-  if (prefix) {
-    return [
-      prefix,
-      `${prefix}/*`,
-      `!${prefix}/*.md`,
-      `!${prefix}/*.mdx`,
-      `!${prefix}/*.txt`,
-      `!${prefix}/*.json`,
-      `!${prefix}/_astro/*`,
-    ];
-  }
-  const groups = new Map<string, { bare: boolean; nested: boolean }>();
-  let home = false;
-  for (const route of routePaths) {
-    if (route === "/") {
-      home = true;
-      continue;
-    }
-    const segments = route.split("/").filter(Boolean);
-    const head = segments[0] ?? "";
-    const group = groups.get(head) ?? { bare: false, nested: false };
-    if (segments.length === 1) {
-      group.bare = true;
-    } else {
-      group.nested = true;
-    }
-    groups.set(head, group);
-  }
-  const rules: string[] = home ? ["/"] : [];
-  const negatives: string[] = [];
-  for (const [head, group] of groups) {
-    const segment = `/${encodeURI(head)}`;
-    if (group.bare) {
-      rules.push(segment);
-    }
-    if (group.nested) {
-      rules.push(`${segment}/*`);
-      negatives.push(`!${segment}/*.md`, `!${segment}/*.mdx`);
-    } else {
-      rules.push(`${segment}/`);
-    }
-  }
-  return [...rules, ...negatives];
+  const exemptions = STATIC_EXEMPTIONS.map((path) => `!${prefix}${path}`);
+  return prefix
+    ? [prefix, `${prefix}/*`, ...exemptions]
+    : [`/*`, ...exemptions];
 };
 
 /**
@@ -268,6 +243,12 @@ export interface NegotiationWorkerOptions {
    * the `/api/` catch-all (see the module comment).
    */
   pageJsonPaths?: readonly string[];
+  /**
+   * Which prerendered 404 twins the build emitted (`404.md`, `404.json`), so
+   * the wrapper only substitutes a twin that exists. A project that owns
+   * `/404` emits neither and keeps the HTML answer.
+   */
+  notFound?: NotFoundVariants;
 }
 
 /**
@@ -287,6 +268,10 @@ export const buildNegotiationWorker = (
   const homeTokens = JSON.stringify(
     options.homeTokens === undefined ? null : String(options.homeTokens)
   );
+  const notFound = JSON.stringify({
+    json: options.notFound?.json === true,
+    markdown: options.notFound?.markdown === true,
+  });
   // Keyed by the normalized served path; the runtime lookup decodes and
   // trims the request path the same way, so both spellings of a URL match.
   // The destination is percent-encoded here because it ships as a `Location`
@@ -309,9 +294,11 @@ export const buildNegotiationWorker = (
 // per-page JSON document is served from the binding (the Astro Worker would
 // route it to the \`/api/\` catch-all, because Astro resolves a prerendered
 // dynamic route to the first live route on the same path). Every other
-// request is delegated to the Astro Worker untouched. \`_headers\` does not
-// apply to worker-first routes, so the homepage Link header and the Markdown
-// charset are re-stamped here.
+// request is delegated to the Astro Worker untouched — except a missing
+// page, whose HTML 404 shell is swapped for the prerendered Markdown or JSON
+// 404 twin when the client prefers one. \`_headers\` does not apply to
+// worker-first routes, so the homepage Link header and the Markdown charset
+// are re-stamped here.
 import server from ${JSON.stringify(options.mainSpecifier)};
 
 const ROUTES = new Set(${routes});
@@ -321,6 +308,7 @@ const ASSETS_BINDING = ${binding};
 const HOME_LINK_HEADER = ${homeLinkHeader};
 const HOME_TOKENS = ${homeTokens};
 const REDIRECTS = ${redirects};
+const NOT_FOUND = ${notFound};
 
 // Configured redirects live in \`_redirects\`, which only the static layer
 // reads — a worker-first route never reaches it. Answering from this baked-in
@@ -383,20 +371,93 @@ const parseAccept = (accept) =>
     return { q: Number.isNaN(q) ? 1 : q, type };
   });
 
-const prefersMarkdown = (accept) => {
+// Whether the client explicitly prefers one of \`types\` over HTML. Browsers
+// never send these, so an ordinary page request is false.
+const prefers = (accept, types) => {
   if (!accept) {
     return false;
   }
-  let markdownQ = -1;
+  let wantedQ = -1;
   let htmlQ = 0;
   for (const { q, type } of parseAccept(accept)) {
-    if (type === "text/markdown" || type === "text/x-markdown") {
-      markdownQ = Math.max(markdownQ, q);
+    if (types.includes(type)) {
+      wantedQ = Math.max(wantedQ, q);
     } else if (type === "text/html") {
       htmlQ = Math.max(htmlQ, q);
     }
   }
-  return markdownQ > 0 && markdownQ >= htmlQ;
+  return wantedQ > 0 && wantedQ >= htmlQ;
+};
+
+const prefersMarkdown = (accept) =>
+  prefers(accept, ["text/markdown", "text/x-markdown"]);
+
+const prefersJson = (accept) =>
+  prefers(accept, ["application/json", "application/problem+json"]);
+
+// The prerendered 404 twins, in the order a client asking for both is
+// answered: which twin, when a client prefers it, the raw URL extension that
+// asks for it implicitly, where it lives, and the content type to re-pin.
+const NOT_FOUND_TWINS = [
+  {
+    contentType: "text/markdown; charset=utf-8",
+    extension: /\\.mdx?$/u,
+    key: "markdown",
+    path: "/404.md",
+    prefers: prefersMarkdown,
+  },
+  {
+    contentType: "application/problem+json; charset=utf-8",
+    extension: /\\.json$/u,
+    key: "json",
+    path: "/404.json",
+    prefers: prefersJson,
+  },
+];
+
+// A missing page comes back from the Astro Worker as the HTML 404 shell (the
+// binding's \`not_found_handling\`); a client that prefers Markdown or JSON —
+// or asked for a raw \`.md\`/\`.json\` URL no file backs — gets the prerendered
+// twin instead, with the same 404 status. Anything but an HTML 404 (an API
+// endpoint's own problem document, a missing image) is left alone. The twin
+// is fetched without the request's conditional headers, so a stray ETag match
+// cannot turn the 404 into a 304.
+const notFoundTwin = async (request, url, response, assets) => {
+  if (response.status !== 404 || assets === undefined) {
+    return null;
+  }
+  const type = response.headers.get("content-type") ?? "";
+  if (!type.startsWith("text/html")) {
+    return null;
+  }
+  const accept = request.headers.get("accept");
+  for (const twin of NOT_FOUND_TWINS) {
+    if (!NOT_FOUND[twin.key]) {
+      continue;
+    }
+    const negotiated = twin.prefers(accept);
+    if (!negotiated && !twin.extension.test(url.pathname)) {
+      continue;
+    }
+    const asset = await assets.fetch(
+      new Request(new URL(BASE_PREFIX + twin.path, url), {
+        method: request.method,
+      })
+    );
+    if (!asset.ok) {
+      return null;
+    }
+    const patched = new Response(asset.body, {
+      headers: asset.headers,
+      status: 404,
+    });
+    patched.headers.set("content-type", twin.contentType);
+    if (negotiated) {
+      patched.headers.append("vary", "Accept");
+    }
+    return patched;
+  }
+  return null;
 };
 
 const markdownVariantUrl = (rawUrl) => {
@@ -487,6 +548,10 @@ export default {
       }
     }
     const response = await server.fetch(request, env, context);
+    const twin = await notFoundTwin(request, url, response, assets);
+    if (twin !== null) {
+      return twin;
+    }
     if (variant === null && !(home && HOME_LINK_HEADER !== null)) {
       return response;
     }
@@ -531,13 +596,13 @@ export interface WorkerNegotiationOptions extends Omit<
  * updated config text plus the wrapper module, or `null` when there is
  * nothing to do or nowhere safe to do it: no routes, unparsable config, no
  * usable `main` or assets binding (the wrapper serves the `.md` mirrors from
- * it), an already-swapped `main` (the original entry is unrecoverable), or a
- * rule set that cannot fit Wrangler's limits even after the coarse fallback.
+ * it), an already-swapped `main` (the original entry is unrecoverable), or
+ * user-configured rules that push the set over Wrangler's limits.
  *
  * The configured redirects are baked into the wrapper, which answers any the
  * worker-first rules claim with the exact configured status (see the module
- * comment) — whichever rules do the claiming: the generated groups, the
- * coarse fallback's `/*`, or the user's own (including a bare `true`). A
+ * comment) — whichever rules do the claiming: the generated `/*`, or the
+ * user's own (including a bare `true`). A
  * redirect at a content route's own path is never baked: the page owns it,
  * and answering a redirect there would take a real page off the air. When
  * `null` is returned no rule set is written at all, so every request stays on
@@ -594,13 +659,10 @@ export const injectWorkerNegotiation = (
       redirect.from.startsWith("/") &&
       !guardRoutes.has(normalizePath(redirect.from))
   );
-  let rules = mergeRunWorkerFirstRules(
+  const rules = mergeRunWorkerFirstRules(
     assets.run_worker_first,
-    buildRunWorkerFirstRules(options.routePaths, options.base)
+    buildRunWorkerFirstRules(options.base)
   );
-  if (!withinWranglerLimits(rules)) {
-    rules = mergeRunWorkerFirstRules(assets.run_worker_first, FALLBACK_RULES);
-  }
   if (!withinWranglerLimits(rules)) {
     return null;
   }

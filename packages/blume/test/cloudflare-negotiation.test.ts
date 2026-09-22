@@ -499,6 +499,218 @@ describe("negotiation worker — responses", () => {
   });
 });
 
+/** The HTML 404 shell the Astro Worker answers a missing page with. */
+const htmlNotFound = (): Response =>
+  new Response("<html>404", {
+    headers: { "content-type": "text/html; charset=utf-8" },
+    status: 404,
+  });
+
+describe("negotiation worker — missing pages", () => {
+  /**
+   * A request no asset matches always reaches the Worker, and the Astro
+   * Worker answers it with the HTML 404 shell from the binding. The wrapper
+   * swaps that shell for the prerendered Markdown or JSON twin when the client
+   * prefers one — the counterpart of the Vercel miss-phase routes.
+   */
+  const NOT_FOUND = { json: true, markdown: true };
+
+  it("swaps the HTML shell for the Markdown twin when the client prefers Markdown", async () => {
+    const worker = await loadWorker(workerText({ notFound: NOT_FOUND }));
+    const { calls, env } = makeEnv({ serverResponse: htmlNotFound });
+    const response = await worker.fetch(
+      new Request("https://site.test/some-path-that-does-not-exist", {
+        headers: { accept: "text/markdown", "if-none-match": '"etag"' },
+      }),
+      env,
+      {}
+    );
+    expect(calls.server).toHaveLength(1);
+    expect(calls.assets).toStrictEqual(["https://site.test/404.md"]);
+    // The twin is fetched without the request's conditional headers, so an
+    // ETag match cannot turn the 404 into a 304.
+    expect(calls.assetRequests[0]?.headers.get("if-none-match")).toBeNull();
+    expect(response.status).toBe(404);
+    expect(response.headers.get("content-type")).toBe(
+      "text/markdown; charset=utf-8"
+    );
+    expect(response.headers.get("vary")).toBe("Accept");
+    expect(await response.text()).toBe("# markdown");
+  });
+
+  it("answers a .md URL no page backs with the Markdown twin, without Vary", async () => {
+    const worker = await loadWorker(workerText({ notFound: NOT_FOUND }));
+    for (const path of ["/docs/missing.md", "/docs/missing.mdx"]) {
+      const { calls, env } = makeEnv({ serverResponse: htmlNotFound });
+      // oxlint-disable-next-line no-await-in-loop -- sequential vectors
+      const response = await worker.fetch(
+        new Request(`https://site.test${path}`, {
+          headers: { accept: "*/*" },
+          method: "HEAD",
+        }),
+        env,
+        {}
+      );
+      expect(calls.assets).toStrictEqual(["https://site.test/404.md"]);
+      expect(calls.assetRequests[0]?.method).toBe("HEAD");
+      expect(response.status).toBe(404);
+      expect(response.headers.get("content-type")).toBe(
+        "text/markdown; charset=utf-8"
+      );
+      expect(response.headers.get("vary")).toBeNull();
+    }
+  });
+
+  it("serves the JSON problem document for a JSON preference or a .json URL", async () => {
+    const worker = await loadWorker(workerText({ notFound: NOT_FOUND }));
+    const negotiated = makeEnv({ serverResponse: htmlNotFound });
+    const json = await worker.fetch(
+      new Request("https://site.test/missing", {
+        headers: { accept: "application/problem+json" },
+      }),
+      negotiated.env,
+      {}
+    );
+    expect(negotiated.calls.assets).toStrictEqual([
+      "https://site.test/404.json",
+    ]);
+    expect(json.status).toBe(404);
+    expect(json.headers.get("content-type")).toBe(
+      "application/problem+json; charset=utf-8"
+    );
+    expect(json.headers.get("vary")).toBe("Accept");
+    const raw = makeEnv({ serverResponse: htmlNotFound });
+    const file = await worker.fetch(
+      new Request("https://site.test/data/missing.json"),
+      raw.env,
+      {}
+    );
+    expect(raw.calls.assets).toStrictEqual(["https://site.test/404.json"]);
+    expect(file.status).toBe(404);
+    expect(file.headers.get("vary")).toBeNull();
+  });
+
+  it("prefers the Markdown twin when a client accepts both", async () => {
+    const worker = await loadWorker(workerText({ notFound: NOT_FOUND }));
+    const { calls, env } = makeEnv({ serverResponse: htmlNotFound });
+    await worker.fetch(
+      new Request("https://site.test/missing", {
+        headers: { accept: "application/json, text/markdown" },
+      }),
+      env,
+      {}
+    );
+    expect(calls.assets).toStrictEqual(["https://site.test/404.md"]);
+  });
+
+  it("fetches the twin under the deployment base", async () => {
+    const worker = await loadWorker(
+      workerText({ base: "/site/", notFound: NOT_FOUND })
+    );
+    const { calls, env } = makeEnv({ serverResponse: htmlNotFound });
+    await worker.fetch(
+      new Request("https://site.test/site/missing", {
+        headers: { accept: "text/markdown" },
+      }),
+      env,
+      {}
+    );
+    expect(calls.assets).toStrictEqual(["https://site.test/site/404.md"]);
+  });
+
+  it("leaves a 404 alone unless it is the HTML shell", async () => {
+    // An API endpoint's own problem document is the better answer; so is a
+    // found page, whatever the client prefers.
+    const worker = await loadWorker(workerText({ notFound: NOT_FOUND }));
+    const problem = new Response("{}", {
+      headers: { "content-type": "application/problem+json" },
+      status: 404,
+    });
+    const { calls, env } = makeEnv({ serverResponse: () => problem });
+    const response = await worker.fetch(
+      new Request("https://site.test/api/docs/pages/missing.json", {
+        headers: { accept: "text/markdown" },
+      }),
+      env,
+      {}
+    );
+    expect(response).toBe(problem);
+    expect(calls.assets).toStrictEqual([]);
+    const found = makeEnv();
+    await worker.fetch(
+      new Request("https://site.test/not-a-route.md", {
+        headers: { accept: "text/markdown" },
+      }),
+      found.env,
+      {}
+    );
+    expect(found.calls.assets).toStrictEqual([]);
+  });
+
+  it("keeps the HTML shell for a client that wants HTML", async () => {
+    const worker = await loadWorker(workerText({ notFound: NOT_FOUND }));
+    const { calls, env } = makeEnv({ serverResponse: htmlNotFound });
+    const response = await worker.fetch(
+      new Request("https://site.test/missing", {
+        headers: { accept: "text/html,*/*;q=0.8" },
+      }),
+      env,
+      {}
+    );
+    expect(calls.assets).toStrictEqual([]);
+    expect(response.status).toBe(404);
+    expect(response.headers.get("content-type")).toBe(
+      "text/html; charset=utf-8"
+    );
+  });
+
+  it("keeps the HTML shell when the twin was not emitted or is missing", async () => {
+    // A project that owns `/404` emits no twins, so nothing is probed; a twin
+    // the binding cannot find (or an absent binding) leaves the shell as-is.
+    const none = await loadWorker(workerText());
+    const unwired = makeEnv({ serverResponse: htmlNotFound });
+    const shell = await none.fetch(
+      new Request("https://site.test/missing", {
+        headers: { accept: "text/markdown" },
+      }),
+      unwired.env,
+      {}
+    );
+    expect(unwired.calls.assets).toStrictEqual([]);
+    expect(shell.status).toBe(404);
+    expect(shell.headers.get("content-type")).toBe("text/html; charset=utf-8");
+    const wired = await loadWorker(workerText({ notFound: NOT_FOUND }));
+    const missing = makeEnv({
+      assetsStatus: 404,
+      serverResponse: htmlNotFound,
+    });
+    const fallback = await wired.fetch(
+      new Request("https://site.test/missing", {
+        headers: { accept: "text/markdown" },
+      }),
+      missing.env,
+      {}
+    );
+    expect(missing.calls.assets).toStrictEqual(["https://site.test/404.md"]);
+    expect(fallback.headers.get("content-type")).toBe(
+      "text/html; charset=utf-8"
+    );
+    const unbound = await loadWorker(
+      workerText({ assetsBinding: "FILES", notFound: NOT_FOUND })
+    );
+    const noBinding = makeEnv({ serverResponse: htmlNotFound });
+    const untouched = await unbound.fetch(
+      new Request("https://site.test/missing", {
+        headers: { accept: "text/markdown" },
+      }),
+      noBinding.env,
+      {}
+    );
+    expect(noBinding.calls.assets).toStrictEqual([]);
+    expect(untouched.status).toBe(404);
+  });
+});
+
 describe("negotiation worker — configured redirects", () => {
   /**
    * Configured redirects keep their status only in `_redirects`, which only
@@ -637,47 +849,45 @@ describe("negotiation worker — configured redirects", () => {
   });
 });
 
+/** The generated rule set on a root deploy. */
+const ROOT_RULES = [
+  "/*",
+  "!/_astro/*",
+  "!/*.md",
+  "!/*.mdx",
+  "!/*.txt",
+  "!/*.json",
+  "!/.well-known/*",
+];
+
 describe("buildRunWorkerFirstRules", () => {
-  it("groups routes by first segment with .md/.mdx exemptions", () => {
-    expect(buildRunWorkerFirstRules(ROUTES)).toStrictEqual([
-      "/",
-      "/docs/*",
-      "/changelog",
-      "/changelog/",
-      "/ja/*",
-      "!/docs/*.md",
-      "!/docs/*.mdx",
-      "!/ja/*.md",
-      "!/ja/*.mdx",
-    ]);
+  it("claims every path except the static files that never negotiate", () => {
+    // Under an explicit rule list the platform answers a request outside
+    // every rule from the static layer — an asset miss included — so only a
+    // set that claims everything lets a missing page reach the Worker. The
+    // exemptions are the files whose headers come from `_headers`, which
+    // Cloudflare never applies to a Worker response.
+    expect(buildRunWorkerFirstRules()).toStrictEqual(ROOT_RULES);
+    expect(buildRunWorkerFirstRules("/")).toStrictEqual(ROOT_RULES);
   });
 
-  it("emits both request spellings for a bare route inside a nested group", () => {
-    expect(buildRunWorkerFirstRules(["/docs", "/docs/a"])).toStrictEqual([
-      "/docs",
-      "/docs/*",
-      "!/docs/*.md",
-      "!/docs/*.mdx",
-    ]);
-  });
-
-  it("percent-encodes non-ASCII segments", () => {
-    expect(buildRunWorkerFirstRules(["/はじめに"])).toStrictEqual([
-      "/%E3%81%AF%E3%81%98%E3%82%81%E3%81%AB",
-      "/%E3%81%AF%E3%81%98%E3%82%81%E3%81%AB/",
-    ]);
-  });
-
-  it("routes the whole base as one group on a subpath deploy", () => {
-    expect(buildRunWorkerFirstRules(["/", "/docs/a"], "/site/")).toStrictEqual([
+  it("claims the whole base, in both spellings, on a subpath deploy", () => {
+    expect(buildRunWorkerFirstRules("/site/")).toStrictEqual([
       "/site",
       "/site/*",
+      "!/site/_astro/*",
       "!/site/*.md",
       "!/site/*.mdx",
       "!/site/*.txt",
       "!/site/*.json",
-      "!/site/_astro/*",
+      "!/site/.well-known/*",
     ]);
+  });
+
+  it("percent-encodes a non-ASCII base", () => {
+    expect(buildRunWorkerFirstRules("/ドキュメント")[1]).toBe(
+      "/%E3%83%89%E3%82%AD%E3%83%A5%E3%83%A1%E3%83%B3%E3%83%88/*"
+    );
   });
 });
 
@@ -716,7 +926,7 @@ describe("mergeRunWorkerFirstRules", () => {
 });
 
 describe("injectWorkerNegotiation", () => {
-  it("swaps main for the wrapper and scopes run_worker_first to content routes", () => {
+  it("swaps main for the wrapper and claims every path with run_worker_first", () => {
     const result = injectWorkerNegotiation(wranglerConfig(), {
       homeLinkHeader: HOME_LINK,
       homeTokens: 123,
@@ -725,9 +935,7 @@ describe("injectWorkerNegotiation", () => {
     expect(result).not.toBeNull();
     const config = JSON.parse(result?.wrangler ?? "");
     expect(config.main).toBe(NEGOTIATION_WORKER_FILE);
-    expect(config.assets.run_worker_first).toStrictEqual(
-      buildRunWorkerFirstRules(ROUTES)
-    );
+    expect(config.assets.run_worker_first).toStrictEqual(ROOT_RULES);
     // Everything else in the adapter's config rides along untouched.
     expect(config.no_bundle).toBe(true);
     expect(config.assets.directory).toBe("../client");
@@ -750,24 +958,41 @@ describe("injectWorkerNegotiation", () => {
     expect(none?.worker).toContain("const PAGE_JSON = new Set([]);");
   });
 
+  it("bakes which 404 twins the build emitted into the wrapper", () => {
+    // Only an emitted twin is ever probed; a project that owns `/404` (no
+    // twins) keeps the HTML answer without an assets round-trip.
+    const wired = injectWorkerNegotiation(wranglerConfig(), {
+      notFound: { markdown: true },
+      routePaths: ["/"],
+    });
+    expect(wired?.worker).toContain(
+      'const NOT_FOUND = {"json":false,"markdown":true};'
+    );
+    const none = injectWorkerNegotiation(wranglerConfig(), {
+      routePaths: ["/"],
+    });
+    expect(none?.worker).toContain(
+      'const NOT_FOUND = {"json":false,"markdown":false};'
+    );
+  });
+
   it("merges with user-configured run_worker_first rules", () => {
+    // A user rule the generated `/*` already covers is dropped (Wrangler
+    // rejects redundant rules); an exemption of the user's own is kept.
     const result = injectWorkerNegotiation(
       wranglerConfig({
         assets: {
           binding: "ASSETS",
           directory: "../client",
-          run_worker_first: ["/api/*"],
+          run_worker_first: ["/api/*", "!/private/*"],
         },
       }),
       { routePaths: ["/", "/docs/a"] }
     );
     const config = JSON.parse(result?.wrangler ?? "");
     expect(config.assets.run_worker_first).toStrictEqual([
-      "/api/*",
-      "/",
-      "/docs/*",
-      "!/docs/*.md",
-      "!/docs/*.mdx",
+      "!/private/*",
+      ...ROOT_RULES,
     ]);
   });
 
@@ -787,37 +1012,6 @@ describe("injectWorkerNegotiation", () => {
     expect(config.main).toBe(NEGOTIATION_WORKER_FILE);
   });
 
-  it("falls back to coarse rules when the grouped set exceeds Wrangler's limits", () => {
-    const many = Array.from({ length: 80 }, (_, i) => `/page-${i}`);
-    const result = injectWorkerNegotiation(wranglerConfig(), {
-      routePaths: many,
-    });
-    const config = JSON.parse(result?.wrangler ?? "");
-    expect(config.assets.run_worker_first).toStrictEqual([
-      "/*",
-      "!/_astro/*",
-      "!/*.md",
-      "!/*.mdx",
-      "!/*.txt",
-      "!/*.json",
-    ]);
-  });
-
-  it("falls back when a grouped rule exceeds the per-rule length limit", () => {
-    const result = injectWorkerNegotiation(wranglerConfig(), {
-      routePaths: [`/${"a".repeat(120)}`],
-    });
-    const config = JSON.parse(result?.wrangler ?? "");
-    expect(config.assets.run_worker_first).toStrictEqual([
-      "/*",
-      "!/_astro/*",
-      "!/*.md",
-      "!/*.mdx",
-      "!/*.txt",
-      "!/*.json",
-    ]);
-  });
-
   it("bakes configured redirects into the wrapper instead of spending rules", () => {
     const result = injectWorkerNegotiation(wranglerConfig(), {
       redirects: [
@@ -830,9 +1024,7 @@ describe("injectWorkerNegotiation", () => {
     const config = JSON.parse(result?.wrangler ?? "");
     // The worker-first rules are untouched — the table costs no rule budget,
     // so redirects can never push the set over Wrangler's limits.
-    expect(config.assets.run_worker_first).toStrictEqual(
-      buildRunWorkerFirstRules(["/", "/docs/reference"])
-    );
+    expect(config.assets.run_worker_first).toStrictEqual(ROOT_RULES);
     expect(result?.worker).toContain('"/docs/api":["/docs/api-reference",302]');
     expect(result?.worker).not.toContain("not-a-path");
   });
@@ -876,7 +1068,7 @@ describe("injectWorkerNegotiation", () => {
     expect(result?.worker).not.toContain('"/site/docs/api/live"');
   });
 
-  it("returns null when even the fallback cannot fit", () => {
+  it("returns null when user rules push the set over Wrangler's limits", () => {
     const negatives = Array.from({ length: 120 }, (_, i) => `!/keep-${i}`);
     expect(
       injectWorkerNegotiation(

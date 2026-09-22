@@ -2728,7 +2728,9 @@ const suggestions = [
  * page, prerendered to `dist/404.md`. An agent that asked for a missing page
  * with `Accept: text/markdown` — or fetched a `.md` URL no page backs — gets
  * this body with the 404 status instead of the HTML shell; Vercel server
- * builds wire that into the routing config (`deploy/vercel-negotiation.ts`).
+ * builds wire that into the routing config (`deploy/vercel-negotiation.ts`)
+ * and Cloudflare server builds into the wrapper Worker
+ * (`deploy/cloudflare-negotiation.ts`).
  * Same recovery links as the HTML page, absolute when the site URL is known:
  * the body is read out of context, so a relative link would leave the reader
  * guessing the host. Written alongside `404.astro` and skipped under the same
@@ -2798,8 +2800,8 @@ export function GET() {
  * Generate `.blume/src/pages/404.json.ts`: the JSON twin of the default 404
  * page, prerendered to `dist/404.json` as RFC 9457 problem details. An agent
  * that asked for a missing page with `Accept: application/json` gets this body
- * with the 404 status instead of the HTML shell (Vercel server builds wire
- * that into the routing config, like the Markdown twin). Same recovery links
+ * with the 404 status instead of the HTML shell (Vercel and Cloudflare server
+ * builds wire that into the deploy, like the Markdown twin). Same recovery links
  * as the other variants, carried as `links` and spelled out in `resolution`.
  * Written alongside `404.astro` and skipped under the same rule.
  */

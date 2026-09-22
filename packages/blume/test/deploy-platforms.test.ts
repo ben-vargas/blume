@@ -430,6 +430,7 @@ const WRANGLER_CONFIG = JSON.stringify({
 describe("cloudflare platform", () => {
   it("wires the wrapper Worker into the emitted server bundle", async () => {
     const built = await project(JSON.stringify(cloudflare()), {
+      "dist/client/404.md": "# Page not found\n",
       "dist/server/wrangler.json": WRANGLER_CONFIG,
     });
     const { log, recorded } = recorder();
@@ -442,6 +443,15 @@ describe("cloudflare platform", () => {
     const wrangler = await readFile(join(serverDir, "wrangler.json"), "utf-8");
     expect(wrangler).toContain(NEGOTIATION_WORKER_FILE);
     expect(wrangler).toContain("run_worker_first");
+    // The 404 twins are wired only when the build emitted them: the Markdown
+    // one here, the JSON one not.
+    const worker = await readFile(
+      join(serverDir, NEGOTIATION_WORKER_FILE),
+      "utf-8"
+    );
+    expect(worker).toContain(
+      'const NOT_FOUND = {"json":false,"markdown":true};'
+    );
   });
 
   it("warns when the server bundle has no wrangler config", async () => {
