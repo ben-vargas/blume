@@ -22,8 +22,10 @@ Go from an empty folder to a running docs site in a few commands. Blume needs **
   <Step title="Scaffold a project">
     `blume init` asks a few questions — where to create the project, what your
     docs site is called, which template, and where your content lives — then
-    scaffolds the minimum surface: a content folder and a config file. Pass
-    `--yes` to skip the prompts and take the defaults.
+    scaffolds the minimum surface: a content folder and a config file, and
+    installs the dependencies with the package manager that ran it. Pass
+    `--yes` to skip the prompts and take the defaults, or `--no-install` to
+    only write the files.
 
     ```bash
     blume init

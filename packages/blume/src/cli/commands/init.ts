@@ -6,6 +6,7 @@ import { ensureGitignore } from "../../core/gitignore.ts";
 import { eject } from "../../registry/eject.ts";
 import { commandMeta } from "../command-meta.ts";
 import { updatePackageScripts } from "../eject-scripts.ts";
+import { installDependencies } from "../init/install.ts";
 import { collectAnswers } from "../init/questions.ts";
 import {
   applyPlan,
@@ -20,26 +21,75 @@ import {
 import type { InitAnswers } from "../init/scaffold.ts";
 import { logger } from "../log.ts";
 
+/** The `cd` line that opens every next-steps hint, when one is needed. */
+const cdStep = (answers: InitAnswers): string[] =>
+  answers.directory === "." ? [] : [`cd ${answers.directory}`];
+
+/**
+ * Install the scaffolded project's dependencies. Interactive runs hide the
+ * package manager's output behind a spinner; `--yes`/CI runs stream it. On
+ * failure the scaffold is left intact and the exact retry command is printed
+ * before exiting non-zero, so a CI wrapper can tell the two outcomes apart.
+ */
+const installScaffold = async (
+  root: string,
+  answers: InitAnswers,
+  interactive: boolean
+): Promise<void> => {
+  const command = commandsFor(answers.packageManager).install;
+  const spinner = interactive ? clack.spinner() : undefined;
+  if (spinner) {
+    spinner.start(`Installing dependencies (${command})`);
+  } else {
+    logger.info(`Installing dependencies (${command})…`);
+  }
+  const outcome = await installDependencies(root, answers.packageManager, {
+    quiet: interactive,
+  });
+  if (outcome.failure === undefined) {
+    if (spinner) {
+      spinner.stop("Installed dependencies");
+    } else {
+      logger.success("Installed dependencies");
+    }
+    return;
+  }
+  const retry = [...cdStep(answers), command];
+  const hint = `Project created successfully, but dependency installation failed.\n\nRetry with:\n\n  ${retry.join("\n  ")}\n`;
+  if (spinner) {
+    spinner.stop("Dependency installation failed");
+    clack.log.error(outcome.failure);
+    clack.note(hint.trimEnd());
+    clack.outro("Scaffolded without dependencies.");
+  } else {
+    logger.error(outcome.failure);
+    logger.box(hint);
+  }
+  process.exit(1);
+};
+
 /**
  * Eject the freshly scaffolded project, or print the install-then-eject path.
  * Eject jiti-loads the scaffolded blume.config.ts, whose `import { defineConfig }
  * from "blume"` only resolves once dependencies are installed (or blume is
- * hoisted from an ancestor node_modules, as in a monorepo) — so on a fresh
- * scaffold the fallback below is the common path.
+ * hoisted from an ancestor node_modules, as in a monorepo) — so the fallback
+ * below is the common path when the install step was skipped.
  */
 const ejectScaffold = async (
   root: string,
-  answers: InitAnswers
+  answers: InitAnswers,
+  needsInstall: boolean
 ): Promise<void> => {
   const commands = commandsFor(answers.packageManager);
-  const cd = answers.directory === "." ? [] : [`cd ${answers.directory}`];
+  const cd = cdStep(answers);
+  const install = needsInstall ? [commands.install] : [];
   try {
     await eject(root);
     // The scaffolded scripts point at the Blume CLI; the ejected app runs
     // Astro directly (mirroring the standalone `blume eject` command).
     await updatePackageScripts(root);
     logger.success("Ejected to a standalone Astro project.");
-    const steps = [...cd, commands.install, commands.dev];
+    const steps = [...cd, ...install, commands.dev];
     logger.box(`Next steps:\n\n  ${steps.join("\n  ")}\n`);
   } catch (error) {
     // SAFETY: eject and the script rewrite throw Error instances; only the
@@ -47,13 +97,36 @@ const ejectScaffold = async (
     logger.warn(
       `Scaffolded, but eject needs the project's dependencies installed to load blume.config.ts: ${(error as Error).message}`
     );
-    const steps = [
-      ...cd,
-      commands.install,
-      `${commands.exec} blume eject --yes`,
-    ];
+    const steps = [...cd, ...install, `${commands.exec} blume eject --yes`];
     logger.box(`Next steps:\n\n  ${steps.join("\n  ")}\n`);
   }
+};
+
+/**
+ * Validate the enum-valued flags up front, exiting with the accepted values
+ * on a typo so a bad flag never reaches the prompts.
+ */
+const resolveFlags = (args: {
+  "package-manager"?: string;
+  template?: string;
+}) => {
+  const template = TEMPLATES.find((candidate) => candidate === args.template);
+  if (args.template !== undefined && template === undefined) {
+    logger.error(
+      `Unknown template "${args.template}" (use ${TEMPLATES.join(" | ")}).`
+    );
+    process.exit(1);
+  }
+  const pm = PACKAGE_MANAGERS.find(
+    (candidate) => candidate === args["package-manager"]
+  );
+  if (args["package-manager"] !== undefined && pm === undefined) {
+    logger.error(
+      `Unknown package manager "${args["package-manager"]}" (use ${PACKAGE_MANAGERS.join(" | ")}).`
+    );
+    process.exit(1);
+  }
+  return { pm, template };
 };
 
 export const initCommand = defineCommand({
@@ -71,9 +144,15 @@ export const initCommand = defineCommand({
       description: "Eject to a standalone Astro project after scaffolding.",
       type: "boolean",
     },
+    install: {
+      default: true,
+      description: "Install dependencies after scaffolding.",
+      negativeDescription: "Skip installing dependencies after scaffolding.",
+      type: "boolean",
+    },
     "package-manager": {
       description:
-        "Package manager for the next-steps hint (npm|pnpm|yarn|bun).",
+        "Package manager to install with and print in the next steps (npm|pnpm|yarn|bun).",
       type: "string",
     },
     template: {
@@ -88,23 +167,7 @@ export const initCommand = defineCommand({
   meta: commandMeta.init,
   async run({ args }) {
     const cwd = process.cwd();
-
-    const template = TEMPLATES.find((candidate) => candidate === args.template);
-    if (args.template !== undefined && template === undefined) {
-      logger.error(
-        `Unknown template "${args.template}" (use ${TEMPLATES.join(" | ")}).`
-      );
-      process.exit(1);
-    }
-    const pm = PACKAGE_MANAGERS.find(
-      (candidate) => candidate === args["package-manager"]
-    );
-    if (args["package-manager"] !== undefined && pm === undefined) {
-      logger.error(
-        `Unknown package manager "${args["package-manager"]}" (use ${PACKAGE_MANAGERS.join(" | ")}).`
-      );
-      process.exit(1);
-    }
+    const { pm, template } = resolveFlags(args);
 
     const interactive =
       !args.yes &&
@@ -168,12 +231,20 @@ export const initCommand = defineCommand({
       sink.success(`Added ${ignored.join(", ")} to .gitignore`);
     }
 
+    // A newly written package.json is the only one `init` knows lists blume;
+    // an existing one is left alone, and so are its dependencies.
+    const shouldInstall = createdPackage && args.install;
+    if (shouldInstall) {
+      await installScaffold(root, answers, interactive);
+    }
+    const needsInstall = createdPackage && !shouldInstall;
+
     if (args.eject) {
-      await ejectScaffold(root, answers);
+      await ejectScaffold(root, answers, needsInstall);
       return;
     }
 
-    const steps = nextSteps(answers, createdPackage);
+    const steps = nextSteps(answers, needsInstall);
     if (interactive) {
       clack.note(steps.trimEnd());
       clack.outro("You're all set.");

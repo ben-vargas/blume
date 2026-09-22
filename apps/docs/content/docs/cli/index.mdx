@@ -32,8 +32,9 @@ blume <command> [options]
 - `blume init --yes` — skip the prompts and scaffold with defaults (also the behavior in CI or when stdin isn't a terminal).
 - `blume init --content-dir <dir>` — set the content folder (default `docs`).
 - `blume init --template docs|api|sdk|changelog` — scaffold from a starter (API reference, SDK, or changelog instead of the plain docs seed).
-- `blume init --package-manager npm|pnpm|yarn|bun` — tailor the printed next-steps to your package manager.
-- `blume init --eject` — scaffold, then eject to a standalone Astro project (falls back to guiding you through `blume eject` when dependencies aren't installed yet).
+- `blume init --package-manager npm|pnpm|yarn|bun` — install with, and print next-steps for, a specific package manager (default: whichever ran `blume init`).
+- `blume init --no-install` — write the files but skip the dependency install, for CI or custom dependency workflows. By default `blume init` runs the package manager's install so the project is ready to run; if the install fails, the scaffold is kept, the retry command is printed, and the exit code is non-zero.
+- `blume init --eject` — scaffold, then eject to a standalone Astro project (with `--no-install`, falls back to guiding you through `blume eject` once dependencies are installed).
 - `blume dev --host --port <n> --open`
 - `blume dev --content-dir <dir>` — scan a different content folder without editing `blume.config.ts`.
 - `blume dev --debug` — verbose Astro/Vite logging for troubleshooting.

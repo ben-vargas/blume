@@ -492,7 +492,7 @@ const writeFileSafe = async (
 
 /**
  * Write the plan's files, skipping any that already exist. Reports whether a
- * `package.json` was newly created (it decides the install next-step).
+ * `package.json` was newly created (it decides whether `init` installs).
  */
 export const applyPlan = async (
   files: ScaffoldFile[],
@@ -514,17 +514,20 @@ const envVarsFor = (sources: SourceKind[]): string[] => [
   ),
 ];
 
-/** The next-steps message: `cd` hint, install/dev commands, and token setup. */
+/**
+ * The next-steps message: `cd` hint, the install command when `init` did not
+ * run it itself, the dev command, and token setup.
+ */
 export const nextSteps = (
   answers: InitAnswers,
-  createdPackage: boolean
+  needsInstall: boolean
 ): string => {
   const commands = commandsFor(answers.packageManager);
   const lines: string[] = [];
   if (answers.directory !== ".") {
     lines.push(`cd ${answers.directory}`);
   }
-  if (createdPackage) {
+  if (needsInstall) {
     lines.push(commands.install);
   }
   lines.push(commands.dev);
