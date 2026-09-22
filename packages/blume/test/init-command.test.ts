@@ -17,6 +17,19 @@ const dirs: string[] = [];
 /** Directory holding a fake `npm` that records its cwd and exits as told. */
 let bin: string;
 
+/**
+ * Match one line of a `logger.box()` frame. consola draws the box with `│`
+ * borders on a terminal, but falls back to ` > ` line prefixes when `CI` is
+ * set, so the assertions can't depend on either frame.
+ */
+const boxLines = (...lines: string[]): RegExp =>
+  new RegExp(
+    lines
+      .map((line) => String.raw`(?:│| >)\s+${line}\s*(?:│)?\n`)
+      .join(String.raw`\s*`),
+    "u"
+  );
+
 const tempDir = async (prefix: string): Promise<string> => {
   const dir = await mkdtemp(join(tmpdir(), prefix));
   dirs.push(dir);
@@ -113,7 +126,7 @@ describe("blume init", () => {
     expect(stdout).toContain("cd site");
     expect(stdout).toContain("npm run dev");
     // The box frames each line, so match the bare command, not the line.
-    expect(stdout).not.toMatch(/│\s+npm install\s+│/u);
+    expect(stdout).not.toMatch(boxLines("npm install"));
   });
 
   it("keeps the scaffold and prints the retry command when the install fails", async () => {
@@ -130,7 +143,7 @@ describe("blume init", () => {
     expect(stdout).toContain(
       "Project created successfully, but dependency installation failed."
     );
-    expect(stdout).toMatch(/│\s+cd site\s+│\n\s*│\s+npm install\s+│/u);
+    expect(stdout).toMatch(boxLines("cd site", "npm install"));
     expect(await exists(join(root, "site", "package.json"))).toBe(true);
     expect(await exists(join(root, "site", "blume.config.ts"))).toBe(true);
   });
