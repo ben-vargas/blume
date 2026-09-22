@@ -2544,12 +2544,12 @@ const LayoutComponent = resolveSlot(layoutOverrides.Layout, RootLayout);
             aria-label={group.year ?? undefined}
             class="grid md:grid-cols-[6rem_minmax(0,1fr)] md:gap-x-8"
           >
-            <h2 class="mt-0! pt-3 font-medium! text-muted-foreground text-sm! leading-6! tabular-nums max-md:pb-1">
+            <h2 class="mt-0! pt-3! font-medium! text-muted-foreground text-sm! leading-5! tabular-nums max-md:pb-1">
               {group.year}
             </h2>
-            <ul class="m-0 list-none divide-y divide-border p-0">
+            <ul class="m-0! list-none divide-y divide-border p-0!">
               {group.items.map((item) => (
-                <li id={item.id}>
+                <li class="m-0! p-0!" id={item.id}>
                   <a
                     class="group/release flex items-baseline gap-4 py-3 no-underline! hover:no-underline!"
                     href={item.href ?? "#" + item.id}
