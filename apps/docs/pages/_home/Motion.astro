@@ -1,0 +1,101 @@
+---
+// The homepage's on-view motion, shared by every section. Mark a container
+// `data-reveal` and give its moving parts one of the reveal classes below
+// (with an optional `[--reveal-delay:…]` stagger); a `data-count-to` element
+// counts up to its value. The script arms each container once it's parsed —
+// `data-reveal-armed` pulls its parts into their start state — and flags it
+// `data-inview` when it scrolls into view, which transitions them home.
+//
+// Nothing hides without the script, a container already on screen when it's
+// armed just shows, and reduced motion never arms at all, so every path ends
+// on the static page. Bound once per session (Astro's ClientRouter runs inline
+// scripts once) and re-armed on every `astro:page-load`, so a router swap back
+// to the homepage animates again.
+const revealScript = `(() => {
+  if (window.__blumeReveal) { return; }
+  window.__blumeReveal = true;
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+  const ease = (t) => 1 - (1 - t) ** 3;
+  const countUp = (el) => {
+    const to = Number(el.dataset.countTo);
+    const start = performance.now() + Number(el.dataset.countDelay || 0);
+    const tick = (now) => {
+      const t = Math.min(1, Math.max(0, (now - start) / 1400));
+      el.textContent = String(Math.round(ease(t) * to));
+      if (t < 1) { requestAnimationFrame(tick); }
+    };
+    requestAnimationFrame(tick);
+  };
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) { continue; }
+      observer.unobserve(entry.target);
+      entry.target.setAttribute("data-inview", "");
+      for (const el of entry.target.querySelectorAll("[data-count-to]")) { countUp(el); }
+    }
+  }, { rootMargin: "0px 0px -10% 0px", threshold: 0.3 });
+  const arm = () => {
+    for (const el of document.querySelectorAll("[data-reveal]:not([data-reveal-armed], [data-inview])")) {
+      const rect = el.getBoundingClientRect();
+      if (reduce.matches || (rect.top < innerHeight && rect.bottom > 0)) {
+        el.setAttribute("data-inview", "");
+        continue;
+      }
+      el.setAttribute("data-reveal-armed", "");
+      for (const count of el.querySelectorAll("[data-count-to]")) { count.textContent = "0"; }
+      observer.observe(el);
+    }
+  };
+  arm();
+  document.addEventListener("astro:page-load", arm);
+})();`;
+---
+
+<script is:inline set:html={revealScript} />
+
+<style is:global>
+  /* The shared start states: `rise` lifts in, `fade` fades, `pop` scales up
+     with a little overshoot, `grow` extends from its left edge. A container
+     can reveal its own class too, hence the compound selectors. */
+  @media (prefers-reduced-motion: no-preference) {
+    .reveal-rise,
+    .reveal-fade,
+    .reveal-grow {
+      transition:
+        opacity 0.6s cubic-bezier(0.2, 0.7, 0.2, 1),
+        transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+      transition-delay: var(--reveal-delay, 0ms);
+    }
+
+    .reveal-pop {
+      transition:
+        opacity 0.3s ease-out,
+        transform 0.5s cubic-bezier(0.3, 1.6, 0.5, 1);
+      transition-delay: var(--reveal-delay, 0ms);
+    }
+
+    .reveal-grow {
+      transform-origin: left center;
+    }
+
+    [data-reveal-armed]:not([data-inview]):is(.reveal-rise),
+    [data-reveal-armed]:not([data-inview]) .reveal-rise {
+      opacity: 0;
+      transform: translateY(0.75rem);
+    }
+
+    [data-reveal-armed]:not([data-inview]):is(.reveal-fade),
+    [data-reveal-armed]:not([data-inview]) .reveal-fade {
+      opacity: 0;
+    }
+
+    [data-reveal-armed]:not([data-inview]) .reveal-pop {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+
+    [data-reveal-armed]:not([data-inview]) .reveal-grow {
+      transform: scaleX(0);
+    }
+  }
+</style>

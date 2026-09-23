@@ -1,0 +1,42 @@
+---
+// The page's secondary action: medium-weight text with a trailing chevron,
+// matching the agent-native section's links. `inverse` is the white take for
+// the dark CLI panel and the sky CTA.
+import { glyph } from "./shared.ts";
+
+interface Props {
+  class?: string;
+  external?: boolean;
+  href: string;
+  tone?: "accent" | "inverse";
+}
+
+const { class: className, external = false, href, tone = "accent" } =
+  Astro.props;
+---
+
+<a
+  class:list={[
+    "inline-flex items-center gap-1 whitespace-nowrap font-medium text-sm",
+    tone === "inverse"
+      ? "text-white/80 hover:text-white"
+      : "text-accent hover:text-foreground",
+    className,
+  ]}
+  href={href}
+  rel={external ? "noopener noreferrer" : undefined}
+  target={external ? "_blank" : undefined}
+>
+  <slot />
+  <svg
+    aria-hidden="true"
+    class="size-3.5 shrink-0"
+    fill="none"
+    stroke="currentColor"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-width="2"
+    viewBox="0 0 24 24"
+    set:html={glyph("chevron-right")}
+  />
+</a>

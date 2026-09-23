@@ -6,6 +6,7 @@
 // the default (Fumadocs) panel stays visible. The copy button reuses the
 // page-level delegated `data-blume-copy-install` handler in index.astro.
 import Icon from "blume/components/Icon.astro";
+import Tray from "./Tray.astro";
 
 // The `blume-migrate` skill install is identical for every source — pick a
 // brand to see what the agent handles for it, then run the same one-liner.
@@ -71,131 +72,187 @@ const active = sources[0];
 const migrateScript = `(()=>{if(window.__blumeMigrate){return;}window.__blumeMigrate=true;const setOpen=(root,o)=>{root.querySelector("[data-migrate-trigger]").setAttribute("aria-expanded",String(o));root.querySelector("[data-migrate-menu]").dataset.open=String(o);};const select=(root,id)=>{const options=[...root.querySelectorAll("[data-migrate-option]")];options.forEach((o)=>o.setAttribute("aria-selected",String(o.dataset.migrateOption===id)));root.querySelectorAll("[data-migrate-panel]").forEach((p)=>{p.dataset.active=String(p.dataset.migratePanel===id);});const o=options.find((it)=>it.dataset.migrateOption===id);if(o){const trigger=root.querySelector("[data-migrate-trigger]");trigger.querySelector("[data-trigger-label]").textContent=o.dataset.label;trigger.querySelector("[data-trigger-logo]").innerHTML=o.querySelector("[data-option-logo]").innerHTML;}setOpen(root,false);};document.addEventListener("click",(e)=>{const root=document.querySelector("[data-migrate]");const t=e.target;if(!root||!(t instanceof Element)){return;}const trigger=root.querySelector("[data-migrate-trigger]");if(trigger.contains(t)){setOpen(root,trigger.getAttribute("aria-expanded")!=="true");return;}const option=t.closest("[data-migrate-option]");if(option&&root.contains(option)){select(root,option.dataset.migrateOption);return;}if(!root.contains(t)){setOpen(root,false);}});document.addEventListener("keydown",(e)=>{if(e.key==="Escape"){const root=document.querySelector("[data-migrate]");if(root){setOpen(root,false);}}});})();`;
 ---
 
-<!-- Migrate: the heading itself is the interactive brand picker -->
-<section
-  class="flex flex-col justify-center rounded-[20px] bg-muted px-6 py-12 text-center sm:px-10 sm:py-16"
-  data-migrate
->
-  <!-- "Migrate from [Brand]" — the trigger is bare inline text (logo + name +
-       chevron) with no button chrome; only the hover underline hints it's a
-       control. -->
-  <div
-    aria-level="2"
-    class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-balance font-medium text-3xl tracking-tight sm:text-4xl"
-    role="heading"
-  >
-    <span>Migrate from</span>
-    <div class="relative">
-      <button
-        aria-expanded="false"
-        aria-haspopup="listbox"
-        class="group inline-flex cursor-pointer items-center gap-2"
-        data-migrate-trigger
-        type="button"
-      >
-        <span
-          class="inline-flex size-[0.85em] shrink-0 items-center justify-center"
-          data-trigger-logo
-          set:html={active.logo}
-        />
-        <span
-          class="underline decoration-2 decoration-transparent underline-offset-[6px] transition-colors group-hover:decoration-muted-foreground"
-          data-trigger-label
-        >
-          {active.name}
-        </span>
-        <svg
-          class="size-[0.7em] shrink-0 text-muted-foreground transition-transform group-aria-[expanded=true]:rotate-180"
-          fill="none"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          viewBox="0 0 24 24"
-        >
-          <path d="m6 9 6 6 6-6"></path>
-        </svg>
-      </button>
-
-      <!-- Brand menu (this keeps its own dropdown chrome) -->
+<!-- Migrate: a tray split in two — the heading itself is the interactive
+     brand picker (with that source's story beneath it) on the left, the three
+     steps on the right, where step two names the chosen source too. -->
+<section data-migrate>
+  <Tray innerClass="grid items-start gap-x-16 gap-y-10 p-6 sm:p-10 lg:grid-cols-2 lg:p-12">
+    <div>
+      <!-- "Migrate from [Brand]" — the trigger is bare inline text (logo +
+           name + chevron) with no button chrome; only the hover underline
+           hints it's a control. -->
       <div
-        aria-label="Choose a docs tool to migrate from"
-        class="font-sans pointer-events-none absolute left-1/2 z-20 mt-3 w-56 -translate-x-1/2 translate-y-1 rounded-blume border border-border bg-background p-1.5 text-left font-normal text-base tracking-normal opacity-0 shadow-black/5 shadow-lg transition data-[open=true]:pointer-events-auto data-[open=true]:translate-y-0 data-[open=true]:opacity-100"
-        data-migrate-menu
-        data-open="false"
-        role="listbox"
+        aria-level="2"
+        class="flex flex-wrap items-center gap-x-3 gap-y-1 text-balance font-display font-medium text-3xl tracking-[-0.05em] sm:text-4xl"
+        role="heading"
       >
-        {
-          sources.map((source) => (
+        <span>Migrate from</span>
+          <div class="relative">
             <button
-              aria-selected={source.id === active.id ? "true" : "false"}
-              class="group flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-foreground text-sm transition-colors hover:bg-muted aria-selected:bg-muted"
-              data-label={source.name}
-              data-migrate-option={source.id}
-              role="option"
+              aria-expanded="false"
+              aria-haspopup="listbox"
+              class="group inline-flex cursor-pointer items-center gap-2"
+              data-migrate-trigger
               type="button"
             >
               <span
-                class="flex size-5 shrink-0 items-center justify-center"
-                data-option-logo
-                set:html={source.logo}
+                class="inline-flex size-[0.85em] shrink-0 items-center justify-center"
+                data-trigger-logo
+                set:html={active.logo}
               />
-              <span class="font-medium">{source.name}</span>
+              <span
+                class="underline decoration-2 decoration-transparent underline-offset-[6px] transition-colors group-hover:decoration-muted-foreground"
+                data-trigger-label
+              >
+                {active.name}
+              </span>
               <svg
-                class="ml-auto size-4 text-accent opacity-0 transition-opacity group-aria-selected:opacity-100"
+                class="size-[0.7em] shrink-0 text-muted-foreground transition-transform group-aria-[expanded=true]:rotate-180"
                 fill="none"
-                height="16"
                 stroke="currentColor"
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
                 viewBox="0 0 24 24"
-                width="16"
               >
-                <path d="M20 6 9 17l-5-5" />
+                <path d="m6 9 6 6 6-6"></path>
               </svg>
             </button>
-          ))
-        }
+
+            <!-- Brand menu (this keeps its own dropdown chrome) -->
+            <div
+              aria-label="Choose a docs tool to migrate from"
+              class="font-sans pointer-events-none absolute left-0 z-20 mt-3 w-56 translate-y-1 rounded-blume border border-border bg-background p-1.5 text-left font-normal text-base tracking-normal opacity-0 shadow-black/5 shadow-lg transition data-[open=true]:pointer-events-auto data-[open=true]:translate-y-0 data-[open=true]:opacity-100"
+              data-migrate-menu
+              data-open="false"
+              role="listbox"
+            >
+              {
+                sources.map((source) => (
+                  <button
+                    aria-selected={source.id === active.id ? "true" : "false"}
+                    class="group flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-foreground text-sm transition-colors hover:bg-muted aria-selected:bg-muted"
+                    data-label={source.name}
+                    data-migrate-option={source.id}
+                    role="option"
+                    type="button"
+                  >
+                    <span
+                      class="flex size-5 shrink-0 items-center justify-center"
+                      data-option-logo
+                      set:html={source.logo}
+                    />
+                    <span class="font-medium">{source.name}</span>
+                    <svg
+                      class="ml-auto size-4 text-accent opacity-0 transition-opacity group-aria-selected:opacity-100"
+                      fill="none"
+                      height="16"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="16"
+                    >
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  </button>
+                ))
+              }
+            </div>
+          </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Per-source description, then the single install command for every brand -->
-  <div class="mt-6">
-    {
-      sources.map((source) => (
-        <p
-          class="mx-auto hidden max-w-xl text-balance text-muted-foreground leading-relaxed data-[active=true]:block sm:min-h-[4.5rem]"
-          data-active={source.id === active.id ? "true" : "false"}
-          data-migrate-panel={source.id}
+      <!-- Per-source description -->
+      {
+        sources.map((source) => (
+          <p
+            class="mt-4 hidden max-w-[56ch] text-pretty text-muted-foreground data-[active=true]:block"
+            data-active={source.id === active.id ? "true" : "false"}
+            data-migrate-panel={source.id}
+          >
+            {source.body}
+          </p>
+        ))
+      }
+    </div>
+
+    <!-- The same three steps for every source -->
+    <ol class="flex flex-col gap-6" data-reveal role="list">
+      <li class="reveal-rise flex items-start gap-4">
+        <span
+          class="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-background font-medium text-sm tabular-nums ring-1 ring-border"
         >
-          {source.body}
-        </p>
-      ))
-    }
-
-    <div class="mx-auto mt-6 flex max-w-xl items-center gap-3 rounded-blume border border-border bg-background py-2 pr-2 pl-4">
-      <span
-        aria-hidden="true"
-        class="select-none font-mono text-muted-foreground text-sm"
-      >
-        $
-      </span>
-      <code class="flex-1 truncate text-left font-mono text-foreground text-sm">
-        {installCommand}
-      </code>
-      <button
-        aria-label="Copy the blume-migrate install command"
-        class="inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-        data-blume-copy-install
-        data-command={installCommand}
-        type="button"
-      >
-        <Icon class="size-4" name="copy" size={16} />
-      </button>
-    </div>
-  </div>
+          1
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="font-medium text-base sm:text-sm">Install the migration skill.</p>
+          <div
+            class="mt-3 flex items-center gap-3 rounded-blume bg-background py-2 pr-2 pl-4 ring-1 ring-border"
+          >
+            <span aria-hidden="true" class="select-none font-mono text-muted-foreground text-sm">$</span>
+            <code class="min-w-0 flex-1 truncate font-mono text-[0.8125rem] text-foreground">
+              {installCommand}
+            </code>
+            <button
+                aria-label="Copy the blume-migrate install command"
+                class="relative inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                data-blume-copy-install
+                data-command={installCommand}
+                type="button"
+              >
+                <span
+                  aria-hidden="true"
+                  class="absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden"
+                />
+                <Icon class="size-4" name="copy" size={16} />
+              </button>
+          </div>
+        </div>
+      </li>
+      <li class="reveal-rise flex items-start gap-4 [--reveal-delay:150ms]">
+        <span
+          class="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-background font-medium text-sm tabular-nums ring-1 ring-border"
+        >
+          2
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="font-medium text-base sm:text-sm">Ask your agent to migrate.</p>
+          <p
+            class="mt-3 rounded-blume bg-background px-4 py-2.5 text-base text-foreground ring-1 ring-border sm:text-sm"
+          >
+            “Migrate this{" "}
+            {
+              sources.map((source) => (
+                <span
+                  class="hidden data-[active=true]:inline"
+                  data-active={source.id === active.id ? "true" : "false"}
+                  data-migrate-panel={source.id}
+                >
+                  {source.name}
+                </span>
+              ))
+            }{" "}
+            site to Blume.”
+          </p>
+        </div>
+      </li>
+      <li class="reveal-rise flex items-start gap-4 [--reveal-delay:300ms]">
+        <span
+          class="inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-background font-medium text-sm tabular-nums ring-1 ring-border"
+        >
+          3
+        </span>
+        <div class="min-w-0 flex-1">
+          <p class="font-medium text-base sm:text-sm">Preview the result.</p>
+          <p class="mt-1 text-base text-muted-foreground sm:text-sm">
+            Run <code class="font-mono text-foreground">npx blume dev</code>, then
+            read the agent's summary of anything it dropped or approximated.
+          </p>
+        </div>
+      </li>
+    </ol>
+  </Tray>
 </section>
 
 <script is:inline set:html={migrateScript} />

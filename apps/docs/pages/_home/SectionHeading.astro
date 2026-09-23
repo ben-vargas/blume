@@ -1,0 +1,37 @@
+---
+// A section heading in the hero's two-tone voice: a statement, then a muted
+// follow-up on its own line, with no paragraph beneath. An optional action
+// (the default slot) sits on the right from `lg` up, aligned to the heading's
+// last line. `inverse` is the white take for the dark CLI panel.
+interface Props {
+  tagline: string;
+  title: string;
+  tone?: "default" | "inverse";
+}
+
+const { tagline, title, tone = "default" } = Astro.props;
+const hasAction = Astro.slots.has("default");
+---
+
+<div
+  class="flex flex-col items-start gap-6 lg:flex-row lg:items-end lg:justify-between"
+>
+  <h2 class="max-w-[35ch] text-balance font-medium text-3xl sm:text-4xl">
+    <span class="block">{title}</span>
+    <span
+      class:list={[
+        "block",
+        tone === "inverse" ? "text-white/55" : "text-muted-foreground",
+      ]}
+    >
+      {tagline}
+    </span>
+  </h2>
+  {
+    hasAction && (
+      <div class="shrink-0 lg:pb-1.5">
+        <slot />
+      </div>
+    )
+  }
+</div>

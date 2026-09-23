@@ -1,231 +1,481 @@
 ---
-// "Built for humans and models" — the AI surfaces (Ask AI, MCP, llms.txt, raw
-// Markdown, open-in-chat) as a bento of cards with two custom mocks. The two big
-// cards are hand-written; the compact machine-readable cards render from a map.
-import { glyph, icons } from "./shared.ts";
+// "Built for humans and models" — the agent surface behind the agent-native
+// scores (right below): a bento of the discoverability features, grouped
+// rather than listed, in one tray (the scorecards' container). From `lg` up the rows run
+// 2+1 / 1+1+1 / 1+2, so the reader-facing features (Ask AI, open in chat)
+// bookend the machine-facing ones. Each card pairs a caption with an
+// illustration drawn from placeholder bars and the odd real label, so it
+// reads as UI without competing with the caption.
+import BentoCard from "./BentoCard.astro";
+import SectionHeading from "./SectionHeading.astro";
+import TextLink from "./TextLink.astro";
+import { glyph, icons, sampleBrand } from "./shared.ts";
 
-const aiResources = [
-  {
-    body: "One flag emits a machine-readable index and your full corpus, so coding agents and chat assistants can read the whole site.",
-    icon: icons.fileText,
-    title: "llms.txt, built in",
-  },
-  {
-    body: "Append .md to any page to fetch its raw source — ideal for LLMs and copy-as-Markdown workflows. Every page, dev and prod, no config.",
-    icon: icons.fileCode,
-    title: "Markdown at every URL",
-  },
-  {
-    body: "Every page can be copied as Markdown or opened in ChatGPT, Claude, v0, and more — pre-filled to answer questions about the page.",
-    icon: icons.chat,
-    title: "Copy or open in chat",
-  },
+// The same read-only tools, over three transports.
+const transports = ["MCP", "WebMCP", "JSON API"];
+const tools = ["search_docs", "get_page", "list_pages", "get_navigation"];
+
+// What an agent finds from the domain alone.
+const discovery = [
+  "/agent-readability.json",
+  "/.well-known/api-catalog",
+  "/.well-known/ai-catalog.json",
+  "/.well-known/agent-skills/",
 ];
 
-// The connect command shown in the MCP card's mock terminal.
-const mcpConnectCommand =
-  "claude mcp add --transport http acme-docs https://docs.acme.dev/mcp";
+// robots.txt content signals, with training switched off to show the knob.
+const signals = [
+  { enabled: true, name: "search" },
+  { enabled: true, name: "ai-input" },
+  { enabled: false, name: "ai-train" },
+];
+
+const chatTargets = [
+  { icon: glyph("copy"), label: "Copy as Markdown" },
+  { icon: glyph("external-link"), label: "Open in ChatGPT" },
+  { icon: glyph("external-link"), label: "Open in Claude" },
+  { icon: glyph("external-link"), label: "Open in Cursor" },
+];
+
+// Shared illustration pieces: a raised window, its title strip, and a
+// placeholder text bar.
+const window =
+  "rounded-xl bg-background shadow-lg shadow-[rgb(28_40_64/0.08)] ring-1 ring-foreground/5 dark:shadow-none";
+const windowTitle =
+  "flex items-center gap-2 border-border border-b px-3 py-2 font-mono text-muted-foreground text-xs";
+const bar = "h-2 rounded-full bg-foreground/10";
 ---
 
-<!-- Built for humans and models: the AI surfaces (Ask AI, MCP, llms.txt,
-     raw Markdown, open-in-chat) as a bento of cards with two custom mocks. -->
-<section class="mx-auto max-w-5xl">
-  <div class="mx-auto max-w-2xl text-center">
-    <h2 class="text-balance font-medium text-3xl sm:text-4xl">
-      Built for humans and models.
-    </h2>
-    <p class="mt-4 text-balance text-muted-foreground">
-      Your Markdown is the source of truth for readers and machines alike. Every
-      page is raw Markdown away, summarized in llms.txt, answerable in-page, and
-      connectable over MCP — with nothing to wire up.
-    </p>
-  </div>
+<section class="flex flex-col gap-12">
+  <SectionHeading
+    tagline="Every page is as readable to agents as it is to people."
+    title="Built for humans and models."
+  >
+    <TextLink href="/docs/discoverability">Explore discoverability</TextLink>
+  </SectionHeading>
 
-  <div class="mt-12 grid gap-4 lg:grid-cols-2">
-    <!-- Ask AI -->
-    <div
-      class="flex flex-col overflow-hidden rounded-blume border border-border"
-    >
-      <!-- Mock chat panel (flush graphic); nosnippet keeps the sample Acme
-           answer out of search snippets -->
-      <div
-        class="flex flex-1 flex-col gap-3 border-border border-b bg-muted/30 p-6"
-        data-nosnippet
+  <div
+    class="rounded-[28px] bg-background p-2 shadow-[0_0_0_1px_var(--color-border)]"
+  >
+    <dl class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <!-- Ask AI: a question, a streamed answer, and the composer -->
+      <BentoCard
+        body="An assistant grounded in your docs answers readers in the page, streamed from the model you choose — the Vercel AI Gateway, OpenRouter, Inkeep, or any OpenAI-compatible endpoint."
+        class="sm:col-span-2"
+        title="Ask AI, in the page."
       >
-        <div class="flex justify-end">
-          <span
-            class="rounded-blume bg-foreground px-3 py-1.5 text-background text-sm"
+        <div class="flex w-full max-w-md flex-col gap-3 px-6">
+          <p
+            class="reveal-rise self-end rounded-xl bg-foreground px-3 py-1.5 text-background text-sm"
           >
             How do I send my first message?
-          </span>
-        </div>
-        <div class="flex items-start gap-2">
-          <span
-            class="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent"
-          >
+          </p>
+          <div class="reveal-rise flex items-start gap-2 [--reveal-delay:250ms]">
             <svg
-              class="size-3.5"
+              class="h-lh size-4 shrink-0 text-accent"
               fill="none"
-              height="14"
               stroke="currentColor"
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
               viewBox="0 0 24 24"
-              width="14"
               set:html={icons.sparkle}
-            ></svg>
-          </span>
-          <span
-            class="rounded-blume border border-border bg-background px-3 py-1.5 text-foreground text-sm leading-relaxed"
-          >
-            Install the SDK, set your API key, then call{" "}
-            <code class="font-mono">acme.messages.send()</code> with a recipient
-            and template.
-          </span>
-        </div>
-        <div
-          class="mt-auto flex items-center gap-2 rounded-full border border-border bg-background py-1.5 pr-1.5 pl-3"
-        >
-          <span class="flex-1 text-muted-foreground text-sm"> Ask anything… </span>
-          <span
-            class="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-foreground text-background"
-          >
-            <svg
-              class="size-3.5"
-              fill="none"
-              height="14"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-              width="14"
-              set:html={glyph("arrow-up")}
             />
-          </span>
-        </div>
-      </div>
-      <!-- Text -->
-      <div class="p-6">
-        <div class="flex items-center gap-3">
-          <span
-            class="inline-flex size-10 shrink-0 items-center justify-center rounded-blume bg-muted text-accent"
+            <div class:list={[window, "flex flex-1 flex-col gap-2 p-3"]}>
+              <div class:list={[bar, "reveal-grow w-11/12 [--reveal-delay:450ms]"]}></div>
+              <div class:list={[bar, "reveal-grow w-4/5 [--reveal-delay:600ms]"]}></div>
+              <div class:list={[bar, "reveal-grow w-3/5 [--reveal-delay:750ms]"]}></div>
+            </div>
+          </div>
+          <div
+            class:list={[
+              window,
+              "reveal-rise flex items-center justify-between gap-2 rounded-full py-1.5 pr-1.5 pl-4 [--reveal-delay:900ms]",
+            ]}
           >
-            <svg
-              class="size-5"
-              fill="none"
-              height="20"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-              width="20"
-              set:html={icons.sparkle}
-            ></svg>
-          </span>
-          <div>
-            <h3 class="font-medium text-base text-foreground">
-              Ask AI, in the page
-            </h3>
-            <p class="text-muted-foreground text-xs">
-              Streamed from the model you choose
-            </p>
+            <p class="text-muted-foreground text-sm">Ask anything…</p>
+            <span
+              class="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground"
+            >
+              <svg
+                class="size-3.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                set:html={glyph("arrow-up")}
+              />
+            </span>
           </div>
         </div>
-        <p class="mt-4 text-muted-foreground text-sm leading-relaxed">
-          An in-page assistant answers reader questions, backed by the AI SDK —
-          through the Vercel AI Gateway, OpenRouter, Inkeep, or any
-          OpenAI-compatible endpoint.
-        </p>
-      </div>
-    </div>
+      </BentoCard>
 
-    <!-- MCP server -->
-    <div
-      class="flex flex-col overflow-hidden rounded-blume border border-border"
-    >
-      <!-- Mock terminal (flush graphic) -->
-      <div
-        class="flex flex-1 flex-col border-border border-b bg-muted/30"
-        data-nosnippet
+      <!-- Tools: the same read-only tools over MCP, WebMCP, and the JSON API -->
+      <BentoCard
+        body="An opt-in MCP server, WebMCP tools in every page, and a JSON API described by OpenAPI let agents search and read your docs directly."
+        title="Tools, not scraping."
       >
-        <div class="p-6 font-mono text-[13px] leading-relaxed">
-          <p class="break-all text-foreground">
-            <span class="text-muted-foreground">$</span>{" "}
-            {mcpConnectCommand}
-          </p>
-          <p class="mt-2 text-accent">✓ Connected · 4 tools available</p>
-          <p class="text-muted-foreground">
-            search_docs · get_page · list_pages · get_navigation
-          </p>
+        <div class:list={[window, "w-60 p-1.5"]}>
+          <div class="flex items-center gap-1 p-1">
+            {
+              transports.map((transport, index) => (
+                <p
+                  class:list={[
+                    "reveal-fade rounded-md px-2 py-1 text-xs",
+                    index === 0
+                      ? "bg-muted font-medium text-foreground"
+                      : "text-muted-foreground",
+                  ]}
+                  style={`--reveal-delay: ${index * 80}ms`}
+                >
+                  {transport}
+                </p>
+              ))
+            }
+          </div>
+          <ul class="flex flex-col gap-0.5" role="list">
+            {
+              tools.map((tool, index) => (
+                <li
+                  class:list={[
+                    "reveal-rise flex items-center gap-2 rounded-lg px-2.5 py-1.5 font-mono text-xs",
+                    index === 0
+                      ? "bg-accent/10 text-accent"
+                      : "text-muted-foreground",
+                  ]}
+                  style={`--reveal-delay: ${240 + index * 90}ms`}
+                >
+                  <svg
+                    class="size-3.5 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    set:html={glyph("wrench")}
+                  />
+                  {tool}
+                </li>
+              ))
+            }
+          </ul>
         </div>
-      </div>
-      <!-- Text -->
-      <div class="p-6">
-        <div class="flex items-center gap-3">
-          <span
-            class="inline-flex size-10 shrink-0 items-center justify-center rounded-blume bg-muted text-accent"
-          >
+      </BentoCard>
+
+      <!-- Markdown: a page requested as Markdown, and what comes back -->
+      <BentoCard
+        body="Every page's raw source at a `.md` URL, with `Accept: text/markdown` negotiation on Vercel and Cloudflare."
+        title="Markdown at every URL."
+      >
+        <div class="flex w-60 flex-col gap-3 font-mono text-xs">
+          <div class:list={[window, "reveal-rise flex flex-col gap-1 px-3 py-2.5"]}>
+            <p class="text-foreground">
+              <span class="text-accent">GET</span> /docs/quickstart
+            </p>
+            <p class="text-muted-foreground">Accept: text/markdown</p>
+          </div>
+          <div class:list={[window, "reveal-rise flex flex-col gap-2.5 p-3 [--reveal-delay:400ms]"]}>
+            <p class="flex items-center gap-1.5 text-muted-foreground">
+              <span class="reveal-pop size-1.5 rounded-full bg-emerald-500 [--reveal-delay:700ms]"></span>
+              200 · text/markdown
+            </p>
+            <p class="text-foreground"># Quickstart</p>
+            <div class:list={[bar, "w-full"]}></div>
+            <div class:list={[bar, "w-3/5"]}></div>
+          </div>
+        </div>
+      </BentoCard>
+
+      <!-- llms.txt: the generated index, sectioned like the sidebar -->
+      <BentoCard
+        body="An index sectioned like your sidebar, plus the full corpus in `llms-full.txt`, rebuilt on every build."
+        title="llms.txt, built in."
+      >
+        <div class:list={[window, "w-60 overflow-hidden"]}>
+          <p class={windowTitle}>
             <svg
-              class="size-5"
+              class="size-3.5 shrink-0"
               fill="none"
-              height="20"
               stroke="currentColor"
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
               viewBox="0 0 24 24"
-              width="20"
-              set:html={icons.plug}
-            ></svg>
-          </span>
-          <div>
-            <h3 class="font-medium text-base text-foreground">
-              An MCP server for agents
-            </h3>
-            <p class="text-muted-foreground text-xs">
-              Search and read, no scraping
+              set:html={icons.fileText}
+            />
+            llms.txt
+          </p>
+          <div class="flex flex-col gap-1.5 p-3 font-mono text-xs">
+            <p class="reveal-fade text-foreground"># Acme</p>
+            <p class="reveal-fade text-muted-foreground [--reveal-delay:100ms]">## Get started</p>
+            {
+              ["Quickstart", "Webhooks"].map((page, index) => (
+                <p
+                  class="reveal-fade flex items-center gap-1.5"
+                  style={`--reveal-delay: ${200 + index * 100}ms`}
+                >
+                  <span class="text-muted-foreground">-</span>
+                  <span class="text-accent">[{page}]</span>
+                  <span class:list={[bar, "block flex-1"]} />
+                </p>
+              ))
+            }
+            <p class="reveal-fade text-muted-foreground [--reveal-delay:400ms]">## Sending</p>
+            <p class="reveal-fade flex items-center gap-1.5 [--reveal-delay:500ms]">
+              <span class="text-muted-foreground">-</span>
+              <span class="text-accent">[Messages]</span>
+              <span class:list={[bar, "block flex-1"]} />
             </p>
           </div>
         </div>
-        <p class="mt-4 text-muted-foreground text-sm leading-relaxed">
-          Host a Model Context Protocol server so Claude Code, Cursor, and VS
-          Code can search and read your docs directly — four read-only tools,
-          discovery documents, and copy-and-go install.
-        </p>
-      </div>
-    </div>
-  </div>
+      </BentoCard>
 
-  <!-- Compact machine-readable cards (zero-config surfaces) -->
-  <div class="mt-4 grid gap-4 sm:grid-cols-3">
-    {
-      aiResources.map((resource) => (
-        <div class="rounded-blume border border-border p-6">
-          <span class="inline-flex size-10 items-center justify-center rounded-blume bg-muted text-accent">
+      <!-- Discovery: what an agent finds from the domain alone -->
+      <BentoCard
+        body="A manifest, `Link` headers, API and AI catalogs, and your published skills, so agents find the whole surface in one fetch."
+        title="Found without guessing."
+      >
+        <div class:list={[window, "w-72 max-w-[calc(100%-2rem)] overflow-hidden"]}>
+          <p class={windowTitle}>
             <svg
-              class="size-5"
+              class="size-3.5 shrink-0"
               fill="none"
-              height="20"
               stroke="currentColor"
               stroke-linecap="round"
               stroke-linejoin="round"
               stroke-width="2"
               viewBox="0 0 24 24"
-              width="20"
-              set:html={resource.icon}
+              set:html={icons.globe}
             />
-          </span>
-          <h3 class="mt-4 font-medium text-base text-foreground">
-            {resource.title}
-          </h3>
-          <p class="mt-2 text-muted-foreground text-sm leading-relaxed">
-            {resource.body}
+            docs.acme.dev
           </p>
+          <ul class="flex flex-col gap-0.5 p-1.5" role="list">
+            {
+              discovery.map((path, index) => (
+                <li
+                  class:list={[
+                    "reveal-rise flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 font-mono text-xs",
+                    index === 0
+                      ? "bg-accent/10 text-accent"
+                      : "text-muted-foreground",
+                  ]}
+                  style={`--reveal-delay: ${index * 90}ms`}
+                >
+                  <span class="min-w-0 truncate">{path}</span>
+                  <svg
+                    class="reveal-pop size-3.5 shrink-0"
+                    style={`--reveal-delay: ${450 + index * 160}ms`}
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    set:html={icons.check}
+                  />
+                </li>
+              ))
+            }
+          </ul>
         </div>
-      ))
-    }
+      </BentoCard>
+
+      <!-- Crawlers: robots.txt with its content signals -->
+      <BentoCard
+        body="Metadata, JSON-LD, social cards, and a sitemap for search engines, plus content signals that set how AI may use your docs."
+        class="sm:col-span-2 lg:col-span-1"
+        title="Crawlers, on your terms."
+      >
+        <div class:list={[window, "w-60 overflow-hidden"]}>
+          <p class={windowTitle}>
+            <svg
+              class="size-3.5 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              set:html={icons.fileText}
+            />
+            robots.txt
+          </p>
+          <div class="flex flex-col gap-2 p-3 font-mono text-xs">
+            <p class="text-muted-foreground">Content-Signal:</p>
+            <ul class="flex flex-col gap-1.5" role="list">
+              {
+                signals.map((signal, index) => (
+                  <li class="flex items-center justify-between gap-2 text-foreground">
+                    {signal.name}
+                    <span
+                      class:list={[
+                        "toggle-track flex h-4 w-7 shrink-0 items-center rounded-full p-0.5",
+                        signal.enabled
+                          ? "justify-end bg-accent"
+                          : "justify-start bg-foreground/15",
+                      ]}
+                      data-on={signal.enabled ? "" : undefined}
+                      style={`--reveal-delay: ${350 + index * 220}ms`}
+                    >
+                      <span class="toggle-knob size-3 rounded-full bg-background" />
+                    </span>
+                  </li>
+                ))
+              }
+            </ul>
+            <p class="text-muted-foreground">Sitemap: /sitemap.xml</p>
+          </div>
+        </div>
+      </BentoCard>
+
+      <!-- Open in chat: a docs page with its copy menu open -->
+      <BentoCard
+        body="Every page copies as Markdown or opens in ChatGPT, Claude, Cursor, and more, pre-filled to answer questions about it."
+        class="sm:col-span-2"
+        title="Copy or open in chat."
+      >
+        <div class="relative w-full max-w-3xl px-6">
+          <div class:list={[window, "overflow-hidden"]}>
+            <div
+              class="flex items-center justify-between gap-4 border-border border-b px-4 py-2.5"
+            >
+              <p
+                class="flex items-center gap-2 font-medium text-foreground text-xs"
+              >
+                <span
+                  class="inline-flex size-3.5 text-accent [&>svg]:size-full"
+                  set:html={sampleBrand.logo}
+                />
+                {sampleBrand.name}
+              </p>
+              <div class="flex items-center gap-2">
+                <div class:list={[bar, "w-10"]}></div>
+                <div class:list={[bar, "w-10"]}></div>
+                <div class:list={[bar, "w-16"]}></div>
+              </div>
+            </div>
+            <div class="grid gap-6 p-4 sm:grid-cols-[9rem_1fr]">
+              <div class="flex flex-col gap-2.5 max-sm:hidden">
+                <div class:list={[bar, "w-3/4"]}></div>
+                <div class="h-2 w-full rounded-full bg-accent/30"></div>
+                <div class:list={[bar, "w-2/3"]}></div>
+                <div class:list={[bar, "w-4/5"]}></div>
+                <div class:list={[bar, "w-1/2"]}></div>
+                <div class:list={[bar, "w-3/4"]}></div>
+                <div class:list={[bar, "w-2/3"]}></div>
+              </div>
+              <div class="flex flex-col gap-2.5">
+                <div class="flex items-center justify-between gap-4">
+                  <p class="font-semibold text-base text-foreground">
+                    Quickstart
+                  </p>
+                  <p
+                    class="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 py-1 text-foreground text-xs ring-1 ring-border"
+                  >
+                    Copy page
+                    <svg
+                      class="size-3 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      set:html={icons.chevronDown}
+                    />
+                  </p>
+                </div>
+                <div class:list={[bar, "w-full"]}></div>
+                <div class:list={[bar, "w-11/12"]}></div>
+                <div class:list={[bar, "w-3/5"]}></div>
+                <div class:list={[bar, "w-full"]}></div>
+                <div class:list={[bar, "w-4/5"]}></div>
+                <div class:list={[bar, "w-11/12"]}></div>
+                <div class:list={[bar, "w-2/5"]}></div>
+              </div>
+            </div>
+          </div>
+          <!-- The open copy menu, hanging off the page's button -->
+          <ul
+            class:list={[
+              window,
+              "menu-drop absolute top-20 right-2 flex w-48 flex-col gap-0.5 p-1.5 sm:right-10",
+            ]}
+            role="list"
+          >
+            {
+              chatTargets.map((target, index) => (
+                <li
+                  class:list={[
+                    "reveal-fade flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs",
+                    index === 0
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground",
+                  ]}
+                  style={`--reveal-delay: ${450 + index * 80}ms`}
+                >
+                  <svg
+                    class="size-3.5 shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    set:html={target.icon}
+                  />
+                  {target.label}
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </BentoCard>
+    </dl>
   </div>
 </section>
+
+<style>
+  /* Card-specific reveals, on top of the shared ones in Motion.astro: the
+     robots.txt toggles flip on in turn, and the copy menu drops open from
+     its button. */
+  @media (prefers-reduced-motion: no-preference) {
+    .toggle-track {
+      transition: background-color 0.3s ease var(--reveal-delay, 0ms);
+    }
+
+    .toggle-knob {
+      transition: transform 0.4s cubic-bezier(0.3, 1.4, 0.5, 1)
+        var(--reveal-delay, 0ms);
+    }
+
+    :global([data-reveal-armed]:not([data-inview])) .toggle-track[data-on] {
+      background-color: color-mix(
+        in oklab,
+        var(--blume-foreground) 15%,
+        transparent
+      );
+    }
+
+    :global([data-reveal-armed]:not([data-inview]))
+      .toggle-track[data-on]
+      .toggle-knob {
+      transform: translateX(-0.75rem);
+    }
+
+    .menu-drop {
+      transform-origin: top right;
+      transition:
+        opacity 0.3s ease-out 300ms,
+        transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) 300ms;
+    }
+
+    :global([data-reveal-armed]:not([data-inview])) .menu-drop {
+      opacity: 0;
+      transform: translateY(-0.375rem) scale(0.96);
+    }
+  }
+</style>

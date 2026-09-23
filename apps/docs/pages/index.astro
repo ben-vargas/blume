@@ -13,6 +13,7 @@ import InstallCta from "./_home/InstallCta.astro";
 import LogoGrid from "./_home/LogoGrid.astro";
 import MarkdownShowcase from "./_home/MarkdownShowcase.astro";
 import Migrate from "./_home/Migrate.astro";
+import Motion from "./_home/Motion.astro";
 import { installCopyScript } from "./_home/shared.ts";
 import Sponsors from "./_home/Sponsors.astro";
 
@@ -52,32 +53,34 @@ const pageDescription =
   <Hero />
 
   <div
-    class="mx-auto grid max-w-[1400px] gap-16 px-6 py-20 sm:py-24 lg:gap-24 xl:gap-32"
+    class="mx-auto grid max-w-[1400px] gap-24 px-6 pb-20 sm:pb-24 lg:gap-32 xl:gap-40"
   >
     <LogoGrid />
 
-    <Batteries />
+    <BuiltForModels />
 
     <AgentNative />
+
+    <Batteries />
 
     <MarkdownShowcase />
 
     <ContentSources />
 
-    <BuiltForModels />
-
     <Components />
 
     <Cli />
 
-    <!-- Migrate and sponsors sit side by side as two soft cards -->
-    <div class="grid gap-6 lg:grid-cols-2">
-      <Migrate />
+    <Migrate />
+
+    <!-- The CTA closes the story; sponsors follow it as a credit. -->
+    <div class="flex flex-col gap-16">
+      <InstallCta />
       <Sponsors />
     </div>
-
-    <InstallCta />
   </div>
+  <!-- After the sections, so their reveal containers exist when it arms -->
+  <Motion />
   <script is:inline set:html={installCopyScript} />
   <Footer slot="footer" />
 </PageLayout>

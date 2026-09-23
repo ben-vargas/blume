@@ -1,43 +1,146 @@
 ---
-// Closing call-to-action: the shared install box plus doc/get-started buttons.
+// Closing call-to-action, bookending the hero: the same day/night sky in a
+// rounded panel, with the heading, the glass install box, and the hero's text
+// links on the left and the Blume mark in a frosted tile on the right (from
+// `lg` up). The install box copy button uses the page-level delegated
+// `data-blume-copy-install` handler.
+import data from "blume:data";
 import InstallBox from "./InstallBox.astro";
-import { glyph } from "./shared.ts";
+import TextLink from "./TextLink.astro";
 
-const docsHref = "/docs";
-const startHref = "/docs/quickstart";
-const arrowRight = glyph("arrow-right");
-const primaryButton =
-  "inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 font-medium text-background text-sm transition-opacity hover:opacity-90";
-const secondaryButton =
-  "inline-flex items-center gap-2 rounded-full border border-border px-5 py-2.5 font-medium text-foreground text-sm transition-colors hover:border-foreground";
+const { config } = data;
+const logoSvg = config.logo?.svg;
+const repoUrl = config.repoUrl;
 ---
 
-<section class="border-border border-y px-6 py-16 text-center sm:px-12 sm:py-20">
-  <h2
-    class="mx-auto max-w-2xl text-balance font-medium text-3xl sm:text-4xl"
+<section class="cta-sky overflow-hidden rounded-[28px] text-white">
+  <div
+    class="grid items-center gap-x-16 gap-y-12 p-6 py-12 sm:p-10 lg:grid-cols-2 lg:p-16"
   >
-    Upgrade your docs with Blume
-  </h2>
-  <p class="mx-auto mt-4 text-balance text-muted-foreground">
-    Install today and ship a production-grade docs site in minutes.
-  </p>
-  <div class="mt-8 flex justify-center"><InstallBox /></div>
-  <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
-    <a class={secondaryButton} href={docsHref}>Read the docs</a>
-    <a class={primaryButton} href={startHref}>
-      Get started
-      <svg
-        fill="none"
-        height="16"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        width="16"
-        xmlns="http://www.w3.org/2000/svg"
-        set:html={arrowRight}
-      ></svg>
-    </a>
+    <div class="flex flex-col items-start gap-8">
+      <div>
+        <h2 class="max-w-[35ch] text-balance font-medium text-3xl sm:text-4xl">
+          Upgrade your docs with Blume.
+        </h2>
+        <p class="mt-4 max-w-[56ch] text-pretty text-white/80">
+          Install today and ship a production-grade docs site in minutes. Free
+          and open source, forever.
+        </p>
+      </div>
+      <InstallBox variant="glass" />
+      <div class="flex flex-wrap items-center gap-6">
+        <TextLink href="/docs/quickstart" tone="inverse">
+          Read the quickstart
+        </TextLink>
+        {
+          repoUrl && (
+            <TextLink external href={repoUrl} tone="inverse">
+              View source
+            </TextLink>
+          )
+        }
+      </div>
+    </div>
+    {
+      logoSvg && (
+        <div
+          aria-hidden="true"
+          class="flex justify-center max-lg:hidden"
+          data-reveal
+        >
+          <div class="glass-tile reveal-rise flex size-64 items-center justify-center rounded-[48px] bg-white/10 backdrop-blur-xl">
+            <span
+              class="cta-petals h-28 text-white [&>svg]:h-full [&>svg]:w-auto"
+              set:html={logoSvg}
+            />
+          </div>
+        </div>
+      )
+    }
   </div>
 </section>
+
+<style>
+  /* The hero's sky, turned on its side: deepest at the top-left, lifting
+     toward the bottom-right. Dark mode swaps in the hero's night-sky navy. */
+  .cta-sky {
+    --sky-1: rgb(31 83 144);
+    --sky-3: rgb(47 95 156);
+    --sky-5: rgb(72 120 176);
+    --sky-6: rgb(93 137 186);
+    background-image: radial-gradient(
+      140% 130% at 100% 100%,
+      var(--sky-6) 0%,
+      var(--sky-5) 30%,
+      var(--sky-3) 62%,
+      var(--sky-1) 100%
+    );
+  }
+
+  :global([data-theme="dark"]) .cta-sky {
+    --sky-1: rgb(3 8 22);
+    --sky-3: rgb(8 17 40);
+    --sky-5: rgb(16 33 68);
+    --sky-6: rgb(22 44 84);
+  }
+
+  /* On view the tile rises and the mark's petals pop in one by one, then
+     the tile drifts gently. */
+  @media (prefers-reduced-motion: no-preference) {
+    .cta-petals :global(path) {
+      transform-box: fill-box;
+      transform-origin: center;
+      transition:
+        opacity 0.3s ease-out,
+        transform 0.5s cubic-bezier(0.3, 1.6, 0.5, 1);
+    }
+
+    .cta-petals :global(path:nth-child(2)) {
+      transition-delay: 70ms;
+    }
+
+    .cta-petals :global(path:nth-child(3)) {
+      transition-delay: 140ms;
+    }
+
+    .cta-petals :global(path:nth-child(4)) {
+      transition-delay: 210ms;
+    }
+
+    .cta-petals :global(path:nth-child(5)) {
+      transition-delay: 280ms;
+    }
+
+    .cta-petals :global(path:nth-child(6)) {
+      transition-delay: 350ms;
+    }
+
+    .cta-petals :global(path:nth-child(7)) {
+      transition-delay: 420ms;
+    }
+
+    [data-reveal-armed]:not([data-inview]) .cta-petals :global(path) {
+      opacity: 0;
+      transform: scale(0.2);
+    }
+
+    [data-inview] .glass-tile {
+      animation: cta-drift 7s ease-in-out 1s infinite;
+    }
+  }
+
+  @keyframes cta-drift {
+    50% {
+      translate: 0 -0.5rem;
+    }
+  }
+
+  /* Frosted tile: a bright top edge fading down its sides, over a deep
+     shadow, so it reads as a pane of glass lifted off the sky. */
+  .glass-tile {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.35),
+      inset 0 0 0 1px rgb(255 255 255 / 0.14),
+      0 40px 80px -20px rgb(3 8 22 / 0.45);
+  }
+</style>

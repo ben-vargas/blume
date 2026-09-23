@@ -43,8 +43,19 @@ const width = 120;
 const height = 68;
 const arcPath = `M ${60 - radius} 60 A ${radius} ${radius} 0 0 1 ${60 + radius} 60`;
 const arcLength = Math.PI * radius;
-const dash = (score: number): string =>
-  `${(score / 100) * arcLength} ${arcLength}`;
+
+// On view the arcs draw in (the second card a beat behind the first) and the
+// scores count up; the arc is a full-length dash pulled back by its dash
+// offset, with a gap long enough that the round cap hides when it's empty.
+// The competitor dots pop in as the arc sweeps past them: the arc eases out
+// cubically, so it reaches a fraction `f` of its sweep at 1 − ∛(1 − f) of
+// the duration.
+const arcDuration = 1400;
+const cardDelay = (index: number): number => index * 180;
+const arcStyle = (score: number, index: number): string =>
+  `--gauge-len: ${arcLength}px; --gauge-offset: ${arcLength * (1 - score / 100)}px; --gauge-delay: ${cardDelay(index)}ms;`;
+const dotDelay = (other: number, score: number, index: number): number =>
+  Math.round(cardDelay(index) + arcDuration * (1 - Math.cbrt(1 - other / score)));
 
 // Where a score lands on the arc, as percentages of the box, so an HTML dot
 // can sit on the stroke: from the left end, over the top, to the right end.
@@ -63,7 +74,7 @@ const link =
 ---
 
 <!-- Agent-native: title, then a tray of two scanner cards and a footer strip. -->
-<section class="mx-auto w-full max-w-5xl">
+<section class="mx-auto w-full max-w-5xl" data-reveal>
   <div class="mx-auto max-w-2xl text-center">
     <h2 class="text-balance font-medium text-3xl sm:text-4xl">
       The agent-native documentation framework.
@@ -79,7 +90,7 @@ const link =
   >
     <div class="grid gap-2 md:grid-cols-2">
       {
-        scores.map((item) => (
+        scores.map((item, index) => (
           <article class="flex flex-col gap-8 rounded-[20px] bg-muted p-8">
             <div class="flex items-center justify-between gap-4">
               <p class="flex items-center gap-2.5">
@@ -127,25 +138,28 @@ const link =
                     stroke-width="10"
                   />
                   <path
-                    class="stroke-accent"
+                    class="gauge-arc stroke-accent"
                     d={arcPath}
-                    stroke-dasharray={dash(item.score)}
+                    stroke-dasharray={`${arcLength} ${arcLength + 20}`}
                     stroke-linecap="round"
                     stroke-width="10"
+                    style={arcStyle(item.score, index)}
                   />
                 </svg>
                 <p
                   aria-label={`${item.score} out of 100`}
                   class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center font-medium text-5xl leading-none tabular-nums"
+                  data-count-delay={cardDelay(index)}
+                  data-count-to={item.score}
                 >
                   {item.score}
                 </p>
                 {item.others.map((other) => (
                   <span
                     aria-label={`${other.name}: ${other.score} out of 100`}
-                    class="group absolute size-3.5 -translate-x-1/2 -translate-y-1/2 cursor-default rounded-full bg-foreground ring-2 ring-muted outline-none hover:z-10 focus-visible:z-10 focus-visible:ring-accent"
+                    class="reveal-pop group absolute size-3.5 -translate-x-1/2 -translate-y-1/2 cursor-default rounded-full bg-foreground ring-2 ring-muted outline-none hover:z-10 focus-visible:z-10 focus-visible:ring-accent"
                     role="img"
-                    style={dotPosition(other.score)}
+                    style={`${dotPosition(other.score)} --reveal-delay: ${dotDelay(other.score, item.score, index)}ms;`}
                     tabindex="0"
                   >
                     <span
@@ -162,16 +176,24 @@ const link =
               <dl class="flex flex-wrap gap-x-3 gap-y-5">
                 <div class="flex min-w-[7rem] flex-1 flex-col gap-1">
                   <dd class="font-medium text-2xl tabular-nums">
-                    {item.score}
-                    <span class="text-muted-foreground">/100</span>
+                    <span
+                      data-count-delay={cardDelay(index)}
+                      data-count-to={item.score}
+                    >
+                      {item.score}
+                    </span><span class="text-muted-foreground">/100</span>
                   </dd>
                   <dt class="text-muted-foreground text-sm">useblume.dev</dt>
                 </div>
                 {item.others.map((other) => (
                   <div class="flex min-w-[7rem] flex-1 flex-col gap-1">
                     <dd class="font-medium text-2xl text-muted-foreground tabular-nums">
-                      {other.score}
-                      <span class="text-muted-foreground/60">/100</span>
+                      <span
+                        data-count-delay={cardDelay(index)}
+                        data-count-to={other.score}
+                      >
+                        {other.score}
+                      </span><span class="text-muted-foreground/60">/100</span>
                     </dd>
                     <dt class="text-muted-foreground text-sm">{other.name}</dt>
                   </div>
@@ -183,7 +205,7 @@ const link =
       }
     </div>
     <div
-      class="flex flex-col gap-3 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
+      class="flex flex-col gap-3 px-6 pt-5 pb-3 sm:flex-row sm:items-center sm:justify-between sm:px-8"
     >
       <p class="flex items-center gap-2.5 text-sm">
         <span
@@ -224,3 +246,20 @@ const link =
     September 20, 2026, and may have changed since.
   </p>
 </section>
+
+<style>
+  .gauge-arc {
+    stroke-dashoffset: var(--gauge-offset);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .gauge-arc {
+      transition: stroke-dashoffset 1.4s cubic-bezier(0.33, 1, 0.68, 1)
+        var(--gauge-delay);
+    }
+
+    [data-reveal-armed]:not([data-inview]) .gauge-arc {
+      stroke-dashoffset: calc(var(--gauge-len) + 12px);
+    }
+  }
+</style>

@@ -1,11 +1,33 @@
 ---
-// "Markdown with superpowers." — MDX source on the left, the rendered
-// output on the right. The rendered side leans on the real shipped <CodeBlock>
-// and <Callout> so the preview is genuinely Blume-rendered, not a look-alike.
+// "Markdown with superpowers." — a split with the visual on the left: an MDX
+// source card and its rendered page overlapping on a sky tray. The rendered
+// side leans on the real shipped <Callout> so the preview is genuinely
+// Blume-rendered, not a look-alike. The cards overlap on a shared grid row
+// rather than with negative margins, so the overlap holds at every width.
 import Callout from "blume/components/content/Callout.astro";
-import CodeBlock from "blume/components/content/CodeBlock.astro";
 import Icon from "blume/components/Icon.astro";
-import CopyGlyph from "./CopyGlyph.astro";
+import Split from "./Split.astro";
+import Tray from "./Tray.astro";
+import { icons } from "./shared.ts";
+
+const items = [
+  {
+    body: "`:::tip`, `:::warning`, and friends render as styled callouts, with nothing to import.",
+    title: "Directives become callouts.",
+  },
+  {
+    body: "A `package-install` fence renders npm, pnpm, yarn, and bun commands as tabs.",
+    title: "Package names become install tabs.",
+  },
+  {
+    body: "Shiki highlights at build time, with titles, line numbers, highlighting, and TypeScript-to-JavaScript tabs.",
+    title: "Code, highlighted.",
+  },
+  {
+    body: "KaTeX math and Mermaid diagrams render in any page, and ship their code only where they're used.",
+    title: "Math and diagrams.",
+  },
+];
 
 // Declared as a string and rendered through an Astro expression so the
 // Markdown inside auto-escapes (no hand-written entities).
@@ -13,70 +35,78 @@ const showcaseSource = `---
 title: Installation
 ---
 
-Install **Blume**, then create a config file:
+Install **Blume** with your package manager:
 
 \`\`\`package-install
 blume
 \`\`\`
 
-\`\`\`ts title="blume.config.ts"
-export default {
-  title: "Docs",
-};
-\`\`\`
-
 :::tip
-Search, theming, and navigation
-work out of the box.
-:::
+Search, theming, and navigation work out of the box.
+:::`;
 
-| Feature | Status |
-| ------- | ------ |
-| Search  | Ready  |
-| Theming | Ready  |`;
-
-// The config fence, highlighted for real on the rendered side.
-const configCode = `export default {
-  title: "Docs",
-};`;
 const packageManagers = ["npm", "pnpm", "yarn", "bun"];
 ---
 
-<!-- Write Markdown. Render components. -->
-<section>
-  <div class="mx-auto max-w-2xl text-center">
-    <h2 class="text-balance font-medium text-3xl sm:text-4xl">
-      Markdown with superpowers.
-    </h2>
-    <p class="mt-4 text-balance text-muted-foreground">
-      Directives become callouts, a package name becomes install tabs, and
-      fenced code gets highlighted — no imports, no JSX to manage.
-    </p>
-  </div>
-  <div
-    class="mx-auto mt-12 max-w-5xl overflow-hidden rounded-blume border border-border bg-background"
-  >
-    <div class="grid grid-cols-1 lg:grid-cols-2">
+<Split
+  tagline="No imports, no JSX to manage."
+  items={items}
+  link={{ href: "/docs/content/syntax", label: "See the full syntax" }}
+  reverse
+  title="Markdown with superpowers."
+>
+  <Tray innerClass="flex flex-col justify-center lg:min-h-[520px]" tone="sky">
+    <div
+      class="grid grid-cols-12 grid-rows-[auto_--spacing(12)_auto] p-6 sm:p-8"
+      data-nosnippet
+      data-reveal
+    >
       <!-- Source -->
-      <pre
-        class="overflow-x-auto p-5 font-mono text-foreground text-xs leading-relaxed sm:text-[13px]"><code>{showcaseSource}</code></pre>
-      <!-- Rendered: divider sits above it when stacked, left of it at lg. -->
-      <div class="border-border border-t p-5 sm:p-6 lg:border-t-0 lg:border-l">
-        <h3 class="font-semibold text-foreground text-lg">
-          Installation
-        </h3>
-        <p class="mt-3 text-muted-foreground text-sm">
-          Install <strong class="font-semibold text-foreground">Blume</strong>,
-          then create a config file:
+      <div
+        class="reveal-rise col-start-1 col-end-13 row-start-1 row-end-3 overflow-hidden rounded-2xl bg-background shadow-xl shadow-[rgb(28_40_64/0.12)] ring-1 ring-foreground/5 sm:col-end-11 dark:shadow-none"
+      >
+        <div
+          class="flex items-center gap-2 border-border border-b px-4 py-2.5 text-muted-foreground text-xs"
+        >
+          <svg
+            aria-hidden="true"
+            class="size-3.5 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            set:html={icons.fileCode}
+          />
+          <p class="font-mono">installation.mdx</p>
+        </div>
+        <pre
+          class="overflow-x-auto p-4 pb-16 font-mono max-sm:whitespace-pre-wrap text-[0.75rem]/5 text-foreground sm:text-[0.8125rem]/6"><code>{showcaseSource}</code></pre>
+      </div>
+
+      <!-- Rendered -->
+      <div
+        class="reveal-rise z-10 col-start-1 col-end-13 row-start-2 row-end-4 rounded-2xl [--reveal-delay:350ms] bg-background p-5 shadow-xl shadow-[rgb(28_40_64/0.18)] ring-1 ring-foreground/5 sm:col-start-3 dark:shadow-none dark:inset-ring dark:inset-ring-white/5 [&_aside]:mb-0"
+      >
+        <h3 class="font-semibold text-foreground text-lg">Installation</h3>
+        <p class="mt-2 text-muted-foreground text-sm">
+          Install <strong class="font-semibold text-foreground">Blume</strong>{" "}
+          with your package manager:
         </p>
-        <div class="mt-3 overflow-hidden rounded-blume border border-border">
+        <div class="mt-3 overflow-hidden rounded-blume ring-1 ring-border">
           <div
             class="flex items-center gap-4 border-border border-b bg-muted/40 px-4 text-xs"
           >
             {
               packageManagers.map((pm, i) => (
                 <span
-                  class={`border-b-2 py-2 ${i === 0 ? "border-accent text-foreground" : "border-transparent text-muted-foreground"}`}
+                  class:list={[
+                    "border-b-2 py-2",
+                    i === 0
+                      ? "border-accent text-foreground"
+                      : "border-transparent text-muted-foreground",
+                  ]}
                 >
                   {pm}
                 </span>
@@ -86,37 +116,14 @@ const packageManagers = ["npm", "pnpm", "yarn", "bun"];
           <div
             class="flex items-center justify-between px-4 py-3 font-mono text-foreground text-xs"
           >
-            <span><span class="text-muted-foreground">npm</span> install blume</span
-            >
+            <p><span class="text-muted-foreground">npm</span> install blume</p>
             <Icon class="size-3.5 text-muted-foreground" name="copy" size={14} />
           </div>
-        </div>
-        <div class="relative mt-4 [&_pre]:my-0!">
-          <CodeBlock code={configCode} icons lang="ts" title="blume.config.ts" />
-          <CopyGlyph />
         </div>
         <Callout type="tip">
           Search, theming, and navigation work out of the box.
         </Callout>
-        <table class="mt-2 w-full border-collapse text-left text-sm">
-          <thead>
-            <tr class="border-border border-b text-muted-foreground">
-              <th class="py-2 pr-4 font-medium">Feature</th>
-              <th class="py-2 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody class="text-foreground">
-            <tr class="border-border border-b">
-              <td class="py-2 pr-4">Search</td>
-              <td class="py-2">Ready</td>
-            </tr>
-            <tr>
-              <td class="py-2 pr-4">Theming</td>
-              <td class="py-2">Ready</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </div>
-  </div>
-</section>
+  </Tray>
+</Split>

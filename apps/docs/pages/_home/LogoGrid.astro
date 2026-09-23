@@ -1,10 +1,13 @@
 ---
-// Customer logos — faded wordmarks wrapped into centered rows, shown right
-// under the product preview. Each links to that customer's Blume-built site.
+// Customer logos — one row of faded wordmarks drifting past as a marquee,
+// shown right under the product preview, so the strip never wraps however
+// many customers it holds. Each links to that customer's Blume-built site.
 // Every wordmark fills via `currentColor`, so the row tracks the theme-aware
 // muted foreground (at half strength, so it reads as a quiet strip) and
 // brightens on hover. The link carries the accessible name; the SVG itself
-// stays decorative.
+// stays decorative. The row renders twice so the loop is seamless; the copy is
+// hidden from assistive tech and the tab order. Hover or focus pauses it, and
+// reduced motion swaps it for a static, centered wrap of the first row.
 const logos = [
   {
     href: "https://ui.neon.com/installation",
@@ -66,8 +69,8 @@ const logos = [
 ];
 ---
 
-<!-- Logo strip: faded customer wordmarks, centered in wrapping rows. -->
-<section class="mx-auto w-full max-w-7xl">
+<!-- Logo marquee: two identical rows sliding left by their own width. -->
+<section data-logos>
   <!-- Visually the strip speaks for itself, but keep the heading and
        summary for assistive tech and search engines. -->
   <h2 class="sr-only">You're in good company.</h2>
@@ -75,19 +78,55 @@ const logos = [
     Companies and open source libraries are moving their docs to Blume.
   </p>
   <div
-    class="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-12 gap-y-10 sm:gap-x-20 sm:gap-y-14"
+    class="flex overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)] motion-reduce:[mask-image:none]"
   >
     {
-      logos.map((logo) => (
-        <a
-          aria-label={logo.name}
-          class="flex items-center justify-center text-muted-foreground/50 transition-colors hover:text-foreground"
-          href={logo.href}
-          rel="noopener noreferrer"
-          set:html={logo.svg}
-          target="_blank"
-        />
+      [false, true].map((copy) => (
+        <div
+          aria-hidden={copy ? "true" : undefined}
+          class:list={[
+            "logo-marquee flex shrink-0 items-center gap-x-16 pr-16 sm:gap-x-20 sm:pr-20",
+            copy
+              ? "motion-reduce:hidden"
+              : "motion-reduce:w-full motion-reduce:shrink motion-reduce:flex-wrap motion-reduce:justify-center motion-reduce:gap-y-10 motion-reduce:pr-0",
+          ]}
+        >
+          {logos.map((logo) => (
+            <a
+              aria-label={logo.name}
+              class="flex shrink-0 items-center justify-center text-muted-foreground/50 hover:text-foreground"
+              href={logo.href}
+              rel="noopener noreferrer"
+              set:html={logo.svg}
+              tabindex={copy ? -1 : undefined}
+              target="_blank"
+            />
+          ))}
+        </div>
       ))
     }
   </div>
 </section>
+
+<style>
+  @keyframes logo-marquee {
+    to {
+      transform: translateX(-100%);
+    }
+  }
+
+  .logo-marquee {
+    animation: logo-marquee 50s linear infinite;
+  }
+
+  [data-logos]:hover .logo-marquee,
+  [data-logos]:focus-within .logo-marquee {
+    animation-play-state: paused;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .logo-marquee {
+      animation: none;
+    }
+  }
+</style>

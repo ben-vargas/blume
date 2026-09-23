@@ -1,10 +1,12 @@
 ---
-// "Every component you need." — a compact three-column index of the built-in
-// component library, in the style of x.ai/cli's "Everything you need to ship":
-// a faint monochrome icon beside a title and a one-line blurb. Each item links
+// "Every component you need." — a two-tone heading over a three-column index of
+// the built-in component library: a monochrome icon beside a title and a
+// one-line blurb, each row hung from a hairline. Each item links
 // to its section on the components reference page. Each `icon` is a Lucide name
 // resolved to inline SVG at build time via `glyph` (see _home/shared.ts).
 import { glyph } from "./shared.ts";
+import SectionHeading from "./SectionHeading.astro";
+import TextLink from "./TextLink.astro";
 
 const componentsHref = "/docs/content/components";
 
@@ -141,71 +143,47 @@ const components = [
 ];
 ---
 
-<!-- Component library index: x.ai/cli-style three-column grid of icon + title + blurb. -->
+<!-- Component library index: a two-tone heading over a hairline grid of links,
+     each an icon beside a title and a one-line blurb. -->
 <section>
-  <div class="mx-auto max-w-2xl text-center">
-    <h2 class="font-medium text-3xl sm:text-4xl">
-      Every component you need.
-    </h2>
-    <p class="mx-auto mt-4 max-w-xl text-balance text-muted-foreground">
-      An accessible, themeable component set — cards, steps, tabs, code groups,
-      diffs, and more — usable in any .mdx page with nothing to import.
-    </p>
-  </div>
-
-  <ul
-    class="mx-auto mt-12 grid max-w-6xl list-none gap-x-12 gap-y-8 sm:grid-cols-2 lg:grid-cols-3"
+  <SectionHeading
+    tagline="Accessible, themeable, and nothing to import."
+    title="Every component you need."
   >
+    <TextLink href={componentsHref}>Browse all components</TextLink>
+  </SectionHeading>
+
+  <ul class="mt-12 grid gap-x-16 sm:grid-cols-2 lg:grid-cols-3" role="list">
     {
-      components.map((component) => (
-        <li>
-          <a class="group flex items-start gap-3" href={component.href}>
-            <span class="mt-0.5 shrink-0 text-muted-foreground/50 transition-colors group-hover:text-accent">
-              <svg
-                class="size-[18px]"
-                fill="none"
-                height="18"
-                stroke="currentColor"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                viewBox="0 0 24 24"
-                width="18"
-                set:html={component.icon}
-              />
-            </span>
-            <span>
-              <span class="block font-medium text-foreground text-sm transition-colors group-hover:text-accent">
+      components.map((component, index) => (
+        <li
+          class="reveal-rise border-border border-t"
+          data-reveal
+          style={`--reveal-delay: ${(index % 3) * 80}ms`}
+        >
+          <a class="group flex items-start gap-3 py-5" href={component.href}>
+            <svg
+              aria-hidden="true"
+              class="h-lh size-4 shrink-0 text-muted-foreground group-hover:text-accent"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              set:html={component.icon}
+            />
+            <div class="text-base sm:text-sm">
+              <p class="font-medium text-foreground group-hover:text-accent">
                 {component.title}
-              </span>
-              <span class="mt-0.5 block text-muted-foreground text-xs leading-relaxed">
+              </p>
+              <p class="mt-1 text-pretty text-muted-foreground">
                 {component.description}
-              </span>
-            </span>
+              </p>
+            </div>
           </a>
         </li>
       ))
     }
   </ul>
-
-  <div class="mt-12 text-center">
-    <a
-      class="inline-flex items-center gap-1.5 rounded-blume border border-border px-5 py-3 font-medium text-foreground text-sm transition-colors hover:bg-muted"
-      href={componentsHref}
-    >
-      Browse all components
-      <svg
-        class="size-4"
-        fill="none"
-        height="16"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        width="16"
-        set:html={glyph("chevron-right")}
-      />
-    </a>
-  </div>
 </section>

@@ -1,14 +1,15 @@
 ---
-// "Content from anywhere." — Blume reads local Markdown by default, but content
-// can also come from a remote repo, a CMS (Sanity, Notion), or any custom
-// adapter. A stack of overlapping source marks sits above the heading; the
-// config snippet below shows the matching `content.sources` entries.
+// "Content from anywhere." — a split with the matching `content.sources`
+// config floating on a sky tray above a dock of source marks. Blume reads
+// local Markdown by default, but content can also come from a remote repo, a
+// CMS, or any custom adapter.
 import { Code } from "astro:components";
-import { icons } from "./shared.ts";
+import Split from "./Split.astro";
+import Tray from "./Tray.astro";
+import { glyph, icons } from "./shared.ts";
 
 // Full-color brand tiles. Each SVG carries its own background rect, so it fills
-// the circle edge-to-edge (clipped round by `overflow-hidden`). Order on the
-// page: markdown, mdx, notion, sanity.
+// its tile edge-to-edge (clipped round by `overflow-hidden`).
 const markdownLogo = `<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
 <rect width="400" height="400" fill="#FAFAFA"/>
 <path d="M112.79 133.563C103.012 133.563 95 141.718 95 151.459V248.541C95 258.282 103.012 266.437 112.789 266.437H287.211C296.988 266.437 305 258.282 305 248.541V151.461C305 141.72 296.986 133.565 287.211 133.565H117.73L117.726 133.562L112.79 133.563ZM112.779 149.552H287.211C288.258 149.552 289.014 150.261 289.014 151.463V248.541C289.014 249.742 288.255 250.451 287.211 250.451H112.789C111.745 250.451 110.986 249.742 110.986 248.541V151.459C110.986 150.261 111.742 149.557 112.779 149.552Z" fill="black"/>
@@ -38,95 +39,251 @@ const sanityLogo = `<svg width="400" height="400" viewBox="0 0 400 400" fill="no
 <path d="M158.923 163.773C151.569 159.479 145.535 153.31 141.462 145.919C137.39 138.528 135.43 130.191 135.792 121.794C148.654 105.158 171.029 95 198.303 95C245.502 95 272.812 119.494 279.549 153.969H236.746C232.026 140.377 220.209 129.794 198.663 129.794C175.64 129.794 159.931 142.961 159.031 163.773" fill="#F9B1AB"/>
 </svg>`;
 
+// Simple Icons marks (CC0) in their brand colors, drawn on the same
+// 400-unit tile as the marks above. Strapi's mark is itself a rounded
+// square, so it's scaled past the tile edge to let the tile's own rounding
+// crop it.
+
+const githubLogo = `<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="400" height="400" fill="#181717"/>
+<path transform="translate(100 100) scale(8.3333)" d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" fill="#FFFFFF"/>
+</svg>`;
+
+const obsidianLogo = `<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="400" height="400" fill="#FAFAFA"/>
+<path transform="translate(100 100) scale(8.3333)" d="M19.355 18.538a68.967 68.959 0 0 0 1.858-2.954.81.81 0 0 0-.062-.9c-.516-.685-1.504-2.075-2.042-3.362-.553-1.321-.636-3.375-.64-4.377a1.707 1.707 0 0 0-.358-1.05l-3.198-4.064a3.744 3.744 0 0 1-.076.543c-.106.503-.307 1.004-.536 1.5-.134.29-.29.6-.446.914l-.31.626c-.516 1.068-.997 2.227-1.132 3.59-.124 1.26.046 2.73.815 4.481.128.011.257.025.386.044a6.363 6.363 0 0 1 3.326 1.505c.916.79 1.744 1.922 2.415 3.5zM8.199 22.569c.073.012.146.02.22.02.78.024 2.095.092 3.16.29.87.16 2.593.64 4.01 1.055 1.083.316 2.198-.548 2.355-1.664.114-.814.33-1.735.725-2.58l-.01.005c-.67-1.87-1.522-3.078-2.416-3.849a5.295 5.295 0 0 0-2.778-1.257c-1.54-.216-2.952.19-3.84.45.532 2.218.368 4.829-1.425 7.531zM5.533 9.938c-.023.1-.056.197-.098.29L2.82 16.059a1.602 1.602 0 0 0 .313 1.772l4.116 4.24c2.103-3.101 1.796-6.02.836-8.3-.728-1.73-1.832-3.081-2.55-3.831zM9.32 14.01c.615-.183 1.606-.465 2.745-.534-.683-1.725-.848-3.233-.716-4.577.154-1.552.7-2.847 1.235-3.95.113-.235.223-.454.328-.664.149-.297.288-.577.419-.86.217-.47.379-.885.46-1.27.08-.38.08-.72-.014-1.043-.095-.325-.297-.675-.68-1.06a1.6 1.6 0 0 0-1.475.36l-4.95 4.452a1.602 1.602 0 0 0-.513.952l-.427 2.83c.672.59 2.328 2.316 3.335 4.711.09.21.175.43.253.653z" fill="#7C3AED"/>
+</svg>`;
+
+const contentfulLogo = `<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="400" height="400" fill="#FAFAFA"/>
+<path transform="translate(100 100) scale(8.3333)" d="M21.875 16.361c-.043-.048-1.067-1.18-2.365-1.19-.68 0-1.288.283-1.815.858-.773.842-2.35 1.85-4.25 1.921-1.598.059-3.085-.548-4.423-1.805-1.644-1.544-2.155-4.016-1.302-6.297.834-2.23 2.752-3.616 5.131-3.707l.044-.004c.024-.003 2.302-.258 4.325 1.548.17.185 1.154 1.197 2.475 1.228.823.018 1.586-.336 2.27-1.055.602-.632.87-1.342.797-2.112-.154-1.61-1.806-2.876-2.03-3.04-.212-.184-1.878-1.578-4.476-2.294-2.52-.695-6.42-.853-10.685 2.349a7.31 7.31 0 0 0-.557.49c-.28.208-.523.462-.716.753a12.469 12.469 0 0 0-3.064 8.677c.207 6.283 5.265 9.293 5.646 9.51.262.17 2.906 1.81 6.495 1.809 2.106 0 4.538-.565 7.005-2.322.248-.138 1.714-1.012 2.103-2.52.23-.894.042-1.815-.562-2.737l-.046-.06zm-16.932 1.97c0-1.09.887-1.977 1.977-1.977s1.977.886 1.977 1.977c0 1.09-.887 1.977-1.977 1.977s-1.977-.887-1.977-1.977zm.139-13.657c.236-.275.451-.498.628-.67a1.965 1.965 0 0 1 1.088-.329c1.09 0 1.977.887 1.977 1.977S7.888 7.63 6.798 7.63s-1.977-.887-1.977-1.977c0-.356.096-.69.261-.978zM13.249.999c3.954 0 6.657 2.336 6.826 2.486l.043.034c.42.3 1.532 1.301 1.63 2.324.044.469-.126.898-.52 1.313-.477.5-.983.752-1.504.738-.964-.019-1.743-.887-1.76-.905l-.042-.044c-2.292-2.063-4.83-1.855-5.13-1.822a6.82 6.82 0 0 0-3.012.818 3 3 0 0 0-2.34-3.214C9.543 1.45 11.516.999 13.248.999zM3.884 6.34a3 3 0 0 0 2.914 2.31c.122 0 .24-.01.358-.024a7.336 7.336 0 0 0-.39.866c-.75 2.003-.59 4.14.359 5.854-.068-.005-.136-.01-.205-.01a2.999 2.999 0 0 0-2.967 2.6 10.075 10.075 0 0 1-1.7-5.288 11.43 11.43 0 0 1 1.63-6.309zM21.497 18.9c-.3 1.174-1.615 1.89-1.627 1.896l-.058.036c-6.287 4.499-12.137.667-12.382.502l-.036-.022a2.848 2.848 0 0 1-.034-.02 2.998 2.998 0 0 0 2.543-3.228c1.124.64 2.336.951 3.58.906 2.214-.083 4.057-1.264 4.962-2.25.327-.356.67-.53 1.048-.53h.005c.762.004 1.46.688 1.593.826.421.658.558 1.291.406 1.884z" fill="#2478CC"/>
+</svg>`;
+
+const payloadLogo = `<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="400" height="400" fill="#FAFAFA"/>
+<path transform="translate(100 100) scale(8.3333)" d="M11.9 20.4q.1.1.2 0l5.5-3.2q.1-.05.2 0l2.6 1.5q.2.15 0 .3l-8.3 5h-.2L1.8 18.1q-.2-.1-.2-.3V6.2q0-.2.2-.3l1.3-.8q.15-.1.3 0l9.8 5.7q.2.1.2.3v3.1q0 .3-.2.2L4.9 9.6q-.2-.1-.2.2V16q0 .2.2.3zM22.3 5.9q.1.1.1.2v9.8q0 .2-.2.1l-2.7-1.5q-.2-.1-.2-.3V7.9q0-.2-.2-.3l-7-4q-.1-.05-.2 0L9.5 5q-.1.05-.2 0L6.7 3.4q-.2-.15 0-.3L11.9 0h.2z" fill="#000000"/>
+</svg>`;
+
+const strapiLogo = `<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="400" height="400" fill="#FFFFFF"/>
+<path transform="translate(-40 -40) scale(20)" d="M8.32 0c-3.922 0-5.882 0-7.1 1.219C0 2.438 0 4.399 0 8.32v7.36c0 3.922 0 5.882 1.219 7.101C2.438 24 4.399 24 8.32 24h7.36c3.922 0 5.882 0 7.101-1.219C24 21.562 24 19.601 24 15.68V8.32c0-3.922 0-5.882-1.219-7.101C21.562 0 19.601 0 15.68 0H8.32zm.41 7.28h7.83a.16.16 0 0 1 .16.16v7.83h-3.87v-3.71a.41.41 0 0 0-.313-.398l-.086-.012h-3.72V7.28zm-.5.25v3.87H4.553a.08.08 0 0 1-.057-.136L8.23 7.529zm.25 4.12h3.87v3.87H8.64a.16.16 0 0 1-.16-.16v-3.71zm4.12 4.12h3.87l-3.734 3.734a.08.08 0 0 1-.136-.057V15.77z" fill="#4945FF"/>
+</svg>`;
+
 const sources = [
   { logo: markdownLogo, title: "Markdown" },
   { logo: mdxLogo, title: "MDX" },
+  { logo: githubLogo, title: "GitHub" },
+  { logo: obsidianLogo, title: "Obsidian" },
   { logo: notionLogo, title: "Notion" },
   { logo: sanityLogo, title: "Sanity" },
+  { logo: contentfulLogo, title: "Contentful" },
+  { logo: payloadLogo, title: "Payload" },
+  { logo: strapiLogo, title: "Strapi" },
 ];
+
+const items = [
+  {
+    body: "Local Markdown and MDX need no configuration at all.",
+    title: "A folder is a site.",
+  },
+  {
+    body: "`mdxRemote()` pulls MDX from another GitHub repository at build time.",
+    title: "Remote repositories.",
+  },
+  {
+    body: "Notion, Sanity, Contentful, Payload, and Strapi over their APIs, plus Obsidian vaults.",
+    title: "Headless CMSs.",
+  },
+  {
+    body: "A `custom()` adapter brings any backend without its SDK touching core.",
+    title: "Anything else.",
+  },
+];
+
+// Dock magnification: each tile's size falls off with its distance from the
+// pointer (a quarter cosine over 120px), eased toward that target every
+// frame and written to `--mag` for the tile's size to follow. Distances are
+// measured to the tiles' resting centers — the dock is centered, so those sit
+// a fixed step apart around its midpoint, read once as the pointer arrives —
+// never to their live boxes, which move as the tiles grow and would feed the
+// motion back into itself. Pointer-only, from `sm` up, and never under
+// reduced motion. Delegated from `document` and bound once per session
+// (Astro's ClientRouter runs inline scripts once), so it survives router
+// swaps.
+const dockScript = `(() => {
+  if (window.__blumeDock) { return; }
+  window.__blumeDock = true;
+  const canMagnify = matchMedia("(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) and (min-width: 40rem)");
+  const boost = 0.6;
+  const range = 120;
+  const step = 48;
+  let dock = null;
+  let items = [];
+  let center = 0;
+  let current = [];
+  let target = [];
+  let frame = 0;
+  const tick = () => {
+    frame = 0;
+    let settling = false;
+    items.forEach((item, index) => {
+      const delta = target[index] - current[index];
+      current[index] = Math.abs(delta) < 0.002 ? target[index] : current[index] + delta * 0.35;
+      settling ||= current[index] !== target[index];
+      item.style.setProperty("--mag", current[index].toFixed(4));
+    });
+    if (settling) { frame = requestAnimationFrame(tick); }
+  };
+  const run = () => { frame ||= requestAnimationFrame(tick); };
+  const release = () => {
+    target = items.map(() => 1);
+    run();
+  };
+  document.addEventListener("pointermove", (event) => {
+    const hit = canMagnify.matches && event.target instanceof Element ? event.target.closest("[data-dock]") : null;
+    if (!hit) {
+      if (target.some((value) => value !== 1)) { release(); }
+      return;
+    }
+    if (hit !== dock) {
+      dock = hit;
+      items = [...hit.children];
+      current = items.map(() => 1);
+      target = items.map(() => 1);
+    }
+    if (target.every((value) => value === 1) && current.every((value) => value === 1)) {
+      const rect = hit.getBoundingClientRect();
+      center = rect.left + rect.width / 2;
+    }
+    const middle = (items.length - 1) / 2;
+    target = items.map((_, index) => {
+      const distance = Math.abs(event.clientX - (center + (index - middle) * step));
+      return 1 + boost * Math.cos(Math.min(distance / range, 1) * (Math.PI / 2));
+    });
+    run();
+  });
+  document.documentElement.addEventListener("pointerleave", release);
+})();`;
 
 // Rendered through an Astro expression so the object/array syntax auto-escapes.
 const configSource = `import { defineConfig } from "blume";
-import { filesystem, mdxRemote, notion, sanity } from "blume/sources";
+import { filesystem, notion, sanity } from "blume/sources";
 
 export default defineConfig({
   content: {
     sources: [
       filesystem({ root: "docs" }),
-      mdxRemote({ github: { owner: "acme", repo: "docs", path: "docs" } }),
-      sanity({ projectId: "p1", dataset: "production", query: "*[_type == 'doc']" }),
       notion({ database: process.env.NOTION_DB }),
+      sanity({
+        projectId: "p1",
+        dataset: "production",
+        query: "*[_type == 'doc']",
+      }),
     ],
   },
 });`;
 ---
 
-<!-- Content from anywhere -->
-<section>
-  <div class="mx-auto max-w-2xl text-center">
-    <!-- Overlapping source marks. Leftmost sits on top (descending z-index). -->
-    <div class="flex justify-center -space-x-4">
-      {
-        sources.map((source, index) => (
-          <span
-            class="relative inline-flex size-16 items-center justify-center overflow-hidden rounded-full border border-border [&>svg]:size-full"
-            set:html={source.logo}
-            style={`z-index:${sources.length - index}`}
-            title={source.title}
-          />
-        ))
-      }
-    </div>
-
-    <h2 class="mt-8 text-balance font-medium text-3xl sm:text-4xl">
-      Content from anywhere.
-    </h2>
-    <p class="mt-4 text-balance text-muted-foreground">
-      Blume reads a folder of Markdown by default — but content can just as
-      easily come from a remote repo, a CMS, or any custom backend. Mix several
-      sources into a single site; they all render through the same components.
-    </p>
-  </div>
-
-  <!-- One config, every source. Shiki highlights at build time; the
-       `blume-config-mockup` class scopes the dark/light var switch below. -->
-  <div
-    class="blume-config-mockup mx-auto mt-12 max-w-3xl overflow-hidden rounded-blume border border-border bg-background"
-  >
+<Split
+  tagline="Mix local files, remote repos, and your CMS in one site."
+  items={items}
+  link={{ href: "/docs/content/sources", label: "Learn about content sources" }}
+  title="Content from anywhere."
+>
+  <Tray innerClass="flex flex-col justify-center lg:min-h-[520px]" tone="sky">
     <div
-      class="flex items-center gap-2 border-border border-b bg-muted/40 px-4 py-2.5 text-[11px] text-muted-foreground"
+      class="flex flex-col items-center gap-8 p-6 sm:p-10"
+      data-nosnippet
+      data-reveal
     >
-      <svg
-        class="size-3.5"
-        fill="none"
-        height="14"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        width="14"
-        set:html={icons.config}
-      ></svg>
-      <span class="font-mono">blume.config.ts</span>
-    </div>
-    <Code
-      code={configSource}
-      defaultColor={false}
-      lang="ts"
-      themes={{ dark: "github-dark", light: "github-light" }}
-    />
-  </div>
+      <!-- One config, every source. Shiki highlights at build time; the
+           `blume-config-mockup` class scopes the dark/light var switch below. -->
+      <div
+        class="blume-config-mockup reveal-rise w-full overflow-hidden rounded-2xl bg-background shadow-xl shadow-[rgb(28_40_64/0.12)] ring-1 ring-foreground/5 dark:shadow-none"
+      >
+        <div
+          class="flex items-center gap-2 border-border border-b px-4 py-2.5 text-muted-foreground text-xs"
+        >
+          <svg
+            aria-hidden="true"
+            class="size-3.5 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            set:html={icons.config}
+          />
+          <p class="font-mono">blume.config.ts</p>
+        </div>
+        <Code
+          code={configSource}
+          defaultColor={false}
+          lang="ts"
+          themes={{ dark: "github-dark", light: "github-light" }}
+        />
+      </div>
 
-  <p class="mx-auto mt-6 max-w-xl text-balance text-center text-muted-foreground text-sm">
-    Need another backend? A <code class="font-mono text-foreground text-[13px]">custom</code> source
-    adapter ships any CMS without its SDK touching core.
-    {" "}
-    <a class="font-medium text-foreground underline-offset-4 hover:underline" href="/docs/content/sources">
-      Learn about content sources
-    </a>.
-  </p>
-</section>
+      <!-- Source dock: a frosted plate of a tile per built-in source, plus one
+           for a custom adapter. Tiles pop in on view, and from `sm` up the
+           dock magnifies under the pointer like the macOS Dock, each tile
+           growing up out of the plate with its name above it. -->
+      <ul
+        class="reveal-rise flex flex-wrap items-center justify-center gap-2 rounded-2xl bg-background/60 p-2 shadow-lg shadow-[rgb(28_40_64/0.08)] ring-1 ring-foreground/5 backdrop-blur-md [--reveal-delay:200ms] sm:h-14 sm:flex-nowrap sm:items-end dark:shadow-none"
+        data-dock
+        role="list"
+      >
+        {
+          sources.map((source, index) => (
+            <li
+              class="reveal-pop group relative"
+              style={`--reveal-delay: ${350 + index * 45}ms`}
+            >
+              <div
+                class="dock-tile overflow-hidden rounded-xl ring-1 ring-foreground/5 [&>svg]:size-full"
+                set:html={source.logo}
+              />
+              <span class="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-0.5 text-background text-xs opacity-0 group-hover:opacity-100">{source.title}</span>
+            </li>
+          ))
+        }
+        <li
+          class="reveal-pop group relative"
+          style={`--reveal-delay: ${350 + sources.length * 45}ms`}
+        >
+          <div
+            class="dock-tile flex items-center justify-center rounded-xl bg-background text-muted-foreground ring-1 ring-foreground/5"
+          >
+            <svg
+              aria-hidden="true"
+              class="size-5"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              set:html={glyph("plus")}
+            />
+          </div>
+          <span class="pointer-events-none absolute bottom-full left-1/2 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-0.5 text-background text-xs opacity-0 group-hover:opacity-100">Custom</span>
+        </li>
+      </ul>
+    </div>
+  </Tray>
+</Split>
+
+<script is:inline set:html={dockScript} />
+
+<style>
+  /* Sized from `--mag`, which the dock script eases per frame; a CSS
+     transition here would restart on every pointer move and lag behind. */
+  .dock-tile {
+    width: calc(2.5rem * var(--mag, 1));
+    height: calc(2.5rem * var(--mag, 1));
+  }
+</style>
 
 <!--
   Shiki runs with `defaultColor: false`, so it only emits `--shiki-light` /
@@ -139,16 +296,17 @@ export default defineConfig({
   .blume-config-mockup .astro-code {
     margin: 0;
     overflow-x: auto;
-    padding: 1.25rem;
+    padding: 1rem;
     background: transparent !important;
     font-family: var(--blume-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
     font-size: 0.75rem;
-    line-height: 1.625;
+    line-height: 1.25rem;
   }
 
   @media (min-width: 640px) {
     .blume-config-mockup .astro-code {
-      font-size: 13px;
+      font-size: 0.8125rem;
+      line-height: 1.5rem;
     }
   }
 

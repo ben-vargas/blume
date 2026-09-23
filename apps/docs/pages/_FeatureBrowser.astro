@@ -61,9 +61,35 @@ const meta = {
 };
 const view = meta[kind as keyof typeof meta] ?? meta.page;
 
-// The "Popular" results in the search-palette mock (titles only, like the real
-// ⌘K menu); the first row renders as the highlighted/active result.
-const searchResults = ["Quickstart", "Messages", "Templates", "Webhooks"];
+// The search mock mirrors Blume's ⌘K dialog mid-query: section filter chips
+// with counts, highlighted results (the first selected), and a preview pane
+// for the selected hit. `mark` spans take the dialog's own highlight.
+const searchQuery = "webhook";
+const searchFilters = [
+  { count: 12, label: "All" },
+  { count: 5, label: "Docs" },
+  { count: 4, label: "API" },
+  { count: 3, label: "Changelog" },
+];
+const searchResults = [
+  {
+    excerpt: ["Receive delivery events at your ", "webhook", " endpoint…"],
+    title: ["", "Webhook", "s"],
+  },
+  {
+    excerpt: ["…signs every ", "webhook", " with your secret…"],
+    title: ["Verify signatures", "", ""],
+  },
+  {
+    excerpt: ["…exponential backoff for ", "webhook", " retries…"],
+    title: ["acme@2.0.4", "", ""],
+  },
+];
+const searchPreview = [
+  "Acme sends a ",
+  "webhook",
+  " to your endpoint whenever a message is delivered, opens, or bounces. Each event carries the message ID and a timestamp, so you can reconcile it with your own records.",
+];
 
 // For the `api` kind the sidebar swaps to OpenAPI endpoints (Scalar-style):
 // the operation summary on the left, a colour-coded method badge on the right.
@@ -82,64 +108,26 @@ const apiResponse = `{
   "status": "delivered"
 }`;
 
-// Timeline entries for the `changelog` kind, mirroring the generated
-// /changelog page's `Update` layout: a rail with the release link, date, and
-// category pill beside changesets-style notes (hash-prefixed, inline code).
-// Each note splits around `code` so the chip renders as a real <code> span.
-const changelogEntries = [
+// Rows for the `changelog` kind, mirroring the generated /changelog index:
+// releases grouped by year beside a year rail, each row the release title,
+// its category tag, and the date without the year its group already shows.
+const changelogYears = [
   {
-    date: "July 8, 2026",
-    heading: "Minor Changes",
-    label: "acme@2.1.0",
-    notes: [
-      {
-        code: "segments",
-        hash: "a1f92c3",
-        post: " — broadcast a message to a saved audience straight from the API.",
-        pre: "Add ",
-      },
-      {
-        code: "/analytics/export",
-        hash: "7c04b1e",
-        post: " endpoint.",
-        pre: "Export delivery analytics from the new ",
-      },
+    releases: [
+      { date: "July 8", label: "acme@2.1.0" },
+      { date: "June 26", label: "acme@2.0.4" },
+      { date: "June 12", label: "acme@2.0.0" },
+      { date: "May 30", label: "acme@1.9.2" },
+      { date: "May 14", label: "acme@1.9.1" },
     ],
-    tag: "Release",
+    year: "2026",
   },
   {
-    date: "June 26, 2026",
-    heading: "Patch Changes",
-    label: "acme@2.0.4",
-    notes: [
-      {
-        code: "retry.backoff",
-        hash: "9b3d5a7",
-        post: " for webhook retries instead of a fixed interval.",
-        pre: "Use exponential ",
-      },
-      {
-        code: "templates.render",
-        hash: "04e8c2f",
-        post: " dropping default variables.",
-        pre: "Fix ",
-      },
+    releases: [
+      { date: "December 2", label: "acme@1.9.0" },
+      { date: "November 18", label: "acme@1.8.3" },
     ],
-    tag: "Release",
-  },
-  {
-    date: "June 12, 2026",
-    heading: "Major Changes",
-    label: "acme@2.0.0",
-    notes: [
-      {
-        code: "v2",
-        hash: "f31c88a",
-        post: " API is generally available.",
-        pre: "The ",
-      },
-    ],
-    tag: "Release",
+    year: "2025",
   },
 ];
 ---
@@ -538,40 +526,39 @@ const changelogEntries = [
 
       {
         kind === "changelog" && (
-          <div>
-            <h4 class="font-semibold text-2xl text-foreground">
-              Changelog
-            </h4>
-            <div class="mt-6 space-y-6">
-              {changelogEntries.map((entry) => (
-                <div class="grid grid-cols-[96px_1fr] gap-4">
-                  <div class="border-border border-e pe-3">
-                    <p class="font-semibold text-[11px] text-foreground underline decoration-border underline-offset-2">
-                      {entry.label}
-                    </p>
-                    <p class="mt-1 text-[10px] text-muted-foreground">
-                      {entry.date}
-                    </p>
-                    <span class="mt-2 inline-block rounded-full bg-muted px-2 py-0.5 font-medium text-[9px] text-muted-foreground">
-                      {entry.tag}
-                    </span>
-                  </div>
-                  <div>
-                    <p class="font-semibold text-foreground text-sm">
-                      {entry.heading}
-                    </p>
-                    <div class="mt-1.5 space-y-1.5">
-                      {entry.notes.map((note) => (
-                        <p class="text-[11px] text-muted-foreground leading-relaxed">
-                          {note.hash}: {note.pre}
-                          <code class="rounded bg-muted px-1 font-mono text-[10px]">
-                            {note.code}
-                          </code>
-                          {note.post}
-                        </p>
-                      ))}
-                    </div>
-                  </div>
+          <div class="mx-auto max-w-lg">
+            <h4 class="font-semibold text-2xl text-foreground">Changelog</h4>
+            <p class="mt-1 text-muted-foreground text-xs">
+              Product updates, new features, and fixes from every release.
+            </p>
+            <div class="mt-5 divide-y divide-border border-border border-y">
+              {changelogYears.map((group) => (
+                <div class="grid grid-cols-[3.5rem_minmax(0,1fr)] gap-x-4">
+                  <p class="pt-2 font-medium text-[11px] text-muted-foreground tabular-nums">
+                    {group.year}
+                  </p>
+                  <ul class="divide-y divide-border" role="list">
+                    {group.releases.map((release, index) => (
+                      <li class="flex items-baseline gap-3 py-2">
+                        <span
+                          class:list={[
+                            "min-w-0 flex-1 font-medium text-[11px]",
+                            group.year === "2026" && index === 0
+                              ? "text-accent"
+                              : "text-foreground",
+                          ]}
+                        >
+                          {release.label}
+                        </span>
+                        <span class="shrink-0 rounded-full bg-muted px-1.5 py-0.5 font-medium text-[9px] text-muted-foreground">
+                          Release
+                        </span>
+                        <span class="shrink-0 font-mono text-[10px] text-muted-foreground tabular-nums">
+                          {release.date}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ))}
             </div>
@@ -595,13 +582,13 @@ const changelogEntries = [
       )
     }
 
-    {/* Search: a ⌘K command palette modal over the dimmed page. The backdrop is
-        positioned to the window root, so it covers the whole window — nav
-        included — like the real ⌘K overlay. */}
+    {/* Search: Blume's ⌘K dialog mid-query over the dimmed page. The backdrop
+        is positioned to the window root, so it covers the whole window — nav
+        included — like the real dialog's backdrop. */}
     {
       kind === "search" && (
-        <div class="absolute inset-0 z-10 flex items-start justify-center bg-black/30 p-6 pt-20 backdrop-blur-[2px]">
-          <div class="w-full max-w-md overflow-hidden rounded-blume border border-border bg-background shadow-2xl">
+        <div class="absolute inset-0 z-10 flex items-start justify-center bg-black/30 p-4 pt-10">
+          <div class="flex w-full max-w-xl flex-col overflow-hidden rounded-blume border border-border bg-background/85 shadow-2xl backdrop-blur-xl">
             <div class="flex items-center gap-2 border-border border-b px-3 py-2.5">
               <svg
                 class="size-3.5 text-muted-foreground"
@@ -615,41 +602,100 @@ const changelogEntries = [
                 width="14"
                 set:html={searchIcon}
               />
-              <span class="flex-1 text-muted-foreground text-xs">
-                Search documentation…
-              </span>
-              <span class="rounded border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">
+              <span class="flex-1 text-foreground text-xs">{searchQuery}</span>
+              <span class="rounded border border-border bg-muted px-1 py-0.5 font-mono text-[9px] text-muted-foreground">
                 Esc
               </span>
             </div>
-            <div class="p-2">
-              <p class="px-2 pt-1 pb-1.5 text-[10px] text-muted-foreground">
-                Popular
-              </p>
-              {searchResults.map((result, index) => (
-                <div
-                  class={`flex items-center gap-2.5 rounded-blume px-2 py-1.5 ${index === 0 ? "border border-border bg-muted" : ""}`}
-                >
-                  <svg
-                    class="size-3.5 shrink-0 text-muted-foreground"
-                    fill="none"
-                    height="14"
-                    stroke="currentColor"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                    width="14"
-                    set:html={fileText}
-                  />
-                  <span class="text-foreground text-xs">{result}</span>
+            <div class="grid min-h-0 grid-cols-1 sm:grid-cols-[14rem_minmax(0,1fr)]">
+              <div class="sm:border-border sm:border-e">
+                <div class="flex flex-wrap gap-1 border-border border-b px-2.5 py-2">
+                  {searchFilters.map((filter, index) => (
+                    <span
+                      class:list={[
+                        "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-medium text-[10px]",
+                        index === 0
+                          ? "border-transparent bg-foreground text-background"
+                          : "border-border text-muted-foreground",
+                      ]}
+                    >
+                      {filter.label}
+                      <span class="opacity-60">{filter.count}</span>
+                    </span>
+                  ))}
                 </div>
-              ))}
+                <div class="p-1.5">
+                  <p class="px-2 pt-1 pb-1 text-[10px] text-muted-foreground">
+                    Results
+                  </p>
+                  {searchResults.map((result, index) => (
+                    <div
+                      class:list={[
+                        "flex items-start gap-2 rounded-blume border px-2 py-1.5 [&_mark]:rounded-sm [&_mark]:bg-accent/25 [&_mark]:text-inherit",
+                        index === 0
+                          ? "border-border bg-muted"
+                          : "border-transparent",
+                      ]}
+                    >
+                      <svg
+                        class="mt-px size-3.5 shrink-0 text-muted-foreground"
+                        fill="none"
+                        height="14"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        width="14"
+                        set:html={file}
+                      />
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate text-foreground text-xs">
+                          {result.title[0]}
+                          {result.title[1] && <mark>{result.title[1]}</mark>}
+                          {result.title[2]}
+                        </p>
+                        <p class="truncate text-[10px] text-muted-foreground">
+                          {result.excerpt[0]}
+                          <mark>{result.excerpt[1]}</mark>
+                          {result.excerpt[2]}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div class="hidden p-4 sm:block [&_mark]:rounded-sm [&_mark]:bg-accent/25 [&_mark]:text-inherit">
+                <p class="font-medium text-foreground text-sm">
+                  <mark>Webhook</mark>s
+                </p>
+                <p class="mt-2 text-[11px] text-muted-foreground leading-relaxed">
+                  {searchPreview[0]}
+                  <mark>{searchPreview[1]}</mark>
+                  {searchPreview[2]}
+                </p>
+              </div>
             </div>
-            <div class="flex items-center gap-3 border-border border-t px-3 py-1.5 text-[10px] text-muted-foreground">
-              <span>↑↓ navigate</span>
-              <span>↵ open</span>
-              <span class="ml-auto">⌘] preview</span>
+            <div class="flex items-center justify-between gap-3 border-border border-t px-3 py-1.5 text-[10px] text-muted-foreground">
+              <span class="flex items-center gap-1.5">
+                <span class="size-2.5 rounded-[3px] border border-border"></span>
+                All languages
+              </span>
+              <span class="flex items-center gap-2.5">
+                <span class="flex items-center gap-1">
+                  <span class="rounded border border-border bg-muted px-1 font-mono text-[9px]">↑</span>
+                  <span class="rounded border border-border bg-muted px-1 font-mono text-[9px]">↓</span>
+                  navigate
+                </span>
+                <span class="flex items-center gap-1">
+                  <span class="rounded border border-border bg-muted px-1 font-mono text-[9px]">↵</span>
+                  open
+                </span>
+                <span class="hidden items-center gap-1 sm:flex">
+                  <span class="rounded border border-border bg-muted px-1 font-mono text-[9px]">⌘J</span>
+                  preview
+                </span>
+              </span>
             </div>
           </div>
         </div>

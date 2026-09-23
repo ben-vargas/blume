@@ -8,8 +8,10 @@
 // prompts from `blume init`, consola's ✔ lines, and the audit report format.
 interface Props {
   kind: string;
+  /** `glass` drops the solid fill so a frosted frame behind it shows through. */
+  surface?: "solid" | "glass";
 }
-const { kind } = Astro.props;
+const { kind, surface = "solid" } = Astro.props;
 
 type Seg = { c?: string; t: string };
 type Line = Seg[];
@@ -334,7 +336,7 @@ const terminals: Record<
 const terminal = terminals[kind] ?? terminals.init;
 ---
 
-<div class="flex h-full flex-col bg-[#0d0f12] text-left">
+<div class:list={["flex h-full flex-col text-left", surface === "solid" && "bg-[#0d0f12]"]}>
   {/* Window chrome: traffic lights only. */}
   <div class="flex items-center gap-1.5 border-white/10 border-b px-4 py-3">
     <span aria-hidden="true" class="size-2.5 rounded-full bg-[#ff5f57]"></span>
@@ -345,8 +347,8 @@ const terminal = terminals[kind] ?? terminals.init;
     class="flex-1 overflow-x-auto p-4 font-mono text-[12px] leading-6 sm:p-5 sm:text-[13px]"
   >
     {
-      terminal.lines.map((line) => (
-        <div class="whitespace-pre">
+      terminal.lines.map((line, index) => (
+        <div class="whitespace-pre" data-line style={`--line: ${index}`}>
           {line.length === 0
             ? " "
             : line.map((seg) => (

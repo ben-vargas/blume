@@ -1,52 +1,215 @@
 ---
 // "A command line for the whole lifecycle." — a teaser for the /cli landing
-// page: the CLI page's terminal window (via <FeatureTerminal>, `home` kind)
-// sampling the later-lifecycle commands, with a link through to the full CLI
-// story.
+// page as the page's one dark panel: the two-tone heading and link on the
+// left, a terminal on the right, and a row of the four later-lifecycle
+// commands beneath as tabs. Picking one swaps the terminal to that command's
+// session (the CLI page's <FeatureTerminal> transcripts), crossfading within
+// a fixed height so the panel never jumps; long sessions fade out at the
+// bottom. The terminal is a pane of glass over a blurred sky glow. In dark
+// mode the panel lifts one step off the page instead of vanishing into it.
 import FeatureTerminal from "../_cli/FeatureTerminal.astro";
-import { glyph } from "./shared.ts";
+import SectionHeading from "./SectionHeading.astro";
+import TextLink from "./TextLink.astro";
 
-const cliHref = "/cli";
-const chevronRight = glyph("chevron-right");
+const commands = [
+  {
+    body: "Pages, anchors, and assets are checked, and CI fails on a broken link.",
+    command: "blume validate",
+    kind: "checkup",
+  },
+  {
+    body: "SEO and site-health findings name the source line that fixes them.",
+    command: "blume audit",
+    kind: "audit",
+  },
+  {
+    body: "An agent answers real questions from your docs, and a judge grades them.",
+    command: "blume eval",
+    kind: "eval",
+  },
+  {
+    body: "An agent fills in missing and stale locales, with a CI gate for drift.",
+    command: "blume translate",
+    kind: "translate",
+  },
+];
+
+// Tabs per the ARIA pattern: click or arrow keys select, and the selected tab
+// is the only one in the tab order. Delegated from `document` and bound once
+// per session (Astro's ClientRouter runs inline scripts once), so it survives
+// router swaps.
+const cliScript = `(() => {
+  if (window.__blumeCli) { return; }
+  window.__blumeCli = true;
+  const select = (tab, focus) => {
+    const root = tab.closest("[data-cli]");
+    for (const other of root.querySelectorAll("[role=tab]")) {
+      const on = other === tab;
+      other.setAttribute("aria-selected", String(on));
+      other.tabIndex = on ? 0 : -1;
+    }
+    for (const panel of root.querySelectorAll("[role=tabpanel]")) {
+      panel.toggleAttribute("data-active", panel.id === tab.getAttribute("aria-controls"));
+    }
+    if (focus) { tab.focus(); }
+  };
+  const tabFrom = (event) => event.target instanceof Element && event.target.closest("[data-cli] [role=tab]");
+  document.addEventListener("click", (event) => {
+    const tab = tabFrom(event);
+    if (tab) { select(tab, false); }
+  });
+  document.addEventListener("keydown", (event) => {
+    const tab = tabFrom(event);
+    if (!tab) { return; }
+    const tabs = [...tab.closest("[role=tablist]").querySelectorAll("[role=tab]")];
+    const index = tabs.indexOf(tab);
+    const next = { ArrowDown: index + 1, ArrowLeft: index - 1, ArrowRight: index + 1, ArrowUp: index - 1, End: tabs.length - 1, Home: 0 }[event.key];
+    if (next === undefined) { return; }
+    event.preventDefault();
+    select(tabs[(next + tabs.length) % tabs.length], true);
+  });
+})();`;
 ---
 
-<!-- CLI teaser: the /cli page's terminal + link through to the landing page. -->
-<section class="mx-auto w-full max-w-5xl">
-  <div class="mx-auto max-w-2xl text-center">
-    <h2 class="text-balance font-medium text-3xl sm:text-4xl">
-      A command line for the whole lifecycle.
-    </h2>
-    <p class="mt-4 text-balance text-muted-foreground">
-      Every Blume project ships with a full CLI — scaffold, preview, and build,
-      then validate links, audit SEO, eval your docs with an agent, and
-      translate every locale. No separate install.
-    </p>
-  </div>
-
+<section
+  class="overflow-hidden rounded-[28px] bg-zinc-950 text-white dark:bg-muted dark:inset-ring dark:inset-ring-white/5"
+  data-cli
+  data-reveal
+>
   <div
-    class="mx-auto mt-12 max-w-3xl overflow-hidden rounded-blume border border-zinc-800 shadow-2xl shadow-foreground/10"
+    class="grid items-center gap-x-16 gap-y-12 p-6 sm:p-10 lg:grid-cols-2 lg:p-16"
   >
-    <FeatureTerminal kind="home" />
+    <div class="flex flex-col items-start gap-8">
+      <SectionHeading
+        tagline="No separate install."
+        title="A command line for the whole lifecycle."
+        tone="inverse"
+      />
+      <TextLink href="/cli" tone="inverse">Explore the CLI</TextLink>
+    </div>
+    <!-- The terminal as a pane of glass over a sky glow, so it lifts off the
+         panel instead of melting into it. -->
+    <div class="relative min-w-0">
+      <div
+        aria-hidden="true"
+        class="cli-glow pointer-events-none absolute -inset-12"
+      >
+      </div>
+      <div
+        class="terminal-glass relative isolate h-[26rem] overflow-hidden rounded-2xl bg-white/[0.04] backdrop-blur-xl"
+        data-nosnippet
+      >
+        {
+          commands.map((item, index) => (
+            <div
+              aria-labelledby={`cli-tab-${index}`}
+              class="invisible absolute inset-0 opacity-0 transition-[opacity,visibility] duration-300 [mask-image:linear-gradient(to_bottom,black_78%,transparent)] data-active:visible data-active:opacity-100"
+              data-active={index === 0 ? "" : undefined}
+              id={`cli-panel-${index}`}
+              role="tabpanel"
+            >
+              <FeatureTerminal kind={item.kind} surface="glass" />
+            </div>
+          ))
+        }
+      </div>
+    </div>
   </div>
 
-  <div class="mt-12 text-center">
-    <a
-      class="inline-flex items-center gap-1.5 rounded-blume border border-border px-5 py-3 font-medium text-foreground text-sm transition-colors hover:bg-muted"
-      href={cliHref}
-    >
-      Explore the CLI
-      <svg
-        class="size-4"
-        fill="none"
-        height="16"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        width="16"
-        set:html={chevronRight}
-      />
-    </a>
+  <!-- The commands, as tabs. Hairlines between them come from the 1px gap
+       over a white/10 fill, so they re-flow with the column count. -->
+  <div
+    aria-label="CLI commands"
+    class="grid gap-px border-white/10 border-t bg-white/10 sm:grid-cols-2 lg:grid-cols-4"
+    role="tablist"
+  >
+    {
+      commands.map((item, index) => (
+        <button
+          aria-controls={`cli-panel-${index}`}
+          aria-selected={index === 0 ? "true" : "false"}
+          class="group relative flex cursor-pointer flex-col gap-1 bg-zinc-950 p-6 text-left text-base before:absolute before:inset-x-0 before:top-0 before:h-0.5 hover:bg-zinc-900 aria-selected:bg-zinc-900 aria-selected:before:bg-white sm:p-8 sm:text-sm dark:bg-muted dark:aria-selected:bg-[color-mix(in_oklab,var(--color-muted)_94%,white)] dark:hover:bg-[color-mix(in_oklab,var(--color-muted)_94%,white)]"
+          id={`cli-tab-${index}`}
+          role="tab"
+          tabindex={index === 0 ? 0 : -1}
+          type="button"
+        >
+          <span class="font-mono text-white/70 group-aria-selected:text-white">
+            {item.command}
+          </span>
+          <span class="text-pretty text-white/50">{item.body}</span>
+        </button>
+      ))
+    }
   </div>
 </section>
+
+<script is:inline set:html={cliScript} />
+
+<style>
+  /* Once the panel is in view, the active session prints line by line,
+     and again whenever a tab swaps in another session. Before then the
+     lines wait hidden, so the first reveal isn't a flash of the full log. */
+  @media (prefers-reduced-motion: no-preference) {
+    [data-cli][data-inview] [role="tabpanel"][data-active] :global([data-line]) {
+      animation: cli-line 0.35s ease-out both;
+      animation-delay: calc(var(--line) * 45ms + 150ms);
+    }
+
+    [data-cli][data-reveal-armed]:not([data-inview]) :global([data-line]) {
+      opacity: 0;
+    }
+  }
+
+  @keyframes cli-line {
+    from {
+      opacity: 0;
+      transform: translateY(0.25rem);
+    }
+  }
+
+  /* The hero's sky, pooled behind the terminal and blurred soft. */
+  .cli-glow {
+    background:
+      radial-gradient(
+        45% 50% at 65% 40%,
+        rgb(72 120 176 / 0.45),
+        transparent 70%
+      ),
+      radial-gradient(
+        40% 40% at 25% 85%,
+        rgb(47 95 156 / 0.3),
+        transparent 70%
+      );
+    filter: blur(24px);
+  }
+
+  /* Glass: a bright top edge and a 1px border that fades from the top-left
+     corner (a masked pseudo-element, like the hero's install box), over a
+     deep drop shadow. */
+  .terminal-glass {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.1),
+      0 40px 80px -24px rgb(0 0 0 / 0.6);
+  }
+
+  .terminal-glass::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      160deg,
+      rgb(255 255 255 / 0.35) 0%,
+      rgb(255 255 255 / 0.1) 40%,
+      rgb(255 255 255 / 0.05) 100%
+    );
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+</style>
