@@ -1,79 +1,189 @@
 ---
-// The `blume translate` spotlight, structured like the audit section: a
-// terminal telling the ledger story (drift caught by `--check`, exactly the
-// drifted pages retranslated), then three divided columns — the incremental
-// ledger, structural validation, and the CI gate.
-import { glyph, icons, inlineCode } from "../_home/shared.ts";
-import FeatureTerminal from "./FeatureTerminal.astro";
+// The `blume translate` spotlight, as a split with the visual on the right:
+// the translation state drawn as a pages × locales grid (this site's own
+// locales). Two stale cells and one missing one start out flagged and flip
+// to fresh as the card scrolls into view, one after another, which is the
+// ledger story: exactly what drifted gets retranslated, nothing else.
+import Split from "../_home/Split.astro";
+import Tray from "../_home/Tray.astro";
+import { glyph, icons } from "../_home/shared.ts";
 
-const cards = [
+const items = [
   {
-    body: "A committed ledger stamps every translation with the source revision it came from. Edit one page and a rerun retranslates one page per locale — and translations you wrote by hand are adopted as-is, never overwritten.",
-    icon: icons.changelog,
-    title: "Only what drifted",
+    body: "A committed ledger stamps every translation with the source revision it came from, so editing one page retranslates one page per locale.",
+    title: "Only what drifted.",
   },
   {
-    body: "The agent only translates text. Blume rebuilds each file's frontmatter from the source, keeps code blocks and fence counts intact, and writes every file itself — a reply that fails validation writes nothing at all.",
-    icon: icons.fileCode,
-    title: "Structure survives",
+    body: "The agent only translates text. Blume rebuilds frontmatter from the source, keeps code blocks intact, and writes every file itself.",
+    title: "Structure survives.",
   },
   {
-    body: "`blume translate --check` is a read-only gate: it exits non-zero the moment a source page outruns its translations, so a stale locale surfaces in the pull request instead of in production.",
-    icon: glyph("shield-check"),
-    title: "Drift fails CI",
+    body: "`blume translate --check` exits non-zero the moment a source page outruns its translations, so drift surfaces in the pull request.",
+    title: "Drift fails CI.",
   },
 ];
+
+const locales = ["de", "hi", "ja", "pt"];
+
+// Each page's state per locale: fresh, or stale/missing before this run.
+type Cell = "fresh" | "stale" | "missing";
+const pages: { cells: Cell[]; name: string }[] = [
+  { cells: ["fresh", "stale", "stale", "fresh"], name: "quickstart.mdx" },
+  { cells: ["fresh", "fresh", "fresh", "fresh"], name: "deployment.mdx" },
+  { cells: ["fresh", "fresh", "fresh", "fresh"], name: "configuration.mdx" },
+  { cells: ["fresh", "fresh", "fresh", "missing"], name: "faq.mdx" },
+];
+
+// The flipped cells, in reading order, so each lands a beat after the last.
+const flips = pages.flatMap((page, row) =>
+  page.cells.flatMap((cell, column) =>
+    cell === "fresh" ? [] : [`${row}:${column}`]
+  )
+);
+const flipDelay = (row: number, column: number): number =>
+  700 + flips.indexOf(`${row}:${column}`) * 450;
 ---
 
-<section>
-  <div class="mx-auto max-w-2xl text-center">
-    <h2 class="font-medium text-3xl sm:text-4xl">
-      Docs in every language.
-    </h2>
-    <p class="mx-auto mt-4 max-w-xl text-balance text-muted-foreground">
-      <code class="font-mono text-[0.925em] text-foreground">blume translate</code>{" "}
-      finds every page that's missing or outdated in each configured locale and
-      translates it with the agent CLI you already have — headlessly, validated,
-      and tracked in a ledger you commit. Blume holds no API keys and calls no
-      model itself.
-    </p>
-  </div>
-
-  <div
-    class="mx-auto mt-10 max-w-6xl overflow-hidden rounded-blume border border-zinc-800 shadow-2xl shadow-foreground/10"
-  >
-    <FeatureTerminal kind="translate" />
-  </div>
-
-  <div
-    class="mx-auto mt-12 grid max-w-6xl divide-y divide-border lg:grid-cols-3 lg:divide-x lg:divide-y-0"
-  >
-    {
-      cards.map((card) => (
-        <div class="py-8 first:pt-0 last:pb-0 lg:px-8 lg:py-0 lg:first:pl-0 lg:last:pr-0">
-          <span class="inline-flex size-10 items-center justify-center rounded-blume bg-muted text-accent">
-            <svg
-              class="size-5"
-              fill="none"
-              height="20"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-              width="20"
-              set:html={card.icon}
-            />
-          </span>
-          <h3 class="mt-5 font-medium text-foreground text-lg">
-            {card.title}
-          </h3>
-          <p
-            class="mt-3 text-muted-foreground text-sm leading-relaxed"
-            set:html={inlineCode(card.body)}
+<Split
+  items={items}
+  link={{ href: "/docs/cli/translate", label: "Read the translate docs" }}
+  tagline="Translated by the agent you already have."
+  title="Docs in every language."
+>
+  <Tray innerClass="flex flex-col justify-center p-6 sm:p-10 lg:min-h-[520px]" tone="sky">
+    <div
+      class="reveal-rise w-full overflow-hidden rounded-2xl bg-background shadow-xl shadow-[rgb(28_40_64/0.12)] ring-1 ring-foreground/5 dark:shadow-none"
+      data-nosnippet
+      data-reveal
+    >
+      <div
+        class="flex items-center justify-between gap-4 border-border border-b px-4 py-3 text-xs"
+      >
+        <p class="font-medium font-mono text-foreground">blume translate</p>
+        <p class="text-muted-foreground">4 locales · Claude Code</p>
+      </div>
+      <table class="w-full border-collapse text-xs">
+        <thead>
+          <tr class="border-border border-b text-muted-foreground">
+            <th class="px-4 py-2.5 text-left font-normal">Page</th>
+            {
+              locales.map((locale) => (
+                <th class="px-2 py-2.5 text-center font-mono font-normal">
+                  {locale}
+                </th>
+              ))
+            }
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-border">
+          {
+            pages.map((page, row) => (
+              <tr>
+                <td class="max-w-0 truncate px-4 py-3 font-mono text-foreground">
+                  {page.name}
+                </td>
+                {page.cells.map((cell, column) => (
+                  <td class="px-2 py-3">
+                    {cell === "fresh" ? (
+                      <svg
+                        aria-hidden="true"
+                        class="mx-auto size-4 text-accent"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        set:html={icons.check}
+                      />
+                    ) : (
+                      <span
+                        class="translate-cell relative mx-auto grid size-4 place-items-center"
+                        style={`--flip-delay: ${flipDelay(row, column)}ms`}
+                      >
+                        <span
+                          class:list={[
+                            "cell-before col-start-1 row-start-1 size-2 rounded-full",
+                            cell === "stale"
+                              ? "bg-amber-500"
+                              : "ring-1 ring-muted-foreground ring-inset",
+                          ]}
+                        />
+                        <svg
+                          aria-hidden="true"
+                          class="cell-after col-start-1 row-start-1 size-4 text-accent"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          viewBox="0 0 24 24"
+                          set:html={icons.check}
+                        />
+                      </span>
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+      <div
+        class="flex flex-wrap items-center gap-x-4 gap-y-2 border-border border-t bg-muted/50 px-4 py-3 text-muted-foreground text-xs"
+      >
+        <p class="flex items-center gap-1.5">
+          <span class="size-2 rounded-full bg-amber-500"></span>
+          Stale
+        </p>
+        <p class="flex items-center gap-1.5">
+          <span class="size-2 rounded-full ring-1 ring-muted-foreground ring-inset"></span>
+          Missing
+        </p>
+        <p class="flex items-center gap-1.5">
+          <svg
+            aria-hidden="true"
+            class="size-3.5 text-accent"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            set:html={glyph("check")}
           />
-        </div>
-      ))
+          Up to date
+        </p>
+      </div>
+    </div>
+  </Tray>
+</Split>
+
+<style>
+  /* A flipped cell rests fresh (its check showing), so the grid reads as
+     fully translated without the script; before the card is in view it
+     shows its stale or missing mark instead, then swaps on its own beat. */
+  .cell-before {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .cell-before,
+    .cell-after {
+      transition:
+        opacity 0.25s ease-out var(--flip-delay),
+        transform 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) var(--flip-delay);
     }
-  </div>
-</section>
+
+    :global([data-reveal-armed]:not([data-inview])) .cell-before {
+      opacity: 1;
+      transform: none;
+    }
+
+    :global([data-reveal-armed]:not([data-inview])) .cell-after {
+      opacity: 0;
+      transform: scale(0.4);
+    }
+  }
+</style>

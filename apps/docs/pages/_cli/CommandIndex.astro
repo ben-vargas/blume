@@ -1,10 +1,12 @@
 ---
-// Every command at a glance — a divided list mirroring the CLI reference's
-// command table, with a link through to the full flag documentation.
-import { glyph } from "../_home/shared.ts";
+// "Every command." — the CLI at a glance, in the homepage components grid's
+// style: a two-tone heading over hairline rows, each a command beside its
+// one-line summary (mirroring the CLI reference's table). Commands with their
+// own docs page link there; the rest link to the reference overview.
+import SectionHeading from "../_home/SectionHeading.astro";
+import TextLink from "../_home/TextLink.astro";
 
-const referenceHref = "/docs/reference/cli";
-const chevronRight = glyph("chevron-right");
+const referenceHref = "/docs/cli";
 
 const commands = [
   { name: "blume init", text: "Scaffold a project, interactive by default." },
@@ -12,27 +14,39 @@ const commands = [
   { name: "blume build", text: "Build the static (or server) site." },
   { name: "blume preview", text: "Preview the last build." },
   { name: "blume add", text: "Install a source component from the registry." },
-  { name: "blume sync", text: "Re-fetch remote content sources." },
+  { name: "blume sync", text: "Re-fetch remote content sources and regenerate." },
   {
     name: "blume eject",
     text: "Promote the runtime into a standalone Astro app.",
   },
   { name: "blume check", text: "Type-check the site with astro check." },
-  { name: "blume doctor", text: "Diagnose config and content problems." },
-  { name: "blume validate", text: "Validate links across your content." },
   {
+    href: "/docs/cli/doctor",
+    name: "blume doctor",
+    text: "Diagnose config and content problems.",
+  },
+  {
+    href: "/docs/cli/validate",
+    name: "blume validate",
+    text: "Validate links across your content.",
+  },
+  {
+    href: "/docs/cli/audit",
     name: "blume audit",
     text: "Audit the built site for SEO and health issues.",
   },
   {
+    href: "/docs/cli/evals",
     name: "blume eval",
     text: "Test the docs: an agent answers your questions using only the documentation.",
   },
   {
+    href: "/docs/cli/translate",
     name: "blume translate",
     text: "Translate docs into the configured locales with a local agent CLI.",
   },
   {
+    href: "/docs/cli/version",
     name: "blume version",
     text: "Freeze the current docs as an archived version.",
   },
@@ -40,50 +54,33 @@ const commands = [
 ---
 
 <section>
-  <div class="mx-auto max-w-2xl text-center">
-    <h2 class="font-medium text-3xl sm:text-4xl">
-      Every command.
-    </h2>
-    <p class="mx-auto mt-4 max-w-lg text-balance text-muted-foreground">
-      {commands.length} commands cover the whole life of a docs site. Every flag
-      is documented in the CLI reference.
-    </p>
-  </div>
+  <SectionHeading
+    tagline="Every flag documented in the CLI reference."
+    title="Every command."
+  >
+    <TextLink href={referenceHref}>Read the CLI reference</TextLink>
+  </SectionHeading>
 
-  <div class="mx-auto mt-10 max-w-3xl divide-y divide-border">
+  <ul class="mt-12 grid gap-x-16 sm:grid-cols-2" data-reveal role="list">
     {
-      commands.map((command) => (
-        <div class="grid gap-1.5 py-4 sm:grid-cols-[10rem_1fr] sm:items-baseline sm:gap-6">
-          <code class="font-medium font-mono text-foreground text-sm">
-            {command.name}
-          </code>
-          <p class="text-muted-foreground text-sm leading-relaxed">
-            {command.text}
-          </p>
-        </div>
+      commands.map((command, index) => (
+        <li
+          class="reveal-rise border-border border-t"
+          style={`--reveal-delay: ${(index % 2) * 80 + Math.floor(index / 2) * 40}ms`}
+        >
+          <a
+            class="group grid gap-1 py-4 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-baseline sm:gap-6"
+            href={command.href ?? referenceHref}
+          >
+            <code class="font-medium font-mono text-foreground text-sm group-hover:text-accent">
+              {command.name}
+            </code>
+            <p class="text-pretty text-base text-muted-foreground sm:text-sm">
+              {command.text}
+            </p>
+          </a>
+        </li>
       ))
     }
-  </div>
-
-  <div class="mt-8 text-center text-sm">
-    <a
-      class="inline-flex items-center gap-1 font-medium text-muted-foreground transition-colors hover:text-foreground"
-      href={referenceHref}
-    >
-      See every flag in the CLI reference
-      <svg
-        class="size-3.5"
-        fill="none"
-        height="14"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        width="14"
-        xmlns="http://www.w3.org/2000/svg"
-        set:html={chevronRight}
-      ></svg>
-    </a>
-  </div>
+  </ul>
 </section>

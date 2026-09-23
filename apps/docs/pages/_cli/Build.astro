@@ -1,0 +1,72 @@
+---
+// "From a blank folder to a live site." — the authoring loop (init, dev,
+// build, preview) in the homepage's "Batteries included" layout: the shared
+// <FeatureTabs> list beside a sky tray holding a terminal that crossfades to
+// the active command's session and prints it line by line.
+import FeatureTabs from "../_home/FeatureTabs.astro";
+import Tray from "../_home/Tray.astro";
+import TerminalStack from "./TerminalStack.astro";
+
+const features = [
+  {
+    body: "`blume init` asks a few questions and scaffolds a complete project — content folder, config, and scripts. No starter repo to clone, nothing to keep in sync with upstream.",
+    checklist: [
+      "Interactive by default, `--yes` in CI",
+      "Four templates: docs, api, sdk, and changelog",
+      "Next steps tailored to your package manager",
+    ],
+    kind: "init",
+    title: "Scaffold in one command",
+  },
+  {
+    body: "`blume dev` regenerates the runtime on every change and hot-reloads before you've switched windows. Search, theming, and OG images all work in dev, exactly as they will in production.",
+    checklist: [
+      "Hot reload for content, config, and components",
+      "Include drafts and unpublished content with `--preview`",
+      "Verbose `--debug` logging when something's off",
+    ],
+    kind: "dev",
+    title: "A dev server that keeps up",
+  },
+  {
+    body: "`blume build` renders the whole site, static or server, and wires up the sitemap, robots.txt, redirects, and search index. It fails on errors by default, so a broken page never ships quietly.",
+    checklist: [
+      "Deploy to Vercel, Netlify, Cloudflare, or Node",
+      "`--analyze` prints client bundles, largest first",
+      "`--budget-js` and `--budget-css` fail builds over budget",
+    ],
+    kind: "build",
+    title: "Builds that hold the line",
+  },
+  {
+    body: "`blume preview` serves the last build locally, so you can click through exactly what ships before it deploys.",
+    checklist: [
+      "Serves the output of your last `blume build`",
+      "`--host` and `--port` bind it where you need it",
+      "Refuses to start until there's a build to serve",
+    ],
+    kind: "preview",
+    title: "Preview what ships",
+  },
+];
+---
+
+<FeatureTabs
+  features={features}
+  id="build"
+  link={{ href: "/docs/quickstart", label: "Read the quickstart" }}
+  tagline="No starter to clone, no pipeline to assemble."
+  title="From a blank folder to a live site."
+>
+  <Tray
+    innerClass="flex flex-col justify-center p-4 sm:p-10 lg:min-h-[520px]"
+    slot="visual"
+    tone="sky"
+  >
+    <TerminalStack
+      class="h-[22rem] sm:h-[24rem]"
+      kinds={features.map((feature) => feature.kind)}
+      surface="solid"
+    />
+  </Tray>
+</FeatureTabs>

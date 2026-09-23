@@ -1,0 +1,67 @@
+---
+// "Your docs, gated in CI." — a split with the visual on the left: a GitHub
+// Actions workflow running the gates, highlighted by Shiki, beside what each
+// gate catches. Every flag shown is real: the build is strict by default,
+// `validate --strict` fails on warnings, `audit --fail-on` picks the
+// severity, and `translate --check` is the read-only drift check.
+import CodeWindow from "../_home/CodeWindow.astro";
+import Split from "../_home/Split.astro";
+import Tray from "../_home/Tray.astro";
+import { glyph } from "../_home/shared.ts";
+
+const items = [
+  {
+    body: "`blume build` exits non-zero on error diagnostics by default, so a page that fails validation fails the job instead of quietly dropping out.",
+    title: "Builds fail loudly.",
+  },
+  {
+    body: "`blume validate --strict` checks every link, anchor, and asset, and treats warnings as errors.",
+    title: "Links stay whole.",
+  },
+  {
+    body: "`blume audit --fail-on warning` gates on the severity you choose; the default holds the line at errors.",
+    title: "SEO holds the line.",
+  },
+  {
+    body: "`blume translate --check` reads the ledger without writing anything and exits 1 the moment a locale drifts.",
+    title: "Locales stay current.",
+  },
+];
+
+const workflow = `name: Docs
+on: pull_request
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx blume build
+      - run: npx blume validate --strict
+      - run: npx blume audit --fail-on warning
+      - run: npx blume translate --check`;
+---
+
+<Split
+  items={items}
+  link={{ href: "/docs/cli", label: "Read the CLI reference" }}
+  reverse
+  tagline="Checks that fail the job, not your readers."
+  title="Your docs, gated in CI."
+>
+  <Tray innerClass="flex flex-col justify-center p-6 sm:p-10 lg:min-h-[520px]" tone="sky">
+    <div data-nosnippet data-reveal>
+      <CodeWindow
+        class="reveal-rise"
+        code={workflow}
+        icon={glyph("git-pull-request")}
+        lang="yaml"
+        title=".github/workflows/docs.yml"
+      />
+    </div>
+  </Tray>
+</Split>

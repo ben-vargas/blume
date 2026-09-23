@@ -1,0 +1,93 @@
+---
+// A raised code window for the landing pages' mocks: a file-name strip over
+// Shiki-highlighted code, shared by the homepage's content sources and the
+// CLI page's CI section. `class` adds to the window (e.g. a reveal class).
+import type { ComponentProps } from "astro/types";
+import { Code } from "astro:components";
+
+interface Props {
+  class?: string;
+  code: string;
+  icon: string;
+  lang: ComponentProps<typeof Code>["lang"];
+  title: string;
+}
+
+const { class: className, code, icon, lang, title } = Astro.props;
+---
+
+<div
+  class:list={[
+    "code-window w-full overflow-hidden rounded-2xl bg-background shadow-xl shadow-[rgb(28_40_64/0.12)] ring-1 ring-foreground/5 dark:shadow-none",
+    className,
+  ]}
+>
+  <div
+    class="flex items-center gap-2 border-border border-b px-4 py-2.5 text-muted-foreground text-xs"
+  >
+    <svg
+      aria-hidden="true"
+      class="size-3.5 shrink-0"
+      fill="none"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      stroke-width="2"
+      viewBox="0 0 24 24"
+      set:html={icon}
+    />
+    <p class="font-mono">{title}</p>
+  </div>
+  <Code
+    code={code}
+    defaultColor={false}
+    lang={lang}
+    themes={{ dark: "github-dark", light: "github-light" }}
+  />
+</div>
+
+<!--
+  Shiki runs with `defaultColor: false`, so it only emits `--shiki-light` /
+  `--shiki-dark` CSS vars (no committed colors). The package switches them in
+  `theme/entry.ts`, but only under `.prose`, which the landing pages aren't.
+  This mirrors that switch, scoped to the window, and gives the generated
+  `pre` its padding and type.
+-->
+<style is:global>
+  .code-window .astro-code {
+    margin: 0;
+    overflow-x: auto;
+    padding: 1rem;
+    background: transparent !important;
+    font-family: var(--blume-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-size: 0.75rem;
+    line-height: 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .code-window .astro-code {
+      font-size: 0.8125rem;
+      line-height: 1.5rem;
+    }
+  }
+
+  .code-window .astro-code,
+  .code-window .astro-code span {
+    color: var(--shiki-light, var(--blume-foreground));
+  }
+
+  .code-window .astro-code span {
+    font-style: var(--shiki-light-font-style, inherit);
+    font-weight: var(--shiki-light-font-weight, inherit);
+  }
+
+  :root[data-theme="dark"] .code-window .astro-code,
+  :root[data-theme="dark"] .code-window .astro-code span {
+    color: var(--shiki-dark, var(--blume-foreground));
+  }
+
+  :root[data-theme="dark"] .code-window .astro-code span {
+    font-style: var(--shiki-dark-font-style, inherit);
+    font-weight: var(--shiki-dark-font-weight, inherit);
+  }
+</style>

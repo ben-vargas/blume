@@ -1,0 +1,184 @@
+---
+// "Built to grow with you." — the lifecycle commands (version, sync, add,
+// eject) as a bento, rows 2+1 / 1+2 from `lg` up. Each command is a terminal
+// snippet of its real output; the version card also shows the switcher
+// readers get, whose rows answer the pointer like the homepage bento's lists.
+import BentoCard from "../_home/BentoCard.astro";
+import SectionHeading from "../_home/SectionHeading.astro";
+import TextLink from "../_home/TextLink.astro";
+import { icons } from "../_home/shared.ts";
+
+const terminal =
+  "overflow-hidden rounded-xl bg-[#0d0f12] font-mono text-[0.6875rem]/5 text-zinc-400 shadow-lg shadow-[rgb(28_40_64/0.12)] outline-1 -outline-offset-1 outline-white/10 dark:shadow-none sm:text-xs/5";
+const window =
+  "overflow-hidden rounded-xl bg-background shadow-lg shadow-[rgb(28_40_64/0.08)] ring-1 ring-foreground/5 dark:shadow-none";
+
+// The version switcher's entries, with the new snapshot selected.
+const versions = [
+  { badge: "Latest", label: "v2.0" },
+  { label: "v1.4" },
+  { label: "v1.0" },
+  { label: "0.9 (legacy)" },
+];
+const selected = 1;
+
+// A few of the files `blume eject` lists after its count.
+const ejected = [
+  "astro.config.mjs",
+  "tsconfig.json",
+  "src/content.config.ts",
+  "src/pages/[...slug].astro",
+  "src/generated/app.css",
+];
+---
+
+<section class="flex flex-col gap-12">
+  <SectionHeading
+    tagline="Version it, sync it, extend it, or take it with you."
+    title="Built to grow with you."
+  >
+    <TextLink href="/docs/content/versioning">Read about versioning</TextLink>
+  </SectionHeading>
+
+  <div
+    class="rounded-[28px] bg-background p-2 shadow-[0_0_0_1px_var(--color-border)]"
+  >
+    <dl class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <!-- version: the snapshot report beside the switcher readers get -->
+      <BentoCard
+        body="`blume version` copies the current docs into a frozen snapshot, rewrites its links, and registers it, so readers can switch between releases."
+        class="sm:col-span-2"
+        title="Versions, cut in one command."
+      >
+        <div class="flex w-full max-w-2xl flex-col items-center gap-3 px-6 sm:flex-row sm:items-start">
+          <div class:list={[terminal, "flex w-full min-w-0 flex-col gap-0.5 p-4 sm:w-auto sm:flex-1"]}>
+            <p class="text-zinc-100">
+              <span class="text-teal-400">❯</span> blume version v1.4
+            </p>
+            <p class="reveal-fade [--reveal-delay:200ms]">
+              <span class="text-emerald-400">✔</span> Snapshot docs/v1.4 (42 file(s) copied)
+            </p>
+            <p class="reveal-fade [--reveal-delay:400ms]">
+              <span class="text-sky-400">ℹ</span> Rewrote root-absolute links in 18 page(s)
+            </p>
+            <p class="reveal-fade [--reveal-delay:600ms]">
+              <span class="text-emerald-400">✔</span> Added "v1.4" to versions.archived
+            </p>
+          </div>
+          <ul
+            class:list={[
+              window,
+              "group/rows reveal-rise flex w-44 shrink-0 flex-col gap-0.5 p-1.5 [--reveal-delay:750ms]",
+            ]}
+            role="list"
+          >
+            {
+              versions.map((version, index) => (
+                <li
+                  class:list={[
+                    "flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-xs",
+                    index === selected
+                      ? "bg-muted text-foreground group-hover/rows:not-hover:bg-transparent group-hover/rows:not-hover:text-muted-foreground"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  ]}
+                >
+                  <span class="flex items-center gap-1.5">
+                    {version.label}
+                    {version.badge && (
+                      <span class="rounded-full bg-accent/10 px-1.5 text-[0.625rem] text-accent">
+                        {version.badge}
+                      </span>
+                    )}
+                  </span>
+                  {index === selected && (
+                    <svg
+                      class="size-3.5 shrink-0 text-accent"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      set:html={icons.check}
+                    />
+                  )}
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </BentoCard>
+
+      <!-- sync: re-fetching remote sources from scratch -->
+      <BentoCard
+        body="`blume sync` re-fetches remote content sources and regenerates, and `--force` drops the cached snapshot first."
+        title="Remote content, refreshed."
+      >
+        <div class="w-full max-w-80 px-6">
+          <div class:list={[terminal, "flex w-full flex-col gap-0.5 p-4"]}>
+            <p class="text-zinc-100">
+              <span class="text-teal-400">❯</span> blume sync --force
+            </p>
+            <p class="reveal-fade [--reveal-delay:250ms]">
+              <span class="text-sky-400">ℹ</span> Cleared source cache.
+            </p>
+            <p class="reveal-fade [--reveal-delay:700ms]">
+              <span class="text-emerald-400">✔</span> Synced content sources.
+            </p>
+          </div>
+        </div>
+      </BentoCard>
+
+      <!-- add: a component's source, copied into the project -->
+      <BentoCard
+        body="`blume add` copies a component's source into your project, so it's yours to restyle and extend."
+        title="Components you own."
+      >
+        <div class="w-full max-w-96 px-6">
+          <div class:list={[terminal, "flex w-full flex-col gap-0.5 p-4"]}>
+            <p class="text-zinc-100">
+              <span class="text-teal-400">❯</span> blume add accordion
+            </p>
+            <p class="reveal-fade [--reveal-delay:300ms]">
+              <span class="text-emerald-400">✔</span> Added components/accordion.astro
+            </p>
+          </div>
+        </div>
+      </BentoCard>
+
+      <!-- eject: the standalone Astro app, file by file -->
+      <BentoCard
+        body="`blume eject` promotes the whole runtime into a standalone Astro app you own outright. No lock-in, ever."
+        class="sm:col-span-2"
+        title="Take it with you."
+      >
+        <div class="w-full max-w-lg px-6">
+          <div class:list={[terminal, "flex w-full flex-col gap-0.5 p-4"]}>
+            <p class="text-zinc-100">
+              <span class="text-teal-400">❯</span> blume eject --yes
+            </p>
+            <p class="reveal-fade [--reveal-delay:200ms]">
+              <span class="text-emerald-400">✔</span> Ejected 42 file(s):
+            </p>
+            {
+              ejected.map((file, index) => (
+                <p
+                  class="reveal-fade pl-4"
+                  style={`--reveal-delay: ${320 + index * 90}ms`}
+                >
+                  {file}
+                </p>
+              ))
+            }
+            <p
+              class="reveal-fade pl-4 text-zinc-600"
+              style={`--reveal-delay: ${320 + ejected.length * 90}ms`}
+            >
+              …
+            </p>
+          </div>
+        </div>
+      </BentoCard>
+    </dl>
+  </div>
+</section>

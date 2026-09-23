@@ -1,80 +1,60 @@
 ---
-// The `blume audit` spotlight — the CLI page's marquee feature, below the
-// parallax scroll. A full-width terminal shows the real report format (grouped
-// findings, source files, fix lines, skipped tiers, agent handoff), followed by
-// three divided columns: source-mapped findings, the CI gate, and the agent
-// handoff.
-import { glyph, icons, inlineCode } from "../_home/shared.ts";
-import FeatureTerminal from "./FeatureTerminal.astro";
+// The `blume audit` spotlight, as the CLI page's one dark panel (the same
+// treatment as the homepage's CLI teaser): a two-tone heading with its docs
+// link, a wide glass terminal printing the report in the reporter's real
+// format, and a hairline row of what makes it different beneath. In dark
+// mode the panel lifts one step off the page instead of vanishing into it.
+import SectionHeading from "../_home/SectionHeading.astro";
+import TextLink from "../_home/TextLink.astro";
+import { inlineCode } from "../_home/shared.ts";
+import TerminalStack from "./TerminalStack.astro";
 
-const cards = [
+const strengths = [
   {
-    body: "Because Blume built the site, every finding points at the source file and the front matter line that fixes it — not just the URL a crawler saw. The report reads as a to-do list, not a wall of pages.",
-    icon: icons.fileCode,
-    title: "Findings that name the fix",
+    body: "Because Blume built the site, every finding points at the source file and the frontmatter line that fixes it, not just the URL a crawler saw.",
+    title: "Findings that name the fix.",
   },
   {
-    body: "The exit code is the contract: fail on errors by default, tighten to warnings when you're ready. Point `--url` at a live deployment to catch what only the real server can tell you — bad rewrites, missing compression, a stray `X-Robots-Tag`.",
-    icon: glyph("shield-check"),
-    title: "A CI gate you control",
+    body: "Fail on errors by default and tighten to warnings when you're ready; `--url` also probes a live deployment for what only the real server can tell you.",
+    title: "A CI gate you control.",
   },
   {
-    body: "Hand the findings to Claude Code or Codex. The audit writes the full report and opens your agent with a prompt that fixes each finding at the source, rebuilds, and re-audits until the report is clean.",
-    icon: icons.ai,
-    title: "Automagically optimized",
+    body: "Hand the report to Claude Code or Codex: it fixes each finding at the source, rebuilds, and re-audits until the report comes back clean.",
+    title: "Cleared by your agent.",
   },
 ];
 ---
 
-<section>
-  <div class="mx-auto max-w-2xl text-center">
-    <h2 class="font-medium text-3xl sm:text-4xl">
-      Audit everything you ship.
-    </h2>
-    <p class="mx-auto mt-4 max-w-xl text-balance text-muted-foreground">
-      <code class="font-mono text-[0.925em] text-foreground">blume audit</code> crawls
-      your built site the way a search engine would — titles,
-      descriptions, canonicals, Open Graph, structured data, sitemaps — and
-      turns what it finds into a to-do list your favorite agent can clear. No
-      third-party SEO tools required.
-    </p>
+<section
+  class="overflow-hidden rounded-[28px] bg-zinc-950 text-white dark:bg-muted dark:inset-ring dark:inset-ring-white/5"
+  data-reveal
+>
+  <div class="flex flex-col gap-12 p-6 sm:p-10 lg:p-16">
+    <SectionHeading
+      tagline="Every finding names the line that fixes it."
+      title="Audit everything you ship."
+      tone="inverse"
+    >
+      <TextLink href="/docs/cli/audit" tone="inverse">Read the audit docs</TextLink>
+    </SectionHeading>
+    <TerminalStack class="h-[28rem]" kinds={["report"]} />
   </div>
 
-  <div
-    class="mx-auto mt-10 max-w-6xl overflow-hidden rounded-blume border border-zinc-800 shadow-2xl shadow-foreground/10"
-  >
-    <FeatureTerminal kind="audit" />
-  </div>
-
-  <div
-    class="mx-auto mt-12 grid max-w-6xl divide-y divide-border lg:grid-cols-3 lg:divide-x lg:divide-y-0"
+  <!-- Hairlines between the columns come from the 1px gap over a white/10
+       fill, so they re-flow with the column count. -->
+  <dl
+    class="grid gap-px border-white/10 border-t bg-white/10 lg:grid-cols-3"
   >
     {
-      cards.map((card) => (
-        <div class="py-8 first:pt-0 last:pb-0 lg:px-8 lg:py-0 lg:first:pl-0 lg:last:pr-0">
-          <span class="inline-flex size-10 items-center justify-center rounded-blume bg-muted text-accent">
-            <svg
-              class="size-5"
-              fill="none"
-              height="20"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-              width="20"
-              set:html={card.icon}
-            />
-          </span>
-          <h3 class="mt-5 font-medium text-foreground text-lg">
-            {card.title}
-          </h3>
-          <p
-            class="mt-3 text-muted-foreground text-sm leading-relaxed"
-            set:html={inlineCode(card.body)}
+      strengths.map((strength) => (
+        <div class="bg-zinc-950 p-6 text-base sm:p-8 sm:text-sm dark:bg-muted">
+          <dt class="font-medium">{strength.title}</dt>
+          <dd
+            class="mt-1 text-pretty text-white/60 [&_code]:text-white"
+            set:html={inlineCode(strength.body)}
           />
         </div>
       ))
     }
-  </div>
+  </dl>
 </section>

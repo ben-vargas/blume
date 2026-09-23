@@ -92,7 +92,7 @@ const escapeHtml = (text: string): string =>
 export const inlineCode = (text: string): string =>
   escapeHtml(text).replaceAll(
     /`(?<span>[^`]+)`/gu,
-    '<code class="font-mono text-[0.925em] text-foreground">$<span></code>'
+    '<code class="whitespace-nowrap font-mono text-[0.925em] text-foreground">$<span></code>'
   );
 
 // The command shown in the install box (rendered by InstallBox.astro), shared

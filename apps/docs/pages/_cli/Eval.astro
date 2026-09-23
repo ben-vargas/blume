@@ -1,77 +1,147 @@
 ---
-// The `blume eval` spotlight, structured like the audit section: a terminal
-// showing the real per-question report format, then three divided columns —
-// the fresh-eyes sandbox, the graded gate, and the agent fix loop.
-import { glyph, icons, inlineCode } from "../_home/shared.ts";
-import FeatureTerminal from "./FeatureTerminal.astro";
+// The `blume eval` spotlight, as a split with the visual on the left: the
+// eval report drawn as UI rather than a transcript — each question with its
+// verdict and graded score, the failure's missing fact and the page that
+// should state it, and the reporter's totals line. Rows rise in and the score
+// bars fill as the card scrolls into view.
+import Split from "../_home/Split.astro";
+import Tray from "../_home/Tray.astro";
+import { glyph } from "../_home/shared.ts";
 
-const cards = [
+const items = [
   {
-    body: "The reader answers in an empty directory with its file, shell, and web tools disabled — it sees your docs through the same MCP search a real agent would. What isn't written doesn't exist, even when the model happens to know it.",
-    icon: icons.chat,
-    title: "Fresh eyes, enforced",
+    body: "The reader answers in an empty directory with its file, shell, and web tools off, so it sees your docs only through the same MCP search a real agent would.",
+    title: "Fresh eyes, enforced.",
   },
   {
-    body: "Every question lists the facts a correct answer must state. A judge grades each answer against them — paraphrase passes, contradiction fails, and so does “the documentation doesn't say.” `--threshold` relaxes the gate while you dig out of a backlog.",
-    icon: glyph("scale"),
-    title: "Graded against your facts",
+    body: "Every question lists the facts a correct answer must state, and a judge grades each answer against them. Paraphrase passes; contradiction fails.",
+    title: "Graded against your facts.",
   },
   {
-    body: "Each failure is anchored to the page that should answer it. Run `--fix` to hand the report to Claude Code or Codex, which adds the missing facts in the page's own voice and reruns the eval until everything passes.",
-    icon: icons.ai,
-    title: "Fix with your agent",
+    body: "`--fix` hands the failures to Claude Code or Codex, which adds the missing facts in the page's own voice and reruns the eval until it passes.",
+    title: "Fixed by your agent.",
   },
 ];
+
+// One run of four questions, mirroring the reporter: a verdict, the graded
+// score, and for a failure the fact the answer was missing.
+const questions = [
+  { name: "install-node-version", score: 1, verdict: "pass" },
+  { name: "custom-domain", score: 0.92, verdict: "pass" },
+  {
+    missing: "the adapter is auto-detected",
+    name: "deploy-vercel",
+    score: 0.4,
+    verdict: "fail",
+  },
+  { name: "search-providers", verdict: "skipped" },
+] as const;
+
+const verdictIcon = {
+  fail: glyph("circle-x"),
+  pass: glyph("circle-check"),
+  skipped: glyph("circle-slash"),
+};
+const verdictColor = {
+  fail: "text-red-600 dark:text-red-400",
+  pass: "text-emerald-600 dark:text-emerald-400",
+  skipped: "text-muted-foreground",
+};
 ---
 
-<section>
-  <div class="mx-auto max-w-2xl text-center">
-    <h2 class="font-medium text-3xl sm:text-4xl">
-      Docs that prove they can answer.
-    </h2>
-    <p class="mx-auto mt-4 max-w-xl text-balance text-muted-foreground">
-      <code class="font-mono text-[0.925em] text-foreground">blume eval</code> gives
-      your docs a test suite — an AI agent answers your users' real questions using
-      only the documentation, a judge grades every answer, and CI fails when the
-      docs can't answer.
-    </p>
-  </div>
-
-  <div
-    class="mx-auto mt-10 max-w-6xl overflow-hidden rounded-blume border border-zinc-800 shadow-2xl shadow-foreground/10"
-  >
-    <FeatureTerminal kind="eval" />
-  </div>
-
-  <div
-    class="mx-auto mt-12 grid max-w-6xl divide-y divide-border lg:grid-cols-3 lg:divide-x lg:divide-y-0"
-  >
-    {
-      cards.map((card) => (
-        <div class="py-8 first:pt-0 last:pb-0 lg:px-8 lg:py-0 lg:first:pl-0 lg:last:pr-0">
-          <span class="inline-flex size-10 items-center justify-center rounded-blume bg-muted text-accent">
-            <svg
-              class="size-5"
-              fill="none"
-              height="20"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-              width="20"
-              set:html={card.icon}
-            />
-          </span>
-          <h3 class="mt-5 font-medium text-foreground text-lg">
-            {card.title}
-          </h3>
-          <p
-            class="mt-3 text-muted-foreground text-sm leading-relaxed"
-            set:html={inlineCode(card.body)}
+<Split
+  items={items}
+  link={{ href: "/docs/cli/evals", label: "Read the eval docs" }}
+  reverse
+  tagline="A test suite for your documentation."
+  title="Docs that prove they can answer."
+>
+  <Tray innerClass="flex flex-col justify-center p-6 sm:p-10 lg:min-h-[520px]" tone="sky">
+    <div
+      class="w-full overflow-hidden rounded-2xl bg-background shadow-xl shadow-[rgb(28_40_64/0.12)] ring-1 ring-foreground/5 dark:shadow-none"
+      data-nosnippet
+      data-reveal
+    >
+      <div
+        class="flex items-center justify-between gap-4 border-border border-b px-4 py-3 text-xs"
+      >
+        <p class="font-medium font-mono text-foreground">blume eval</p>
+        <p class="text-muted-foreground">4 questions · Claude Code</p>
+      </div>
+      <ul class="divide-y divide-border" role="list">
+        {
+          questions.map((question, index) => (
+            <li
+              class="reveal-rise grid grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 px-4 py-3"
+              style={`--reveal-delay: ${index * 110}ms`}
+            >
+              <svg
+                aria-hidden="true"
+                class:list={["h-lh size-4 shrink-0", verdictColor[question.verdict]]}
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                set:html={verdictIcon[question.verdict]}
+              />
+              <div class="min-w-0 text-xs">
+                <p class="truncate font-mono text-foreground leading-5">
+                  {question.name}
+                </p>
+                {"missing" in question && (
+                  <p class="mt-1 text-muted-foreground">
+                    Missing: {question.missing}
+                  </p>
+                )}
+              </div>
+              {"score" in question ? (
+                <div class="flex items-center gap-2 leading-5">
+                  <span class="h-1.5 w-16 overflow-hidden rounded-full bg-muted">
+                    <span
+                      class:list={[
+                        "reveal-grow block h-full w-(--score) rounded-full",
+                        question.verdict === "pass"
+                          ? "bg-emerald-500"
+                          : "bg-red-500",
+                      ]}
+                      style={`--score: ${question.score * 100}%; --reveal-delay: ${300 + index * 110}ms`}
+                    />
+                  </span>
+                  <span class="w-8 text-right font-mono text-muted-foreground text-xs tabular-nums">
+                    {question.score.toFixed(2)}
+                  </span>
+                </div>
+              ) : (
+                <p class="font-mono text-muted-foreground text-xs leading-5">
+                  skipped
+                </p>
+              )}
+            </li>
+          ))
+        }
+      </ul>
+      <div class="flex flex-col gap-2 border-border border-t bg-muted/50 px-4 py-3 text-xs">
+        <p class="flex items-center gap-1.5 text-foreground">
+          <span class="font-mono text-accent">fix</span>
+          <svg
+            aria-hidden="true"
+            class="size-3 shrink-0 text-muted-foreground"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            set:html={glyph("arrow-right")}
           />
-        </div>
-      ))
-    }
-  </div>
-</section>
+          <span class="truncate font-mono">content/docs/deployment.mdx</span>
+        </p>
+        <p class="font-mono text-muted-foreground tabular-nums">
+          2 passed · 1 failed · 1 skipped · 1m 42s · $0.64
+        </p>
+      </div>
+    </div>
+  </Tray>
+</Split>

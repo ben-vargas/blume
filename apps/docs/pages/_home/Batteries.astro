@@ -1,16 +1,11 @@
 ---
-// "Batteries included" — a two-tone heading over a vertical list of features
-// beside one sky tray holding a mock <FeatureBrowser>. Each feature title is a
-// disclosure button: the active one shows its summary and checklist, and the
-// tray crossfades to its `kind` of browser. A progress rail on the active item
-// fills while the section is on screen and advances to the next feature when
-// it completes, until a reader picks one themselves (hover or focus pauses it;
-// reduced motion never starts it).
+// "Batteries included" — the shared <FeatureTabs> list beside one sky tray
+// holding a mock <FeatureBrowser>, which crossfades to the active feature's
+// `kind` of browser.
 import FeatureBrowser from "../_FeatureBrowser.astro";
-import SectionHeading from "./SectionHeading.astro";
-import TextLink from "./TextLink.astro";
+import FeatureTabs from "./FeatureTabs.astro";
 import Tray from "./Tray.astro";
-import { icons, sampleBrand } from "./shared.ts";
+import { sampleBrand } from "./shared.ts";
 
 const features = [
   {
@@ -65,172 +60,36 @@ const features = [
   },
 ];
 
-// Delegated from `document` and bound once per session (Astro's ClientRouter
-// runs inline scripts once), so it survives router swaps: clicks pick a
-// feature and stop the auto-advance, the rail's `animationend` advances it,
-// and an IntersectionObserver — re-armed on every `astro:page-load` — only
-// lets the rail run while the section is on screen.
-const batteriesScript = `(() => {
-  if (window.__blumeBatteries) { return; }
-  window.__blumeBatteries = true;
-  const select = (root, index) => {
-    for (const item of root.querySelectorAll("[data-battery]")) {
-      const on = item.dataset.battery === String(index);
-      item.toggleAttribute("data-active", on);
-      item.querySelector("button").setAttribute("aria-expanded", String(on));
-    }
-    for (const panel of root.querySelectorAll("[data-battery-panel]")) {
-      panel.toggleAttribute("data-active", panel.dataset.batteryPanel === String(index));
-    }
-  };
-  document.addEventListener("click", (event) => {
-    const button = event.target instanceof Element && event.target.closest("[data-battery] button");
-    const root = button && button.closest("[data-batteries]");
-    if (!root) { return; }
-    root.removeAttribute("data-auto");
-    select(root, button.closest("[data-battery]").dataset.battery);
-  });
-  document.addEventListener("animationend", (event) => {
-    const rail = event.target instanceof Element && event.target.closest("[data-battery-rail]");
-    const root = rail && rail.closest("[data-batteries]");
-    if (!root || !root.hasAttribute("data-auto")) { return; }
-    const count = root.querySelectorAll("[data-battery]").length;
-    select(root, (Number(rail.closest("[data-battery]").dataset.battery) + 1) % count);
-  });
-  const observed = new WeakSet();
-  const observe = () => {
-    const root = document.querySelector("[data-batteries]");
-    if (!root || observed.has(root)) { return; }
-    observed.add(root);
-    new IntersectionObserver(([entry]) => {
-      root.toggleAttribute("data-inview", entry.isIntersecting);
-    }, { threshold: 0.35 }).observe(root);
-  };
-  observe();
-  document.addEventListener("astro:page-load", observe);
-})();`;
 ---
 
-<section data-auto data-batteries>
-  <SectionHeading
-    tagline="No plugins to install, no services to wire up."
-    title="Batteries included."
-  >
-    <TextLink href="/docs">Read the docs</TextLink>
-  </SectionHeading>
-
-  <div class="mt-12 grid items-start gap-x-16 gap-y-10 lg:grid-cols-[1fr_2fr]">
-    <!-- Features: one disclosure per feature; the active one expands -->
-    <div class="flex flex-col gap-4 lg:pt-6">
-      <div>
+<FeatureTabs
+  features={features}
+  id="battery"
+  link={{ href: "/docs", label: "Read the docs" }}
+  tagline="No plugins to install, no services to wire up."
+  title="Batteries included."
+>
+  <!-- One tray; the active feature's browser crossfades in. The mocks are
+       decorative (the list carries the content), so each panel is hidden
+       from assistive tech and the figcaption names the example. -->
+  <figure data-nosnippet slot="visual">
+    <Tray innerClass="relative h-[440px] overflow-hidden sm:h-[520px]" tone="sky">
       {
         features.map((feature, index) => (
           <div
-            class="group relative pl-5"
+            aria-hidden="true"
+            class="absolute inset-x-4 top-4 opacity-0 transition-opacity duration-500 data-active:opacity-100 sm:inset-x-10 sm:top-10"
             data-active={index === 0 ? "" : undefined}
-            data-battery={index}
+            data-panel={index}
+            inert
           >
-            <span
-              aria-hidden="true"
-              class="absolute inset-y-0 left-0 w-0.5 overflow-hidden rounded-full bg-border"
-            >
-              <span
-                class="battery-rail absolute inset-0 origin-top scale-y-0 rounded-full bg-foreground group-data-active:scale-y-100"
-                data-battery-rail
-              />
-            </span>
-            <h3 class="tracking-normal">
-              <button
-                aria-controls={`battery-${index}`}
-                aria-expanded={index === 0 ? "true" : "false"}
-                class="w-full cursor-pointer py-2.5 text-left font-medium text-lg text-muted-foreground hover:text-foreground group-data-active:text-foreground sm:text-base"
-                type="button"
-              >
-                {feature.title}
-              </button>
-            </h3>
-            <div class="pb-5 group-not-data-active:hidden" id={`battery-${index}`}>
-              <p class="max-w-[56ch] text-pretty text-base text-muted-foreground sm:text-sm">
-                {feature.body}
-              </p>
-              <ul class="mt-4 flex flex-col gap-2" role="list">
-                {feature.checklist.map((item) => (
-                  <li class="flex items-start gap-2 text-base text-foreground sm:text-sm">
-                    <svg
-                      aria-hidden="true"
-                      class="h-lh size-4 shrink-0 text-accent"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      viewBox="0 0 24 24"
-                      set:html={icons.check}
-                    />
-                    {item}
-                  </li>
-                ))}
-              </ul>
+            <div class="overflow-hidden rounded-2xl bg-background shadow-xl shadow-[rgb(28_40_64/0.16)] ring-1 ring-foreground/5 dark:shadow-none">
+              <FeatureBrowser kind={feature.kind} />
             </div>
           </div>
         ))
       }
-      </div>
-    </div>
-
-    <!-- One tray; the active feature's browser crossfades in. The mocks are
-         decorative (the list above carries the content), so each panel is
-         hidden from assistive tech and the figcaption names the example. -->
-    <figure class="min-w-0" data-nosnippet>
-      <Tray innerClass="relative h-[440px] overflow-hidden sm:h-[520px]" tone="sky">
-        {
-          features.map((feature, index) => (
-            <div
-              aria-hidden="true"
-              class="absolute inset-x-4 top-4 opacity-0 transition-opacity duration-500 data-active:opacity-100 sm:inset-x-10 sm:top-10"
-              data-active={index === 0 ? "" : undefined}
-              data-battery-panel={index}
-              inert
-            >
-              <div class="overflow-hidden rounded-2xl bg-background shadow-xl shadow-[rgb(28_40_64/0.16)] ring-1 ring-foreground/5 dark:shadow-none">
-                <FeatureBrowser kind={feature.kind} />
-              </div>
-            </div>
-          ))
-        }
-      </Tray>
-      <figcaption class="sr-only">{sampleBrand.caption}</figcaption>
-    </figure>
-  </div>
-</section>
-
-<script is:inline set:html={batteriesScript} />
-
-<style>
-  @keyframes battery-rail {
-    from {
-      scale: 1 0;
-    }
-    to {
-      scale: 1 1;
-    }
-  }
-
-  /* Auto-advance: the active rail fills over the dwell time, paused while
-     the section is off screen or the reader is hovering or focused in it. */
-  [data-batteries][data-auto] [data-battery][data-active] .battery-rail {
-    animation: battery-rail 7s linear;
-  }
-
-  [data-batteries]:not([data-inview]) .battery-rail,
-  [data-batteries]:hover .battery-rail,
-  [data-batteries]:focus-within .battery-rail {
-    animation-play-state: paused;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .battery-rail {
-      animation: none !important;
-    }
-  }
-</style>
+    </Tray>
+    <figcaption class="sr-only">{sampleBrand.caption}</figcaption>
+  </figure>
+</FeatureTabs>

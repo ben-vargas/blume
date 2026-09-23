@@ -3,7 +3,7 @@
 // config floating on a sky tray above a dock of source marks. Blume reads
 // local Markdown by default, but content can also come from a remote repo, a
 // CMS, or any custom adapter.
-import { Code } from "astro:components";
+import CodeWindow from "./CodeWindow.astro";
 import Split from "./Split.astro";
 import Tray from "./Tray.astro";
 import { glyph, icons } from "./shared.ts";
@@ -196,34 +196,14 @@ export default defineConfig({
       data-nosnippet
       data-reveal
     >
-      <!-- One config, every source. Shiki highlights at build time; the
-           `blume-config-mockup` class scopes the dark/light var switch below. -->
-      <div
-        class="blume-config-mockup reveal-rise w-full overflow-hidden rounded-2xl bg-background shadow-xl shadow-[rgb(28_40_64/0.12)] ring-1 ring-foreground/5 dark:shadow-none"
-      >
-        <div
-          class="flex items-center gap-2 border-border border-b px-4 py-2.5 text-muted-foreground text-xs"
-        >
-          <svg
-            aria-hidden="true"
-            class="size-3.5 shrink-0"
-            fill="none"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-            set:html={icons.config}
-          />
-          <p class="font-mono">blume.config.ts</p>
-        </div>
-        <Code
-          code={configSource}
-          defaultColor={false}
-          lang="ts"
-          themes={{ dark: "github-dark", light: "github-light" }}
-        />
-      </div>
+      <!-- One config, every source, highlighted by Shiki at build time -->
+      <CodeWindow
+        class="reveal-rise"
+        code={configSource}
+        icon={icons.config}
+        lang="ts"
+        title="blume.config.ts"
+      />
 
       <!-- Source dock: a frosted plate of a tile per built-in source, plus one
            for a custom adapter. Tiles pop in on view, and from `sm` up the
@@ -282,51 +262,5 @@ export default defineConfig({
   .dock-tile {
     width: calc(2.5rem * var(--mag, 1));
     height: calc(2.5rem * var(--mag, 1));
-  }
-</style>
-
-<!--
-  Shiki runs with `defaultColor: false`, so it only emits `--shiki-light` /
-  `--shiki-dark` CSS vars (no committed colors). The package switches them in
-  `theme/entry.ts`, but only under `.prose` — which the homepage isn't. This
-  mirrors that switch, scoped to the mockup, and gives the generated `pre` the
-  padding/font the static block used to carry.
--->
-<style is:global>
-  .blume-config-mockup .astro-code {
-    margin: 0;
-    overflow-x: auto;
-    padding: 1rem;
-    background: transparent !important;
-    font-family: var(--blume-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-    font-size: 0.75rem;
-    line-height: 1.25rem;
-  }
-
-  @media (min-width: 640px) {
-    .blume-config-mockup .astro-code {
-      font-size: 0.8125rem;
-      line-height: 1.5rem;
-    }
-  }
-
-  .blume-config-mockup .astro-code,
-  .blume-config-mockup .astro-code span {
-    color: var(--shiki-light, var(--blume-foreground));
-  }
-
-  .blume-config-mockup .astro-code span {
-    font-style: var(--shiki-light-font-style, inherit);
-    font-weight: var(--shiki-light-font-weight, inherit);
-  }
-
-  :root[data-theme="dark"] .blume-config-mockup .astro-code,
-  :root[data-theme="dark"] .blume-config-mockup .astro-code span {
-    color: var(--shiki-dark, var(--blume-foreground));
-  }
-
-  :root[data-theme="dark"] .blume-config-mockup .astro-code span {
-    font-style: var(--shiki-dark-font-style, inherit);
-    font-weight: var(--shiki-dark-font-weight, inherit);
   }
 </style>
