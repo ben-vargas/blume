@@ -6,6 +6,10 @@
 // `data-reveal-armed` pulls its parts into their start state — and flags it
 // `data-inview` when it scrolls into view, which transitions them home.
 //
+// A `data-reveal-replay` control inside a container replays its entrance:
+// transitions are switched off while the parts snap back to their start
+// state, then the container is flagged in view again on the next frame.
+//
 // Nothing hides without the script, a container already on screen when it's
 // armed just shows, and reduced motion never arms at all, so every path ends
 // on the static page. Bound once per session (Astro's ClientRouter runs inline
@@ -48,6 +52,17 @@ const revealScript = `(() => {
   };
   arm();
   document.addEventListener("astro:page-load", arm);
+  document.addEventListener("click", (event) => {
+    const trigger = event.target instanceof Element && event.target.closest("[data-reveal-replay]");
+    const root = trigger && trigger.closest("[data-reveal]");
+    if (!root || reduce.matches) { return; }
+    root.setAttribute("data-reveal-reset", "");
+    root.setAttribute("data-reveal-armed", "");
+    root.removeAttribute("data-inview");
+    root.getBoundingClientRect();
+    root.removeAttribute("data-reveal-reset");
+    requestAnimationFrame(() => root.setAttribute("data-inview", ""));
+  });
 })();`;
 ---
 
@@ -96,6 +111,12 @@ const revealScript = `(() => {
 
     [data-reveal-armed]:not([data-inview]) .reveal-grow {
       transform: scaleX(0);
+    }
+
+    /* A replay snaps back to the start state without animating. */
+    [data-reveal-reset],
+    [data-reveal-reset] * {
+      transition: none !important;
     }
   }
 </style>

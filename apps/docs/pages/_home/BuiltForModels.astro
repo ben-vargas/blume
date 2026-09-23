@@ -5,15 +5,41 @@
 // 2+1 / 1+1+1 / 1+2, so the reader-facing features (Ask AI, open in chat)
 // bookend the machine-facing ones. Each card pairs a caption with an
 // illustration drawn from placeholder bars and the odd real label, so it
-// reads as UI without competing with the caption.
+// reads as UI without competing with the caption. A few of the mocks answer
+// the pointer — the robots.txt switches flip, the tools card's transport tabs
+// switch surfaces, the request toggles its Accept header, the copy menu
+// opens and closes, lists highlight the hovered row, and Ask AI's send
+// button replays the answer. The art is decorative and hidden from assistive
+// tech, so these are pointer-only toys: plain elements, never focusable.
 import BentoCard from "./BentoCard.astro";
 import SectionHeading from "./SectionHeading.astro";
 import TextLink from "./TextLink.astro";
 import { glyph, icons, sampleBrand } from "./shared.ts";
 
-// The same read-only tools, over three transports.
-const transports = ["MCP", "WebMCP", "JSON API"];
-const tools = ["search_docs", "get_page", "list_pages", "get_navigation"];
+// The same read-only surface over three transports: the MCP server's tools,
+// the subset WebMCP registers in the page, and the JSON API's endpoints.
+const surfaces = [
+  {
+    icon: glyph("wrench"),
+    label: "MCP",
+    rows: ["search_docs", "get_page", "list_pages", "get_navigation"],
+  },
+  {
+    icon: glyph("wrench"),
+    label: "WebMCP",
+    rows: ["search_docs", "get_page", "list_pages"],
+  },
+  {
+    icon: glyph("braces"),
+    label: "JSON API",
+    rows: [
+      "/api/docs/search",
+      "/api/docs/pages.json",
+      "/api/docs/pages/{route}.json",
+      "/api/docs/navigation.json",
+    ],
+  },
+];
 
 // What an agent finds from the domain alone.
 const discovery = [
@@ -31,7 +57,7 @@ const signals = [
 ];
 
 const chatTargets = [
-  { icon: glyph("copy"), label: "Copy as Markdown" },
+  { copy: true, icon: glyph("copy"), label: "Copy as Markdown" },
   { icon: glyph("external-link"), label: "Open in ChatGPT" },
   { icon: glyph("external-link"), label: "Open in Claude" },
   { icon: glyph("external-link"), label: "Open in Cursor" },
@@ -44,6 +70,68 @@ const window =
 const windowTitle =
   "flex items-center gap-2 border-border border-b px-3 py-2 font-mono text-muted-foreground text-xs";
 const bar = "h-2 rounded-full bg-foreground/10";
+
+// Hover-follow rows for the mock lists: the first row starts highlighted,
+// and once the pointer is over its list (`group/rows`) the highlight follows
+// the hovered row instead. Spelled out in full so Tailwind can see them.
+const accentRow = (index: number): string =>
+  index === 0
+    ? "bg-accent/10 text-accent group-hover/rows:not-hover:bg-transparent group-hover/rows:not-hover:text-muted-foreground"
+    : "text-muted-foreground hover:bg-accent/10 hover:text-accent";
+const menuRow = (index: number): string =>
+  index === 0
+    ? "bg-muted text-foreground group-hover/rows:not-hover:bg-transparent group-hover/rows:not-hover:text-muted-foreground"
+    : "text-muted-foreground hover:bg-muted hover:text-foreground";
+
+// The toys, delegated from `document` and bound once per session (Astro's
+// ClientRouter runs inline scripts once), so they survive router swaps. The
+// first touch zeroes an element's reveal delay so it answers immediately.
+const bentoScript = `(() => {
+  if (window.__blumeBento) { return; }
+  window.__blumeBento = true;
+  document.addEventListener("click", (event) => {
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) { return; }
+    const toggle = target.closest("[data-bento-toggle]");
+    if (toggle) {
+      toggle.style.setProperty("--reveal-delay", "0ms");
+      const on = toggle.toggleAttribute("data-on");
+      toggle.querySelector("[data-toggle-value]").textContent = on ? "yes" : "no";
+      return;
+    }
+    const tab = target.closest("[data-bento-tab]");
+    if (tab) {
+      const root = tab.closest("[data-bento-tabs]");
+      for (const other of root.querySelectorAll("[data-bento-tab]")) {
+        other.toggleAttribute("data-active", other === tab);
+      }
+      for (const panel of root.querySelectorAll("[data-bento-panel]")) {
+        panel.toggleAttribute("data-active", panel.dataset.bentoPanel === tab.dataset.bentoTab);
+      }
+      return;
+    }
+    const request = target.closest("[data-bento-negotiate]");
+    if (request) {
+      request.closest("[data-bento-negotiation]").toggleAttribute("data-html");
+      return;
+    }
+    const menu = target.closest("[data-bento-menu]");
+    if (!menu) { return; }
+    menu.style.setProperty("--menu-delay", "0ms");
+    if (target.closest("[data-bento-menu-button]")) {
+      menu.toggleAttribute("data-open");
+      return;
+    }
+    const item = target.closest("[data-bento-menu-item]");
+    if (!item) { return; }
+    menu.removeAttribute("data-open");
+    if (item.hasAttribute("data-copy")) {
+      menu.setAttribute("data-copied", "");
+      clearTimeout(menu.copiedTimer);
+      menu.copiedTimer = setTimeout(() => menu.removeAttribute("data-copied"), 1500);
+    }
+  });
+})();`;
 ---
 
 <section class="flex flex-col gap-12">
@@ -90,12 +178,13 @@ const bar = "h-2 rounded-full bg-foreground/10";
           <div
             class:list={[
               window,
-              "reveal-rise flex items-center justify-between gap-2 rounded-full py-1.5 pr-1.5 pl-4 [--reveal-delay:900ms]",
+              "flex items-center justify-between gap-2 rounded-full py-1.5 pr-1.5 pl-4",
             ]}
           >
             <p class="text-muted-foreground text-sm">Ask anything…</p>
             <span
-              class="inline-flex size-6 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground"
+              class="inline-flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full bg-accent text-accent-foreground hover:bg-accent/85"
+              data-reveal-replay
             >
               <svg
                 class="size-3.5"
@@ -117,51 +206,57 @@ const bar = "h-2 rounded-full bg-foreground/10";
         body="An opt-in MCP server, WebMCP tools in every page, and a JSON API described by OpenAPI let agents search and read your docs directly."
         title="Tools, not scraping."
       >
-        <div class:list={[window, "w-60 p-1.5"]}>
+        <div class:list={[window, "w-64 max-w-[calc(100%-2rem)] p-1.5"]} data-bento-tabs>
           <div class="flex items-center gap-1 p-1">
             {
-              transports.map((transport, index) => (
+              surfaces.map((surface, index) => (
                 <p
-                  class:list={[
-                    "reveal-fade rounded-md px-2 py-1 text-xs",
-                    index === 0
-                      ? "bg-muted font-medium text-foreground"
-                      : "text-muted-foreground",
-                  ]}
+                  class="reveal-fade cursor-pointer rounded-md px-2 py-1 text-muted-foreground text-xs hover:text-foreground data-active:bg-muted data-active:font-medium data-active:text-foreground"
+                  data-active={index === 0 ? "" : undefined}
+                  data-bento-tab={index}
                   style={`--reveal-delay: ${index * 80}ms`}
                 >
-                  {transport}
+                  {surface.label}
                 </p>
               ))
             }
           </div>
-          <ul class="flex flex-col gap-0.5" role="list">
+          <!-- Every surface's list stacks in one grid cell, so the window
+               keeps the tallest list's height as the tabs switch. -->
+          <div class="grid">
             {
-              tools.map((tool, index) => (
-                <li
-                  class:list={[
-                    "reveal-rise flex items-center gap-2 rounded-lg px-2.5 py-1.5 font-mono text-xs",
-                    index === 0
-                      ? "bg-accent/10 text-accent"
-                      : "text-muted-foreground",
-                  ]}
-                  style={`--reveal-delay: ${240 + index * 90}ms`}
+              surfaces.map((surface, panel) => (
+                <ul
+                  class="group/rows invisible col-start-1 row-start-1 flex flex-col gap-0.5 data-active:visible"
+                  data-active={panel === 0 ? "" : undefined}
+                  data-bento-panel={panel}
+                  role="list"
                 >
-                  <svg
-                    class="size-3.5 shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    viewBox="0 0 24 24"
-                    set:html={glyph("wrench")}
-                  />
-                  {tool}
-                </li>
+                  {surface.rows.map((row, index) => (
+                    <li
+                      class:list={[
+                        "reveal-rise flex items-center gap-2 rounded-lg px-2.5 py-1.5 font-mono text-xs",
+                        accentRow(index),
+                      ]}
+                      style={`--reveal-delay: ${240 + index * 90}ms`}
+                    >
+                      <svg
+                        class="size-3.5 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        set:html={surface.icon}
+                      />
+                      <span class="min-w-0 truncate">{row}</span>
+                    </li>
+                  ))}
+                </ul>
               ))
             }
-          </ul>
+          </div>
         </div>
       </BentoCard>
 
@@ -170,19 +265,43 @@ const bar = "h-2 rounded-full bg-foreground/10";
         body="Every page's raw source at a `.md` URL, with `Accept: text/markdown` negotiation on Vercel and Cloudflare."
         title="Markdown at every URL."
       >
-        <div class="flex w-60 flex-col gap-3 font-mono text-xs">
-          <div class:list={[window, "reveal-rise flex flex-col gap-1 px-3 py-2.5"]}>
+        <!-- Clicking the request flips its Accept header between Markdown and
+             HTML, and the response follows. -->
+        <div class="flex w-60 flex-col gap-3 font-mono text-xs" data-bento-negotiation>
+          <div
+            class:list={[
+              window,
+              "reveal-rise flex cursor-pointer flex-col gap-1 px-3 py-2.5 hover:ring-accent/40",
+            ]}
+            data-bento-negotiate
+          >
             <p class="text-foreground">
               <span class="text-accent">GET</span> /docs/quickstart
             </p>
-            <p class="text-muted-foreground">Accept: text/markdown</p>
+            <p class="flex items-center justify-between gap-2 text-muted-foreground">
+              <span>
+                Accept: <span class="md-only">text/markdown</span><span class="html-only">text/html</span>
+              </span>
+              <svg
+                class="size-3.5 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                set:html={glyph("arrow-left-right")}
+              />
+            </p>
           </div>
           <div class:list={[window, "reveal-rise flex flex-col gap-2.5 p-3 [--reveal-delay:400ms]"]}>
             <p class="flex items-center gap-1.5 text-muted-foreground">
               <span class="reveal-pop size-1.5 rounded-full bg-emerald-500 [--reveal-delay:700ms]"></span>
-              200 · text/markdown
+              200 · <span class="md-only">text/markdown</span><span class="html-only">text/html</span>
             </p>
-            <p class="text-foreground"># Quickstart</p>
+            <p class="text-foreground">
+              <span class="md-only"># Quickstart</span><span class="html-only">&lt;h1&gt;Quickstart&lt;/h1&gt;</span>
+            </p>
             <div class:list={[bar, "w-full"]}></div>
             <div class:list={[bar, "w-3/5"]}></div>
           </div>
@@ -252,15 +371,13 @@ const bar = "h-2 rounded-full bg-foreground/10";
             />
             docs.acme.dev
           </p>
-          <ul class="flex flex-col gap-0.5 p-1.5" role="list">
+          <ul class="group/rows flex flex-col gap-0.5 p-1.5" role="list">
             {
               discovery.map((path, index) => (
                 <li
                   class:list={[
                     "reveal-rise flex items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 font-mono text-xs",
-                    index === 0
-                      ? "bg-accent/10 text-accent"
-                      : "text-muted-foreground",
+                    accentRow(index),
                   ]}
                   style={`--reveal-delay: ${index * 90}ms`}
                 >
@@ -308,19 +425,20 @@ const bar = "h-2 rounded-full bg-foreground/10";
             <ul class="flex flex-col gap-1.5" role="list">
               {
                 signals.map((signal, index) => (
-                  <li class="flex items-center justify-between gap-2 text-foreground">
+                  <li
+                    class="flex cursor-pointer items-center justify-between gap-2 text-foreground"
+                    data-bento-toggle
+                    data-on={signal.enabled ? "" : undefined}
+                    style={`--reveal-delay: ${350 + index * 220}ms`}
+                  >
                     {signal.name}
-                    <span
-                      class:list={[
-                        "toggle-track flex h-4 w-7 shrink-0 items-center rounded-full p-0.5",
-                        signal.enabled
-                          ? "justify-end bg-accent"
-                          : "justify-start bg-foreground/15",
-                      ]}
-                      data-on={signal.enabled ? "" : undefined}
-                      style={`--reveal-delay: ${350 + index * 220}ms`}
-                    >
-                      <span class="toggle-knob size-3 rounded-full bg-background" />
+                    <span class="flex items-center gap-2">
+                      <span class="toggle-value" data-toggle-value>
+                        {signal.enabled ? "yes" : "no"}
+                      </span>
+                      <span class="toggle-track flex h-4 w-7 shrink-0 items-center rounded-full p-0.5">
+                        <span class="toggle-knob size-3 rounded-full bg-background" />
+                      </span>
                     </span>
                   </li>
                 ))
@@ -337,7 +455,9 @@ const bar = "h-2 rounded-full bg-foreground/10";
         class="sm:col-span-2"
         title="Copy or open in chat."
       >
-        <div class="relative w-full max-w-3xl px-6">
+        <!-- "Copy page" opens and closes the menu; picking an item closes it,
+             and "Copy as Markdown" flashes the button to "Copied". -->
+        <div class="relative w-full max-w-3xl px-6" data-bento-menu data-open>
           <div class:list={[window, "overflow-hidden"]}>
             <div
               class="flex items-center justify-between gap-4 border-border border-b px-4 py-2.5"
@@ -373,11 +493,13 @@ const bar = "h-2 rounded-full bg-foreground/10";
                     Quickstart
                   </p>
                   <p
-                    class="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 py-1 text-foreground text-xs ring-1 ring-border"
+                    class="flex shrink-0 cursor-pointer items-center gap-1 whitespace-nowrap rounded-md px-2 py-1 text-foreground text-xs ring-1 ring-border hover:bg-muted"
+                    data-bento-menu-button
                   >
-                    Copy page
+                    <span class="copy-idle">Copy page</span>
+                    <span class="copy-done">Copied</span>
                     <svg
-                      class="size-3 shrink-0"
+                      class="copy-idle size-3 shrink-0"
                       fill="none"
                       stroke="currentColor"
                       stroke-linecap="round"
@@ -385,6 +507,16 @@ const bar = "h-2 rounded-full bg-foreground/10";
                       stroke-width="2"
                       viewBox="0 0 24 24"
                       set:html={icons.chevronDown}
+                    />
+                    <svg
+                      class="copy-done size-3 shrink-0 text-accent"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      set:html={icons.check}
                     />
                   </p>
                 </div>
@@ -402,7 +534,7 @@ const bar = "h-2 rounded-full bg-foreground/10";
           <ul
             class:list={[
               window,
-              "menu-drop absolute top-20 right-2 flex w-48 flex-col gap-0.5 p-1.5 sm:right-10",
+              "menu-drop group/rows absolute top-20 right-2 flex w-48 flex-col gap-0.5 p-1.5 sm:right-10",
             ]}
             role="list"
           >
@@ -410,11 +542,11 @@ const bar = "h-2 rounded-full bg-foreground/10";
               chatTargets.map((target, index) => (
                 <li
                   class:list={[
-                    "reveal-fade flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs",
-                    index === 0
-                      ? "bg-muted text-foreground"
-                      : "text-muted-foreground",
+                    "reveal-fade flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs",
+                    menuRow(index),
                   ]}
+                  data-bento-menu-item
+                  data-copy={target.copy ? "" : undefined}
                   style={`--reveal-delay: ${450 + index * 80}ms`}
                 >
                   <svg
@@ -438,21 +570,70 @@ const bar = "h-2 rounded-full bg-foreground/10";
   </div>
 </section>
 
+<script is:inline set:html={bentoScript} />
+
 <style>
-  /* Card-specific reveals, on top of the shared ones in Motion.astro: the
-     robots.txt toggles flip on in turn, and the copy menu drops open from
-     its button. */
+  /* robots.txt switches: state lives on the row's `data-on`, so a click
+     flips the track color, slides the knob, and (via the script) rewrites
+     the value. */
+  .toggle-track {
+    background-color: color-mix(in oklab, var(--blume-foreground) 15%, transparent);
+  }
+
+  [data-on] .toggle-track {
+    background-color: var(--blume-accent);
+  }
+
+  [data-on] .toggle-knob {
+    transform: translateX(0.75rem);
+  }
+
+  .toggle-value {
+    color: var(--blume-muted-foreground);
+  }
+
+  [data-on] .toggle-value {
+    color: var(--blume-foreground);
+  }
+
+  /* Content negotiation: the request's Accept header picks which half of
+     each pair shows. */
+  [data-bento-negotiation][data-html] .md-only,
+  [data-bento-negotiation]:not([data-html]) .html-only {
+    display: none;
+  }
+
+  /* Copy menu: open while the wrapper carries `data-open`; the button reads
+     "Copied" while it carries `data-copied`. */
+  .menu-drop {
+    transform-origin: top right;
+  }
+
+  [data-bento-menu]:not([data-open]) .menu-drop {
+    opacity: 0;
+    transform: translateY(-0.375rem) scale(0.96);
+    pointer-events: none;
+  }
+
+  [data-bento-menu][data-copied] .copy-idle,
+  [data-bento-menu]:not([data-copied]) .copy-done {
+    display: none;
+  }
+
+  /* Motion, on top of the shared reveals in Motion.astro: the switches flip
+     on in turn and the menu drops open from its button as the cards arrive,
+     then both answer clicks at once (the script zeroes their delays). */
   @media (prefers-reduced-motion: no-preference) {
     .toggle-track {
-      transition: background-color 0.3s ease var(--reveal-delay, 0ms);
+      transition: background-color 0.25s ease var(--reveal-delay, 0ms);
     }
 
     .toggle-knob {
-      transition: transform 0.4s cubic-bezier(0.3, 1.4, 0.5, 1)
+      transition: transform 0.35s cubic-bezier(0.3, 1.4, 0.5, 1)
         var(--reveal-delay, 0ms);
     }
 
-    :global([data-reveal-armed]:not([data-inview])) .toggle-track[data-on] {
+    :global([data-reveal-armed]:not([data-inview])) [data-on] .toggle-track {
       background-color: color-mix(
         in oklab,
         var(--blume-foreground) 15%,
@@ -460,17 +641,14 @@ const bar = "h-2 rounded-full bg-foreground/10";
       );
     }
 
-    :global([data-reveal-armed]:not([data-inview]))
-      .toggle-track[data-on]
-      .toggle-knob {
-      transform: translateX(-0.75rem);
+    :global([data-reveal-armed]:not([data-inview])) [data-on] .toggle-knob {
+      transform: none;
     }
 
     .menu-drop {
-      transform-origin: top right;
       transition:
-        opacity 0.3s ease-out 300ms,
-        transform 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) 300ms;
+        opacity 0.25s ease-out var(--menu-delay, 300ms),
+        transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) var(--menu-delay, 300ms);
     }
 
     :global([data-reveal-armed]:not([data-inview])) .menu-drop {
