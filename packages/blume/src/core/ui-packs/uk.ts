@@ -60,6 +60,7 @@ export const uk: UIStringsOverride = {
     featured: "Рекомендоване",
     githubRepository: "Репозиторій GitHub",
     navigation: "Навігація",
+    opensInNewTab: "Відкривається в новій вкладці",
     primary: "Основне",
     sections: "Розділи",
     toggleNavigation: "Перемкнути навігацію",

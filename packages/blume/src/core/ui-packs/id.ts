@@ -60,6 +60,7 @@ export const id: UIStringsOverride = {
     featured: "Unggulan",
     githubRepository: "Repositori GitHub",
     navigation: "Navigasi",
+    opensInNewTab: "Terbuka di tab baru",
     primary: "Utama",
     sections: "Bagian",
     toggleNavigation: "Buka/tutup navigasi",

@@ -8,6 +8,9 @@ import { CODE_PADDING_BLOCK_REM } from "./code-block-padding.ts";
  */
 const CODE_SCROLL_INSET_REM = 0.375;
 
+/** Lucide's arrow-up-right (the featured-link icon) as a `mask` data URI. */
+const EXTERNAL_LINK_MASK = `url("data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M7 7h10v10M7 17L17 7"/></svg>')}")`;
+
 interface TailwindEntryOptions {
   /**
    * Globs to scan for utility classes. Typically the Blume package source and
@@ -414,6 +417,22 @@ ${THEME_MAPPING}
   color: inherit;
   font-weight: inherit;
   text-decoration: none;
+}
+
+/* External Markdown links (markdown.externalLinks) open in a new tab and trail
+   the same Lucide arrow-up-right the featured sidebar links use, as a mask so it
+   takes the link's color. A link wrapping only an image (a badge, a logo)
+   skips the arrow. */
+.prose :where(a[data-blume-external]:not(:has(img, svg)))::after {
+  background-color: currentColor;
+  content: "";
+  display: inline-block;
+  height: 0.75em;
+  margin-inline-start: 0.125em;
+  -webkit-mask: ${EXTERNAL_LINK_MASK} center / contain no-repeat;
+  mask: ${EXTERNAL_LINK_MASK} center / contain no-repeat;
+  opacity: 0.6;
+  width: 0.75em;
 }
 
 .prose :where(hr) {

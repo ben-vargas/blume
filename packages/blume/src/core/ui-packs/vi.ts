@@ -61,6 +61,7 @@ export const vi: UIStringsOverride = {
     featured: "Nổi bật",
     githubRepository: "Kho lưu trữ GitHub",
     navigation: "Điều hướng",
+    opensInNewTab: "Mở trong thẻ mới",
     primary: "Chính",
     sections: "Chuyên mục",
     toggleNavigation: "Chuyển đổi điều hướng",

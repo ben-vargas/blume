@@ -59,6 +59,7 @@ export const he: UIStringsOverride = {
     featured: "מומלץ",
     githubRepository: "מאגר GitHub",
     navigation: "ניווט",
+    opensInNewTab: "נפתח בכרטיסייה חדשה",
     primary: "ראשי",
     sections: "מקטעים",
     toggleNavigation: "החלף מצב ניווט",

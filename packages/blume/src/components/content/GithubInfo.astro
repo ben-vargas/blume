@@ -5,6 +5,7 @@
 // If the API is unreachable the card still renders, just without counts.
 import { getSecret } from "astro:env/server";
 import { apiUrl, PUBLIC_HOST_URL } from "../../core/github.ts";
+import { NEW_TAB_ATTRS } from "../../core/new-tab.ts";
 import { resolveIcon } from "../../theme/icons.ts";
 import data from "blume:data";
 import { GITHUB_MARK } from "../github-mark.ts";
@@ -69,8 +70,7 @@ const statIcon =
     <a
       class="not-prose my-6 flex flex-col gap-2 rounded-blume border border-border p-4 no-underline! transition-colors hover:border-foreground/30 hover:bg-muted/40"
       href={`${host}/${owner}/${repo}`}
-      rel="noreferrer"
-      target="_blank"
+      {...NEW_TAB_ATTRS}
     >
       <span class="flex items-center gap-2 font-medium text-foreground text-sm">
         <svg

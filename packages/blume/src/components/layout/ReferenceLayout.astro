@@ -10,6 +10,7 @@ import type {
 } from "../../core/data.ts";
 import { EN_UI } from "../../core/i18n-ui.ts";
 import type { UIStrings } from "../../core/i18n-ui.ts";
+import { NEW_TAB_HINT_ID } from "../../core/new-tab.ts";
 import type { FontHead } from "../../theme/fonts.ts";
 import type { Navigation } from "../../core/types.ts";
 import Analytics from "./Analytics.astro";
@@ -109,6 +110,7 @@ const locale = pageLocale(data.config.i18n, localeProp, Astro.currentLocale);
 const dir = dirProp ?? pageDirection(data.config.i18n, locale);
 
 const strings = ui ?? EN_UI;
+const navStrings = { ...EN_UI.nav, ...strings.nav };
 // Scope search to the reference page's language on a multi-locale site.
 const searchLocale = searchLocaleFor(data.config.i18n, locale);
 
@@ -142,6 +144,8 @@ createIconSprite(Astro.locals);
       class="absolute start-[-999px] top-0 z-[100] bg-accent px-4 py-2 text-accent-foreground focus:start-0"
       href="#blume-content">{strings.page.skipToContent}</a
     >
+    {/* Every new-tab link's aria-describedby target (see core/new-tab.ts). */}
+    <span hidden id={NEW_TAB_HINT_ID}>{navStrings.opensInNewTab}</span>
     <Banner banner={banner} strings={strings.banner} />
     <Header
       askStrings={strings.ask}

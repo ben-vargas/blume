@@ -1179,6 +1179,12 @@ export interface MarkdownConfig {
   /** Code rendering: language icons, syntax themes, line wrap. */
   code?: CodeConfig;
   /**
+   * Open external links (`https://…`, `//host/…`) in a new tab, with an arrow
+   * icon and a screen-reader hint, like Blume's header and sidebar links.
+   * Defaults to `false`.
+   */
+  externalLinks?: boolean;
+  /**
    * Wrap each `##`–`######` heading in a self-anchor link so readers can copy,
    * bookmark, or share a section permalink. Defaults to `true`.
    */

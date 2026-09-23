@@ -60,6 +60,7 @@ export const hr: UIStringsOverride = {
     featured: "Istaknuto",
     githubRepository: "GitHub repozitorij",
     navigation: "Navigacija",
+    opensInNewTab: "Otvara se u novoj kartici",
     primary: "Glavna",
     sections: "Odjeljci",
     toggleNavigation: "Otvori ili zatvori navigaciju",

@@ -2,7 +2,7 @@
 import Ask from "blume:ask";
 import data from "blume:data";
 import { withBase } from "../islands/base-path.ts";
-import { isExternalUrl } from "../../core/base-path.ts";
+import { NEW_TAB_ATTRS, newTabAttrs } from "../../core/new-tab.ts";
 import type { ComponentOverride } from "../../core/define-components.ts";
 import { EN_UI } from "../../core/i18n-ui.ts";
 import type { UIStrings } from "../../core/i18n-ui.ts";
@@ -249,27 +249,22 @@ const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-b
     {
       /* Plain links first, then the one filled button: the reader's eye lands
          on the button because nothing beside it competes. */
-      (navigation.actions ?? []).map((action) => {
-        const external = isExternalUrl(action.href);
-        return (
-          <a
-            class={actionClass}
-            href={withBase(action.href)}
-            rel={external ? "noreferrer" : undefined}
-            target={external ? "_blank" : undefined}
-          >
-            {action.label}
-          </a>
-        );
-      })
+      (navigation.actions ?? []).map((action) => (
+        <a
+          class={actionClass}
+          href={withBase(action.href)}
+          {...newTabAttrs(action.href)}
+        >
+          {action.label}
+        </a>
+      ))
     }
     {
       navigation.cta && (
         <a
           class={ctaClass}
           href={withBase(navigation.cta.href)}
-          rel={isExternalUrl(navigation.cta.href) ? "noreferrer" : undefined}
-          target={isExternalUrl(navigation.cta.href) ? "_blank" : undefined}
+          {...newTabAttrs(navigation.cta.href)}
         >
           {navigation.cta.label}
           <Icon name="chevron-right" size={14} />
@@ -282,8 +277,7 @@ const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-b
           aria-label={n.githubRepository}
           class={iconButton}
           href={navigation.repoUrl}
-          rel="noreferrer"
-          target="_blank"
+          {...NEW_TAB_ATTRS}
         >
           <svg
             aria-hidden="true"

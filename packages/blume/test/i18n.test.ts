@@ -1071,6 +1071,19 @@ describe("UI dictionaries", () => {
     }
   });
 
+  it("localizes the new-tab link description in every shipped pack", () => {
+    // Every new-tab link's aria-describedby target, rendered once per page.
+    expect(EN_UI.nav.opensInNewTab).toBe("Opens in a new tab");
+    const fr = resolveUIStrings("fr", { defaultLocale: "en" });
+    expect(fr.nav.opensInNewTab).toBe("S'ouvre dans un nouvel onglet");
+    for (const [code, pack] of Object.entries(UI_PACKS)) {
+      expect(
+        pack.nav?.opensInNewTab,
+        `pack "${code}" misses nav.opensInNewTab`
+      ).toBeTruthy();
+    }
+  });
+
   it("localizes the open-in-chat prompt in every shipped pack", () => {
     // Formerly hardcoded English in PageActions' client script; now
     // dictionary-driven so localized sites hand the chat a localized prompt.

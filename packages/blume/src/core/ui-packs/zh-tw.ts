@@ -61,6 +61,7 @@ export const zhTW: UIStringsOverride = {
     featured: "精選",
     githubRepository: "GitHub 儲存庫",
     navigation: "導覽",
+    opensInNewTab: "在新分頁中開啟",
     primary: "主要",
     sections: "章節",
     toggleNavigation: "切換導覽",

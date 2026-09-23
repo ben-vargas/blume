@@ -62,6 +62,7 @@ export const el: UIStringsOverride = {
     featured: "Προτεινόμενα",
     githubRepository: "Αποθετήριο GitHub",
     navigation: "Πλοήγηση",
+    opensInNewTab: "Ανοίγει σε νέα καρτέλα",
     primary: "Κύρια",
     sections: "Ενότητες",
     toggleNavigation: "Εναλλαγή πλοήγησης",

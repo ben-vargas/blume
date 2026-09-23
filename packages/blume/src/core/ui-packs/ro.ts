@@ -60,6 +60,7 @@ export const ro: UIStringsOverride = {
     featured: "Recomandate",
     githubRepository: "Depozit GitHub",
     navigation: "Navigare",
+    opensInNewTab: "Se deschide într-o filă nouă",
     primary: "Principal",
     sections: "Secțiuni",
     toggleNavigation: "Comută navigarea",

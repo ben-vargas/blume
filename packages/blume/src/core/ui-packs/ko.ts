@@ -62,6 +62,7 @@ export const ko: UIStringsOverride = {
     featured: "추천",
     githubRepository: "GitHub 저장소",
     navigation: "탐색",
+    opensInNewTab: "새 탭에서 열림",
     primary: "기본",
     sections: "섹션",
     toggleNavigation: "탐색 전환",

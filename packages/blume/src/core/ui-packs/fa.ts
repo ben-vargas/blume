@@ -59,6 +59,7 @@ export const fa: UIStringsOverride = {
     featured: "ویژه",
     githubRepository: "مخزن GitHub",
     navigation: "ناوبری",
+    opensInNewTab: "در زبانه‌ای جدید باز می‌شود",
     primary: "اصلی",
     sections: "بخش‌ها",
     toggleNavigation: "تغییر وضعیت ناوبری",

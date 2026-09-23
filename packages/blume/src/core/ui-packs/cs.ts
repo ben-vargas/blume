@@ -59,6 +59,7 @@ export const cs: UIStringsOverride = {
     featured: "Doporučené",
     githubRepository: "Repozitář na GitHubu",
     navigation: "Navigace",
+    opensInNewTab: "Otevře se na nové kartě",
     primary: "Hlavní",
     sections: "Sekce",
     toggleNavigation: "Přepnout navigaci",

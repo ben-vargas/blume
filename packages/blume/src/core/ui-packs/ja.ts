@@ -62,6 +62,7 @@ export const ja: UIStringsOverride = {
     featured: "注目",
     githubRepository: "GitHub リポジトリ",
     navigation: "ナビゲーション",
+    opensInNewTab: "新しいタブで開きます",
     primary: "メイン",
     sections: "セクション",
     toggleNavigation: "ナビゲーションを切り替え",

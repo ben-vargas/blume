@@ -99,6 +99,8 @@ const uiStringsObject = z.object({
       featured: z.string().default("Featured"),
       githubRepository: z.string().default("GitHub repository"),
       navigation: z.string().default("Navigation"),
+      // The screen-reader description every new-tab link points at.
+      opensInNewTab: z.string().default("Opens in a new tab"),
       primary: z.string().default("Primary"),
       sections: z.string().default("Sections"),
       toggleNavigation: z.string().default("Toggle navigation"),

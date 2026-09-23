@@ -156,6 +156,8 @@ Read the [quickstart](/docs/quickstart) to get started.
 ![Alt text](./screenshot.png)
 ```
 
+External links open in the same tab by default. Set `markdown: { externalLinks: true }` in `blume.config.ts` to open them in a new tab, the way Blume's header and sidebar links already do: every absolute `https://` or `//host` link gets `target="_blank"` and `rel="noreferrer"`, a small arrow after its text, and a screen-reader note that it opens in a new tab. Links to your own pages, `#fragments`, and `mailto:`/`tel:` links stay in the tab, and so does a raw `<a>` tag, which keeps the attributes you wrote.
+
 **Prefer relative paths for local images** — they're optimized at build time: compressed, converted to WebP, and stamped with intrinsic `width`/`height` so the page doesn't shift while loading. Keep the image next to the page that uses it (or in a shared folder inside your content directory) and reference it relatively:
 
 ```md

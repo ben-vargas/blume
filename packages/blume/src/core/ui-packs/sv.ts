@@ -60,6 +60,7 @@ export const sv: UIStringsOverride = {
     featured: "Utvalda",
     githubRepository: "GitHub-repository",
     navigation: "Navigering",
+    opensInNewTab: "Öppnas i en ny flik",
     primary: "Primär",
     sections: "Avsnitt",
     toggleNavigation: "Växla navigering",

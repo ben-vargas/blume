@@ -59,6 +59,7 @@ export const sk: UIStringsOverride = {
     featured: "Odporúčané",
     githubRepository: "Repozitár na GitHube",
     navigation: "Navigácia",
+    opensInNewTab: "Otvorí sa na novej karte",
     primary: "Hlavné",
     sections: "Sekcie",
     toggleNavigation: "Prepnúť navigáciu",

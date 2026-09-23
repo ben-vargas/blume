@@ -60,6 +60,7 @@ export const ru: UIStringsOverride = {
     featured: "Рекомендуемое",
     githubRepository: "Репозиторий GitHub",
     navigation: "Навигация",
+    opensInNewTab: "Открывается в новой вкладке",
     primary: "Основное",
     sections: "Разделы",
     toggleNavigation: "Переключить навигацию",

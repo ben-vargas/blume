@@ -1,6 +1,7 @@
 ---
 import { randomUUID } from "node:crypto";
 
+import { newTabAttrs } from "../../core/new-tab.ts";
 import { contentHref } from "./base-href.ts";
 import { unwrapParagraph } from "./inline-markdown.ts";
 
@@ -13,7 +14,6 @@ interface Props {
 
 const { cta, headline, href, tip } = Astro.props;
 const tooltipId = `blume-tooltip-${randomUUID()}`;
-const external = href?.startsWith("http");
 
 const labelHtml = Astro.slots.has("default")
   ? unwrapParagraph(await Astro.slots.render("default"))
@@ -41,8 +41,7 @@ const labelHtml = Astro.slots.has("default")
         <a
           class="mt-2 inline-flex font-medium text-accent text-xs hover:underline"
           href={contentHref(href)}
-          rel={external ? "noreferrer" : undefined}
-          target={external ? "_blank" : undefined}
+          {...newTabAttrs(href)}
         >
           {cta}
         </a>

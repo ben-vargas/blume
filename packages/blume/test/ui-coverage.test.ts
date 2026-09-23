@@ -602,6 +602,38 @@ const astroImportersOf = async (component: string): Promise<string[]> => {
 };
 
 describe("layout chrome sources", () => {
+  it("describes every new-tab link with the page's one localized hint", async () => {
+    // Each page shell renders the hidden hint once; every chrome and content
+    // link that opens a new tab points aria-describedby at it through the
+    // shared helpers, never a hand-written target.
+    const layouts = await Promise.all(
+      ["RootLayout.astro", "PageLayout.astro", "ReferenceLayout.astro"].map(
+        layoutSource
+      )
+    );
+    for (const layout of layouts) {
+      expect(layout).toContain(
+        "<span hidden id={NEW_TAB_HINT_ID}>{navStrings.opensInNewTab}</span>"
+      );
+    }
+    const links = await Promise.all(
+      [
+        "layout/RootLayout.astro",
+        "layout/Header.astro",
+        "layout/PageActions.astro",
+        "content/Card.astro",
+        "content/GithubInfo.astro",
+        "content/Tile.astro",
+        "content/Tooltip.astro",
+      ].map(componentSource)
+    );
+    for (const source of links) {
+      expect(source).toMatch(/\{\.\.\.(?:NEW_TAB_ATTRS|newTabAttrs\()/u);
+      expect(source).not.toContain('target="_blank"');
+      expect(source).not.toContain('startsWith("http")');
+    }
+  });
+
   it("toggles the search dialog on ⌘K and guards re-entrant opens", async () => {
     const source = await layoutSource("Search.astro");
     // ⌘K closes an open dialog (mirroring Ask AI's ⌘I toggle) instead of

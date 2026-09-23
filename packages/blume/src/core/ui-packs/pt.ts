@@ -62,6 +62,7 @@ export const pt: UIStringsOverride = {
     featured: "Em destaque",
     githubRepository: "Repositório do GitHub",
     navigation: "Navegação",
+    opensInNewTab: "Abre num novo separador",
     primary: "Principal",
     sections: "Secções",
     toggleNavigation: "Mostrar ou ocultar a navegação",

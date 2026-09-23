@@ -60,6 +60,7 @@ export const tr: UIStringsOverride = {
     featured: "Öne çıkan",
     githubRepository: "GitHub deposu",
     navigation: "Gezinme",
+    opensInNewTab: "Yeni sekmede açılır",
     primary: "Birincil",
     sections: "Bölümler",
     toggleNavigation: "Gezinmeyi aç/kapat",

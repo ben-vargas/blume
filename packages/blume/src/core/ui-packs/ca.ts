@@ -62,6 +62,7 @@ export const ca: UIStringsOverride = {
     featured: "Destacat",
     githubRepository: "Repositori de GitHub",
     navigation: "Navegació",
+    opensInNewTab: "S'obre en una pestanya nova",
     primary: "Principal",
     sections: "Seccions",
     toggleNavigation: "Mostra o amaga la navegació",

@@ -12,6 +12,7 @@ import { codeToHtml } from "shiki";
 import { baseLinksPlugin } from "./base-links.ts";
 import { codeTitleTransformer } from "./code-title.ts";
 import { directiveToCalloutPlugin } from "./directives.ts";
+import { externalLinksPlugin } from "./external-links.ts";
 import { MARKDOWN_FEATURES, MDX_FEATURES } from "./features.ts";
 import { headingAnchorPlugin } from "./heading-anchors.ts";
 import { includePlugin } from "./include.ts";
@@ -87,12 +88,14 @@ const asShikiTransformer = (transformer: { name: string }): ShikiTransformer =>
  * (`[#custom-id]`, `[!toc]`, `[toc]`), which must parse regardless of config —
  * while `markdown.headingAnchors: false` only turns off the self-linking
  * anchor wrap on `<h2>`–`<h6>`. Inline code runs first so the anchor wrap
- * re-refs already-highlighted code.
+ * re-refs already-highlighted code. The external-link plugin is added only
+ * when `markdown.externalLinks` is on, so off stays today's exact output.
  */
 const blumeHastPlugins = (options: BlumeMarkdownOptions): HastPlugin[] => [
   asHastPlugin(inlineCodeHighlightPlugin(options.codeThemes)),
   asHastPlugin(tableWrapPlugin()),
   asHastPlugin(headingAnchorPlugin({ wrap: options.headingAnchors !== false })),
+  ...(options.externalLinks ? [asHastPlugin(externalLinksPlugin())] : []),
 ];
 
 /**
@@ -251,6 +254,11 @@ export interface BlumeMarkdownOptions {
    * (`markdown.code.theme`). Defaults to the github pair fenced code uses.
    */
   codeThemes?: CodeThemes;
+  /**
+   * Open external links in a new tab, marked with an arrow icon and a
+   * screen-reader hint (`markdown.externalLinks`). Off unless `true`.
+   */
+  externalLinks?: boolean;
   /**
    * Wrap `<h2>`–`<h6>` in self-linking anchors (`markdown.headingAnchors`).
    * On unless explicitly `false`.

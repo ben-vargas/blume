@@ -59,6 +59,7 @@ export const sr: UIStringsOverride = {
     featured: "Истакнуто",
     githubRepository: "GitHub репозиторијум",
     navigation: "Навигација",
+    opensInNewTab: "Отвара се у новој картици",
     primary: "Главна",
     sections: "Одељци",
     toggleNavigation: "Отвори или затвори навигацију",

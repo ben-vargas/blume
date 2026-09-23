@@ -59,6 +59,7 @@ export const hi: UIStringsOverride = {
     featured: "फ़ीचर्ड",
     githubRepository: "GitHub रिपॉज़िटरी",
     navigation: "नेविगेशन",
+    opensInNewTab: "नए टैब में खुलता है",
     primary: "प्राथमिक",
     sections: "अनुभाग",
     toggleNavigation: "नेविगेशन टॉगल करें",

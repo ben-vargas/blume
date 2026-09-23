@@ -41,6 +41,7 @@ import { buildStructuredData, toIso } from "../../seo/jsonld.ts";
 import { normalizeXHandle } from "../../seo/x-handle.ts";
 import { withBase } from "../islands/base-path.ts";
 import { isExternalUrl } from "../../core/base-path.ts";
+import { NEW_TAB_HINT_ID, newTabAttrs } from "../../core/new-tab.ts";
 import Analytics from "./Analytics.astro";
 import WebMcp from "./WebMcp.astro";
 import Banner from "./Banner.astro";
@@ -559,6 +560,8 @@ createIconSprite(Astro.locals);
       class="absolute start-[-999px] top-0 z-[100] bg-accent px-4 py-2 text-accent-foreground focus:start-0"
       href="#blume-content">{strings.page.skipToContent}</a
     >
+    {/* Every new-tab link's aria-describedby target (see core/new-tab.ts). */}
+    <span hidden id={NEW_TAB_HINT_ID}>{navStrings.opensInNewTab}</span>
     <Banner banner={banner} strings={strings.banner} />
     <VersionBanner notice={versionNotice ?? null} />
     <HeaderSlot
@@ -611,8 +614,7 @@ createIconSprite(Astro.locals);
                       <a
                         class="block rounded-[0.65rem] px-2.5 py-1.5 text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground"
                         href={withBase(link.href)}
-                        rel={external ? "noreferrer" : undefined}
-                        target={external ? "_blank" : undefined}
+                        {...newTabAttrs(link.href)}
                       >
                         <span class="flex items-center gap-2">
                           {link.icon && (

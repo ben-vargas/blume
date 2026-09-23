@@ -706,6 +706,7 @@ export const astroConfigTemplate = (options: {
       codeThemes: config.markdown.code.theme,
       contentRoot: options.contentRoot,
       deployBase,
+      externalLinks: config.markdown.externalLinks,
       headingAnchors: config.markdown.headingAnchors,
     })}) })`,
   ];
@@ -759,6 +760,7 @@ ${userConfigSetup}export default defineConfig({
       codeThemes: config.markdown.code.theme,
       contentRoot: options.contentRoot,
       deployBase,
+      externalLinks: config.markdown.externalLinks,
       headingAnchors: config.markdown.headingAnchors,
     })}),
     shikiConfig: {

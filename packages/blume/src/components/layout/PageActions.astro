@@ -1,6 +1,7 @@
 ---
 import { EN_UI } from "../../core/i18n-ui.ts";
 import type { UIStrings } from "../../core/i18n-ui.ts";
+import { NEW_TAB_ATTRS } from "../../core/new-tab.ts";
 import { openInChatProviders } from "../../core/open-in-chat.ts";
 import type { OpenInChatProvider } from "../../core/open-in-chat.ts";
 import { GITHUB_MARK } from "../github-mark.ts";
@@ -112,7 +113,7 @@ const menuRowClass =
 >
   {
     editUrl && (
-      <a class={rowClass} href={editUrl} rel="noreferrer" target="_blank">
+      <a class={rowClass} href={editUrl} {...NEW_TAB_ATTRS}>
         <span set:html={GITHUB_LOGO} />
         {a.edit}
       </a>
@@ -192,8 +193,7 @@ const menuRowClass =
               <a
                 class={menuRowClass}
                 data-open-in={provider.key}
-                rel="noreferrer"
-                target="_blank"
+                {...NEW_TAB_ATTRS}
               >
                 <span set:html={LOGOS[provider.key]} />
                 <span class="flex-1">{provider.label}</span>

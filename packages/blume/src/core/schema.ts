@@ -1649,6 +1649,14 @@ const markdownConfigFields = {
   /** Code rendering: language icons, syntax themes, and line wrapping. */
   code: codeConfigSchema.prefault({}),
   /**
+   * Open external Markdown links (absolute `http(s)://` and `//host` URLs) in
+   * a new tab, like Blume's own header and sidebar links: `target="_blank"`,
+   * `rel="noreferrer"`, an arrow icon, and a screen-reader "Opens in a new
+   * tab" hint. Off by default; site routes, fragments, and `mailto:`/`tel:`
+   * links are never affected.
+   */
+  externalLinks: z.boolean().default(false),
+  /**
    * Wrap each `##`–`######` heading in a link to its own anchor so readers can
    * click to copy, bookmark, or share a permalink to that section. On by
    * default; set to `false` to render plain headings.

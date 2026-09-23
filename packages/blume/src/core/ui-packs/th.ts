@@ -61,6 +61,7 @@ export const th: UIStringsOverride = {
     featured: "แนะนำ",
     githubRepository: "ที่เก็บ GitHub",
     navigation: "การนำทาง",
+    opensInNewTab: "เปิดในแท็บใหม่",
     primary: "หลัก",
     sections: "หมวด",
     toggleNavigation: "สลับการนำทาง",

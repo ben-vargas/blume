@@ -60,6 +60,7 @@ export const pl: UIStringsOverride = {
     featured: "Polecane",
     githubRepository: "Repozytorium GitHub",
     navigation: "Nawigacja",
+    opensInNewTab: "Otwiera się w nowej karcie",
     primary: "Główne",
     sections: "Sekcje",
     toggleNavigation: "Przełącz nawigację",

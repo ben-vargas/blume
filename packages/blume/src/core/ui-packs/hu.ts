@@ -60,6 +60,7 @@ export const hu: UIStringsOverride = {
     featured: "Kiemelt",
     githubRepository: "GitHub-tároló",
     navigation: "Navigáció",
+    opensInNewTab: "Új lapon nyílik meg",
     primary: "Elsődleges",
     sections: "Szakaszok",
     toggleNavigation: "Navigáció ki-/bekapcsolása",

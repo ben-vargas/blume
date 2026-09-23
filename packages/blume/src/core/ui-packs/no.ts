@@ -60,6 +60,7 @@ export const no: UIStringsOverride = {
     featured: "Utvalgt",
     githubRepository: "GitHub-repositorium",
     navigation: "Navigasjon",
+    opensInNewTab: "Åpnes i en ny fane",
     primary: "Primær",
     sections: "Seksjoner",
     toggleNavigation: "Vis eller skjul navigasjonen",

@@ -59,6 +59,7 @@ export const ar: UIStringsOverride = {
     featured: "مميز",
     githubRepository: "مستودع GitHub",
     navigation: "التنقل",
+    opensInNewTab: "يفتح في علامة تبويب جديدة",
     primary: "رئيسي",
     sections: "الأقسام",
     toggleNavigation: "تبديل التنقل",

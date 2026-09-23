@@ -59,6 +59,7 @@ export const fi: UIStringsOverride = {
     featured: "Suositellut",
     githubRepository: "GitHub-repositorio",
     navigation: "Navigaatio",
+    opensInNewTab: "Avautuu uudelle välilehdelle",
     primary: "Ensisijainen",
     sections: "Osiot",
     toggleNavigation: "Näytä tai piilota navigaatio",

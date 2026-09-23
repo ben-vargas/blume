@@ -60,6 +60,7 @@ export const bg: UIStringsOverride = {
     featured: "Препоръчано",
     githubRepository: "Хранилище в GitHub",
     navigation: "Навигация",
+    opensInNewTab: "Отваря се в нов раздел",
     primary: "Основно",
     sections: "Раздели",
     toggleNavigation: "Превключи навигацията",

@@ -60,6 +60,7 @@ export const nl: UIStringsOverride = {
     featured: "Uitgelicht",
     githubRepository: "GitHub-repository",
     navigation: "Navigatie",
+    opensInNewTab: "Opent in een nieuw tabblad",
     primary: "Primair",
     sections: "Secties",
     toggleNavigation: "Navigatie tonen of verbergen",

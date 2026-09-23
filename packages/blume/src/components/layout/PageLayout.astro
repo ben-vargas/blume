@@ -28,6 +28,7 @@ import type {
 import data from "blume:data";
 import { EN_UI } from "../../core/i18n-ui.ts";
 import type { UIStrings } from "../../core/i18n-ui.ts";
+import { NEW_TAB_HINT_ID } from "../../core/new-tab.ts";
 import type { FontHead } from "../../theme/fonts.ts";
 import type { LocaleSwitchOption, Navigation } from "../../core/types.ts";
 import {
@@ -381,6 +382,8 @@ createIconSprite(Astro.locals);
       class="absolute start-[-999px] top-0 z-[100] bg-accent px-4 py-2 text-accent-foreground focus:start-0"
       href="#blume-content">{strings.page.skipToContent}</a
     >
+    {/* Every new-tab link's aria-describedby target (see core/new-tab.ts). */}
+    <span hidden id={NEW_TAB_HINT_ID}>{navStrings.opensInNewTab}</span>
     <Banner banner={banner} strings={strings.banner} />
     <Header
       askEnabled={askEnabled}

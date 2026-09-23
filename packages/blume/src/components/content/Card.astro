@@ -1,4 +1,6 @@
 ---
+import { isExternalUrl } from "../../core/base-path.ts";
+import { newTabAttrs } from "../../core/new-tab.ts";
 import {
   ADMONITION_ICON,
   ADMONITION_ICON_CLASS,
@@ -23,7 +25,7 @@ interface Props {
 const { arrow, color, cta, horizontal, href, icon, img, title, type } =
   Astro.props;
 const Tag = href ? "a" : "div";
-const external = href?.startsWith("http");
+const external = href !== undefined && isExternalUrl(href);
 const isHorizontal = horizontal === true || horizontal === "true";
 const showArrow =
   href && arrow === undefined ? external : arrow === true || arrow === "true";
@@ -51,8 +53,7 @@ const variantClass = {
   ]}
   data-blume-card
   href={href === undefined ? undefined : contentHref(href)}
-  rel={external ? "noreferrer" : undefined}
-  target={external ? "_blank" : undefined}
+  {...newTabAttrs(href)}
 >
   {
     img && (

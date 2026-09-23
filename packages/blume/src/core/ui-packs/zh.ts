@@ -61,6 +61,7 @@ export const zh: UIStringsOverride = {
     featured: "精选",
     githubRepository: "GitHub 仓库",
     navigation: "导航",
+    opensInNewTab: "在新标签页中打开",
     primary: "主要",
     sections: "章节",
     toggleNavigation: "切换导航",
