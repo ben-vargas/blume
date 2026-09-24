@@ -1,6 +1,7 @@
 ---
 title: デプロイ
-description: 設定不要で静的ドキュメントを任意のホストにデプロイできます。動的な挙動が必要な場合は、アダプターを使ってサーバーサイドレンダリングに切り替えられます。
+description: >-
+  設定不要で静的ドキュメントを任意のホストにデプロイできます。動的な挙動が必要な場合は、blume/deploy のホストアダプターを指定してサーバーサイドレンダリングに切り替えられます。
 sidebar:
   label: デプロイ
   order: 2
@@ -22,7 +23,7 @@ sidebar:
 
 - すべてのドキュメントページとカスタムページ（静的 HTML として）
 - ローカル検索インデックス（デフォルトは Orama、Pagefind はオプトイン）
-- `deployment.site` が設定されている場合の [`sitemap.xml`](/docs/discoverability/sitemap-and-robots#sitemap) と [`robots.txt`](/docs/discoverability/sitemap-and-robots#robots)
+- サイト URL が判明している場合の [`sitemap.xml`](/docs/discoverability/sitemap-and-robots#sitemap) と [`robots.txt`](/docs/discoverability/sitemap-and-robots#robots)
 - AI ツール向けの `llms.txt` と `llms-full.txt`
 - リダイレクトページ
 - `seo.og.enabled` が有効な場合、事前レンダリングされた [Open Graph 画像](/docs/discoverability/open-graph)
@@ -31,7 +32,7 @@ sidebar:
 
 サイトマップ、canonical タグ、RSS、Open Graph 画像には絶対オリジンが必要です。**Vercel**、**Netlify**、**Cloudflare Pages** では、Blume がビルド時にプラットフォームの環境から自動検出します — 設定は不要です。
 
-検出された値を上書きする場合、またはそれを公開していないホスト（GitHub Pages、S3、カスタム CDN）で指定する場合は `deployment.site` を設定します:
+検出された値を上書きする場合、またはそれを公開していないホスト（GitHub Pages、S3、カスタム CDN）で指定する場合は `site` を設定します。静的ビルドでは、プレーンな `deployment` オブジェクトに設定します:
 
 ```ts blume.config.ts lineNumbers
 deployment: {
@@ -54,13 +55,15 @@ blume preview
 
 ## サブパスへのデプロイ [#subpath-deploys]
 
-`example.com/docs` のようなパス配下でドキュメントを配信しますか？ `deployment.base` を設定してください — GitHub Pages のプロジェクトサイトでよくあるケースです。ルートを含むサイト全体がそのベース配下に移動し、内部リンクとアセットもベースを含むように書き換えられます。
+`example.com/docs` のようなパス配下でドキュメントを配信しますか？ `base` を設定してください — GitHub Pages のプロジェクトサイトでよくあるケースです。ルートを含むサイト全体がそのベース配下に移動し、内部リンクとアセットもベースを含むように書き換えられます。
 
 ```ts blume.config.ts lineNumbers
 deployment: {
   base: "/docs",
 }
 ```
+
+`base`（および `site`）は、すべてのホストアダプターのオプションでもあります: `vercel({ base: "/docs" })`。
 
 ## ドキュメントをパス配下にマウントする [#mount-the-docs-under-a-path]
 
@@ -74,34 +77,56 @@ basePath: "/docs",
 
 これは上記 2 つのパスとは別の概念です:
 
-- ソースごとの [`prefix`](/docs/content/sources#multiple-sources) は**単一**のソースに名前空間を与え、サイドバーグループを**追加します**。
+- ソースごとの [`prefix`](/docs/content/sources#adapters) は**単一**のソースに名前空間を与え、サイドバーグループを**追加します**。
 - `deployment.base` は**アプリ全体**が配信されるホスト側のサブディレクトリです。両者は組み合わせられます — 両方を設定すると、ページは `{deployment.base}/{basePath}/page` に配置されます。
 
 ## サーバーレンダリング [#server-rendering]
 
-静的出力でほとんどのドキュメントは事足ります。リクエスト時の機能 — 特に [Ask AI](/docs/configuration/ask-ai) エンドポイント — が必要な場合はサーバー出力に切り替えます:
+静的出力でほとんどのドキュメントは事足ります。リクエスト時の機能 — 特に [Ask AI](/docs/configuration/ask-ai) エンドポイントと [MCP サーバー](/docs/discoverability/mcp) — が必要な場合はサーバー出力に切り替えます。切り替えるにはホストを指定します: `deployment` には `blume/deploy` からインポートしたアダプターを渡します。
 
 ```ts blume.config.ts lineNumbers
-deployment: {
-  output: "server",
-  adapter: "vercel",
-}
+import { defineConfig } from "blume";
+import { vercel } from "blume/deploy";
+
+export default defineConfig({
+  deployment: vercel(),
+});
 ```
 
-`vercel` と `node` のアダプターは Blume に同梱されています — 選ぶだけで動きます。`netlify` と `cloudflare` のアダプターはプロジェクトへのインストールが必要です（例: `bun add -d @astrojs/netlify`）。パッケージが見つからない場合、CLI が警告します:
+すべてのアダプターは同じ名前付きオプション — `site`、`base`、`output` — を受け取り、それ以外のものは基盤となる `@astrojs/*` アダプターにそのまま渡します。そのため、Blume が名前を定義していないオプションも確実に届きます:
+
+```ts blume.config.ts lineNumbers
+deployment: vercel({
+  site: "https://docs.example.com",
+  // Passed straight to @astrojs/vercel.
+  isr: { expiration: 60 },
+}),
+```
 
 | アダプター | パッケージ | 用途 |
 | --- | --- | --- |
-| `vercel` | `@astrojs/vercel` | Vercel — 最も洗練された選択肢 |
-| `netlify` | `@astrojs/netlify` | Netlify Functions |
-| `node` | `@astrojs/node` | セルフホストの Node サーバー、コンテナ |
-| `cloudflare` | `@astrojs/cloudflare` | Cloudflare Workers と Pages |
+| `vercel()` | `@astrojs/vercel` | Vercel — 最も洗練された選択肢 |
+| `netlify()` | `@astrojs/netlify` | Netlify Functions |
+| `node()` | `@astrojs/node` | セルフホストの Node サーバー、コンテナ |
+| `cloudflare()` | `@astrojs/cloudflare` | Cloudflare Workers と Pages |
 
-**Vercel**、**Netlify**、**Cloudflare Pages** では、サーバー出力時に Blume が対応するアダプターを自動選択します — `output: "server"` を設定してデプロイするだけです（Netlify と Cloudflare ではアダプターのパッケージもインストールしてください）。検出された値を上書きする場合や、`node` でセルフホストする場合は `adapter` を明示的に設定します。
+`vercel()` と `node()` は Blume に同梱されています — 選ぶだけで動きます。`netlify()` と `cloudflare()` はプロジェクトへのパッケージのインストールが必要です（例: `bun add -d @astrojs/netlify`）。パッケージが見つからない場合、`blume build` はお使いのパッケージマネージャー用のインストールコマンドを表示して停止し、`blume dev` は警告を出し、[`blume doctor`](/docs/cli/doctor) はそれを報告します。pnpm 10 以降では、これらのパッケージが持ち込むビルドスクリプト（`sharp`、Cloudflare の場合は `workerd`）も `pnpm-workspace.yaml` の `allowBuilds` で承認してください。承認しないと pnpm がインストールを停止します。
 
-サーバービルドには静的ビルドのすべてに加えて、追加した Astro のエンドポイントやミドルウェアが含まれます。`node` アダプターは直接実行できるスタンドアロンのサーバーを生成します。
+アダプターを指定すると、ビルドはサーバー出力に切り替わります。そのホスト上で静的ビルドを維持する — ホストのサイト URL 検出や、ホストが読み取るプラットフォーム用ファイルは引き続き利用する — には、`output: "static"` を渡します:
 
-Vercel と Cloudflare では、サーバービルドによって [`Accept: text/markdown` のコンテンツネゴシエーション](/docs/discoverability/markdown#content-negotiation) も有効になり、そのヘッダー付きで任意のコンテンツページをリクエストしたエージェントは、同じ URL で生の Markdown 版を受け取れます。Vercel では、Blume がデプロイのルーティング設定にヘッダー条件付きのリライトを挿入します。Cloudflare では、Astro の Worker の手前に小さな Worker を生成し、`assets.run_worker_first` をコンテンツルートに限定します — そうしないと、プラットフォームはサーバーコードが実行される前に事前レンダリング済みページを配信してしまうためです。その他のアセットは Worker を介さない高速パスを維持します。また、事前レンダリング済みのページごとの JSON ドキュメント（`/api/docs/pages/{route}.json`）へのリクエストがこの Worker に届いた場合も、Worker がアセットバインディングから応答します。そうしないと、Astro がそのリクエストを `/api/` のキャッチオールにルーティングしてしまうためです。
+```ts blume.config.ts lineNumbers
+deployment: netlify({ output: "static" }),
+```
+
+サーバービルドには静的ビルドのすべてに加えて、追加した Astro のエンドポイントやミドルウェアが含まれます。`node()` アダプターは、`node dist/server/entry.mjs` で直接実行できるスタンドアロンのサーバーを生成します。このサーバーはプロジェクトの `node_modules` へのリンクを通じてパッケージを解決するため、`dist/` だけでなく、依存関係をインストールした状態のプロジェクトごとデプロイしてください。サイトがディスカバリーファイルを公開している場合、Blume は Astro のエントリー（同じ場所の `astro-entry.mjs` に移動されます）の手前に小さなラッパーを配置し、`.well-known` のディスカバリーファイルが適切なメディアタイプと CORS ヘッダー付きで配信されるようにします。これらはスタンドアロンサーバーの静的ハンドラーだけでは設定できないためです。
+
+`cloudflare()` のサーバービルドは、`blume build` の後にプロジェクトのルートで `npx wrangler deploy` を実行してデプロイします: Blume は Wrangler のリダイレクト設定（redirected config）を `.wrangler/deploy/` に書き出し（`.gitignore` に `.wrangler/` も追加します）、Worker にはプロジェクトに基づいた名前を付けます — `package.json` の `name`、なければサイトのホスト名、それもなければフォルダー名です — ただし、プロジェクトのルートに置いた独自の `wrangler.jsonc` で `name` を設定している場合を除きます。
+
+Vercel と Cloudflare では、サーバービルドによって [`Accept: text/markdown` のコンテンツネゴシエーション](/docs/discoverability/markdown#content-negotiation) も有効になり、そのヘッダー付きで任意のコンテンツページをリクエストしたエージェントは、同じ URL で生の Markdown 版を受け取れます。Vercel では、Blume がデプロイのルーティング設定にヘッダー条件付きのリライトを挿入します。Cloudflare では、Astro の Worker の手前に小さな Worker を生成し、フィンガープリント付きのビルドアセットと生の `.md`、`.txt`、`.json`、`.well-known` ファイルを除くすべてのパスに `assets.run_worker_first` を適用します — そうしないと、プラットフォームはサーバーコードが実行される前に事前レンダリング済みページ（および対応するページがない URL に対しては `404.html`）を配信してしまうためです。除外されたファイルは Worker を介さない高速パスを維持します。また、事前レンダリング済みのページごとの JSON ドキュメント（`/api/docs/pages/{route}.json`）へのリクエストがこの Worker に届いた場合も、Worker がアセットバインディングから応答します。そうしないと、Astro がそのリクエストを `/api/` のキャッチオールにルーティングしてしまうためです。
+
+:::note
+`vercel` と `cloudflare` は 2 つの [アナリティクスアダプター](/docs/configuration/analytics) の名前でもあります。1 つの設定で両方を使う場合は、どちらかのインポートにエイリアスを付けてください: `import { cloudflare as cloudflareDeploy } from "blume/deploy"`。
+:::
 
 :::note
 サーバー機能にはそれぞれ独自の設定があります — 例えば Ask AI にはモデルの API キーが必要です。セットアップについては [Ask AI ガイド](/docs/configuration/ask-ai) を参照してください。
@@ -112,22 +137,22 @@ Vercel と Cloudflare では、サーバービルドによって [`Accept: text/
 `blume.config.ts` で古い URL を新しい URL にマッピングします:
 
 ```ts blume.config.ts
-redirects: [{ from: "/old", to: "/new", status: 301 }];
+redirects: [{ from: "/old", to: "/new", status: 301 }],
 ```
 
-`status` は `301`、`302`、`307`、`308` を受け付けます（デフォルトは `301`）。サーバービルドではリダイレクトをリクエスト時に処理します。静的ビルドではリダイレクトページ**に加えて**プラットフォーム用のファイルも出力するため、ホストが本物の HTTP リダイレクトを返せます: `_redirects`（Netlify、Cloudflare Pages）、`vercel.json`（Vercel）、そして `blume-redirects.json` — その他の環境（nginx/Apache のルール、エッジワーカーなど）向けの構造化マニフェストです。`public/` に配置した `_redirects` や `vercel.json` はそのまま維持されます。
+`status` は `301`、`302`、`307`、`308` を受け付けます（デフォルトは `301`）。サーバービルドではリダイレクトをリクエスト時に処理します。静的ビルドではリダイレクトページ**に加えて**ホストが読み取るプラットフォーム用のファイルも出力するため、ホストが本物の HTTP リダイレクトを返せます: `netlify()` と `cloudflare()` には `_redirects`、`vercel()` には `vercel.json`、そしてホストを指定していない場合はその両方に加えて `blume-redirects.json` — その他の環境（nginx/Apache のルール、エッジワーカーなど）向けの構造化マニフェストです。`public/` に配置した `_redirects` や `vercel.json` はそのまま維持されます。
 
 :::note
-`from` は完全一致のパスとして照合されます — ワイルドカードやパターンマッチ（例: `/blog/:slug` や `/old/*`）はサポートされていません。パターンベースのルールが必要な場合は、`vercel.json`（ワイルドカードの `source` パターンをサポート）のようなインフラ側のファイルや、ホストのリダイレクト設定で対応してください。`public/` に配置した `vercel.json` はそのまま保持されます。
+`from` と `to` は完全一致のパスです — ホストによってパターンの扱いが異なるため、`:param` セグメントや `*` ワイルドカード（例: `/blog/:slug` や `/old/*`）を含めると設定の検証でエラーになります。パターンベースのルールが必要な場合は、`vercel.json`（ワイルドカードの `source` パターンをサポート）のようなインフラ側のファイルや、ホストのリダイレクト設定で対応してください。`public/` に配置した `vercel.json` はそのまま保持されます。
 :::
 
 :::note
-`from` と `to` はどちらもルートにマウントされている前提で書いてください — [`deployment.base`](#subpath-deploys) でも [`basePath`](#mount-the-docs-under-a-path) でも、Blume が両側を書き換えるため、リダイレクト先はベース配下に収まります。`to` に手動でベースを書き込んでいる場合は、二重にならずそのまま維持されます。
+`from` と `to` はどちらもルートにマウントされている前提で書いてください — [`base`](#subpath-deploys) でも [`basePath`](#mount-the-docs-under-a-path) でも、Blume が両側を書き換えるため、リダイレクト先はベース配下に収まります。`to` に手動でベースを書き込んでいる場合は、二重にならずそのまま維持されます。
 :::
 
 ## コンテンツタイプ [#content-types]
 
-静的ビルドでは `_headers` ファイルも出力され、生の AI 対応エンドポイント — `/<route>.md`、`/<route>.mdx`、および `.txt` ファイル（`llms.txt`、`llms-full.txt`）— に `charset=utf-8` を固定します。これらのレスポンスは妥当な UTF-8 ですが、多くの静的ホストは charset **なし**の `text/markdown` / `text/plain` として配信し、ブラウザは Windows-1252 にフォールバックします — その結果、非 ASCII のドキュメント（日本語、アクセント付きラテン文字など）は生の URL を直接開いたときに文字化けします。HTML ページは `<meta charset>` を持つため影響を受けません。Netlify と Cloudflare（Pages/Workers の静的アセット）は `_headers` を読み取ります。読み取らないホスト（Vercel、S3）はこのファイルを無害に無視します。`public/` に配置した `_headers` はそのまま維持されます。
+ホストが読み取る場合、ビルドでは `_headers` ファイルも出力され、生の AI 対応エンドポイント — `/<route>.md`、`/<route>.mdx`、および `.txt` ファイル（`llms.txt`、`llms-full.txt`）— に `charset=utf-8` を固定します。これらのレスポンスは妥当な UTF-8 ですが、多くの静的ホストは charset **なし**の `text/markdown` / `text/plain` として配信し、ブラウザは Windows-1252 にフォールバックします — その結果、非 ASCII のドキュメント（日本語、アクセント付きラテン文字など）は生の URL を直接開いたときに文字化けします。HTML ページは `<meta charset>` を持つため影響を受けません。Netlify は静的デプロイで、Cloudflare（Pages と Workers の静的アセット）は静的ビルドとサーバービルドの両方で `_headers` を読み取るため、これらのアダプターとホストを指定していない静的ビルドではこのファイルが出力されます。Vercel（ヘッダーはルーティング設定で扱われます）と Node（サーバーがこのファイルを無視します）では出力されません。`public/` に配置した `_headers` はそのまま維持されます。
 
 ## 環境変数 [#environment-variables]
 
@@ -136,7 +161,7 @@ redirects: [{ from: "/old", to: "/new", status: 301 }];
 | 機能 | 変数 |
 | --- | --- |
 | Ask AI（AI Gateway） | `AI_GATEWAY_API_KEY`（または Vercel OIDC） |
-| Ask AI（その他のプロバイダー） | プロバイダーのデフォルトのキー環境変数（`OPENROUTER_API_KEY`、`LLMGATEWAY_API_KEY`、`INKEEP_API_KEY`）、または設定した `apiKeyEnv` |
+| Ask AI（その他のアダプター） | アダプターのデフォルトのキー環境変数（`OPENROUTER_API_KEY`、`LLMGATEWAY_API_KEY`、`INKEEP_API_KEY`）、またはアダプターに渡した `apiKeyEnv` |
 | Mixedbread 検索 | `MIXEDBREAD_API_KEY` |
 
 ローカル開発では `.env.local` に、本番ではホストの環境に設定してください。検索インデックスの同期（Algolia、Orama Cloud、Typesense）に必要なビルド時のシークレットについては、同期ステップで個別に警告されます。

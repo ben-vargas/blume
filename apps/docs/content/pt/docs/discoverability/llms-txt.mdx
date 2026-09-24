@@ -7,7 +7,7 @@ description: >-
 O Blume emite versões legíveis por máquina da sua documentação que agentes de programação e assistentes de chat conseguem consumir. Isso vem ativado por padrão; defina `llmsTxt: false` para desligar:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   llmsTxt: false,
 }
 ```
@@ -17,14 +17,14 @@ Enquanto estiver ativado, o `blume build` grava dois arquivos na raiz do seu sit
 - **`/llms.txt`** — um índice compacto: o título e a descrição do seu site, seguidos de uma lista com links de todas as páginas e seus resumos, organizada em seções que espelham sua barra lateral — pastas e grupos viram títulos, então o agente enxerga a estrutura da documentação, e não um bloco único e achatado.
 - **`/llms-full.txt`** — o corpus inteiro: o corpo completo em Markdown de cada página, com sua URL de origem, em um único arquivo.
 
-Páginas em rascunho são excluídas. Defina [`deployment.site`](/docs/deployment) para que os links e as URLs de origem resolvam para endereços absolutos.
+Páginas em rascunho, páginas ocultas da barra lateral (`sidebar.hidden`, ou a forma abreviada `hidden` no nível superior) e páginas com `noindex` são excluídas — exceto as páginas geradas da referência de API, cujo lugar nos dois arquivos é definido por `openapi`, mais abaixo, e não por `noindex`. Defina [`deployment.site`](/docs/deployment) para que os links e as URLs de origem resolvam para endereços absolutos.
 
 ## Opções [#options]
 
 O `llmsTxt` também aceita um formato de objeto com ajustes sobre o que os arquivos incluem. Se a sua [referência de API](/docs/references/openapi) documenta uma especificação de exemplo ou de placeholder, defina `openapi: false` para manter as páginas geradas por ela fora dos dois arquivos:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   llmsTxt: {
     enabled: true, // default
     openapi: false, // exclude generated API reference pages
@@ -35,7 +35,7 @@ ai: {
 O formato de objeto também aceita `details`: Markdown posicionado logo após o título e o resumo no `llms.txt`, antes das seções de páginas — o bloco livre de "details" da [especificação llms.txt](https://llmstxt.org). É o lugar para dizer aos agentes _quando_ recorrer ao seu produto e como acioná-lo, algo que os scanners de prontidão procuram explicitamente; um comando de instalação e o nome do pacote também cabem aqui:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   llmsTxt: {
     details: [
       "## When to use Acme",
@@ -48,7 +48,7 @@ ai: {
 
 ## Seções geradas [#generated-sections]
 
-O `llms.txt` termina com duas seções geradas que não precisam de configuração. **Agent skills** lista cada skill publicada através de [`ai.skills`](/docs/discoverability/agent-discovery#skills-discovery) com sua descrição (onde a skill diz quando deve ser usada). **Agent resources** cria links para todos os artefatos legíveis por máquina que o build emite — `llms-full.txt`, o espelho de [Markdown bruto](/docs/discoverability/markdown) por página, o [servidor MCP](/docs/discoverability/mcp) e seu documento de descoberta, o índice de skills, o [catálogo de API](/docs/discoverability/agent-discovery#api-catalog), o [catálogo de IA](/docs/discoverability/agent-discovery#ai-catalog), o [`agent-readability.json`](/docs/discoverability/agent-discovery#agent-readability) e o [sitemap](/docs/discoverability/sitemap-and-robots#sitemap) — cada um apenas quando existe, então um agente que não lê nada além do `llms.txt` ainda encontra toda a superfície.
+O `llms.txt` termina com duas seções geradas que não precisam de configuração. **Agent skills** lista cada skill publicada através de [`agents.skills`](/docs/discoverability/agent-discovery#skills-discovery) com sua descrição (onde a skill diz quando deve ser usada). **Agent resources** cria links para todos os artefatos legíveis por máquina que o build emite — `llms-full.txt`, o espelho de [Markdown bruto](/docs/discoverability/markdown) por página, o [servidor MCP](/docs/discoverability/mcp) e seu documento de descoberta, o índice de skills, o [catálogo de API](/docs/discoverability/agent-discovery#api-catalog), o [catálogo de IA](/docs/discoverability/agent-discovery#ai-catalog), o [`agent-readability.json`](/docs/discoverability/agent-discovery#agent-readability) e o [sitemap](/docs/discoverability/sitemap-and-robots#sitemap) — cada um apenas quando existe, então um agente que não lê nada além do `llms.txt` ainda encontra toda a superfície.
 
 ## Excluindo uma página [#excluding-a-page]
 

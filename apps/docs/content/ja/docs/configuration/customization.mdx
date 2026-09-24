@@ -24,7 +24,7 @@ export default defineComponents({
 
 ### 参照の形式 [#reference-form]
 
-`mdx`、`layout`、`islands` のいずれにおいても、すべての上書きは 3 つの形式を受け付けます。
+`mdx` と `layout` のいずれにおいても、すべての上書きは 3 つの形式を受け付けます。
 
 ```ts components.ts
 import { defineComponents } from "blume";
@@ -39,6 +39,8 @@ export default defineComponents({
 });
 ```
 
+Blume は `components.ts` を静的に読み取ります — ファイルを実行することはありません — そのため、受け付けるのはこれら 3 つの形式のみです。インライン関数や式、ファイル内で宣言されたコンポーネント、スプレッド、計算されたキー、または以下のモード文字列のいずれでもない `client` は、該当するエントリ名を示す `BLUME_COMPONENTS_INVALID` エラーになります。`blume dev` はこのエラーをターミナルとブラウザのオーバーレイに表示し、`blume build` は失敗します。
+
 **ディスクリプタ**形式ではハイドレーションモードを追加できるため、インタラクティブな React／Vue／Svelte コンポーネントが JavaScript を配信し、クライアント側で動作するようになります。`client` モードがない場合、フレームワークコンポーネントは静的な HTML としてレンダリングされます。これは通常ミスであるため、Blume はそうしたケースを検出するとビルド警告を出力します。
 
 | `client` | ハイドレーションのタイミング |
@@ -49,7 +51,7 @@ export default defineComponents({
 | `"media"` | `media` クエリが一致したとき（`media: "(min-width: 40rem)"` を追加します） |
 | `"only"` | クライアントのみ、サーバーレンダリングは行われません |
 
-多くのページで使用するインタラクティブなコンポーネントについては、[`islands` グループ](/docs/content/islands#registering-islands-in-componentsts) が `client: "visible"` を指定したディスクリプタ形式の省略記法になります。
+`client` モードを持つ `mdx` エントリは、*それ自体がアイランド*です。すべてのページで利用でき、[`islands/` フォルダー](/docs/content/islands) に配置したコンポーネントとまったく同じようにハイドレートされます。フォルダーは引き続き設定不要の方法です — ファイル名とは異なる名前を使いたい場合、`media` クエリを使いたい場合、または他の上書きと並べてアイランドを管理したい場合に `components.ts` のエントリを使用してください。
 
 ### 上書きの型付け [#typing-an-override]
 
@@ -88,7 +90,7 @@ export default defineComponents({
 | --- | --- | --- |
 | `Layout` | ページシェル全体（`RootLayout`） | 組み込みレイアウトが受け取るすべて、加えて `layout` マップ |
 | `Header` | 上部のナビゲーションバー | `site`、`logo`、`navigation`、`route`、`searchEnabled` など |
-| `Logo` | ヘッダー内のブランドリンク（マーク＋タイトル） | `site`、`logo` |
+| `Logo` | ヘッダー内のブランドリンク（マーク＋タイトル） | `site`、`logo`、`locale` |
 | `Search` | ヘッダーの検索トリガー＋モーダル | `navigation`、`strings`、`locale`、`askEnabled` |
 | `Sidebar` | 主要なナビゲーションツリー | `items`、`currentRoute` |
 | `MobileNav` | モバイルドロワー内のナビゲーション（デフォルトは `Sidebar`） | `items`、`currentRoute` |
@@ -150,17 +152,17 @@ blume add pagination
 `blume.config.ts` のトップレベルの `integrations` 配列から、任意の Astro インテグレーションを追加できます。まずサイトにインテグレーションをインストールしてください。Blume は生成されるランタイムの依存関係にそれを追加せず、Astro との互換性も管理しません。
 
 ```bash
-npm install @astrojs/sitemap
+npm install @astrojs/partytown
 ```
 
 ```ts blume.config.ts lineNumbers
-import sitemap from "@astrojs/sitemap";
+import partytown from "@astrojs/partytown";
 import { defineConfig } from "blume";
 
 export default defineConfig({
   integrations: [
-    sitemap({
-      filter: (page) => !page.includes("/drafts/"),
+    partytown({
+      config: { forward: ["dataLayer.push"] },
     }),
   ],
 });
@@ -177,10 +179,14 @@ Blume はインスタンスをコピーするのではなく、生成された A
 完全な制御が必要な場合は、生成されたランタイムを独立した Astro プロジェクトへイジェクトできます。
 
 ```bash
-blume eject --yes
+npx blume eject --yes
 ```
 
 イジェクトは一方向のステップです。隠れた `.blume/` ランタイムが、あなたが所有し直接変更できる通常の Astro アプリになります。`blume` パッケージは引き続きインポート可能なので、そのコンポーネント、テーマ、Markdown プロセッサはそのまま使えます。
+
+イジェクトは `package.json` のスクリプトを `astro dev` と `astro build` に向け、Astro アプリが名前でインポートするパッケージ — `astro`、`@tailwindcss/vite`、設定が組み込む検索クライアント・インテグレーション・アダプター、アイランド・サンプル・Ask AI が使用する場合の React、Ask AI ルート用の `ai`、EPUB エクスポート用の `epub-gen-memory` — を、Blume 自身が使用しているバージョン範囲で追加します。`dev` や `build` の前にインストールを実行してください。追加されたパッケージはイジェクト時に一覧表示されます。イジェクトされたアプリ内のパスはすべて相対パスであるため、CI を含むどのチェックアウトからでもビルドできます。
+
+それ以降は、アプリ独自のスクリプト（`npm run dev`、`npm run build`）で実行してください。イジェクトされたプロジェクトでは `blume dev` と `blume build` は停止し、それらのスクリプトを使うよう案内します。`blume eject` を再度実行した場合も、編集内容を上書きしてしまうため拒否されます。それでもアプリを再生成したい場合は `--force` を指定してください。
 
 ### イジェクトで維持されるもの [#what-eject-keeps]
 

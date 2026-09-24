@@ -8,7 +8,7 @@ Jede Blume-Site liefert ihre Dokumentation zusätzlich als kleine, schreibgesch�
 
 | Endpunkt | Liefert |
 | --- | --- |
-| `/api/docs/pages.json` | Jede Seite mit ihrer Route, ihrem Titel, ihrer Beschreibung, ihrem Inhaltstyp, ihrer Sprache, ihren Facetten und den URLs ihrer gerenderten, Markdown- und JSON-Form. |
+| `/api/docs/pages.json` | Jede Seite mit ihrer Route, ihrem Titel, ihrer Beschreibung, ihrem Inhaltstyp, ihrer Sprache, ihren Facetten und den URLs ihrer gerenderten, Markdown- und JSON-Form. i18n-Fallback-Kopien unübersetzter Seiten werden weggelassen; bei Server-Output antwortet das JSON einer fehlenden Seite mit `404` und `PAGE_NOT_FOUND`. |
 | `/api/docs/pages/{route}.json` | Eine Seite: ihr Indexeintrag plus das Agent-Markdown (derselbe Body, den `get_page` zurückgibt). `{route}` ist die Seitenroute ohne führenden Schrägstrich, `index` für die Startseite. |
 | `/api/docs/navigation.json` | Der Navigationsbaum — Header-Tabs und die Seitenleisten-Hierarchie. |
 | `/api/docs/search?q=` | Volltextsuche, mit derselben Eingrenzung über `limit`, `contentTypes`, `locale`, `version` und `filters[key]` wie bei `search_docs`. Nur bei Server-Output. |
@@ -50,10 +50,10 @@ Nichts davon berührt deine eigene [API-Referenz](/docs/references/openapi): Ein
 
 ## Abschalten [#turning-it-off]
 
-Setze `ai.api` auf `false`, um nichts davon zu veröffentlichen:
+Setze `agents.api` auf `false`, um nichts davon zu veröffentlichen:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   api: false,
 }
 ```

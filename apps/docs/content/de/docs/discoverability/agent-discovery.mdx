@@ -11,7 +11,7 @@ description: >-
 Blume schreibt ein **`/agent-readability.json`**-Manifest in dein Site-Root, das die in diesem Abschnitt beschriebene agentenseitige Oberfläche indexiert — so kann ein Agent sie mit einem einzigen Fetch entdecken, statt Konventionen zu erraten oder HTML zu scrapen. Wie `llms.txt` ist es standardmäßig aktiv:
 
 ```ts blume.config.ts lineNumbers
-seo: {
+agents: {
   agentReadability: true,
 }
 ```
@@ -38,7 +38,7 @@ Das Manifest listet nur, was du aktiviert hast — das Spiegelmuster für [rohes
     }
   },
   "description": "Docs for the Acme API.",
-  "generator": "blume@1.0.0",
+  "generator": "blume@2.0.0",
   "name": "Acme Docs",
   "site": "https://docs.example.com",
   "contentUsage": { "search": true, "ai-input": true, "ai-train": true },
@@ -48,7 +48,7 @@ Das Manifest listet nur, was du aktiviert hast — das Spiegelmuster für [rohes
 
 Das Feld `contentNegotiation` erscheint nur, wenn die deployte Site den Header `Accept: text/markdown` tatsächlich berücksichtigt — siehe [Content Negotiation](/docs/discoverability/markdown#content-negotiation); auf jedem anderen Deployment bewirbt das Manifest lediglich das `.md`-Spiegelmuster.
 
-Setze `seo.agentReadability` auf `false`, um es zu überspringen, oder liefere deine eigene `public/agent-readability.json` aus, um die Kontrolle zu übernehmen — Blume überschreibt niemals eine Datei, die du in `public/` ablegst.
+Setze `agents.agentReadability` auf `false`, um es zu überspringen, oder liefere deine eigene `public/agent-readability.json` aus, um die Kontrolle zu übernehmen — Blume überschreibt niemals eine Datei, die du in `public/` ablegst.
 
 ## Discovery-Link-Header
 
@@ -186,11 +186,11 @@ Der API-Katalog listet APIs. Der **KI-Katalog** listet alles, was ein Agent von 
 
 Die aktuelle ARD-Revision liest das Manifest von `/.well-known/ard.json` und bezeichnet `ai-catalog.json` als Vorgängerpfad, deshalb schreibt Blume dasselbe Dokument an beide Orte, bewirbt es im Head jeder Seite unter beiden Link-Relationen (`ai-catalog` und `ard`) und führt es in `llms.txt` und `agent-readability.json` auf. Der Katalog und seine `.well-known`-Nachbarn (der API-Katalog, die MCP-Discovery-Dateien) werden auf jeder Build-Oberfläche mit `Access-Control-Allow-Origin: *` ausgeliefert, sodass eine Registry, die sie von einem anderen Origin liest, nicht blockiert wird.
 
-Eintrags-Identifier sind auf deiner Domain verankert, daher braucht der Katalog eine [`deployment.site`](/docs/deployment) — ohne sie wird nichts ausgegeben. Er ist standardmäßig aktiv; `ai.catalog: false` schaltet ihn ab. Die generierten Queries leiten sich aus dem Site-Titel und der jeweils eigenen Beschreibung des Eintrags ab. Um eigene für einen Eintrag zu schreiben, schlüssele sie nach dem Ende des Identifiers (`<namespace>:<name>`):
+Eintrags-Identifier sind auf deiner Domain verankert, daher braucht der Katalog eine [`deployment.site`](/docs/deployment) — ohne sie wird nichts ausgegeben. Er ist standardmäßig aktiv; `agents.catalog: false` schaltet ihn ab. Die generierten Queries leiten sich aus dem Site-Titel und der jeweils eigenen Beschreibung des Eintrags ab. Um eigene für einen Eintrag zu schreiben, schlüssele sie nach dem Ende des Identifiers (`<namespace>:<name>`):
 
 ```ts blume.config.ts
 export default defineConfig({
-  ai: {
+  agents: {
     catalog: {
       queries: {
         "mcp:acme": ["how do I install Acme", "search the Acme docs"],
@@ -210,17 +210,17 @@ Eine Liste ersetzt die generierten Queries für diesen Eintrag; Einträge, die d
 Es ist standardmäßig aktiv; setze `webmcp: false`, um es abzuschalten:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   webmcp: false,
 }
 ```
 
 ## Skills-Discovery
 
-Wenn dein Projekt [Agent Skills](https://agentskills.io) ausliefert — [das Blume-Repo selbst tut das](/docs/advanced/skills) —, richte `ai.skills` auf das Verzeichnis, das sie enthält, und der Build veröffentlicht sie gemäß dem [Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) zur Discovery:
+Wenn dein Projekt [Agent Skills](https://agentskills.io) ausliefert — [das Blume-Repo selbst tut das](/docs/advanced/skills) —, richte `agents.skills` auf das Verzeichnis, das sie enthält, und der Build veröffentlicht sie gemäß dem [Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) zur Discovery:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   skills: "./skills",
 }
 ```
@@ -246,7 +246,7 @@ Verwende den Record-Typ `HTTPS`, wenn dein Anbieter ihn anbietet (Vercel DNS tut
 [Web Bot Auth](https://datatracker.ietf.org/wg/webbotauth/about/) wirkt in die andere Richtung: Es geht nicht darum, dass Agenten deine Docs lesen, sondern darum, dass **die Agenten deiner Organisation sich ausweisen**, wenn sie anderswo Requests stellen. Deine Agenten signieren ihre Requests mit [HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc9421), und empfangende Sites verifizieren sie gegen ein auf deiner Domain veröffentlichtes Public-Key-Verzeichnis. Wenn deine Organisation Agenten betreibt und deine Blume-Site unter der Domain liegt, als die sie sich ausweisen, veröffentliche deren öffentliche Schlüssel:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   webBotAuth: {
     keys: [{ kty: "OKP", crv: "Ed25519", x: "JrQLj5P_89iXES9-vFgrIy29c…" }],
   },
@@ -267,7 +267,7 @@ Da `blume.config.ts` zur Build-Zeit ausgeführt wird, muss der Schlüssel nicht 
 const webBotAuthKey = process.env.WEB_BOT_AUTH_PUBLIC_JWK;
 
 export default defineConfig({
-  ai: {
+  agents: {
     webBotAuth: {
       keys: webBotAuthKey ? [JSON.parse(webBotAuthKey)] : [],
     },

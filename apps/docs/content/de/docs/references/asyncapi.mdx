@@ -1,0 +1,60 @@
+---
+title: AsyncAPI
+description: >-
+  Binde eine AsyncAPI-Spezifikation ein und erhalte eine native Event-Referenz – eine echte Seite pro Send- und Receive-Operation, in deiner Sidebar und in der Suche.
+---
+
+Event-gesteuerte APIs verwenden den Adapter `asyncapi()` aus `blume/reference`. Er wird unter `reference` neben etwaigen [OpenAPI](/docs/references/openapi)- oder [GraphQL](/docs/references/graphql)-Adaptern aufgeführt. Er akzeptiert dieselben Optionen wie `openapi()` und rendert mit demselben nativen Renderer. Jede `send`/`receive`-Operation wird zu einer echten Seite. Sie enthält Schematabellen für Message-Payload und Header, Kanalparameter, Protokoll-Bindings und einen Authorization-Abschnitt, der aus den `securitySchemes` der Spezifikation abgeleitet wird (auf Server- und Operationsebene, Alternativen als „oder“-Gruppen). Dazu kommt ein [Try it](#try-it-for-events)-Nachrichten-Composer. Da jede Operation eine echte Blume-Seite ist, bekommt sie ihre eigene URL, taucht in der **Seitensuche** und in `llms.txt` auf und erhält ein Open-Graph-Bild – genau wie jede handgeschriebene Doku-Seite.
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { asyncapi } from "blume/reference";
+
+export default defineConfig({
+  reference: [asyncapi({ spec: "./asyncapi.yaml" })],
+});
+```
+
+Damit wird die Referenz unter `/events` eingehängt (eine Übersichtsseite), und jede Operation bekommt darunter ihre eigene Seite. `spec` ist entweder eine `http(s)`-URL oder ein Pfad zu einer lokalen JSON- oder YAML-Datei in deinem Projekt. Wie jede Referenz fügt sie nicht von selbst einen Tab im Header hinzu. Richte einen [Navigations-Tab](/docs/content/navigation#tabs) auf ihre Route, um sie sichtbar zu machen und die Operations-Sidebar darauf zu beschränken:
+
+```ts blume.config.ts
+navigation: {
+  tabs: [{ label: "Events", path: "/events" }],
+}
+```
+
+## Spezifikationsversionen [#spec-versions]
+
+**AsyncAPI-2.x-Spezifikationen werden automatisch auf 3.x normalisiert**, und zwar mit dem offiziellen AsyncAPI-Converter. So werden `publish`/`subscribe`-Kanäle auf `send`/`receive`-Operationsseiten mit stabilen URLs abgebildet. Wenn du die Spezifikationsdatei später selbst mit dem Converter aktualisierst, verschiebt sich also nichts. Der Converter ist eine optionale Peer-Dependency. Wenn deine Site eine 1.x- oder 2.x-Spezifikation nutzt, installiere ihn also (`npm install @asyncapi/converter`). Ohne ihn bricht der Build ab und nennt dir genau diesen Installationsbefehl. Eine 3.x-Spezifikation braucht nichts weiter. Operationen werden nach Tag gruppiert, Operationen ohne Tag unter ihrer Kanaladresse.
+
+## Codebeispiele [#code-samples]
+
+Codebeispiele sind **protokollbewusst** und richten sich nach dem Binding der Operation (oder dem Protokoll ihrer Server): `wscat` und ein Browser-`WebSocket`-Snippet für WebSockets, `kcat` für Kafka, `mosquitto_pub`/`mosquitto_sub` für MQTT. `codeSamples` filtert diese Auswahl, genauso wie es bei `openapi()` die Sprachen auswählt. Gibt es für ein Protokoll kein unterstütztes Tool, wird nur das Beispiel für den Message-Payload gerendert statt eines erfundenen Clients.
+
+## Gemeinsame Optionen [#shared-options]
+
+Alles, was für [OpenAPI](/docs/references/openapi) dokumentiert ist, gilt auch hier, einschließlich [`playground`](#try-it-for-events). Dazu gehören [`route`](/docs/references/openapi#route), [`sources`](/docs/references/openapi#multiple-specs) mit `label`/`route` und `expandSchemas`. Auch die Flags für die [Indexierung pro Quelle](/docs/references/openapi#per-source-indexing) gelten, einschließlich `seoDescriptionSuffix`: Der generierte Satz nennt hier den Kanal und die Aktion statt eines Endpunkts. Außerdem wird die Suche nach Operationszusammenfassung und Tag indexiert.
+
+## Stattdessen Scalar einbetten [#embedding-scalar-instead]
+
+`asyncapi()` rendert immer Blumes eigene Seiten. Wenn du stattdessen die UI von [Scalar](https://scalar.com) einbetten willst, trag einen [`scalar()`](/docs/references/scalar)-Adapter ein, der auf das AsyncAPI-Dokument zeigt. Das Embed erkennt den Dokumenttyp und rendert Kanäle, Operationen, Nachrichten und einen Models-Abschnitt. Scalar hat keinen eigenen AsyncAPI-Playground, also verzichtest du mit diesem Wechsel auf den Composer. Außerdem greift von den Einstellungen pro Quelle nur `noindex`.
+
+## Try it für Events [#try-it-for-events]
+
+Nativ gerenderte Operationsseiten bringen auch hier ein **Try it**-Panel mit. Es funktioniert genau wie das [OpenAPI-Panel](/docs/references/openapi#try-it-playground): Der Server rendert es eingeklappt, und sein JavaScript wird erst geladen, wenn jemand es zum ersten Mal öffnet.
+
+Unabhängig vom Protokoll öffnet sich das Panel mit einem Payload-Editor. Er ist mit den `examples` der Nachricht vorausgefüllt. Deklariert die Nachricht keine, nimmt er einen Beispielwert, der aus dem Payload-Schema erzeugt wird. Während du tippst, wird der Payload gegen das Payload-Schema der Nachricht validiert. Darunter findest du ein Eingabefeld pro Kanalparameter und eine Serverauswahl, die aus den `servers` des Kanals gespeist wird. Für jede andere URL gibt es ein Freitextfeld. Die protokollbewussten Codebeispiele bleiben mit dem Formular synchron, genau wie curl, js und python bei einer HTTP-Operation. Das Template der Kanaladresse wird mit den Parameterwerten befüllt, die du eingibst. Ein kopiertes `wscat`-, `WebSocket`-, `kcat`- oder `mosquitto_pub`-Snippet entspricht also dem, was im Formular steht.
+
+Eine Live-Verbindung gibt es nur für WebSockets. Bei einem `ws`- oder `wss`-Binding verbindet sich das Panel mit der aufgelösten Kanal-URL, zeigt den Verbindungsstatus an und protokolliert jeden Frame mit Zeitstempel. AsyncAPI 3 beschreibt Aktionen aus Sicht der API, und das Panel hält sich daran. Bei einer `receive`-Operation empfängt die API etwas von dir. Deshalb bekommt sie einen **Send**-Button, der den zusammengestellten Payload veröffentlicht. Eine `send`-Operation streamt nur Nachrichten an dich, also verbindet sich das Panel dort nur und protokolliert mit. Es gibt keine Reconnect-Logik: Sobald ein Socket geschlossen ist, bleibt er zu, bis du dich erneut verbindest. Kafka, MQTT, AMQP und alle anderen Protokolle bekommen den Composer und die kopierbaren CLI-Beispiele. Das Panel weist auf der Seite auch ausdrücklich darauf hin: Blume täuscht keine Broker-Verbindung aus einem Browser-Tab vor.
+
+Die Option `playground` von `asyncapi()` funktioniert wie die von `openapi()`. Mit dem nativen Renderer ist sie standardmäßig aktiviert, und mit `false` schaltest du sie komplett ab:
+
+```ts blume.config.ts lineNumbers
+reference: [asyncapi({ spec: "./asyncapi.yaml", playground: false })],
+```
+
+:::note
+`playground.proxy` gilt nicht für Event-Operationen. Der Proxy leitet HTTP-Requests weiter. Eine WebSocket-Verbindung geht aber direkt vom Browser zu dem Server, der in der URL steht. Es gibt also nichts, wovor sich ein Proxy schalten könnte.
+:::
+
+Der Event-Composer fragt keine Broker-Zugangsdaten ab. Der Abschnitt **Authorization** auf jeder Operationsseite dokumentiert, was der Broker erwartet. Eine WebSocket-Verbindung überträgt nur das, was bereits in der URL steht. Für Event-Operationen wird nichts gespeichert.

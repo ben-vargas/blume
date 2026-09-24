@@ -1,0 +1,49 @@
+---
+title: Validar
+description: >-
+  O blume validate verifica cada link do seu conteúdo — páginas, âncoras, assets e, opcionalmente, URLs externas — e faz o CI falhar quando algum está quebrado.
+---
+
+O `blume validate` lê seu conteúdo do mesmo jeito que um build faz e verifica cada link que encontra. Ele não gera nem compila nada, então é a verificação rápida para colocar antes do `blume build`:
+
+```bash
+blume validate
+```
+
+- **Links internos de página** (`/guides/intro`, `./sibling`) precisam levar a uma página real, e os quebrados são reportados como erros. Um `href` em string de um componente (`<Card href="./install">`) é verificado da mesma forma, mas uma expressão `href={…}` não é.
+- **Links de âncora** (`#section`, `/guides/intro#setup`) precisam corresponder a uma âncora na página de destino, que pode ser o id de um heading (gerado ou [fixado](/docs/content/syntax#custom-anchors)) ou o atributo `id` de um elemento HTML bruto. As âncoras não encontradas são reportadas como avisos. Ids dentro de blocos de código, código inline, comentários HTML e blocos `<Prompt>` não contam.
+- **Links de assets** são verificados onde o arquivo fica. Um caminho absoluto (`/logo.png`) é procurado no diretório `public/`, e uma imagem incorporada com caminho relativo (`![](./diagram.png)`) é procurada na própria pasta da página. Um link simples para um caminho relativo continua sendo resolvido como uma rota do site. Só as imagens incorporadas passam pelo pipeline de imagens.
+- **Links externos** só são verificados com [`--external`](#flags), que vem desativado por padrão porque precisa de acesso à rede. Links mortos (404/410/inacessível) são erros. Respostas com limite de taxa ou transitórias (403/429/5xx/timeout) são avisos.
+
+## O que conta como página [#what-counts-as-a-page]
+
+Os links são resolvidos considerando tudo o que o site gerado serve, não só as páginas Markdown. Isso inclui [páginas `.astro`](/docs/advanced/custom-pages) personalizadas, o índice do [changelog](/docs/advanced/changelog) gerado e cada [redirect](/docs/deployment#redirects) configurado. Em um [site multilíngue](/docs/content/i18n), também inclui a URL de fallback de uma página não traduzida em cada locale. Uma página que falha no parse é reportada junto com os problemas de links. Uma página que nunca carrega é um ponto cego da validação de links, então ela não pode passar como resultado limpo.
+
+## Flags
+
+- `--external` — também verifica links `http(s)` externos pela rede.
+- `--strict` — também sai com código diferente de zero quando há avisos. As notas de nível info continuam sendo só informativas.
+- `--json` — emite os diagnósticos como JSON no stdout em vez do relatório no terminal.
+
+## Diagnósticos [#diagnostics]
+
+| Código | Severidade | Significado |
+| --- | --- | --- |
+| `BLUME_BROKEN_LINK` | erro | Um link interno aponta para uma rota que nenhuma página serve. |
+| `BLUME_BROKEN_ANCHOR` | aviso | A página existe, mas não tem nenhuma âncora correspondente ao fragmento. |
+| `BLUME_BROKEN_ASSET` | aviso | Um caminho absoluto não está em `public/`, ou uma imagem incorporada com caminho relativo não está ao lado da página. |
+| `BLUME_ASSETS_UNCHECKED` | info | Não existe um diretório `public/`, então os caminhos absolutos de assets não foram verificados. |
+| `BLUME_DEAD_LINK` | erro ou aviso | Um link externo (com `--external`) retornou 404/410 ou estava inacessível (erro), ou teve uma resposta transitória 403/429/5xx/timeout (aviso). |
+
+O código de saída é o contrato: erros fazem o comando sair com código diferente de zero, e o `--strict` faz o mesmo com os avisos.
+
+## Saída JSON [#json-output]
+
+Com `--json`, o `blume validate` (e o [`blume doctor`](/docs/cli/doctor)) escreve um objeto no stdout. Esse objeto tem uma lista `diagnostics` e um `summary` com as contagens por severidade. Cada entrada da lista traz:
+
+- `code`, `severity` e `message`
+- o `file` relativo à raiz do projeto, com `line` e `column` quando o problema tem uma localização
+- uma `suggestion`
+- um `docsUrl` apontando para a página que explica o código
+
+O código de saída não muda. Assim, o mesmo comando pode servir de verificação no CI e alimentar uma integração com o editor.

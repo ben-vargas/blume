@@ -7,7 +7,7 @@ description: >-
 Hoste einen [Model-Context-Protocol](https://modelcontextprotocol.io)-Server, damit Coding-Agents (Claude Code, Cursor, VS Code, claude.ai-Connectoren) deine Docs direkt durchsuchen und lesen können — ohne Scraping. Das ist optional und muss aktiviert werden:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   mcp: {
     enabled: true,
     route: "/mcp", // where the server is mounted
@@ -24,15 +24,15 @@ ai: {
 
 ## Tools und Ressourcen [#tools-and-resources]
 
-Der Server stellt schreibgeschützte Tools bereit — `search_docs`, `get_page`, `list_pages` und `get_navigation` — sowie jede Seite als MCP-Ressource (`resources/list` listet die Seiten unter ihren ausgelieferten URLs mit dem Typ `text/markdown` auf; `resources/read` gibt das [Agent-Markdown](/docs/discoverability/markdown) der Seite zurück, dieselbe Ausgabe wie `get_page`), sodass Clients, die Kontext per URI anhängen, die Docs ohne Tool-Aufruf durchstöbern können. Er veröffentlicht Discovery-Dokumente unter `/.well-known/mcp.json` und `/.well-known/mcp/server-card.json`. Die Server Card folgt dem Server-Card-Erweiterungsschema aus [SEP-2127](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127) (Reverse-DNS-`name`, `remotes`-Transport-Endpunkte), ergänzt um initialize-förmige Kompatibilitätsfelder (`serverInfo`, `capabilities`, `transports`) für Scanner, die gegen die frühere Fassung des Proposals gebaut wurden. Das Menü **Connect to MCP** jeder Seite bietet eine Copy-and-go-Installation für Claude Code, Cursor, VS Code und Codex (sichtbar, sobald [`deployment.site`](/docs/deployment) gesetzt ist).
+Der Server stellt schreibgeschützte Tools bereit — `search_docs`, `get_page`, `list_pages` und `get_navigation` — sowie jede Seite als MCP-Ressource (`resources/list` listet die Seiten unter ihren ausgelieferten URLs mit dem Typ `text/markdown` auf und lässt dabei wie `list_pages` i18n-Fallback-Kopien nicht übersetzter Seiten weg; `resources/read` gibt das [Agent-Markdown](/docs/discoverability/markdown) der Seite zurück, dieselbe Ausgabe wie `get_page`), sodass Clients, die Kontext per URI anhängen, die Docs ohne Tool-Aufruf durchstöbern können. Er veröffentlicht Discovery-Dokumente unter `/.well-known/mcp.json` und `/.well-known/mcp/server-card.json`. Die Server Card folgt dem Server-Card-Erweiterungsschema aus [SEP-2127](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127) (Reverse-DNS-`name`, `remotes`-Transport-Endpunkte), ergänzt um initialize-förmige Kompatibilitätsfelder (`serverInfo`, `capabilities`, `transports`) für Scanner, die gegen die frühere Fassung des Proposals gebaut wurden. Das Menü **Connect to MCP** jeder Seite bietet eine Copy-and-go-Installation für Claude Code, Cursor, VS Code und Codex (sichtbar, sobald [`deployment.site`](/docs/deployment) gesetzt ist).
 
-`search_docs` betreibt einen eigenen Volltextindex und funktioniert daher unabhängig von deinem [Such](/docs/configuration/search)-Provider — und selbst dann, wenn die Suche auf `none` steht. Der MCP-Server ist ein von der seitenbasierten Suche getrenntes Feature.
+`search_docs` betreibt einen eigenen Volltextindex und funktioniert daher unabhängig von deinem [Such](/docs/configuration/search)-Provider — und selbst mit `search: false`. Der MCP-Server ist ein von der seitenbasierten Suche getrenntes Feature.
 
 Dieselben Tools stehen über einfaches HTTP als [JSON-API](/docs/discoverability/json-api) zur Verfügung — für Frameworks, die kein MCP sprechen.
 
 ## Eingrenzen nach Content-Typ und Facetten [#scoping-by-content-type-and-facets]
 
-`search_docs` und `list_pages` akzeptieren beide einen optionalen `contentTypes`-Filter, der Ergebnisse auf Seiten mit den angegebenen Frontmatter-[`type`s](/docs/reference/frontmatter) eingrenzt — `["rfc"]`, `["blog", "changelog"]` —, sodass ein Agent auf einer Site, die Docs mit RFCs, Runbooks oder Richtlinien mischt, den Abruf auf die benötigte Seitenart beschränken kann. Jedes Ergebnis nennt seinen Content-Typ, und die Ausgabe von `list_pages` zeigt die verwendeten Typen.
+`search_docs` und `list_pages` akzeptieren beide einen optionalen `contentTypes`-Filter, der Ergebnisse auf Seiten mit den angegebenen Frontmatter-[`type`s](/docs/content/frontmatter) eingrenzt — `["rfc"]`, `["blog", "changelog"]` —, sodass ein Agent auf einer Site, die Docs mit RFCs, Runbooks oder Richtlinien mischt, den Abruf auf die benötigte Seitenart beschränken kann. Jedes Ergebnis nennt seinen Content-Typ, und die Ausgabe von `list_pages` zeigt die verwendeten Typen.
 
 Beide Tools akzeptieren außerdem ein `filters`-Objekt, das gegen die Facetten abgleicht, die eine Site pro Content-Typ deklariert ([`content.types.<type>.facets`](/docs/configuration#frontmatter)) — eigene Frontmatter-Keys, deren Werte zu filterbaren Metadaten werden:
 
@@ -48,17 +48,17 @@ Jeder `filters`-Eintrag muss zutreffen (Ergebnisse führen ihre Facettenwerte mi
 
 ## Server-Ausgabe erforderlich [#server-output-required]
 
-Der MCP-Server ist ein Live-Endpunkt (`/mcp`) und kann daher nicht auf einem statischen Build laufen. Wechsle zur Server-Ausgabe und wähle einen Adapter:
+Der MCP-Server ist ein Live-Endpunkt (`/mcp`) und kann daher nicht auf einem statischen Build laufen. Gib einen Host-Adapter aus `blume/deploy` an, um zur Server-Ausgabe zu wechseln:
 
 ```ts blume.config.ts lineNumbers
-deployment: {
-  output: "server",
-  adapter: "node", // or "vercel" | "netlify" | "cloudflare"
-  site: "https://docs.example.com",
-}
+import { node } from "blume/deploy"; // or vercel, netlify, cloudflare
+
+export default defineConfig({
+  deployment: node({ site: "https://docs.example.com" }),
+});
 ```
 
-Ein statischer Build mit `ai.mcp.enabled` bricht sofort mit einer Meldung ab, die dich auffordert, `deployment.output` auf `server` zu setzen. Die Adapter findest du unter [Deployment](/docs/deployment). Nach dem Deployment verbindest du dich aus Claude Code so:
+Ein statischer Build mit `agents.mcp.enabled` bricht sofort mit einer Meldung ab, die dich auffordert, einen Host-Adapter anzugeben. Die Adapter findest du unter [Deployment](/docs/deployment). Nach dem Deployment verbindest du dich aus Claude Code so:
 
 ```bash
 claude mcp add --transport http my-docs https://docs.example.com/mcp

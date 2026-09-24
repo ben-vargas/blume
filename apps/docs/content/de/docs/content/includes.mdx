@@ -4,7 +4,7 @@ description: >-
   Inhalte seitenübergreifend wiederverwenden — füge gemeinsam genutzte Markdown-, MDX- oder Code-Dateien mit der Include-Syntax in jede Seite ein.
 ---
 
-Schreibe ein Snippet einmal und füge es in jede beliebige Seite ein. Eine `<include>`-Anweisung in einer eigenen Zeile bettet zur Build-Zeit eine andere Datei ein, so als wäre deren Inhalt direkt dort geschrieben worden — Überschriften werden Teil des Inhaltsverzeichnisses der Seite, Text wird von der Suche indexiert, und der Inhalt erscheint im `.md`-Spiegel der Seite sowie in llms-full.txt.
+Schreibe ein Snippet einmal und füge es in jede beliebige Seite ein. Eine `<include>`-Anweisung in einer eigenen Zeile bettet zur Build-Zeit eine andere Datei ein, so als wäre deren Inhalt direkt dort geschrieben worden — Überschriften werden Teil des Inhaltsverzeichnisses der Seite, Text wird von der Suche indexiert, und der Inhalt erscheint im `.md`-Spiegel der Seite sowie in llms-full.txt. Eine Anweisung, die ein Formatter über mehrere Zeilen umbricht, wird trotzdem eingefügt, und eine Anweisung, die Blume nicht parsen kann, löst in ihrer Zeile eine `BLUME_INCLUDE_MALFORMED`-Warnung aus, statt als rohes Tag gerendert zu werden.
 
 ```mdx
 <include>./_snippets/prerequisites.mdx</include>
@@ -49,9 +49,7 @@ Ein Ziel, das nicht `.md`/`.mdx` ist, wird als umschlossener Code-Block eingebet
 ```mdx
 <include>./examples/config.ts</include>
 
-<include lang="ts" meta='title="blume.config.ts"'>
-  ../blume.config.ts
-</include>
+<include meta='title="config.ts"'>./examples/config.ts</include>
 
 <include lang="mdx">./_snippets/prerequisites.mdx</include>
 ```

@@ -7,7 +7,7 @@ description: >-
 Blume आपके डॉक्स के मशीन-पठनीय संस्करण उत्सर्जित करता है जिन्हें कोडिंग एजेंट और चैट असिस्टेंट उपयोग कर सकते हैं। यह डिफ़ॉल्ट रूप से चालू रहता है; इसे बंद करने के लिए `llmsTxt: false` सेट करें:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   llmsTxt: false,
 }
 ```
@@ -17,14 +17,14 @@ ai: {
 - **`/llms.txt`** — एक संक्षिप्त इंडेक्स: आपकी साइट का शीर्षक और विवरण, फिर प्रत्येक पेज की एक लिंक्ड सूची उसके सारांश के साथ, ऐसे सेक्शनों में व्यवस्थित जो आपके साइडबार को प्रतिबिंबित करते हैं — फ़ोल्डर और समूह शीर्षक बन जाते हैं, ताकि एजेंट डॉक्स की संरचना देखे, न कि एक सपाट पिंड।
 - **`/llms-full.txt`** — संपूर्ण कॉर्पस: प्रत्येक पेज का पूरा Markdown मुख्य भाग, उसके स्रोत URL के साथ, एक ही फ़ाइल में।
 
-ड्राफ़्ट पेज बाहर रखे जाते हैं। [`deployment.site`](/docs/deployment) सेट करें ताकि लिंक और स्रोत URL निरपेक्ष पतों में हल हों।
+ड्राफ़्ट पेज, साइडबार से छिपाए गए पेज (`sidebar.hidden`, या शीर्ष-स्तरीय `hidden` शॉर्टहैंड), और `noindex` पेज बाहर रखे जाते हैं — जनरेट किए गए API संदर्भ पेजों को छोड़कर, जिनका दोनों फ़ाइलों में स्थान `noindex` के बजाय नीचे दिए गए `openapi` द्वारा निर्धारित होता है। [`deployment.site`](/docs/deployment) सेट करें ताकि लिंक और स्रोत URL निरपेक्ष पतों में हल हों।
 
 ## विकल्प [#options]
 
 `llmsTxt` एक ऑब्जेक्ट रूप भी लेता है जिसमें इन फ़ाइलों की सामग्री नियंत्रित करने के लिए नॉब्स होते हैं। यदि आपका [API संदर्भ](/docs/references/openapi) किसी प्लेसहोल्डर या उदाहरण स्पेक का दस्तावेज़ीकरण करता है, तो उसके जनरेट किए गए पेजों को दोनों फ़ाइलों से बाहर रखने के लिए `openapi: false` सेट करें:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   llmsTxt: {
     enabled: true, // default
     openapi: false, // exclude generated API reference pages
@@ -35,7 +35,7 @@ ai: {
 ऑब्जेक्ट रूप `details` भी लेता है: Markdown जो `llms.txt` में शीर्षक और सारांश के ठीक बाद, पेज सेक्शनों से पहले रखा जाता है — [llms.txt स्पेक](https://llmstxt.org) का मुक्त-रूप "details" ब्लॉक। यही वह जगह है जहाँ एजेंट्स को बताया जाता है कि आपके उत्पाद का सहारा _कब_ लेना है और उसे कैसे कॉल करना है, जिसे रेडीनेस स्कैनर स्पष्ट रूप से खोजते हैं; एक इंस्टॉल कमांड और पैकेज नाम भी यहीं आते हैं:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   llmsTxt: {
     details: [
       "## When to use Acme",
@@ -48,7 +48,7 @@ ai: {
 
 ## जनरेट किए गए सेक्शन [#generated-sections]
 
-`llms.txt` दो जनरेट किए गए सेक्शनों के साथ समाप्त होता है जिन्हें किसी कॉन्फ़िगरेशन की आवश्यकता नहीं होती। **Agent skills** [`ai.skills`](/docs/discoverability/agent-discovery#skills-discovery) के माध्यम से प्रकाशित प्रत्येक स्किल को उसके विवरण के साथ सूचीबद्ध करता है (जहाँ स्किल बताती है कि उसका उपयोग कब करना है)। **Agent resources** बिल्ड द्वारा उत्सर्जित प्रत्येक मशीन-पठनीय आर्टिफ़ैक्ट को लिंक करता है — `llms-full.txt`, प्रति-पेज [रॉ Markdown](/docs/discoverability/markdown) मिरर, [MCP सर्वर](/docs/discoverability/mcp) और उसका डिस्कवरी दस्तावेज़, स्किल्स इंडेक्स, [API कैटलॉग](/docs/discoverability/agent-discovery#api-catalog), [AI कैटलॉग](/docs/discoverability/agent-discovery#ai-catalog), [`agent-readability.json`](/docs/discoverability/agent-discovery#agent-readability), और [साइटमैप](/docs/discoverability/sitemap-and-robots#sitemap) — प्रत्येक केवल तभी जब वह मौजूद हो, ताकि जो एजेंट `llms.txt` के अलावा कुछ न पढ़े, वह भी पूरी सतह पा सके।
+`llms.txt` दो जनरेट किए गए सेक्शनों के साथ समाप्त होता है जिन्हें किसी कॉन्फ़िगरेशन की आवश्यकता नहीं होती। **Agent skills** [`agents.skills`](/docs/discoverability/agent-discovery#skills-discovery) के माध्यम से प्रकाशित प्रत्येक स्किल को उसके विवरण के साथ सूचीबद्ध करता है (जहाँ स्किल बताती है कि उसका उपयोग कब करना है)। **Agent resources** बिल्ड द्वारा उत्सर्जित प्रत्येक मशीन-पठनीय आर्टिफ़ैक्ट को लिंक करता है — `llms-full.txt`, प्रति-पेज [रॉ Markdown](/docs/discoverability/markdown) मिरर, [MCP सर्वर](/docs/discoverability/mcp) और उसका डिस्कवरी दस्तावेज़, स्किल्स इंडेक्स, [API कैटलॉग](/docs/discoverability/agent-discovery#api-catalog), [AI कैटलॉग](/docs/discoverability/agent-discovery#ai-catalog), [`agent-readability.json`](/docs/discoverability/agent-discovery#agent-readability), और [साइटमैप](/docs/discoverability/sitemap-and-robots#sitemap) — प्रत्येक केवल तभी जब वह मौजूद हो, ताकि जो एजेंट `llms.txt` के अलावा कुछ न पढ़े, वह भी पूरी सतह पा सके।
 
 ## किसी पेज को बाहर रखना [#excluding-a-page]
 

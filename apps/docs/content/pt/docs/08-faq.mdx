@@ -50,11 +50,11 @@ Sim. Qualquer página pode ser `.md` ou `.mdx`, e o MDX permite inserir os [comp
 
 ## Onde posso publicar? [#where-can-i-deploy-it]
 
-Em qualquer lugar. O `blume build` gera HTML estático por padrão, que você pode servir de qualquer hospedagem estática ou CDN — Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3 ou o seu próprio servidor. Os recursos exclusivos de servidor (Ask AI, o servidor MCP, renderização sob demanda) mudam o build para uma função de servidor por meio de um adaptador para Vercel, Node, Netlify ou Cloudflare. Veja [Publicação](/docs/deployment).
+Em qualquer lugar. O `blume build` gera HTML estático por padrão, que você pode servir de qualquer hospedagem estática ou CDN — Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3 ou o seu próprio servidor. Os recursos exclusivos de servidor (Ask AI, o servidor MCP, renderização sob demanda) precisam de saída de servidor: informe um adaptador de hospedagem do `blume/deploy` — `vercel()`, `netlify()`, `cloudflare()` ou `node()` — como `deployment`. Veja [Publicação](/docs/deployment).
 
 ## A busca precisa de um serviço hospedado? [#does-search-need-a-hosted-service]
 
-Não. O [Orama](/docs/configuration/search) monta um índice local que funciona tanto em desenvolvimento quanto em produção, sem nada para hospedar ou pagar. Para sites muito grandes, o [Pagefind](/docs/configuration/search) está a uma flag de distância. De qualquer forma, o índice vai junto como parte do seu site.
+Não. O [Orama](/docs/configuration/search) monta um índice local que funciona tanto em desenvolvimento quanto em produção, sem nada para hospedar ou pagar. Para sites muito grandes, o [Pagefind](/docs/configuration/search#pagefind) está a um adaptador de distância: `search: pagefind()`. De qualquer forma, o índice vai junto como parte do seu site.
 
 ## Como personalizo a aparência? [#how-do-i-customize-the-look]
 

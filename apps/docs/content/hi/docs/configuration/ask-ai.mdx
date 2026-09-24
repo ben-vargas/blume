@@ -1,7 +1,7 @@
 ---
 title: AI से पूछें
 description: >-
-  आपके डॉक्स पर आधारित एक इन-पेज सहायक — सुझाए गए प्रश्न, कस्टम निर्देश, रिट्रीवल आकार, Vercel AI Gateway से लेकर किसी भी OpenAI-संगत एंडपॉइंट तक के बैकएंड, और इसके लिए आवश्यक सर्वर आउटपुट।
+  आपके डॉक्स पर आधारित एक इन-पेज सहायक — सुझाए गए प्रश्न, कस्टम निर्देश, रिट्रीवल आकार, Vercel AI Gateway से लेकर किसी भी OpenAI-संगत एंडपॉइंट तक के प्रदाता एडाप्टर, और इसके लिए आवश्यक सर्वर आउटपुट।
 ---
 
 एक ऐसा सहायक जोड़ें जो पाठकों के प्रश्नों का उत्तर एक इन-पेज चैट पैनल में दे, जो एक स्ट्रीमिंग सर्वर एंडपॉइंट और [AI SDK](https://ai-sdk.dev) द्वारा समर्थित हो। यह ऑप्ट-इन है, और जब तक आप इसे चालू नहीं करते तब तक स्टैटिक डॉक्स पूरी तरह स्टैटिक ही रहते हैं:
@@ -10,11 +10,11 @@ description: >-
 ai: {
   ask: {
     enabled: true,
-    provider: "gateway", // default
-    model: "openai/gpt-5.5",
   },
 }
 ```
+
+कुछ और लिखे बिना, उत्तर `openai/gpt-5.5` से [Vercel AI Gateway](#adapters) के माध्यम से स्ट्रीम होते हैं। किसी [एडाप्टर](#adapters) के साथ कोई भिन्न मॉडल या प्रदाता चुनें।
 
 ## सुझाए गए प्रश्न [#suggested-questions]
 
@@ -55,9 +55,9 @@ ai: {
 
 Ask AI **आपके डॉक्स पर आधारित** है। प्रत्येक प्रश्न के लिए यह सबसे प्रासंगिक पृष्ठ पुनःप्राप्त करता है — उसी लेक्सिकल [Orama](/docs/configuration/search) इंडेक्स का उपयोग करते हुए जो ऑन-पेज खोज को शक्ति देता है — और उन्हें मॉडल के सिस्टम प्रॉम्प्ट में इंजेक्ट करता है, ताकि उत्तर मॉडल के अपने ज्ञान के बजाय आपकी सामग्री से आएँ। सहायक को निर्देश दिया जाता है कि वह केवल पुनःप्राप्त पृष्ठों से उत्तर दे, बताए कि कब कोई बात कवर नहीं है, और जिन पृष्ठों से उसने सामग्री ली है उन्हें उद्धृत करे।
 
-पाठक जिस पृष्ठ पर वर्तमान में है, उसे सबसे पहले संदर्भ में जोड़ा जाता है और उसका उपयोग रिट्रीवल को उस पृष्ठ की भाषा तक सीमित करने के लिए किया जाता है, ताकि उत्तर वहीं प्रासंगिक रहें जहाँ पाठक डॉक्स में हैं। रिट्रीवल अनुरोध के समय बिल्ड में समाहित एक स्नैपशॉट से चलता है, इसलिए यह आपके [search](/docs/configuration/search) प्रदाता की परवाह किए बिना काम करता है — तब भी जब search `none` पर सेट हो — और इसे किसी कॉन्फ़िगरेशन की आवश्यकता नहीं होती।
+पाठक जिस पृष्ठ पर वर्तमान में है, उसे सबसे पहले संदर्भ में जोड़ा जाता है और उसका उपयोग रिट्रीवल को उस पृष्ठ की भाषा तक सीमित करने के लिए किया जाता है, ताकि उत्तर वहीं प्रासंगिक रहें जहाँ पाठक डॉक्स में हैं। रिट्रीवल अनुरोध के समय बिल्ड में समाहित एक स्नैपशॉट से चलता है, इसलिए यह आपके [search](/docs/configuration/search) प्रदाता की परवाह किए बिना काम करता है — तब भी जब `search: false` हो — और इसे किसी कॉन्फ़िगरेशन की आवश्यकता नहीं होती।
 
-ग्राउंडिंग **[Inkeep](#backends)** को छोड़कर हर बैकएंड के लिए चालू है, जो अपने डैशबोर्ड में आपके द्वारा इंडेक्स की गई सामग्री पर अपना स्वयं का रिट्रीवल चलाता है।
+ग्राउंडिंग **[Inkeep](#inkeep)** को छोड़कर हर एडाप्टर के लिए चालू है, जो अपने डैशबोर्ड में आपके द्वारा इंडेक्स की गई सामग्री पर अपना स्वयं का रिट्रीवल चलाता है।
 
 ## रिट्रीवल आकार [#retrieval-size]
 
@@ -108,7 +108,7 @@ Blume वही `POST` बॉडी भेजता है जो उसका �
 }
 ```
 
-एक सफल प्रतिक्रिया लौटाएँ जिसकी बॉडी एक सादी UTF-8 टेक्स्ट स्ट्रीम हो। यदि एंडपॉइंट किसी अन्य ओरिजिन पर है, तो CORS के साथ डॉक्स ओरिजिन को अनुमति दें: `OPTIONS` और `POST` स्वीकार करें, `content-type` अनुरोध हेडर की अनुमति दें, और प्रीफ़्लाइट तथा स्ट्रीम की गई प्रतिक्रिया दोनों पर CORS हेडर लौटाएँ। `endpoint` सेट होने पर, Blume चैट UI तो जनरेट करता है लेकिन कोई सर्वर रूट, ग्राउंडिंग स्नैपशॉट, प्रदाता निर्भरता, या प्रदाता-सीक्रेट चेतावनी नहीं; रिट्रीवल, प्रमाणीकरण, दर सीमन, मॉडल एक्सेस, और उद्धरण आपके बैकएंड के अधीन होते हैं।
+एक सफल प्रतिक्रिया लौटाएँ जिसकी बॉडी एक सादी UTF-8 टेक्स्ट स्ट्रीम हो। यदि एंडपॉइंट किसी अन्य ओरिजिन पर है, तो CORS के साथ डॉक्स ओरिजिन को अनुमति दें: `OPTIONS` और `POST` स्वीकार करें, `content-type` अनुरोध हेडर की अनुमति दें, और प्रीफ़्लाइट तथा स्ट्रीम की गई प्रतिक्रिया दोनों पर CORS हेडर लौटाएँ। `endpoint` सेट होने पर, Blume चैट UI तो जनरेट करता है लेकिन कोई सर्वर रूट, ग्राउंडिंग स्नैपशॉट, प्रदाता निर्भरता, या प्रदाता-सीक्रेट चेतावनी नहीं; रिट्रीवल, प्रमाणीकरण, दर सीमन, मॉडल एक्सेस, और उद्धरण आपके बैकएंड के अधीन होते हैं। इसके साथ सेट किए गए किसी एडाप्टर को अनदेखा कर दिया जाता है।
 
 ## क्रॉस-ओरिजिन कॉलर [#cross-origin-callers]
 
@@ -143,98 +143,199 @@ const response = await fetch("https://docs.example.com/api/ask", {
 
 ## सर्वर आउटपुट आवश्यक [#server-output-required]
 
-Blume का अंतर्निहित Ask AI बैकएंड एक सर्वर रूट (`POST /api/ask`) है, इसलिए यह स्टैटिक बिल्ड पर नहीं चल सकता। सर्वर आउटपुट पर स्विच करें और एक एडाप्टर चुनें:
+Blume का अंतर्निहित Ask AI बैकएंड एक सर्वर रूट (`POST /api/ask`) है, इसलिए यह स्टैटिक बिल्ड पर नहीं चल सकता। सर्वर आउटपुट पर स्विच करने के लिए `blume/deploy` से एक होस्ट एडाप्टर नामित करें:
 
 ```ts blume.config.ts lineNumbers
-deployment: {
-  output: "server",
-  adapter: "vercel",
-}
+import { vercel } from "blume/deploy";
+
+export default defineConfig({
+  deployment: vercel(),
+});
 ```
 
-Ask AI सक्षम और बिना बाहरी `endpoint` वाला स्टैटिक बिल्ड तुरंत विफल हो जाता है और एक संदेश देता है जो आपसे `deployment.output` को `server` पर सेट करने को कहता है। एडाप्टर के लिए [Deployment](/docs/deployment) देखें।
+Ask AI सक्षम और बिना बाहरी `endpoint` वाला स्टैटिक बिल्ड तुरंत विफल हो जाता है और एक संदेश देता है जो आपसे एक होस्ट एडाप्टर सेट करने को कहता है। एडाप्टर के लिए [Deployment](/docs/deployment) देखें।
 
-## बैकएंड [#backends]
+## एडाप्टर [#adapters]
 
-डिफ़ॉल्ट रूप से Ask AI **Vercel AI Gateway** के माध्यम से रूट होता है: `model` एक `provider/model` स्ट्रिंग है, इसलिए आप इसे बदलकर मॉडल स्विच करते हैं (`openai/gpt-5.5`, `anthropic/claude-sonnet-4-5`, इत्यादि), और कोई प्रदाता SDK इंस्टॉल करने की आवश्यकता नहीं होती। गेटवे आपके एनवायरनमेंट से `AI_GATEWAY_API_KEY` पढ़ता है और जब आप Vercel पर डिप्लॉय करते हैं तो यह स्वतः जुड़ जाता है।
+`provider` उस बैकएंड को चुनता है जो उत्तर देता है। इसका मान एक **एडाप्टर** होता है: `blume/ai` से एक्सपोर्ट किया गया एक छोटा फ़ंक्शन, जो उस बैकएंड के अपने विकल्प लेता है और एक सादा डिस्क्रिप्टर लौटाता है जिसे Blume जनरेट किए गए रूट में लिखता है। प्रत्येक एडाप्टर अपना मॉडल, वह env वेरिएबल जिससे उसकी कुंजी पढ़ी जाती है, [रीज़निंग](#reasoning) को वह कैसे मैप करता है, और उसे किस प्रदाता SDK की आवश्यकता है — ये सब स्वयं तय करता है, इसलिए बैकएंडों के बीच सामंजस्य बिठाने के लिए फ़ील्ड का कोई साझा सेट नहीं होता:
 
-Ask AI को कहीं और इंगित करने के लिए `provider` सेट करें। प्रत्येक बैकएंड अपनी API कुंजी एक एनवायरनमेंट वेरिएबल से पढ़ता है और आपके प्रोजेक्ट में इंस्टॉल किए गए एक प्रदाता SDK के माध्यम से स्ट्रीम करता है — केवल वही जिसका आप उपयोग करते हैं:
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { openrouter } from "blume/ai";
 
-| `provider` | `model` | API कुंजी env वेरिएबल | इंस्टॉल करने के लिए SDK |
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: openrouter({ model: "anthropic/claude-sonnet-4-5" }),
+    },
+  },
+});
+```
+
+| एडाप्टर | किससे उत्तर देता है | API कुंजी env वेरिएबल | इंस्टॉल करने के लिए SDK |
 | --- | --- | --- | --- |
-| `gateway` (डिफ़ॉल्ट) | AI Gateway के माध्यम से एक `provider/model` स्ट्रिंग | `AI_GATEWAY_API_KEY` | कोई नहीं — Blume के साथ आता है |
-| `openrouter` | कोई भी [OpenRouter](https://openrouter.ai) मॉडल | `OPENROUTER_API_KEY` | `@openrouter/ai-sdk-provider` |
-| `llmgateway` | कोई भी [LLMGateway](https://llmgateway.io) मॉडल | `LLMGATEWAY_API_KEY` | `@ai-sdk/openai-compatible` |
-| `inkeep` | एक [Inkeep](https://inkeep.com) QA मॉडल | `INKEEP_API_KEY` | `@ai-sdk/openai-compatible` |
-| `openai-compatible` | जो भी आपका एंडपॉइंट प्रदान करता है | `apiKeyEnv` के साथ सेट करें | `@ai-sdk/openai-compatible` |
+| [`gateway()`](#vercel-ai-gateway) (डिफ़ॉल्ट) | Vercel AI Gateway के माध्यम से एक `provider/model` स्ट्रिंग | `AI_GATEWAY_API_KEY` | कोई नहीं — Blume के साथ आता है |
+| [`openrouter()`](#openrouter) | कोई भी [OpenRouter](https://openrouter.ai) मॉडल | `OPENROUTER_API_KEY` | `@openrouter/ai-sdk-provider` |
+| [`llmgateway()`](#llmgateway) | कोई भी [LLMGateway](https://llmgateway.io) मॉडल | `LLMGATEWAY_API_KEY` | `@ai-sdk/openai-compatible` |
+| [`inkeep()`](#inkeep) | एक [Inkeep](https://inkeep.com) QA मॉडल | `INKEEP_API_KEY` | `@ai-sdk/openai-compatible` |
+| [`openaiCompatible()`](#openai-compatible-endpoints) | जो भी आपका एंडपॉइंट प्रदान करता है | आपके द्वारा नामित `apiKeyEnv` | `@ai-sdk/openai-compatible` |
 
-ये SDK वैकल्पिक पीयर निर्भरताएँ हैं, इसलिए अपने प्रोजेक्ट में वही जोड़ें जिसकी आपके बैकएंड को आवश्यकता है (उदा. `npm install @openrouter/ai-sdk-provider`)। यदि वह अनुपस्थित है, तो Vite द्वारा इम्पोर्ट रिज़ॉल्व करने में विफल होने से पहले ही बिल्ड सटीक पैकेज नाम के साथ चेतावनी देता है।
+ये SDK वैकल्पिक पीयर निर्भरताएँ हैं, इसलिए अपने प्रोजेक्ट में वही जोड़ें जिसकी आपके एडाप्टर को आवश्यकता है (उदा. `npm install @openrouter/ai-sdk-provider`)। यदि वह अनुपस्थित है, तो `blume build` Vite चलने से पहले ही रुक जाता है और पैकेज तथा उसे इंस्टॉल करने वाले कमांड का नाम बताता है, और [`blume doctor`](/docs/cli/doctor) भी इसकी रिपोर्ट करता है।
 
-उदाहरण के लिए, OpenRouter का उपयोग करने हेतु:
+एडाप्टर जो डिस्क्रिप्टर लौटाता है वह सादा डेटा होता है — उसका प्रकार, उसके विकल्प, वह जिन env वेरिएबल को पढ़ता है, और उसे जिस SDK की आवश्यकता है — इसलिए जनरेट किया गया रूट (और [इजेक्ट किया गया](/docs/configuration/customization#eject) रूट भी) इसे लिटरल के रूप में इनलाइन करता है और प्रदाता SDK को नाम से इम्पोर्ट करता है। अनुरोध के समय कुछ भी `blume.config.ts` को नहीं पढ़ता, और किसी रूट में कभी कोई सीक्रेट नहीं लिखा जाता: एडाप्टर कुंजी रखने वाले env वेरिएबल का **नाम** लेते हैं, और रूट उसका मान Astro के [`getSecret()`](https://docs.astro.build/en/guides/environment-variables/#retrieving-secrets-programmatically) के माध्यम से पढ़ता है, इसलिए प्रत्येक डिप्लॉयमेंट एडाप्टर उसे अपने तरीके से उपलब्ध कराता है: Node, Vercel, और Netlify पर एनवायरनमेंट वेरिएबल, और Cloudflare पर Worker की [बाइंडिंग](https://docs.astro.build/en/guides/integrations-guide/cloudflare/#environment-variables-and-secrets)।
+
+### Vercel AI Gateway [#vercel-ai-gateway]
+
+डिफ़ॉल्ट। `model` एक `provider/model` स्ट्रिंग है, इसलिए आप इसे बदलकर मॉडल स्विच करते हैं (`openai/gpt-5.5`, `anthropic/claude-sonnet-4-5`, इत्यादि), और कोई प्रदाता SDK इंस्टॉल करने की आवश्यकता नहीं होती। गेटवे आपके एनवायरनमेंट से `AI_GATEWAY_API_KEY` पढ़ता है और जब आप Vercel पर डिप्लॉय करते हैं तो यह स्वतः जुड़ जाता है, जहाँ यह डिप्लॉयमेंट के OIDC टोकन से भी प्रमाणीकरण कर सकता है:
 
 ```ts blume.config.ts lineNumbers
-ai: {
-  ask: {
-    enabled: true,
-    provider: "openrouter",
-    model: "anthropic/claude-sonnet-4-5",
+import { defineConfig } from "blume";
+import { gateway } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: gateway({ model: "anthropic/claude-sonnet-4-5" }),
+    },
   },
-}
+});
 ```
 
-कोई भी OpenAI-संगत एंडपॉइंट `openai-compatible` के माध्यम से काम करता है — `baseUrl` और उसकी कुंजी रखने वाला env वेरिएबल प्रदान करें:
+`provider` को अनसेट छोड़ना `gateway({ model: "openai/gpt-5.5" })` के समान है।
+
+### OpenRouter [#openrouter]
+
+[OpenRouter](https://openrouter.ai) पर कोई भी मॉडल, उसके समर्पित AI SDK प्रदाता के माध्यम से:
 
 ```ts blume.config.ts lineNumbers
-ai: {
-  ask: {
-    enabled: true,
-    provider: "openai-compatible",
-    baseUrl: "https://my-gateway.example.com/v1",
-    apiKeyEnv: "MY_GATEWAY_API_KEY",
-    model: "gpt-4o",
+import { defineConfig } from "blume";
+import { openrouter } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: openrouter({
+        model: "anthropic/claude-sonnet-4-5",
+        reasoning: "none",
+      }),
+    },
   },
-}
+});
 ```
 
-किसी भिन्न env वेरिएबल या प्रॉक्सी की ओर इंगित करने के लिए किसी भी बैकएंड पर `apiKeyEnv` (और, नामित प्रदाताओं के लिए, `baseUrl`) सेट करें।
+### LLMGateway [#llmgateway]
 
-हर कॉल के साथ स्टैटिक अनुरोध हेडर भेजने के लिए — उदाहरण के लिए, किसी साझा बैकएंड हेतु कॉलर की पहचान बताने वाला एक हेडर, ताकि उसकी अपनी ऑब्ज़र्वेबिलिटी या दर सीमन आपके डॉक्स को अन्य ट्रैफ़िक से अलग पहचान सके — `headers` सेट करें। यह गेटवे सहित हर बैकएंड पर काम करता है:
+[LLMGateway](https://llmgateway.io) पर कोई भी मॉडल, उसके OpenAI-संगत एंडपॉइंट के माध्यम से:
 
 ```ts blume.config.ts lineNumbers
-ai: {
-  ask: {
-    enabled: true,
-    provider: "openai-compatible",
-    baseUrl: "https://llm.internal.example.com/v1",
-    apiKeyEnv: "INTERNAL_LLM_API_KEY",
-    headers: { "X-Caller-Id": "docs" },
+import { defineConfig } from "blume";
+import { llmgateway } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: llmgateway({ model: "openai/gpt-5.5" }),
+    },
   },
-}
+});
+```
+
+जब आप LLMGateway स्वयं चलाते हैं, तो `baseUrl` प्रीसेट एंडपॉइंट (`https://api.llmgateway.io/v1`) को ओवरराइड करता है।
+
+### Inkeep [#inkeep]
+
+[Inkeep](https://inkeep.com) उस सामग्री से उत्तर देता है जिसे आपने Inkeep डैशबोर्ड में इंडेक्स किया है — यह अपना स्वयं का रिट्रीवल चलाता है — इसलिए Blume इसे **बिना ग्राउंडिंग के** छोड़ देता है: इस साइट के पृष्ठों का कोई स्नैपशॉट इंजेक्ट नहीं किया जाता, और [रिट्रीवल आकार](#retrieval-size) के विकल्प लागू नहीं होते। इसके पास कोई रीज़निंग नियंत्रण भी नहीं है, इसलिए यह एडाप्टर कोई `reasoning` नहीं लेता:
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { inkeep } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: inkeep({ model: "inkeep-qa-expert" }),
+    },
+  },
+});
+```
+
+`baseUrl` प्रीसेट एंडपॉइंट (`https://api.inkeep.com/v1`) को ओवरराइड करता है।
+
+### OpenAI-संगत एंडपॉइंट [#openai-compatible-endpoints]
+
+OpenAI API का उपयोग करने वाला कोई भी एंडपॉइंट `openaiCompatible()` के माध्यम से काम करता है — उसका `baseUrl`, वह जो `model` प्रदान करता है, और उसकी कुंजी रखने वाला env वेरिएबल प्रदान करें। किसी सामान्य एंडपॉइंट के लिए इनमें से किसी का भी कोई प्रीसेट नहीं होता, इसलिए तीनों आवश्यक हैं; `name` वह प्रदाता नाम है जिसे AI SDK रिपोर्ट करता है, और इसका डिफ़ॉल्ट `openai-compatible` है:
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { openaiCompatible } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: openaiCompatible({
+        baseUrl: "https://my-gateway.example.com/v1",
+        apiKeyEnv: "MY_GATEWAY_API_KEY",
+        model: "gpt-4o",
+        name: "my-gateway",
+      }),
+    },
+  },
+});
+```
+
+### हर एडाप्टर द्वारा लिए जाने वाले विकल्प [#options-every-adapter-takes]
+
+**`apiKeyEnv`** किसी एडाप्टर को उसके डिफ़ॉल्ट के बजाय किसी भिन्न env वेरिएबल की ओर इंगित करता है — `gateway({ apiKeyEnv: "DOCS_GATEWAY_KEY" })` `AI_GATEWAY_API_KEY` के बजाय उस वेरिएबल को पढ़ता है, और `blume dev`/`build` पर अनुपस्थित-सीक्रेट चेतावनी भी उसी की जाँच करती है। जब तक कुंजी सेट नहीं होती, डिप्लॉय किया गया रूट `503` और उस वेरिएबल का नाम बताने वाले एक संदेश के साथ उत्तर देता है। रूट किसी अनुरोध बॉडी को केवल 64 KB तक पढ़ता है और इससे बड़ी किसी भी बॉडी का उत्तर `413` के साथ देता है।
+
+**`headers`** हर कॉल के साथ स्टैटिक अनुरोध हेडर भेजता है — उदाहरण के लिए, किसी साझा बैकएंड हेतु कॉलर की पहचान बताने वाला एक हेडर, ताकि उसकी अपनी ऑब्ज़र्वेबिलिटी या दर सीमन आपके डॉक्स को अन्य ट्रैफ़िक से अलग पहचान सके:
+
+```ts blume.config.ts lineNumbers
+provider: openaiCompatible({
+  baseUrl: "https://llm.internal.example.com/v1",
+  apiKeyEnv: "INTERNAL_LLM_API_KEY",
+  model: "gpt-4o",
+  headers: { "X-Caller-Id": "docs" },
+}),
 ```
 
 मान जनरेट किए गए रूट में जैसे हैं वैसे ही लिखे जाते हैं, इसलिए सीक्रेट्स को `headers` में रखने के बजाय `apiKeyEnv` में रखें। API कुंजी का `Authorization` हेडर पहले लागू होता है, इसलिए कोई कस्टम हेडर उसे विस्थापित नहीं कर सकता।
 
-:::note
-**Inkeep** उस सामग्री से उत्तर देता है जिसे आपने Inkeep डैशबोर्ड में इंडेक्स किया है — यह अपना स्वयं का रिट्रीवल चलाता है — इसलिए Blume इसे बिना ग्राउंडिंग के छोड़ देता है। हर दूसरा बैकएंड इस साइट के पृष्ठों पर [आधारित](#grounding) होता है।
-:::
+**`providerOptions`** बाकी सब कुछ सीधे AI SDK के [`providerOptions`](https://ai-sdk.dev/docs/foundations/prompts#provider-options) तक पहुँचाता है, SDK के अपने स्वरूप में — पहले प्रदाता के अनुसार, फिर विकल्प के अनुसार कुंजीबद्ध — इसलिए किसी नए मॉडल नियंत्रण को कभी भी अपने अलग Blume फ़ील्ड की आवश्यकता नहीं होती:
 
-कुंजियाँ Astro के [`getSecret()`](https://docs.astro.build/en/guides/environment-variables/#retrieving-secrets-programmatically) के माध्यम से पढ़ी जाती हैं, इसलिए प्रत्येक एडाप्टर उन्हें अपने तरीके से उपलब्ध कराता है: Node, Vercel, और Netlify पर एनवायरनमेंट वेरिएबल, और Cloudflare पर Worker की [बाइंडिंग](https://docs.astro.build/en/guides/integrations-guide/cloudflare/#environment-variables-and-secrets)। Ask AI सक्षम करने से इन-पेज आइलैंड के लिए React भी चालू हो जाता है — देखें [Customization](/docs/configuration/customization#interactive-islands)।
+```ts blume.config.ts lineNumbers
+provider: gateway({
+  model: "openai/gpt-5.5",
+  providerOptions: { openai: { textVerbosity: "low" } },
+}),
+```
+
+Blume केवल उन्हीं विकल्पों को मैप करता है जिनका वह नाम लेता है (`model`, `reasoning`, `apiKeyEnv`, `headers`) और `providerOptions` को ज्यों का त्यों अग्रेषित करता है, इसलिए इसे JSON होना चाहिए — इसे रूट में इनलाइन किया जाता है — और इसमें वही कुंजी होनी चाहिए जिसकी आधारभूत प्रदाता अपेक्षा करता है (गेटवे के पीछे किसी OpenAI मॉडल के लिए `openai`, OpenRouter पर `openrouter`)। Ask AI सक्षम करने से इन-पेज आइलैंड के लिए React भी चालू हो जाता है — देखें [Customization](/docs/configuration/customization#interactive-islands)।
 
 ## रीज़निंग [#reasoning]
 
-रीज़निंग मॉडल उत्तर देने से पहले सोचते हैं, और डिफ़ॉल्ट रूप से वे कितना सोचते हैं यह मॉडल के अनुसार भिन्न होता है। आधारित डॉक्स प्रश्नोत्तर के लिए पुनःप्राप्त अंश ही उत्तर साथ लाते हैं, इसलिए उस सोच का अधिकांश हिस्सा वह विलंब है जिसकी पाठक प्रतीक्षा करता है। `reasoning` तय करता है कि मॉडल कितना तर्क करे: `"none"`, `"minimal"`, `"low"`, `"medium"`, `"high"`, या `"xhigh"`:
+रीज़निंग मॉडल उत्तर देने से पहले सोचते हैं, और डिफ़ॉल्ट रूप से वे कितना सोचते हैं यह मॉडल के अनुसार भिन्न होता है। आधारित डॉक्स प्रश्नोत्तर के लिए पुनःप्राप्त अंश ही उत्तर साथ लाते हैं, इसलिए उस सोच का अधिकांश हिस्सा वह विलंब है जिसकी पाठक प्रतीक्षा करता है। किसी एडाप्टर का `reasoning` विकल्प तय करता है कि मॉडल कितना तर्क करे: `"none"`, `"minimal"`, `"low"`, `"medium"`, `"high"`, या `"xhigh"`:
 
 ```ts blume.config.ts lineNumbers
-ai: {
-  ask: {
-    enabled: true,
-    model: "openai/gpt-5.5",
-    reasoning: "none",
-  },
-}
+provider: gateway({ model: "openai/gpt-5.5", reasoning: "none" }),
 ```
 
-यह मान बैकएंड के अपने रीज़निंग-एफ़र्ट नियंत्रण के रूप में भेजा जाता है। गेटवे के माध्यम से यह [AI SDK के `reasoning` विकल्प](https://ai-sdk.dev/docs/ai-sdk-core/reasoning) के रूप में जाता है, जिसे गेटवे मॉडल की सेटिंग से मैप करता है — उदाहरण के लिए, OpenAI का `reasoning_effort`। OpenRouter पर इसे `reasoning.effort` के रूप में भेजा जाता है, और LLMGateway या किसी कस्टम `openai-compatible` एंडपॉइंट पर अनुरोध में `reasoning_effort` के रूप में, इसलिए एंडपॉइंट को उस पैरामीटर को स्वीकार करना होगा। मॉडल को उस स्तर का समर्थन करना होगा जिसे आप चुनते हैं: OpenAI ऐसे स्तर को अस्वीकार कर देता है जो कोई मॉडल प्रदान नहीं करता (`"none"` और `"xhigh"` केवल कुछ पर ही मौजूद हैं), इसलिए कोई स्तर सेट करने से पहले मॉडल का दस्तावेज़ीकरण देखें। Inkeep अपनी स्वयं की QA पाइपलाइन चलाता है और उसके पास कोई रीज़निंग नियंत्रण नहीं है, इसलिए उस बैकएंड के साथ `reasoning` सेट करना एक कॉन्फ़िग त्रुटि है। मॉडल का डिफ़ॉल्ट बनाए रखने के लिए इसे अनसेट छोड़ दें। [रिट्रीवल आकार](#retrieval-size) की तरह, यह संपूर्णता के बदले टाइम-टू-फ़र्स्ट-टोकन का सौदा करता है, और उत्तर दोनों ही स्थितियों में आधारित रहते हैं।
+प्रत्येक एडाप्टर इस स्तर को अपने बैकएंड के स्वयं के रीज़निंग नियंत्रण के रूप में भेजता है, इसी कारण यह `ask` के बजाय एडाप्टर पर रहता है:
+
+| एडाप्टर | स्तर क्या बन जाता है |
+| --- | --- |
+| `gateway()` | AI SDK का [`reasoning`](https://ai-sdk.dev/docs/ai-sdk-core/reasoning) कॉल विकल्प, जिसे गेटवे मॉडल की अपनी सेटिंग से मैप करता है — उदाहरण के लिए, OpenAI का `reasoning_effort`। |
+| `openrouter()` | OpenRouter का `reasoning.effort`, जो मॉडल पर सेट होता है। इसका प्रदाता AI SDK के कॉल विकल्प को अनदेखा करता है, इसलिए स्तर को वहाँ रखा जाता है जहाँ OpenRouter उसे पढ़ता है। |
+| `llmgateway()` | अनुरोध में `reasoning_effort`, AI SDK के कॉल विकल्प के माध्यम से। |
+| `openaiCompatible()` | अनुरोध में `reasoning_effort`, इसलिए एंडपॉइंट को उस पैरामीटर को स्वीकार करना होगा। |
+| `inkeep()` | उपलब्ध नहीं। Inkeep अपनी स्वयं की QA पाइपलाइन चलाता है जिसमें कोई रीज़निंग नियंत्रण नहीं है, इसलिए इस एडाप्टर में कोई `reasoning` विकल्प नहीं है और इसे सेट करना एक कॉन्फ़िग त्रुटि है। |
+
+मॉडल को उस स्तर का समर्थन करना होगा जिसे आप चुनते हैं: OpenAI ऐसे स्तर को अस्वीकार कर देता है जो कोई मॉडल प्रदान नहीं करता (`"none"` और `"xhigh"` केवल कुछ पर ही मौजूद हैं), इसलिए कोई स्तर सेट करने से पहले मॉडल का दस्तावेज़ीकरण देखें। मॉडल का डिफ़ॉल्ट बनाए रखने के लिए इसे अनसेट छोड़ दें। [रिट्रीवल आकार](#retrieval-size) की तरह, यह संपूर्णता के बदले टाइम-टू-फ़र्स्ट-टोकन का सौदा करता है, और उत्तर दोनों ही स्थितियों में आधारित रहते हैं।
 
 ## एनालिटिक्स [#analytics]
 

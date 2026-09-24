@@ -31,28 +31,30 @@ Here's a live counter: <Counter />
 
 ## `components.ts` でのアイランド登録 [#registering-islands-in-componentsts]
 
-アイランドを他のコンポーネントと同じ場所に置きたい場合や、ファイル名とは異なる名前を付けたい場合は、`defineComponents` で登録します。`islands` グループは `islands/` フォルダとまったく同じです: 各エントリはすべての MDX ページで利用でき、ハイドレートされます(デフォルトは `client: "visible"`)。
+アイランドを他のコンポーネントと同じ場所に置きたい場合や、ファイル名とは異なる名前を付けたい場合は、`defineComponents` で `client` モードを指定した `mdx` エントリとして登録します。アイランドとはつまり、ハイドレートされる MDX コンポーネントにすぎません。各エントリはすべての MDX ページで利用でき、`islands/` のファイルと同じ名前のエントリはそのファイルを置き換えます。
 
 ```ts components.ts
 import { defineComponents } from "blume";
 import Counter from "./widgets/Counter.tsx";
 
 export default defineComponents({
-  islands: {
-    Counter, // <Counter /> in any MDX page, hydrated
+  mdx: {
+    Counter: { component: Counter, client: "visible" }, // <Counter /> in any MDX page, hydrated
   },
 });
 ```
 
-コンポーネントは import 経由でもパス文字列でも参照でき、ディスクリプタ形式を使えばアイランドごとにハイドレーションモードを設定できます:
+コンポーネントは import 経由でもパス文字列でも参照でき、アイランドごとにハイドレーションモードを選べます(`"media"` の場合は `media` クエリも併せて指定します):
 
 ```ts components.ts
 export default defineComponents({
-  islands: {
+  mdx: {
     Chart: { component: "./widgets/Chart.tsx", client: "only" },
   },
 });
 ```
+
+フォルダとは異なり、デフォルト値はありません: `client` を指定しない `mdx` エントリは静的 HTML としてレンダリングされ、そのエントリが React、Vue、Svelte のコンポーネントである場合は Blume が警告を出します。Blume は `components.ts` を静的に読み取るため、エントリは import したコンポーネント、パス文字列、または `{ component, client, media }` のオブジェクトリテラルのいずれかでなければなりません — 受け付けられる形式と、それ以外の場合に発生するエラーについては [カスタマイズ](/docs/configuration/customization#reference-form) を参照してください。
 
 ## ハイドレーション [#hydration]
 
@@ -73,6 +75,9 @@ export default function Chart() {
 | `"load"` | ページ読み込み時に即座に | ファーストビュー、即応が必須の UI |
 | `"idle"` | メインスレッドがアイドルになったとき | 緊急性の低いインタラクティブ要素 |
 | `"only"` | クライアントのみ、サーバーレンダリングなし | `window`/`document` を必要とするライブラリ(チャート、エディタ) |
+| `"media"` _(`components.ts` のみ)_ | CSS メディアクエリに一致したとき | 特定の画面サイズでのみ動作する UI(モバイル専用メニューなど) |
+
+`"media"` にはクエリを併せて指定する必要があるため、[`components.ts` のエントリ](#registering-islands-in-componentsts) でのみ使用できます — `{ component: Menu, client: "media", media: "(max-width: 50em)" }`。これを宣言した `islands/` ファイルは、警告とともに `"visible"` にフォールバックします。
 
 ## フレームワーク [#frameworks]
 

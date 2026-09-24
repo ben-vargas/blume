@@ -1,0 +1,66 @@
+---
+title: AsyncAPI
+description: >-
+  Adicione uma spec AsyncAPI e ganhe uma referência de eventos nativa, com uma página de verdade para cada operação de send e receive na sua sidebar e na busca.
+---
+
+APIs orientadas a eventos usam o adapter `asyncapi()` de `blume/reference`. Ele fica em `reference`, ao lado dos adapters de [OpenAPI](/docs/references/openapi) ou [GraphQL](/docs/references/graphql) que você tiver. Ele aceita as mesmas opções que o `openapi()` e renderiza com o mesmo renderer nativo. Cada operação `send`/`receive` vira uma página de verdade. Ela traz tabelas de schema do payload e dos headers da mensagem, parâmetros de canal e bindings de protocolo. Também traz uma seção Authorization derivada dos `securitySchemes` da spec, no nível do servidor e da operação, com as alternativas mostradas como grupos "ou". Por fim, traz um compositor de mensagens [Try it](#try-it-for-events). Cada operação é uma página genuína do Blume. Por isso ela tem sua própria URL, aparece na **busca do site** e no `llms.txt` e recebe uma imagem Open Graph, igual a qualquer doc escrita à mão.
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { asyncapi } from "blume/reference";
+
+export default defineConfig({
+  reference: [asyncapi({ spec: "./asyncapi.yaml" })],
+});
+```
+
+Isso monta a referência em `/events` (uma página de visão geral), com cada operação em sua própria página abaixo dela. O `spec` pode ser uma URL `http(s)` ou o caminho de um arquivo local do seu projeto, em JSON ou YAML. Como toda referência, ela não adiciona uma aba no header sozinha. Aponte uma [aba de navegação](/docs/content/navigation#tabs) para a rota dela para exibi-la e limitar a sidebar às operações:
+
+```ts blume.config.ts
+navigation: {
+  tabs: [{ label: "Events", path: "/events" }],
+}
+```
+
+## Versões da spec [#spec-versions]
+
+Specs AsyncAPI **2.x são normalizadas para 3.x automaticamente** com o conversor oficial do AsyncAPI. Assim, os canais `publish`/`subscribe` viram páginas de operação `send`/`receive` com URLs estáveis. Se depois você atualizar o próprio arquivo da spec com o conversor, nada muda de lugar. O conversor é uma peer dependency opcional, então um site com uma spec 1.x ou 2.x precisa instalá-lo (`npm install @asyncapi/converter`). Sem ele, o build falha e mostra esse comando de instalação. Uma spec 3.x não precisa de nada extra. As operações são agrupadas por tag, e as operações sem tag ficam agrupadas pelo endereço do canal.
+
+## Exemplos de código [#code-samples]
+
+Os exemplos de código **mudam conforme o protocolo**, com base no binding da operação (ou no protocolo dos servidores dela). Para WebSockets, você recebe `wscat` e um snippet de `WebSocket` para o navegador. Para Kafka, `kcat`, e para MQTT, `mosquitto_pub`/`mosquitto_sub`. O `codeSamples` filtra esse conjunto, do mesmo jeito que escolhe linguagens no `openapi()`. Se não houver uma ferramenta suportada para o protocolo, a página mostra só o exemplo de payload da mensagem, em vez de um cliente inventado.
+
+## Opções compartilhadas [#shared-options]
+
+Tudo o que está documentado para [OpenAPI](/docs/references/openapi) vale aqui também, inclusive o [`playground`](#try-it-for-events):
+
+- [`route`](/docs/references/openapi#route)
+- [`sources`](/docs/references/openapi#multiple-specs) com `label`/`route`
+- `expandSchemas`
+- as flags de [indexação por source](/docs/references/openapi#per-source-indexing), incluindo o `seoDescriptionSuffix` (a frase gerada cita o canal e a ação em vez de um endpoint)
+- a indexação na busca pelo resumo e pela tag da operação
+
+## Incorporando o Scalar no lugar [#embedding-scalar-instead]
+
+O `asyncapi()` sempre renderiza as páginas do próprio Blume. Para incorporar a UI do [Scalar](https://scalar.com), liste um adapter [`scalar()`](/docs/references/scalar) apontado para o documento AsyncAPI. O embed dele detecta o tipo de documento e renderiza canais, operações, mensagens e uma seção Models. O Scalar não tem um playground próprio para AsyncAPI, então com essa troca você perde o compositor. Dos controles por source, só o `noindex` se aplica a ele.
+
+## Try it para eventos [#try-it-for-events]
+
+As páginas de operação renderizadas nativamente também têm um painel **Try it**, que funciona como o [painel do OpenAPI](/docs/references/openapi#try-it-playground). Ele é renderizado no servidor já recolhido, e o JavaScript só carrega quando alguém abre o painel pela primeira vez.
+
+Em qualquer protocolo, o painel abre com um editor de payload. Ele vem preenchido com os `examples` da mensagem. Se a mensagem não declarar nenhum, ele usa um valor gerado a partir do schema do payload. O editor valida o conteúdo contra o schema do payload da mensagem enquanto você digita. Abaixo dele fica um input para cada parâmetro de canal. Também há um seletor com os `servers` do canal e um campo de texto livre para qualquer outra URL. Os exemplos de código acompanham o formulário, como acontece com curl, js e python em uma operação HTTP. Os valores de parâmetro que você digita preenchem o template do endereço do canal. Assim, um snippet `wscat`, `WebSocket`, `kcat` ou `mosquitto_pub` copiado bate com o que está no formulário.
+
+A conexão ao vivo funciona só com WebSocket. Em um binding `ws` ou `wss`, o painel se conecta à URL resolvida do canal, mostra o estado da conexão e registra cada frame com um timestamp. O AsyncAPI 3 descreve cada ação do ponto de vista da API, e o painel segue essa lógica. Uma operação `receive` é algo que a API recebe de você, então ela ganha um botão **Send** que publica o payload montado. Uma operação `send` só transmite mensagens para você, então o painel apenas conecta e registra. Não há lógica de reconexão: depois que um socket fecha, ele continua fechado até você conectar de novo. Kafka, MQTT, AMQP e todos os outros protocolos ganham o compositor e os exemplos de CLI para copiar, e o painel avisa isso na página. O Blume não finge se conectar ao broker a partir de uma aba do navegador.
+
+O `playground` do `asyncapi()` funciona como o do `openapi()`. Ele vem ativado por padrão com o renderer nativo, e `false` é tudo o que você precisa para desativar:
+
+```ts blume.config.ts lineNumbers
+reference: [asyncapi({ spec: "./asyncapi.yaml", playground: false })],
+```
+
+:::note
+O `playground.proxy` não se aplica a operações de eventos. Ele encaminha requisições HTTP, mas uma conexão WebSocket vai direto do navegador para o servidor indicado na URL, então não há nada para um proxy intermediar.
+:::
+
+O compositor de eventos não coleta credenciais do broker. A seção **Authorization** de cada página de operação documenta o que o broker espera, e uma conexão WebSocket leva só o que já está na URL. Nada é salvo para operações de eventos.

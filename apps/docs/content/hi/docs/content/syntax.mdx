@@ -149,6 +149,8 @@ E = mc^2^ and H~2~O.
 
 दूसरे पेजों या बाहरी साइटों से लिंक करें। इमेज आपके कंटेंट के बगल में मौजूद फ़ाइल का सापेक्ष पथ, `public/` के अंतर्गत कोई भी पथ (जो साइट रूट पर सर्व होता है), या कोई रिमोट URL स्वीकार करती हैं।
 
+कोई सापेक्ष पेज लिंक (`./install`, `../guides/setup`) पेज के अपने फ़ोल्डर से हल होता है — किसी इंडेक्स पेज पर, उस फ़ोल्डर से जिसका वह परिचय देता है — और किसी Markdown फ़ाइल का लिंक (`./setup.md`, `../intro.mdx`) उस पेज पर पहुँचता है जिसे वह फ़ाइल प्रकाशित करती है, उसके `slug` सहित। बिंदु वाला पेज नाम (`node.js.mdx` पेज के लिए `./node.js`) तब पेज लिंक माना जाता है जब वहाँ कोई पेज प्रकाशित होता हो, और किसी कंपोनेंट का स्ट्रिंग `href` (`<Card href="./install">`) भी उसी तरह हल होता है। Blume बिल्ड किए गए पेज में हर एक को रूट-सापेक्ष पथ के रूप में लिखता है, ताकि GitHub या Docusaurus के लिए लिखे गए लिंक काम करते रहें, और [`blume validate`](/docs/cli/validate) भी उन्हें उसी तरह जाँचता है।
+
 शुरू करने के लिए [क्विकस्टार्ट](/docs/quickstart) पढ़ें।
 
 ```md
@@ -156,6 +158,8 @@ Read the [quickstart](/docs/quickstart) to get started.
 
 ![Alt text](./screenshot.png)
 ```
+
+बाहरी लिंक डिफ़ॉल्ट रूप से उसी टैब में खुलते हैं। उन्हें नए टैब में खोलने के लिए `blume.config.ts` में `markdown: { externalLinks: true }` सेट करें, ठीक वैसे ही जैसे Blume के हेडर और साइडबार लिंक पहले से करते हैं: हर निरपेक्ष `https://` या `//host` लिंक को `target="_blank"` और `rel="noreferrer"`, उसके पाठ के बाद एक छोटा तीर, और स्क्रीन-रीडर के लिए एक टिप्पणी मिलती है कि वह नए टैब में खुलता है। आपके अपने पेजों, `#fragments`, और `mailto:`/`tel:` के लिंक उसी टैब में रहते हैं, और रॉ `<a>` टैग भी, जो आपके लिखे एट्रिब्यूट ज्यों के त्यों रखता है।
 
 **स्थानीय इमेज के लिए सापेक्ष पथ को प्राथमिकता दें** — वे बिल्ड समय पर ऑप्टिमाइज़ होती हैं: कंप्रेस, WebP में परिवर्तित, और अंतर्निहित `width`/`height` के साथ अंकित, ताकि लोड होते समय पेज खिसके नहीं। इमेज को उसी पेज के बगल में रखें जो उसका उपयोग करता है (या अपनी कंटेंट डायरेक्टरी के भीतर किसी साझा फ़ोल्डर में) और उसे सापेक्ष रूप से संदर्भित करें:
 
@@ -201,12 +205,12 @@ export default defineConfig({
 
 इनलाइन कोड को भी हाइलाइट किया जा सकता है: बैकटिक स्पैन के भीतर एक `{:lang}` मार्कर जोड़ें और वह किसी छोटे कोड ब्लॉक की तरह रंगीन हो जाता है — `useState(){:js}` या `T extends object{:ts}`। यह तभी सक्रिय होता है जब आप मार्कर जोड़ें, इसलिए सादा इनलाइन कोड अछूता रहता है — चालू करने के लिए कुछ नहीं।
 
-हाइलाइटिंग डिफ़ॉल्ट रूप से `github-light`/`github-dark` थीम का उपयोग करती है। `markdown.codeBlocks.theme` से प्रति कलर मोड कोई भी [बंडल की गई Shiki थीम](https://shiki.style/themes) बदलें — यह एक साथ हर कोड सतह को रंगती है (फ़ेंस, इनलाइन स्निपेट, `<CodeBlock>`, और `<Diff>`):
+हाइलाइटिंग डिफ़ॉल्ट रूप से `github-light`/`github-dark` थीम का उपयोग करती है। `markdown.code.theme` से प्रति कलर मोड कोई भी [बंडल की गई Shiki थीम](https://shiki.style/themes) बदलें — यह एक साथ हर कोड सतह को रंगती है (फ़ेंस, इनलाइन स्निपेट, `<CodeBlock>`, और `<Diff>`):
 
 ```ts blume.config.ts
 export default defineConfig({
   markdown: {
-    codeBlocks: {
+    code: {
       theme: { light: "github-light", dark: "vesper" },
     },
   },
@@ -220,7 +224,7 @@ import darkTheme from "./themes/acme-dark.json" with { type: "json" };
 
 export default defineConfig({
   markdown: {
-    codeBlocks: {
+    code: {
       theme: { light: "github-light", dark: darkTheme },
     },
   },
@@ -232,16 +236,16 @@ export default defineConfig({
 लाइन-नंबर गटर रेंडर करने के लिए `lineNumbers` जोड़ें — अकेले या किसी शीर्षक के साथ:
 
 ```ts server.ts lineNumbers
-import { serve } from "blume";
+import { createServer } from "node:http";
 
-serve({ port: 3000 });
+createServer().listen(3000);
 ```
 
 ````md
 ```ts server.ts lineNumbers
-import { serve } from "blume";
+import { createServer } from "node:http";
 
-serve({ port: 3000 });
+createServer().listen(3000);
 ```
 ````
 
@@ -266,12 +270,12 @@ export default defineConfig({
 });
 ```
 
-किसी लाइन में किसी शब्द की हर आवृत्ति को `// [!code word:serve]` से हाइलाइट करें:
+किसी लाइन में किसी शब्द की हर आवृत्ति को `// [!code word:createServer]` से हाइलाइट करें:
 
 ```ts
-import { serve } from "blume"; // [!code word:serve]
+import { createServer } from "node:http"; // [!code word:createServer]
 
-serve({ port: 3000 });
+createServer().listen(3000);
 ```
 
 `// [!code focus]` से चिह्नित लाइनों को छोड़कर बाकी सब धुँधला कर दें (होवर करने पर बाकी स्पष्ट हो जाता है):
@@ -567,12 +571,12 @@ Your docs built successfully and are ready to deploy.
 ऐसी किसी बात को चिह्नित करें जिसमें गलती या अप्रत्याशित व्यवहार से बचने के लिए सावधानी चाहिए।
 
 :::warning[ध्यान दें]
-`output: "server"` पर स्विच करने के लिए डिप्लॉय करने से पहले एक एडाप्टर चाहिए।
+सर्वर आउटपुट को डिप्लॉय करने से पहले `blume/deploy` से एक होस्ट एडाप्टर चाहिए।
 :::
 
 ```md
 :::warning[Heads up]
-Switching to `output: "server"` requires an adapter before you can deploy.
+Server output needs a host adapter from `blume/deploy` before you can deploy.
 :::
 ```
 

@@ -30,7 +30,7 @@ Quando você lançar, congele os docs atuais com um comando:
 blume version v1.0
 ```
 
-Isso copia sua árvore de conteúdo para `docs/v1.0/` (snapshots existentes são excluídos), reescreve os links absolutos a partir da raiz dentro da cópia para que continuem dentro do snapshot (`/guides/x` vira `/v1.0/guides/x`, com código em blocos e inline intocados) e registra o id em `blume.config.ts` — ou imprime a entrada para você colar, quando seu config estiver estruturado de um jeito que ele não vai mexer. Links para páginas que não fazem parte da árvore copiada — referências de API geradas, fontes remotas como um changelog — continuam apontando para as páginas vivas, já que o snapshot não tem cópia delas. Rode `blume version` sem id para listar as versões configuradas.
+Isso copia sua árvore de conteúdo para `docs/v1.0/` (snapshots existentes são excluídos), reescreve os links absolutos a partir da raiz dentro da cópia para que continuem dentro do snapshot (`/guides/x` vira `/v1.0/guides/x`, com código em blocos e inline intocados) e registra o id em `blume.config.ts` — na primeira versão criada, ele adiciona o próprio bloco `versions`, rotulando os docs vivos como "Latest" — ou avisa e imprime a entrada para você colar, quando seu config estiver estruturado de um jeito que ele não vai mexer. Links para páginas que não fazem parte da árvore copiada — referências de API geradas, fontes remotas como um changelog — continuam apontando para as páginas vivas, já que o snapshot não tem cópia delas. Rode `blume version` sem id para listar as versões configuradas.
 
 Revise e commite o novo diretório como qualquer outro conteúdo. Reinicie o `blume dev` para que ele seja reconhecido.
 
@@ -89,7 +89,7 @@ O diálogo de busca limita os resultados à versão que está sendo vista, com u
 A superfície de agentes entende versões — algo que nenhum outro framework de docs faz:
 
 - As ferramentas MCP `search_docs` e `list_pages` usam os docs atuais por padrão e aceitam `version`: um id arquivado (`"v1.0"`) ou `"all"`. O `get_navigation` retorna a árvore de um snapshot arquivado quando solicitado.
-- O `llms.txt` coloca as versões arquivadas depois dos docs atuais, rotuladas como `1.0 (archived)`, para que um agente lendo o índice saiba quais docs estão congelados.
+- O `llms.txt` coloca as versões arquivadas depois dos docs atuais, rotuladas com o `label` ou o `id` da versão mais `(archived)` — `v1.0 (archived)` para o `{ id: "v1.0" }` acima — para que um agente lendo o índice saiba quais docs estão congelados.
 - O `llms-full.txt` continua somente com a versão atual — o dump plano nunca intercala cópias congeladas da mesma página.
 - Espelhos em Markdown puro (URLs `.md`) existem para as páginas de todas as versões, como para qualquer rota.
 

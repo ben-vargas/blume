@@ -8,7 +8,7 @@ description: >-
 
 | エンドポイント | 返すもの |
 | --- | --- |
-| `/api/docs/pages.json` | すべてのページと、そのルート、タイトル、説明、コンテンツタイプ、ロケール、ファセット、およびレンダリング形式・Markdown 形式・JSON 形式の URL。 |
+| `/api/docs/pages.json` | すべてのページと、そのルート、タイトル、説明、コンテンツタイプ、ロケール、ファセット、およびレンダリング形式・Markdown 形式・JSON 形式の URL。未翻訳ページの i18n フォールバックコピーは含まれません。サーバー出力では、存在しないページの JSON は `PAGE_NOT_FOUND` とともに `404` を返します。 |
 | `/api/docs/pages/{route}.json` | 1 つのページ。インデックスエントリに加えて、エージェント向け Markdown（`get_page` が返すのと同じ本文）。`{route}` は先頭のスラッシュを除いたページルートで、ホームの場合は `index` です。 |
 | `/api/docs/navigation.json` | ナビゲーションツリー — ヘッダータブとサイドバーの階層。 |
 | `/api/docs/search?q=` | 全文検索。`search_docs` と同じ `limit`、`contentTypes`、`locale`、`version`、`filters[key]` によるスコープ指定が可能です。サーバー出力でのみ利用できます。 |
@@ -50,10 +50,10 @@ description: >-
 
 ## 無効にする [#turning-it-off]
 
-すべてを公開しないようにするには、`ai.api` を `false` に設定します。
+すべてを公開しないようにするには、`agents.api` を `false` に設定します。
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   api: false,
 }
 ```

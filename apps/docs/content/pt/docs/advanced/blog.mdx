@@ -62,21 +62,28 @@ description: News and writing from the team.
 </CardGroup>
 ```
 
-Para listar os posts automaticamente, adicione uma [página personalizada](/docs/advanced/custom-pages) em `pages/blog/index.astro` que leia da coleção de conteúdo `docs` do Astro e associe cada entrada à sua rota vinda de `blume:data`:
+Para listar os posts automaticamente, em vez disso, adicione uma [página personalizada](/docs/advanced/custom-pages) em `pages/blog/index.astro` que leia da coleção de conteúdo `docs` do Astro e associe cada entrada à sua rota vinda de `blume:data`, usando o `entryId` da rota como chave:
 
 ```astro pages/blog/index.astro lineNumbers
 ---
 import { getCollection } from "astro:content";
 import data from "blume:data";
+import { getBlumeCollection } from "blume/runtime";
 
-const routeById = new Map(data.routes.map((route) => [route.id, route.path]));
+// A custom page renders at its own path only, so list the default locale's
+// posts. getBlumeCollection leaves out drafts, hidden pages, and the copies
+// i18n serves for untranslated pages, so each post is listed once.
+const routes = getBlumeCollection(data, {
+  locale: data.config.i18n?.defaultLocale,
+});
+const routeByEntry = new Map(routes.map((route) => [route.entryId, route.path]));
 
 const posts = (await getCollection("docs"))
-  .filter((entry) => entry.data.type === "blog" && !entry.data.draft)
+  .filter((entry) => entry.data.type === "blog" && routeByEntry.has(entry.id))
   .map((entry) => ({
     date: entry.data.date,
     description: entry.data.description,
-    href: routeById.get(entry.id),
+    href: routeByEntry.get(entry.id),
     title: entry.data.title,
   }))
   .toSorted((a, b) => Number(new Date(b.date)) - Number(new Date(a.date)));

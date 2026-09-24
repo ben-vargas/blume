@@ -32,9 +32,11 @@ Os cards apontam para um destino com um ícone, um título e um breve resumo. Ag
 
 `Card` recebe `title`, um `href` opcional (omita-o para um card não clicável) e um `icon` do conjunto de ícones integrado do Blume. `CardGroup` recebe `cols` (padrão `2`).
 
+Um card também recebe `img`, uma imagem no topo (ou ao lado do texto a partir do breakpoint `sm`, com `horizontal`); `cta`, uma linha de chamada para ação na cor de destaque abaixo do texto; `arrow`, uma seta após o título e o CTA (exibida por padrão apenas para links externos); `type`, que tinge o card e escolhe um ícone correspondente, como faz um callout (`note`, `info`, `tip`, `check`, `warning` ou `danger`); e `color`, qualquer cor CSS para o ícone.
+
 ## Steps
 
-Uma sequência vertical numerada para instruções ordenadas — instalações, fluxos de configuração e tutoriais em que a ordem importa. Cada `Step` recebe um `title`.
+Uma sequência vertical numerada para instruções ordenadas — instalações, fluxos de configuração e tutoriais em que a ordem importa. Cada `Step` recebe um `title` e um `icon` opcional, exibido no seu marcador no lugar do número. `titleSize` em `Steps` dimensiona os títulos das etapas como texto corrido (`p`, o padrão) ou como um cabeçalho `h4`, `h3` ou `h2`.
 
 <Steps>
   <Step title="Instale o Blume">Adicione o pacote ao seu projeto.</Step>
@@ -74,7 +76,9 @@ Alterne entre conteúdos equivalentes no mesmo lugar — variantes de linguagem,
 
 Adicione `inline` para renderizar sem bordas — uma faixa de abas sobre uma linha de largura total, com o conteúdo fluindo abaixo como texto corrido — em vez da caixa com borda. Adicione `param` para sincronizar a aba ativa com um parâmetro de consulta na URL em vez do hash, o que torna a seleção compartilhável: um link terminando em `?install=windows` abre na aba Windows. Cada grupo sincroniza com seu próprio `param`, então você pode usar vários grupos independentes e endereçáveis por link em uma mesma página.
 
-Grupos com abas de mesmo título alternam juntos — escolha “macOS” em um e todos os grupos com uma aba macOS acompanham. Adicione `syncKey` para delimitar essa sincronização: apenas os grupos que compartilham a mesma chave alternam juntos, então grupos não relacionados que por acaso tenham um título de aba em comum permanecem independentes.
+Grupos com abas de mesmo título alternam juntos — escolha “macOS” em um e todos os grupos com uma aba macOS acompanham. Adicione `syncKey` para delimitar essa sincronização: apenas os grupos que compartilham a mesma chave alternam juntos, então grupos não relacionados que por acaso tenham um título de aba em comum permanecem independentes, ou `sync={false}` para deixar um grupo totalmente de fora dela.
+
+A aba ativa é gravada no hash da URL, então um link abre nela; passe `hash={false}` para não alterar a URL. `defaultTabIndex` escolhe a aba que abre primeiro (contando a partir de zero, padrão `0`) quando nenhum link ou seleção sincronizada define uma. `dropdown` troca a faixa de abas por um menu de seleção (somente no layout com caixa), `borderBottom={false}` remove a linha sob a faixa, e cada `Tab` recebe um `icon` exibido antes do seu título.
 
 <Tabs inline param="install">
   <Tab title="macOS">Use o Homebrew para instalar o toolchain.</Tab>
@@ -140,6 +144,16 @@ Um estado negativo ou incompatível, como uma descontinuação.
 
 ```astro
 <Badge variant="danger">Deprecated</Badge>
+```
+
+### Cor, formato e tamanho [#color-shape-and-size]
+
+Além de `variant`, um badge recebe `color` — um matiz nomeado (`blue`, `green`, `orange`, `purple`, `red`, `teal`, `violet`, `yellow`), um neutro (`gray`, `surface`, `white`, `surface-destructive` ou `white-destructive`) ou um valor hexadecimal — e também `shape` (`rounded`, o padrão, ou `pill`), `size` (`xs`, `sm`, `md` por padrão, ou `lg`), `stroke` para um contorno em vez de preenchimento, `icon` para um ícone antes do rótulo, `tooltip` para um texto exibido ao passar o mouse e `disabled` para esmaecê-lo.
+
+Um badge roxo em formato de pílula, com contorno e ícone: <Badge color="purple" icon="sparkles" shape="pill" stroke>Prévia</Badge>
+
+```astro
+<Badge color="purple" icon="sparkles" shape="pill" stroke>Preview</Badge>
 ```
 
 ## Icon
@@ -337,7 +351,7 @@ Incorpore um vídeo do YouTube em um quadro 16:9 responsivo e respeitoso com a p
 
 ## Color
 
-Exiba amostras de cor com valores hexadecimais copiáveis — útil para documentar uma paleta ou as cores da marca. Use `variant="compact"` para uma lista de amostras, ou `variant="table"` com `Color.Row` para agrupá-las. Cada `Color.Item` recebe um `name` e um `value` (uma string hexadecimal, ou `{ light, dark }` para cores sensíveis ao tema).
+Exiba amostras de cor com valores hexadecimais copiáveis — útil para documentar uma paleta ou as cores da marca. Use `variant="compact"` para uma lista de amostras, ou `variant="table"` com `Color.Row` para agrupá-las. Cada `Color.Item` recebe um `name` e um `value` (uma string hexadecimal, ou `{ light, dark }` para cores sensíveis ao tema); uma amostra sensível ao tema copia o valor do tema que o leitor está visualizando.
 
 <Color variant="compact">
   <Color.Item name="blue-500" value="#3B82F6" />
@@ -427,7 +441,7 @@ Uma prévia clicável que começa com um elemento visual — um ícone ou imagem
 
 ## Prompt
 
-Uma única linha com um rótulo e um botão de cópia. A `description` (Markdown) é o rótulo visível; o corpo é o próprio prompt — oculto, e copiado para a área de transferência quando o botão **Copiar prompt** é pressionado. `actions` controla os botões (por exemplo, `["copy", "cursor"]`).
+Uma única linha com um rótulo e um botão de cópia. A `description` (Markdown) é o rótulo visível; o corpo é o próprio prompt — oculto, e copiado para a área de transferência como Markdown, com seus links, listas e código intactos, quando o botão **Copiar prompt** é pressionado. `actions` controla os botões (por exemplo, `["copy", "cursor"]`).
 
 <Prompt
   description="Peça ao modelo para **documentar** um endpoint."
@@ -548,7 +562,7 @@ export interface ButtonProps {
 
 ## Informações do GitHub [#github-info]
 
-Um card com link para um repositório do GitHub com suas contagens de estrelas e forks em tempo real. As contagens são buscadas no momento do build — sem JavaScript no cliente — e o card continua sendo renderizado se a API estiver inacessível. Passe `owner` e `repo`, ou omita-os para usar o repositório do seu `blume.config`. Defina uma variável de ambiente `GITHUB_TOKEN` para elevar o limite de requisições da API.
+Um card com link para um repositório do GitHub com suas contagens de estrelas e forks em tempo real. As contagens são buscadas no momento do build — sem JavaScript no cliente — e o card continua sendo renderizado se a API estiver inacessível. Passe `owner` e `repo`, ou omita-os para usar o repositório do seu `blume.config`. Defina uma variável de ambiente `GITHUB_TOKEN` para elevar o limite de requisições da API; uma prop `token` a sobrescreve para um único card, mas a variável de ambiente mantém o token fora do seu conteúdo.
 
 O card lê a instância a partir de [`github.host`](/docs/configuration#github-enterprise), então, em um site hospedado no Enterprise, `owner`/`repo` explícitos também apontam para essa instância. Passe `host` para direcionar um card para outro lugar — um projeto público a partir de um site Enterprise, por exemplo; a base REST é derivada dele da mesma forma que a partir de `github.host`.
 
@@ -660,6 +674,8 @@ import CodeBlock from "blume/components/content/CodeBlock.astro";
 
 <CodeBlock lang="ts" code={source} />
 ```
+
+`title` define o rótulo do cabeçalho — um nome de arquivo, por exemplo —, que, sem ele, mostra a linguagem, e `icons={false}` oculta o ícone da marca da linguagem, como [`markdown.code.icons`](/docs/content/syntax#code-blocks) faz para os blocos de crase.
 
 Para destacar você mesmo o código em uma string HTML (por exemplo, dentro do seu próprio componente), importe o helper subjacente de `blume/markdown`:
 

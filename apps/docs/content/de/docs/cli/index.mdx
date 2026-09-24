@@ -1,0 +1,106 @@
+---
+title: Übersicht
+description: >-
+  Alle Blume-Befehle an einem Ort, die Flags, die jeder davon akzeptiert, und wie du eine Site überprüfst, während der Dev-Server weiterläuft.
+---
+
+```bash
+blume <command> [options]
+```
+
+## Befehle [#commands]
+
+| Befehl | Beschreibung |
+| --- | --- |
+| `blume init [dir]` | Ein Projekt anlegen (standardmäßig interaktiv). |
+| `blume dev` | Den Dev-Server mit Hot Reload starten. |
+| `blume build` | Die statische (oder Server-)Site bauen. |
+| `blume preview` | Eine Vorschau des letzten Builds anzeigen. |
+| `blume add <item>` | Eine Quellkomponente aus der Registry installieren. |
+| `blume sync` | Remote-Content-Quellen neu abrufen und neu generieren. |
+| `blume eject` | Die Runtime in eine eigenständige Astro-App überführen. |
+| `blume check` | Die Site mit `astro check` typprüfen. |
+| [`blume doctor`](/docs/cli/doctor) | Konfigurations- und Inhaltsprobleme diagnostizieren. |
+| [`blume validate`](/docs/cli/validate) | Links in deinen Inhalten validieren. |
+| [`blume audit`](/docs/cli/audit) | Die gebaute Site auf SEO- und Integritätsprobleme prüfen. |
+| [`blume eval`](/docs/cli/evals) | Die Doku testen: Ein Agent beantwortet deine Fragen ausschließlich anhand der Dokumentation. |
+| [`blume translate`](/docs/cli/translate) | Die Doku mit einer lokalen Agent-CLI in die konfigurierten Sprachen übersetzen. |
+| [`blume version [id]`](/docs/cli/version) | Die aktuelle Doku als archivierte Version einfrieren (ohne ID werden die konfigurierten Versionen aufgelistet). |
+| [`blume migrate [source]`](/docs/migrating) | Eine Mintlify-, Fumadocs-, Docusaurus-, Starlight- oder Nextra-Site mit Claude Code oder Codex zu Blume umziehen. |
+| [`blume upgrade`](/docs/upgrading) | Auf eine neue Major-Version wechseln: `blume` aktualisieren, dann die noch offenen Konfigurationsänderungen auflisten oder an Claude Code oder Codex übergeben. |
+
+## Gängige Flags [#common-flags]
+
+- `blume init` – führt dich im Terminal durch ein paar Fragen (wo das Projekt angelegt werden soll, Site-Name, Template, Content-Quellen); jedes der folgenden Flags beantwortet die zugehörige Frage im Voraus.
+- `blume init --yes` – überspringt die Abfragen und legt das Projekt mit Standardwerten an (so verhält es sich auch in CI oder wenn stdin kein Terminal ist).
+- `blume init --content-dir <dir>` – legt den Content-Ordner fest (Standard: `docs`).
+- `blume init --template docs|api|sdk|changelog` – legt das Projekt auf Basis einer Vorlage an (API-Referenz, SDK oder Changelog statt des einfachen Doku-Grundgerüsts).
+- `blume init --package-manager npm|pnpm|yarn|bun` – installiert mit einem bestimmten Paketmanager und gibt die nächsten Schritte für ihn aus (Standard: der Paketmanager, mit dem `blume init` ausgeführt wurde).
+- `blume init --no-install` – schreibt die Dateien, überspringt aber die Installation der Abhängigkeiten, für CI oder eigene Abhängigkeits-Workflows. Standardmäßig führt `blume init` die Installation über den Paketmanager aus, damit das Projekt direkt lauffähig ist; schlägt die Installation fehl, bleibt das Grundgerüst erhalten, der Befehl für einen erneuten Versuch wird ausgegeben und der Exit-Code ist ungleich null.
+- `blume init --eject` – legt das Projekt an und ejectet es dann in ein eigenständiges Astro-Projekt (mit `--no-install` wirst du stattdessen durch `blume eject` geführt, sobald die Abhängigkeiten installiert sind).
+- `blume dev --host --port <n> --open`
+- `blume dev --content-dir <dir>` – scannt einen anderen Content-Ordner, ohne dass du `blume.config.ts` bearbeiten musst.
+- `blume dev --debug` – ausführliches Astro-/Vite-Logging zur Fehlersuche.
+- `blume dev --preview` / `blume build --preview` – bezieht Entwürfe und unveröffentlichte CMS-Inhalte mit ein.
+- `blume build --no-strict` – baut trotz Diagnosefehlern. Standardmäßig schlägt `blume build` bei jeder Fehlerdiagnose fehl (Exit 1), weil Seiten, deren Frontmatter-Validierung fehlschlägt, aus der Ausgabe entfernt werden; mit `--no-strict` ist der Build erfolgreich und meldet, wie viele Seiten fehlen. Mit `blume dev --strict` aktivierst du dasselbe Fail-Fast-Verhalten auch für dev.
+- `blume build --analyze` – gibt nach dem Build die Größen der Client-JavaScript-Bundles aus (die größten zuerst).
+- `blume build --budget-js <kb> --budget-css <kb>` – lässt den Build fehlschlagen, wenn das gesamte Client-JavaScript/-CSS das Budget überschreitet, und macht so aus einem Performance-Ziel ein CI-Gate.
+- `blume build --isolated` – baut in eine temporäre `.blume-verify/`-Runtime (mit eigenem `dist/`) statt in `.blume/`, sodass ein laufender `blume dev`-Server und dein echtes `dist/` unberührt bleiben. Siehe [Überprüfen, während der Dev-Server läuft](#verifying-while-the-dev-server-runs).
+- `blume preview --host --port <n>` – bindet den Preview-Server.
+- `blume sync --force` – ruft Remote-Quellen neu ab und verwirft vorher den zwischengespeicherten Snapshot.
+- `blume add <item> --force` – überschreibt bereits vorhandene Dateien.
+- `blume check --preview` – bezieht beim Prüfen Entwürfe und unveröffentlichte CMS-Inhalte mit ein.
+- `blume check --strict` – schlägt nicht nur bei Typfehlern, sondern auch bei Content-Diagnosen fehl.
+- `blume check --isolated` – führt die Typprüfung in einer temporären `.blume-verify/`-Runtime aus, sodass ein laufender `blume dev`-Server unberührt bleibt. Siehe [Überprüfen, während der Dev-Server läuft](#verifying-while-the-dev-server-runs).
+- `blume eject --yes` – überspringt die Bestätigungsabfrage.
+
+Die Befehle mit eigener Seite listen dort alle ihre Flags auf: [`blume doctor`](/docs/cli/doctor), [`blume validate`](/docs/cli/validate), [`blume audit`](/docs/cli/audit), [`blume eval`](/docs/cli/evals), [`blume translate`](/docs/cli/translate) und [`blume version`](/docs/cli/version). `blume validate`, `blume doctor`, `blume audit`, `blume eval` und `blume translate` akzeptieren `--json`, um maschinenlesbare Ergebnisse für CI- und Editor-Integrationen auf stdout auszugeben (die Struktur der Diagnosen findest du unter [Validate](/docs/cli/validate#json-output)); `build`, `check` und `dev` geben ihre Ergebnisse nur im Terminal aus. Jeder Befehl lehnt Flags ab, die er nicht kennt, schlägt den ähnlichsten Treffer vor und listet die Flags auf, die er akzeptiert. Ein Tippfehler wie `--isolatd` führt also zu einem Fehler, statt ignoriert zu werden.
+
+## Überprüfen, während der Dev-Server läuft [#verifying-while-the-dev-server-runs]
+
+`blume dev` stellt einen Live-Astro-Server bereit, der auf der generierten `.blume/`-Runtime basiert, und generiert diese bei jeder Änderung neu. `blume build` und `blume check` generieren _dieselbe_ `.blume/` neu. Würdest du einen der beiden Befehle ausführen, während der Dev-Server läuft, würde sie dadurch beschädigt. Deshalb verweigern beide die Ausführung mit einer Fehlermeldung und beenden sich mit einem Exit-Code ungleich null:
+
+```
+A `blume dev` server is running at http://localhost:4321; building would
+corrupt its .blume runtime. Reuse that server, stop it first, or re-run with
+--isolated to build/verify against .blume-verify without touching it.
+```
+
+Das Flag `--isolated` ist der Ausweg. Es verlagert die gesamte generierte Runtime (und bei `build` auch deren Ausgabe `dist/`) in ein benachbartes Verzeichnis `.blume-verify/`. So schreibt die Überprüfung nichts, wovon der Dev-Server – oder dein echtes `dist/` – abhängt:
+
+```bash
+# In a second terminal, while `blume dev` is running:
+blume check --isolated   # fast: type-check the .astro/config changes
+blume build --isolated   # thorough: full production render into .blume-verify/dist
+```
+
+`check --isolated` ist der schnelle Weg (Astro-Typ- und Template-Diagnosen, kein `dist/`); `build --isolated` ist der aufwendigere, der auch Render-Fehler zur Laufzeit erkennt. Isolierte Builds überspringen die Deploy-Nachschritte (Suchindex, Synchronisierung mit dem Hosting-Anbieter, `llms.txt`, Sitemap/Robots, Weiterleitungen) – eine Überprüfung muss nur bestätigen, dass die Site kompiliert und rendert, nicht sie veröffentlichen. `--analyze` und die Gates `--budget-js`/`--budget-css` laufen weiterhin und werden an der isolierten Ausgabe gemessen. Blume fügt `.blume-verify/` automatisch zu deiner `.gitignore` hinzu.
+
+Das ist besonders nützlich, wenn ein Coding-Agent Änderungen überprüfen muss, während du den Dev-Server geöffnet lässt. Damit auch ein einfaches `blume build`/`blume check` ohne das Flag isoliert läuft – zum Beispiel in der Shell eines Agents –, setze `BLUME_RUNTIME_DIR` auf das Runtime-Verzeichnis, das verwendet werden soll:
+
+```bash
+export BLUME_RUNTIME_DIR=.blume-verify
+```
+
+## Typprüfung [#type-checking]
+
+`blume check` führt [`astro check`](https://docs.astro.build/en/reference/cli-reference/#astro-check) für dein Projekt aus. Es generiert die `.blume`-Runtime neu, synchronisiert die Content-Typen von Astro und meldet dann alle TypeScript-Fehler – in deiner `blume.config.ts`, in eigenen `.astro`-Seiten und in den Komponenten, die diese importieren. Bei Fehlern beendet es sich mit einem Exit-Code ungleich null und eignet sich deshalb als `typecheck`-Schritt in CI:
+
+```json title="package.json"
+{
+  "scripts": {
+    "typecheck": "blume check"
+  }
+}
+```
+
+Lege im Root deines Projekts eine `tsconfig.json` an, die die Astro-Konfiguration erweitert, damit deine selbst geschriebenen Seiten `blume/*`-Importe und virtuelle Module wie `blume:data` auflösen können:
+
+```json title="tsconfig.json"
+{
+  "extends": "astro/tsconfigs/strict",
+  "include": [".blume/.astro/types.d.ts", "**/*"]
+}
+```
+
+Ohne eine `tsconfig.json` im Projekt wird nur die generierte Runtime geprüft.

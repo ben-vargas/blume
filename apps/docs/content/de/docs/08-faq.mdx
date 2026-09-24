@@ -50,11 +50,11 @@ Ja. Jede Seite kann `.md` oder `.mdx` sein, und mit MDX kannst du die [eingebaut
 
 ## Wo kann ich es veröffentlichen? [#where-can-i-deploy-it]
 
-Überall. `blume build` gibt standardmäßig statisches HTML aus, das du von jedem statischen Host oder CDN ausliefern kannst — Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3 oder deinem eigenen Server. Reine Serverfunktionen (Ask AI, der MCP-Server, On-Demand-Rendering) stellen den Build über einen Adapter für Vercel, Node, Netlify oder Cloudflare auf eine Serverfunktion um. Siehe [Deployment](/docs/deployment).
+Überall. `blume build` gibt standardmäßig statisches HTML aus, das du von jedem statischen Host oder CDN ausliefern kannst — Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3 oder deinem eigenen Server. Reine Serverfunktionen (Ask AI, der MCP-Server, On-Demand-Rendering) brauchen eine Server-Ausgabe: Trage einen Host-Adapter aus `blume/deploy` — `vercel()`, `netlify()`, `cloudflare()` oder `node()` — als `deployment` ein. Siehe [Deployment](/docs/deployment).
 
 ## Braucht die Suche einen gehosteten Dienst? [#does-search-need-a-hosted-service]
 
-Nein. [Orama](/docs/configuration/search) erstellt einen lokalen Index, der sowohl in der Entwicklung als auch in der Produktion funktioniert, ohne dass etwas gehostet oder bezahlt werden muss. Für sehr große Websites ist [Pagefind](/docs/configuration/search) nur ein Flag entfernt. So oder so wird der Index als Teil deiner Website ausgeliefert.
+Nein. [Orama](/docs/configuration/search) erstellt einen lokalen Index, der sowohl in der Entwicklung als auch in der Produktion funktioniert, ohne dass etwas gehostet oder bezahlt werden muss. Für sehr große Websites ist [Pagefind](/docs/configuration/search#pagefind) nur einen Adapter entfernt: `search: pagefind()`. So oder so wird der Index als Teil deiner Website ausgeliefert.
 
 ## Wie passe ich das Erscheinungsbild an? [#how-do-i-customize-the-look]
 

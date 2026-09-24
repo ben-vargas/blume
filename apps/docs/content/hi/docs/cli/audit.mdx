@@ -1,0 +1,647 @@
+---
+title: ऑडिट
+description: >-
+  blume audit बिल्ट साइट को क्रॉल करता है और SEO तथा साइट-हेल्थ से जुड़ी समस्याओं की रिपोर्ट करता है — हर फ़ाइंडिंग उस सोर्स फ़ाइल और फ़्रंटमैटर लाइन का नाम बताती है जिससे समस्या ठीक होती है।
+---
+
+[`blume validate`](/docs/cli/validate) आपकी _सामग्री_ पढ़ता है, जबकि `blume audit` _बिल्ट साइट_ पढ़ता है। यह बिल्ड के बाद `dist/` में मौजूद HTML को क्रॉल करता है और SEO तथा साइट-हेल्थ से जुड़ी समस्याओं की रिपोर्ट करता है। इनमें टाइटल, मेटा डिस्क्रिप्शन, कैनोनिकल, Open Graph और X कार्ड, हेडिंग, hreflang, इमेज, साइटमैप, `robots.txt` और स्ट्रक्चर्ड डेटा शामिल हैं।
+
+साइट Blume ने बिल्ड की है, इसलिए हर फ़ाइंडिंग केवल वह URL नहीं बताती जो किसी क्रॉलर को दिखता है। वह उस सोर्स फ़ाइल **और फ़्रंटमैटर की उस लाइन** का नाम भी बताती है जिससे समस्या ठीक होती है:
+
+```
+⚠ Meta description too long or too short   5 pages
+    /docs/configuration/export    content/docs/configuration/export.mdx:3
+    fix: Rewrite `description` in the frontmatter to fit the length range.
+```
+
+बिल्ड के बाद इसे चलाएँ:
+
+```bash
+blume build
+blume audit
+```
+
+फ़ाइंडिंग्स हर पेज के लिए अलग से नहीं दिखाई जातीं, बल्कि चेक के अनुसार समूहित की जाती हैं। इससे रिपोर्ट एक टू-डू सूची की तरह पढ़ी जा सकती है। हर प्रभावित पेज को उसके पूरे विवरण के साथ देखने के लिए `--verbose` का उपयोग करें। एक समय में एक श्रेणी पर काम करने के लिए `--only`/`--skip` का उपयोग करें। `blume audit --list-checks` पूरा कैटलॉग प्रिंट करता है। यही कैटलॉग इस पेज के अंत में [चेक कैटलॉग](#check-catalog) के रूप में भी दिया गया है, और हर फ़ाइंडिंग का `docsUrl` वहाँ उसकी एंट्री से लिंक करता है।
+
+## फ़्लैग [#flags]
+
+- `--fail-on error|warning|info` — यह CI गेट है। इस गंभीरता स्तर या उससे ऊपर की फ़ाइंडिंग मिलने पर कमांड नॉन-ज़ीरो कोड के साथ बाहर निकलती है। डिफ़ॉल्ट `error` है, और `--strict`, `--fail-on warning` का उपनाम है।
+- `--url <origin>` — स्टेटस कोड, रिस्पॉन्स हेडर और रीडायरेक्ट चेन के लिए किसी लाइव डिप्लॉयमेंट की भी जाँच करता है।
+- `--external` — नेटवर्क पर आउटबाउंड लिंक की जाँच करता है।
+- `--only <check|category>` / `--skip <check|category>` — रिपोर्ट को केवल इन चेक या श्रेणियों तक सीमित करता है, या इन्हें रिपोर्ट से बाहर रखता है (कॉमा से अलग करके)। अगर कोई शब्द किसी चेक या श्रेणी का नाम नहीं है, तो त्रुटि मिलती है और सबसे मिलता-जुलता नाम सुझाया जाता है। इससे कोई टाइपो चुपचाप रिपोर्ट को खाली नहीं कर सकता।
+- `--list-checks` — ऑडिट जिन चेक की रिपोर्ट कर सकता है, उन सभी को प्रिंट करके बाहर निकल जाता है।
+- `--verbose` — केवल पहले कुछ पेजों के बजाय हर प्रभावित पेज को सूचीबद्ध करता है, और हर फ़ाइंडिंग का पूरा विवरण दिखाता है।
+- `--json` — रिपोर्ट को stdout पर JSON के रूप में आउटपुट करता है।
+- `--claude` / `--codex` — फ़ाइंडिंग्स को इंटरैक्टिव रूप से ठीक करने के लिए Claude Code या Codex को सौंपता है।
+
+## CI को फ़ेल करना [#failing-ci]
+
+CI इसी एग्ज़िट कोड पर निर्भर करता है। डिफ़ॉल्ट रूप से `blume audit` केवल त्रुटियों पर फ़ेल होता है। त्रुटियाँ वे समस्याएँ हैं जो निश्चित रूप से टूटी हुई हैं, जैसे किसी ऐसे पेज का लिंक जो कभी बिल्ड नहीं हुआ, रीडायरेक्ट लूप या अमान्य साइटमैप। सलाह वाली फ़ाइंडिंग्स (जैसे छोटा डिस्क्रिप्शन या डुप्लिकेट टाइटल) चेतावनियाँ होती हैं और इनसे बिल्ड फ़ेल नहीं होता:
+
+```bash
+blume audit                      # fails on errors
+blume audit --fail-on warning    # also fails on warnings
+```
+
+## लाइव डिप्लॉयमेंट की जाँच करना [#checking-a-live-deployment]
+
+कुछ बातें केवल असली सर्वर ही बता सकता है। उदाहरण के लिए, `dist/` में मौजूद कोई पेज गलत रीराइट के कारण असल में 404 तो नहीं देता, रिस्पॉन्स कंप्रेस्ड हैं या नहीं, और कोई `X-Robots-Tag` हेडर किसी ऐसे पेज को चुपचाप डीइंडेक्स तो नहीं कर रहा जिसका HTML बिल्कुल ठीक दिखता है। इन चेक को जोड़ने के लिए ऑडिट को किसी डिप्लॉयमेंट के URL पर चलाएँ:
+
+```bash
+blume audit --url https://docs.example.com
+blume audit --url https://docs.example.com --external   # also probe outbound links
+```
+
+हर समस्या वाले आउटबाउंड लिंक को सीधे फ़ेल नहीं किया जाता, बल्कि जवाब के हिसाब से उसकी गंभीरता तय की जाती है। 404 एक टूटा हुआ लिंक है जिसे आप ठीक कर सकते हैं। 403 या 5xx आमतौर पर रेट लिमिटिंग या किसी दूसरी साइट की सेवा में रुकावट के कारण होते हैं, इसलिए इन्हें चेतावनी के रूप में रिपोर्ट किया जाता है।
+
+## एजेंट की मदद से फ़ाइंडिंग्स ठीक करना [#fixing-the-findings-with-an-agent]
+
+यदि आप [Claude Code](https://claude.com/claude-code) या [Codex](https://developers.openai.com/codex/cli) का उपयोग करते हैं, तो ऑडिट अपनी फ़ाइंडिंग्स सीधे उसे सौंप सकता है:
+
+```bash
+blume audit --claude   # or --codex
+```
+
+यह पूरी JSON रिपोर्ट एक फ़ाइल में लिखता है। इस रिपोर्ट में हर प्रभावित पेज होता है, टर्मिनल जैसा केवल तीन पेजों का प्रीव्यू नहीं। फिर यह एजेंट को इंटरैक्टिव मोड में एक प्रॉम्प्ट के साथ खोलता है, जो उसे फ़ाइंडिंग्स पर एक-एक करके काम करने का तरीका बताता है। एजेंट हर फ़ाइंडिंग में बताई गई सोर्स फ़ाइल संपादित करता है, सुझाया गया फ़िक्स लागू करता है, और फिर `blume build` और `blume audit` दोबारा चलाता है। यह तब तक चलता है जब तक रिपोर्ट में कोई समस्या न बचे। सत्र जानबूझकर इंटरैक्टिव रखा गया है, ताकि आप एजेंट के अपने अनुमति फ़्लो में हर संपादन की समीक्षा कर सकें। एजेंट को यह निर्देश भी दिया जाता है कि वह सामग्री हटाकर कभी कोई फ़ाइंडिंग ठीक न करे।
+
+`--only` और `--skip` एजेंट को भेजी जाने वाली फ़ाइंडिंग्स को भी उसी तरह सीमित करते हैं जैसे रिपोर्ट को। इस तरह आप एक समय में एक श्रेणी भेज सकते हैं।
+
+## यह क्या जाँचता है और क्या नहीं [#what-it-does-and-doesnt-check]
+
+चेक का सेट जानबूझकर किसी सामान्य SEO क्रॉलर की तुलना में सीमित रखा गया है। ऐसे क्रॉलर जिन समस्याओं की रिपोर्ट करते हैं, उनमें से कई Blume साइट में हो ही नहीं सकतीं। उदाहरण के लिए, Blume कभी `rel=nofollow` नहीं जोड़ता, और Vite के कंटेंट-हैश्ड बंडल कभी गायब या रीडायरेक्ट नहीं होते। इन्हें हमेशा शून्य दिखाने वाले चेक के रूप में रिपोर्ट करने से आप बस रिपोर्ट को अनदेखा करना सीखेंगे।
+
+दो सीमाएँ स्पष्ट रूप से बताना ज़रूरी है:
+
+- **स्ट्रक्चर्ड डेटा** का केवल यह सत्यापन होता है कि उसकी संरचना सही है (मान्य JSON, एक `@context` और हर नोड पर एक `@type`)। Blume पूरी schema.org शब्दावली या Google के रिच-रिज़ल्ट नियमों के अनुसार सत्यापन नहीं करता।
+- **Core Web Vitals** की जाँच नहीं होती। इनके लिए एक असली ब्राउज़र चाहिए, और ऐसा फ़्लैग जो चुपचाप कुछ भी न मापे, फ़्लैग न होने से भी बुरा होगा। इसलिए `blume audit` लेआउट शिफ़्ट के केवल उन कारणों की रिपोर्ट करता है जिन्हें वह ऑफ़लाइन _देख सकता है_ (बिना `width`/`height` वाली इमेज और बहुत बड़े एसेट)। बाकी को फ़िलहाल छोड़ दिया गया है।
+
+जो चेक ऑडिट ने नहीं चलाए, वे चुपचाप पास नहीं माने जाते, बल्कि स्किप किए गए के रूप में रिपोर्ट होते हैं:
+
+```
+⊘ network      skipped — pass --url <origin> (11 checks)
+⊘ external     skipped — pass --external (2 checks)
+```
+
+## चेक कैटलॉग [#check-catalog]
+
+यहाँ वे सभी चेक श्रेणी के अनुसार दिए गए हैं जिनकी `blume audit` रिपोर्ट कर सकता है। हर चेक के साथ उसकी डिफ़ॉल्ट गंभीरता, उसे चलाने के लिए ज़रूरी स्रोत (बिल्ट HTML या कोई फ़्लैग) और रिपोर्ट में सुझाया गया फ़िक्स दिया गया है। `--only` और `--skip` इन id को स्वीकार करते हैं (`BLUME_AUDIT_` प्रीफ़िक्स के बिना भी) या श्रेणी के नाम।
+
+### सामग्री [#content]
+
+#### टाइटल टैग गायब या खाली है [#title-missing]
+
+`BLUME_AUDIT_TITLE_MISSING` · error · बिल्ट HTML से
+
+समाधान: पेज के फ़्रंटमैटर में एक `title` जोड़ें।
+
+#### एक से अधिक टाइटल टैग [#title-multiple]
+
+`BLUME_AUDIT_TITLE_MULTIPLE` · error · बिल्ट HTML से
+
+समाधान: पेज के लेआउट या MDX से अतिरिक्त `<title>` हटाएँ।
+
+#### टाइटल बहुत लंबा या बहुत छोटा है [#title-length]
+
+`BLUME_AUDIT_TITLE_LENGTH` · warning · बिल्ट HTML से
+
+समाधान: फ़्रंटमैटर में `title` को दोबारा लिखें, ताकि वह तय लंबाई की सीमा में आ जाए।
+
+#### मेटा डिस्क्रिप्शन गायब या खाली है [#description-missing]
+
+`BLUME_AUDIT_DESCRIPTION_MISSING` · warning · बिल्ट HTML से
+
+समाधान: पेज के फ़्रंटमैटर में एक `description` जोड़ें।
+
+#### एक से अधिक मेटा डिस्क्रिप्शन टैग [#description-multiple]
+
+`BLUME_AUDIT_DESCRIPTION_MULTIPLE` · error · बिल्ट HTML से
+
+समाधान: पेज के लेआउट या MDX से अतिरिक्त डिस्क्रिप्शन `<meta>` हटाएँ।
+
+#### मेटा डिस्क्रिप्शन बहुत लंबा या बहुत छोटा है [#description-length]
+
+`BLUME_AUDIT_DESCRIPTION_LENGTH` · warning · बिल्ट HTML से
+
+समाधान: फ़्रंटमैटर में `description` को दोबारा लिखें, ताकि वह तय लंबाई की सीमा में आ जाए।
+
+#### H1 टैग गायब या खाली है [#h1-missing]
+
+`BLUME_AUDIT_H1_MISSING` · warning · बिल्ट HTML से
+
+समाधान: पेज को एक `title` दें, क्योंकि Blume इसी को पेज के `<h1>` के रूप में रेंडर करता है।
+
+#### एक से अधिक H1 टैग [#h1-multiple]
+
+`BLUME_AUDIT_H1_MULTIPLE` · warning · बिल्ट HTML से
+
+समाधान: बॉडी में मौजूद अतिरिक्त `# Heading` को `##` में बदलें, क्योंकि Blume पहले से ही `title` को h1 के रूप में रेंडर करता है।
+
+#### शब्दों की संख्या कम है [#low-word-count]
+
+`BLUME_AUDIT_LOW_WORD_COUNT` · info · बिल्ट HTML से
+
+समाधान: पेज की सामग्री बढ़ाएँ, या इसे किसी बड़े पेज में मिला दें।
+
+#### हेडिंग के स्तर छूट गए हैं (जैसे h2 के बाद सीधे h4) [#heading-skip]
+
+`BLUME_AUDIT_HEADING_SKIP` · info · बिल्ट HTML से
+
+समाधान: हेडिंग को उससे ठीक एक स्तर नीचे रखें। छूटे हुए स्तरों से विषय-सूची की नेस्टिंग और स्क्रीन रीडर की आउटलाइन बिगड़ जाती है।
+
+#### पेज की तारीख भविष्य की है [#future-dated-page]
+
+`BLUME_AUDIT_FUTURE_DATED_PAGE` · info · बिल्ट HTML से
+
+समाधान: `date` ठीक करें, या पेज को तब तक प्रकाशित न करें जब तक उसे लाइव होना न हो।
+
+#### व्यूपोर्ट सेट नहीं है [#viewport-missing]
+
+`BLUME_AUDIT_VIEWPORT_MISSING` · error · बिल्ट HTML से
+
+समाधान: अपने इजेक्ट किए गए लेआउट में व्यूपोर्ट `<meta>` वापस जोड़ें।
+
+### डुप्लिकेट [#duplicates]
+
+#### डुप्लिकेट टाइटल [#duplicate-title]
+
+`BLUME_AUDIT_DUPLICATE_TITLE` · warning · बिल्ट HTML से
+
+समाधान: हर पेज को एक अलग `title` दें, क्योंकि सर्च इंजन इसे परिणाम की हेडलाइन के रूप में दिखाते हैं।
+
+#### डुप्लिकेट मेटा डिस्क्रिप्शन [#duplicate-description]
+
+`BLUME_AUDIT_DUPLICATE_DESCRIPTION` · warning · बिल्ट HTML से
+
+समाधान: हर पेज को एक अलग `description` दें।
+
+#### कैनोनिकल के बिना डुप्लिकेट पेज [#duplicate-content]
+
+`BLUME_AUDIT_DUPLICATE_CONTENT` · warning · बिल्ट HTML से
+
+समाधान: पेजों को एक में मिला दें, या एक पेज को छोड़कर बाकी सभी पर `seo.canonical` सेट करें।
+
+### इंडेक्सिंग [#indexability]
+
+#### deployment.site सेट नहीं है [#site-not-set]
+
+`BLUME_AUDIT_SITE_NOT_SET` · warning · बिल्ट HTML से
+
+समाधान: blume.config.ts में `deployment.site` को साइट के सार्वजनिक URL पर सेट करें।
+
+#### deployment.site डिप्लॉय के समय अपने-आप तय होता है [#site-inferred-at-deploy]
+
+`BLUME_AUDIT_SITE_INFERRED_AT_DEPLOY` · info · बिल्ट HTML से
+
+समाधान: प्रोडक्शन जैसे बिल्ड का ऑडिट करें (जैसे `VERCEL=1 VERCEL_PROJECT_PRODUCTION_URL=<host> blume build`), या `--url <origin>` के साथ सीधे डिप्लॉयमेंट का ऑडिट करें। `deployment.site` को हार्डकोड न करें, क्योंकि प्लेटफ़ॉर्म इसे हर डिप्लॉय पर सेट करता है।
+
+#### पेज noindex है, लेकिन उसमें कैनोनिकल भी दिया गया है [#canonical-on-noindex]
+
+`BLUME_AUDIT_CANONICAL_ON_NOINDEX` · warning · बिल्ट HTML से
+
+समाधान: noindex पेजों से कैनोनिकल हटा दें। Google इन दोनों को एक-दूसरे का विरोधी मानता है और इनमें से किसी एक को अनदेखा कर सकता है।
+
+#### ड्राफ़्ट पेज बिल्ड में शामिल है [#draft-page-published]
+
+`BLUME_AUDIT_DRAFT_PAGE_PUBLISHED` · warning · बिल्ट HTML से
+
+समाधान: डिप्लॉय करने से पहले `--preview` के बिना दोबारा बिल्ड करें। अगर पेज प्रकाशित करने के लिए तैयार है, तो `draft: true` हटा दें।
+
+#### कैनोनिकल URL गायब है [#canonical-missing]
+
+`BLUME_AUDIT_CANONICAL_MISSING` · warning · बिल्ट HTML से
+
+समाधान: `deployment.site` सेट करें, ताकि Blume एब्सोल्यूट कैनोनिकल URL जोड़ सके।
+
+#### नॉन-कैनोनिकल पेज [#canonical-not-self]
+
+`BLUME_AUDIT_CANONICAL_NOT_SELF` · info · बिल्ट HTML से
+
+समाधान: `seo.canonical` में इसी पेज का URL दें, या इसे हटा दें ताकि डिफ़ॉल्ट सेल्फ़-कैनोनिकल लागू हो।
+
+#### कैनोनिकल किसी टूटे हुए या रीडायरेक्ट होने वाले पेज पर जाता है [#canonical-bad-target]
+
+`BLUME_AUDIT_CANONICAL_BAD_TARGET` · error · बिल्ट HTML से
+
+समाधान: `seo.canonical` में ऐसे पेज का URL दें जो मौजूद हो और रीडायरेक्ट न होता हो।
+
+#### कैनोनिकल का प्रोटोकॉल साइट से मेल नहीं खाता [#canonical-protocol-mismatch]
+
+`BLUME_AUDIT_CANONICAL_PROTOCOL_MISMATCH` · error · बिल्ट HTML से
+
+समाधान: `seo.canonical` में वही प्रोटोकॉल इस्तेमाल करें जो `deployment.site` में है।
+
+#### पेज इंडेक्स नहीं हो सकता [#robots-meta-unexpected]
+
+`BLUME_AUDIT_ROBOTS_META_UNEXPECTED` · info · बिल्ट HTML से
+
+समाधान: अगर पेज इंडेक्स होना चाहिए, तो उसके फ़्रंटमैटर से `noindex` हटा दें।
+
+#### पेज Googlebot की 2 MB की क्रॉल सीमा से बड़ा है [#html-too-large]
+
+`BLUME_AUDIT_HTML_TOO_LARGE` · error · बिल्ट HTML से
+
+समाधान: पेज को कई पेजों में बाँटें, क्योंकि Googlebot किसी HTML दस्तावेज़ के पहले 2 MB के बाद उसे पढ़ना बंद कर देता है।
+
+#### X-Robots-Tag हेडर पेज के robots मेटा से मेल नहीं खाता [#robots-header-conflict]
+
+`BLUME_AUDIT_ROBOTS_HEADER_CONFLICT` · error · `--url` आवश्यक
+
+समाधान: X-Robots-Tag हेडर हटा दें, या उसे पेज के robots मेटा के अनुरूप करें।
+
+### लिंक [#links]
+
+#### पेज में किसी टूटे हुए पेज के लिंक हैं [#link-to-broken]
+
+`BLUME_AUDIT_LINK_TO_BROKEN` · error · बिल्ट HTML से
+
+समाधान: लिंक का गंतव्य ठीक करें, या वह पेज बनाएँ जिस पर लिंक जाता है।
+
+#### पेज में किसी रीडायरेक्ट के लिंक हैं [#link-to-redirect]
+
+`BLUME_AUDIT_LINK_TO_REDIRECT` · warning · बिल्ट HTML से
+
+समाधान: रीडायरेक्ट से होकर जाने के बजाय सीधे अंतिम गंतव्य का लिंक दें।
+
+#### अनाथ पेज (केवल नेविगेशन से पहुँचा जा सकता है) [#orphan-page]
+
+`BLUME_AUDIT_ORPHAN_PAGE` · warning · बिल्ट HTML से
+
+समाधान: किसी संबंधित पेज की मुख्य सामग्री से इस पेज का लिंक दें।
+
+#### आंतरिक लिंक में साइट का अपना ओरिजिन हार्डकोड है [#internal-link-absolute]
+
+`BLUME_AUDIT_INTERNAL_LINK_ABSOLUTE` · warning · बिल्ट HTML से
+
+समाधान: रूट-रिलेटिव पाथ (`/docs/x`) का उपयोग करें, ताकि लिंक प्रीव्यू में और `basePath` बदलने पर भी काम करे।
+
+#### पेज में nofollow वाले आंतरिक लिंक हैं [#internal-link-nofollow]
+
+`BLUME_AUDIT_INTERNAL_LINK_NOFOLLOW` · info · बिल्ट HTML से
+
+समाधान: `rel="nofollow"` हटा दें, क्योंकि यह इस पेज की अथॉरिटी को साइट के दूसरे पेजों तक पहुँचने से रोकता है।
+
+#### URL में डबल स्लैश है [#double-slash-url]
+
+`BLUME_AUDIT_DOUBLE_SLASH_URL` · error · बिल्ट HTML से
+
+समाधान: `basePath` / `deployment.base` जाँचें, क्योंकि इनके अंत में स्लैश होने से `//` बनता है।
+
+#### लिंक का फ़्रैगमेंट लक्ष्य पेज की किसी id से मेल नहीं खाता [#anchor-broken]
+
+`BLUME_AUDIT_ANCHOR_BROKEN` · warning · बिल्ट HTML से
+
+समाधान: फ़्रैगमेंट में लक्ष्य पेज पर मौजूद किसी हेडिंग की id दें, या उस हेडिंग को ठीक करें जिस पर लिंक को जाना था।
+
+#### URL में अपरकेस अक्षर, अंडरस्कोर या स्पेस हैं [#url-style]
+
+`BLUME_AUDIT_URL_STYLE` · info · बिल्ट HTML से
+
+समाधान: सोर्स फ़ाइल का नाम बदलकर लोअरकेस अक्षरों और हाइफ़न वाला स्लग रखें। अगर पुराना URL पहले ही प्रकाशित हो चुका है, तो उससे नए URL पर रीडायरेक्ट भी जोड़ें।
+
+### रीडायरेक्ट [#redirects]
+
+#### टूटा हुआ रीडायरेक्ट [#redirect-broken]
+
+`BLUME_AUDIT_REDIRECT_BROKEN` · error · बिल्ट HTML से
+
+समाधान: रीडायरेक्ट को ऐसे पेज पर भेजें जो मौजूद हो।
+
+#### रीडायरेक्ट लूप [#redirect-loop]
+
+`BLUME_AUDIT_REDIRECT_LOOP` · error · बिल्ट HTML से
+
+समाधान: `redirects` में बने चक्र को तोड़ें, क्योंकि ऐसा रीडायरेक्ट कभी किसी पेज तक नहीं पहुँचता।
+
+#### रीडायरेक्ट चेन [#redirect-chain]
+
+`BLUME_AUDIT_REDIRECT_CHAIN` · warning · बिल्ट HTML से
+
+समाधान: चेन के हर रीडायरेक्ट को सीधे अंतिम गंतव्य पर भेजें।
+
+#### मेटा रिफ़्रेश रीडायरेक्ट [#meta-refresh]
+
+`BLUME_AUDIT_META_REFRESH` · warning · बिल्ट HTML से
+
+समाधान: मेटा रिफ़्रेश के बजाय `blume.config.ts` में असली रीडायरेक्ट का उपयोग करें।
+
+#### रीडायरेक्ट का सोर्स एक असली पेज भी है [#redirect-source-is-page]
+
+`BLUME_AUDIT_REDIRECT_SOURCE_IS_PAGE` · error · बिल्ट HTML से
+
+समाधान: रीडायरेक्ट हटा दें, या उसी URL वाला पेज हटा दें। ऐसे मामले में पेज को प्राथमिकता मिलती है और रीडायरेक्ट कभी लागू नहीं होता।
+
+#### HTTPS से HTTP पर रीडायरेक्ट [#redirect-to-http]
+
+`BLUME_AUDIT_REDIRECT_TO_HTTP` · error · `--url` आवश्यक
+
+समाधान: HTTPS URL पर रीडायरेक्ट करें।
+
+### सोशल कार्ड [#social-cards]
+
+#### Open Graph टैग गायब या अधूरे हैं [#og-incomplete]
+
+`BLUME_AUDIT_OG_INCOMPLETE` · warning · बिल्ट HTML से
+
+समाधान: एक `description` जोड़ें। बाकी Open Graph टैग Blume अपने-आप भर देता है।
+
+#### Open Graph इमेज गायब है [#og-image-missing]
+
+`BLUME_AUDIT_OG_IMAGE_MISSING` · warning · बिल्ट HTML से
+
+समाधान: अपने-आप बनने वाली OG इमेज चालू करने के लिए `deployment.site` सेट करें, या पेज पर `seo.image` सेट करें।
+
+#### Open Graph इमेज बिल्ड में नहीं है [#og-image-broken]
+
+`BLUME_AUDIT_OG_IMAGE_BROKEN` · warning · बिल्ट HTML से
+
+समाधान: `seo.image` में ऐसी फ़ाइल दें जो मौजूद हो, या दोबारा बिल्ड करें। og:image टूटी हुई हो, तो पेज जहाँ भी शेयर होता है वहाँ खाली कार्ड दिखता है।
+
+#### Open Graph इमेज बड़े कार्ड के लिए बहुत छोटी है [#og-image-small]
+
+`BLUME_AUDIT_OG_IMAGE_SMALL` · warning · बिल्ट HTML से
+
+समाधान: कम से कम 1200×630 की इमेज इस्तेमाल करें। इससे छोटी इमेज धुंधली दिखती हैं या छोटे कार्ड वाले लेआउट के लिए क्रॉप हो जाती हैं।
+
+#### Open Graph URL कैनोनिकल से मेल नहीं खाता [#og-url-mismatch]
+
+`BLUME_AUDIT_OG_URL_MISMATCH` · warning · बिल्ट HTML से
+
+समाधान: `og:url` को पेज के कैनोनिकल URL के समान करें।
+
+#### X (Twitter) कार्ड गायब या अधूरा है [#twitter-card-incomplete]
+
+`BLUME_AUDIT_TWITTER_CARD_INCOMPLETE` · warning · बिल्ट HTML से
+
+समाधान: blume.config.ts में `seo.x.handle` सेट करें, ताकि X कार्ड के साथ सही अकाउंट दिखा सके।
+
+### अंतर्राष्ट्रीयकरण [#internationalization]
+
+#### HTML lang एट्रिब्यूट गायब है [#html-lang-missing]
+
+`BLUME_AUDIT_HTML_LANG_MISSING` · error · बिल्ट HTML से
+
+समाधान: अपने इजेक्ट किए गए लेआउट में `<html>` पर `lang` एट्रिब्यूट वापस जोड़ें।
+
+#### HTML lang एट्रिब्यूट अमान्य है [#html-lang-invalid]
+
+`BLUME_AUDIT_HTML_LANG_INVALID` · error · बिल्ट HTML से
+
+समाधान: लोकेल के लिए मान्य BCP 47 टैग (जैसे `en`, `en-GB`) का उपयोग करें।
+
+#### hreflang और HTML lang मेल नहीं खाते [#hreflang-lang-mismatch]
+
+`BLUME_AUDIT_HREFLANG_LANG_MISMATCH` · error · बिल्ट HTML से
+
+समाधान: पेज का `<html lang>` उसी पेज के अपने hreflang एनोटेशन से मेल खाना चाहिए।
+
+#### hreflang एनोटेशन अमान्य है [#hreflang-invalid]
+
+`BLUME_AUDIT_HREFLANG_INVALID` · error · बिल्ट HTML से
+
+समाधान: hreflang एनोटेशन में मान्य BCP 47 टैग का उपयोग करें।
+
+#### पेज का अपना hreflang एनोटेशन गायब है [#hreflang-self-missing]
+
+`BLUME_AUDIT_HREFLANG_SELF_MISSING` · warning · बिल्ट HTML से
+
+समाधान: पेज के hreflang सेट में उसी पेज की एंट्री भी होनी चाहिए।
+
+#### x-default hreflang एनोटेशन गायब है [#hreflang-xdefault-missing]
+
+`BLUME_AUDIT_HREFLANG_XDEFAULT_MISSING` · info · बिल्ट HTML से
+
+समाधान: डिफ़ॉल्ट लोकेल वाले पेज के लिए एक `x-default` alternate जोड़ें।
+
+#### पारस्परिक hreflang गायब है (रिटर्न टैग नहीं है) [#hreflang-no-return-tag]
+
+`BLUME_AUDIT_HREFLANG_NO_RETURN_TAG` · error · बिल्ट HTML से
+
+समाधान: hreflang समूह के हर पेज में समूह के बाकी सभी पेजों के hreflang लिंक होने चाहिए।
+
+#### hreflang किसी टूटे हुए, रीडायरेक्ट होने वाले या नॉन-कैनोनिकल पेज पर जाता है [#hreflang-bad-target]
+
+`BLUME_AUDIT_HREFLANG_BAD_TARGET` · error · बिल्ट HTML से
+
+समाधान: hreflang alternate में ऐसे पेज का URL दें जो मौजूद हो और कैनोनिकल हो।
+
+#### hreflang समूह में एक ही भाषा के लिए अलग-अलग पेज हैं [#hreflang-conflict]
+
+`BLUME_AUDIT_HREFLANG_CONFLICT` · error · बिल्ट HTML से
+
+समाधान: hreflang समूह में हर भाषा के लिए ठीक एक पेज होना चाहिए।
+
+### एसेट [#assets]
+
+#### alt टेक्स्ट गायब है [#image-alt-missing]
+
+`BLUME_AUDIT_IMAGE_ALT_MISSING` · warning · बिल्ट HTML से
+
+समाधान: इमेज का वर्णन करने वाला `alt` टेक्स्ट जोड़ें। अगर इमेज केवल सजावट के लिए है, तो `alt=""` जोड़ें।
+
+#### इमेज टूटी हुई है [#image-broken]
+
+`BLUME_AUDIT_IMAGE_BROKEN` · error · बिल्ट HTML से
+
+समाधान: इमेज का पाथ ठीक करें, या फ़ाइल को public/ में जोड़ें।
+
+#### एसेट फ़ाइल बहुत बड़ी है [#asset-too-large]
+
+`BLUME_AUDIT_ASSET_TOO_LARGE` · warning · बिल्ट HTML से
+
+समाधान: एसेट को कंप्रेस करें, या उसे किसी आधुनिक फ़ॉर्मेट (WebP/AVIF) में सर्व करें।
+
+#### इमेज में width/height नहीं है [#image-missing-dimensions]
+
+`BLUME_AUDIT_IMAGE_MISSING_DIMENSIONS` · warning · बिल्ट HTML से
+
+समाधान: `width` और `height` सेट करें, ताकि ब्राउज़र पहले से जगह तय कर सके और लेआउट शिफ़्ट न हो।
+
+#### संदर्भित स्क्रिप्ट, स्टाइल या एसेट बिल्ड में नहीं है [#subresource-missing]
+
+`BLUME_AUDIT_SUBRESOURCE_MISSING` · error · बिल्ट HTML से
+
+समाधान: संदर्भ ठीक करें, या गायब फ़ाइल वापस जोड़ें।
+
+#### HTTPS/HTTP मिश्रित सामग्री [#mixed-content]
+
+`BLUME_AUDIT_MIXED_CONTENT` · error · बिल्ट HTML से
+
+समाधान: सबरिसोर्स को HTTPS से लोड करें, क्योंकि ब्राउज़र मिश्रित सामग्री को ब्लॉक कर देते हैं।
+
+### साइटमैप [#sitemap]
+
+#### इंडेक्स होने योग्य पेज साइटमैप में नहीं है [#indexable-page-not-in-sitemap]
+
+`BLUME_AUDIT_INDEXABLE_PAGE_NOT_IN_SITEMAP` · warning · बिल्ट HTML से
+
+समाधान: अगर पेज इंडेक्स होना चाहिए, तो उसके फ़्रंटमैटर से `draft`/`hidden`/`noindex` हटा दें।
+
+#### साइटमैप में noindex पेज है [#noindex-in-sitemap]
+
+`BLUME_AUDIT_NOINDEX_IN_SITEMAP` · error · बिल्ट HTML से
+
+समाधान: noindex पेज को साइटमैप में शामिल नहीं किया जाना चाहिए।
+
+#### साइटमैप में नॉन-कैनोनिकल पेज है [#non-canonical-in-sitemap]
+
+`BLUME_AUDIT_NON_CANONICAL_IN_SITEMAP` · error · बिल्ट HTML से
+
+समाधान: साइटमैप में केवल कैनोनिकल URL शामिल करें।
+
+#### साइटमैप में ऐसा पेज है जो मौजूद नहीं है या रीडायरेक्ट होता है [#sitemap-bad-url]
+
+`BLUME_AUDIT_SITEMAP_BAD_URL` · error · बिल्ट HTML से
+
+समाधान: साइटमैप से वह URL हटा दें, या उस URL वाला पेज बिल्ड करें।
+
+#### साइटमैप में सिंटैक्स त्रुटि है या उसका फ़ॉर्मेट गलत है [#sitemap-invalid]
+
+`BLUME_AUDIT_SITEMAP_INVALID` · error · बिल्ट HTML से
+
+समाधान: साइटमैप sitemaps.org के urlset फ़ॉर्मेट में मान्य XML होना चाहिए।
+
+#### साइटमैप 50 MB या 50,000 URL से बड़ा है [#sitemap-too-large]
+
+`BLUME_AUDIT_SITEMAP_TOO_LARGE` · error · बिल्ट HTML से
+
+समाधान: साइटमैप को कई फ़ाइलों में बाँटें। एक साइटमैप की सीमा 50 MB और 50,000 URL है।
+
+#### साइटमैप का lastmod अमान्य है या भविष्य की तारीख का है [#sitemap-lastmod-invalid]
+
+`BLUME_AUDIT_SITEMAP_LASTMOD_INVALID` · warning · बिल्ट HTML से
+
+समाधान: W3C फ़ॉर्मेट की सही तारीख इस्तेमाल करें, जो भविष्य की न हो। अगर सर्च इंजन पाते हैं कि साइटमैप पेजों के अपडेट होने की गलत तारीख बताता है, तो वे उसके lastmod पर भरोसा करना पूरी तरह बंद कर देते हैं।
+
+#### साइटमैप में उसके दायरे से बाहर के URL हैं [#sitemap-out-of-scope]
+
+`BLUME_AUDIT_SITEMAP_OUT_OF_SCOPE` · warning · बिल्ट HTML से
+
+समाधान: साइटमैप में केवल उसी ओरिजिन के URL हो सकते हैं जिस पर साइटमैप है।
+
+#### साइटमैप तक पहुँचा नहीं जा सकता [#sitemap-not-accessible]
+
+`BLUME_AUDIT_SITEMAP_NOT_ACCESSIBLE` · error · `--url` आवश्यक
+
+समाधान: sitemap.xml को साइट के रूट पर उपलब्ध कराएँ।
+
+### robots.txt
+
+#### robots.txt गायब है [#robots-missing]
+
+`BLUME_AUDIT_ROBOTS_MISSING` · warning · बिल्ट HTML से
+
+समाधान: robots.txt बनाने के लिए `seo.robots: true` सेट करें।
+
+#### robots.txt में सिंटैक्स त्रुटि है [#robots-invalid]
+
+`BLUME_AUDIT_ROBOTS_INVALID` · error · बिल्ट HTML से
+
+समाधान: robots.txt की हर लाइन या तो `Field: value` डायरेक्टिव होनी चाहिए या टिप्पणी।
+
+#### robots.txt साइटमैप में शामिल किसी पेज को ब्लॉक करता है [#robots-disallows-indexable]
+
+`BLUME_AUDIT_ROBOTS_DISALLOWS_INDEXABLE` · error · बिल्ट HTML से
+
+समाधान: कोई पेज robots.txt में ब्लॉक भी हो और साइटमैप में शामिल भी हो, ऐसा नहीं हो सकता।
+
+#### robots.txt में साइटमैप का संदर्भ नहीं है [#robots-sitemap-missing]
+
+`BLUME_AUDIT_ROBOTS_SITEMAP_MISSING` · info · बिल्ट HTML से
+
+समाधान: `deployment.site` सेट करें, ताकि robots.txt में साइटमैप का संदर्भ जोड़ा जा सके।
+
+#### robots.txt तक पहुँचा नहीं जा सकता [#robots-not-accessible]
+
+`BLUME_AUDIT_ROBOTS_NOT_ACCESSIBLE` · error · `--url` आवश्यक
+
+समाधान: robots.txt को साइट के रूट पर उपलब्ध कराएँ।
+
+### AI द्वारा खोज [#ai-discoverability]
+
+#### llms.txt बिल्ड में नहीं है [#llms-txt-missing]
+
+`BLUME_AUDIT_LLMS_TXT_MISSING` · warning · बिल्ट HTML से
+
+समाधान: दोबारा बिल्ड करें। `agents.llmsTxt` चालू है, लेकिन बिल्ड में llms.txt नहीं है। अगर आप इसे जानबूझकर नहीं बनाना चाहते, तो `agents.llmsTxt: false` सेट करें।
+
+#### llms.txt में ऐसा पेज है जो बिल्ड में उपलब्ध नहीं है [#llms-txt-stale-entry]
+
+`BLUME_AUDIT_LLMS_TXT_STALE_ENTRY` · warning · बिल्ट HTML से
+
+समाधान: दोबारा बिल्ड करें, ताकि llms.txt साइट से मेल खाए। पुरानी एंट्री किसी AI एजेंट को ऐसे पेज पर भेजती है जो मौजूद ही नहीं है।
+
+#### इंडेक्स होने योग्य पेज llms.txt में नहीं है [#llms-txt-page-missing]
+
+`BLUME_AUDIT_LLMS_TXT_PAGE_MISSING` · warning · बिल्ट HTML से
+
+समाधान: दोबारा बिल्ड करें, ताकि llms.txt साइट से मेल खाए। अगर पेज को जानबूझकर बाहर रखा गया है, तो उस पर `seo.noindex` या `sidebar.hidden` सेट करें।
+
+#### एजेंट द्वारा खोज के लिए कोई DNS-AID रिकॉर्ड नहीं है [#dns-aid-missing]
+
+`BLUME_AUDIT_DNS_AID_MISSING` · info · `--url` आवश्यक
+
+समाधान: अपने DNS प्रदाता पर `_index._agents.<host>` के लिए एक ServiceMode SVCB या HTTPS रिकॉर्ड प्रकाशित करें, ताकि एजेंट DNS (DNS-AID) से साइट खोज सकें।
+
+#### DNS-AID रिकॉर्ड DNSSEC से प्रमाणित नहीं हैं [#dns-aid-unsigned]
+
+`BLUME_AUDIT_DNS_AID_UNSIGNED` · info · `--url` आवश्यक
+
+समाधान: ज़ोन के लिए DNSSEC चालू करें, ताकि DNSSEC की जाँच करने वाले रिज़ॉल्वर प्रमाणित DNS-AID उत्तर लौटाएँ। अगर आपका DNS प्रदाता DNSSEC का समर्थन नहीं करता, तो भी बिना हस्ताक्षर वाले रिकॉर्ड काम करते हैं।
+
+### स्ट्रक्चर्ड डेटा [#structured-data]
+
+#### स्ट्रक्चर्ड डेटा मान्य JSON नहीं है [#jsonld-invalid]
+
+`BLUME_AUDIT_JSONLD_INVALID` · error · बिल्ट HTML से
+
+समाधान: JSON-LD ब्लॉक मान्य JSON होना चाहिए।
+
+#### स्ट्रक्चर्ड डेटा में आवश्यक प्रॉपर्टी गायब हैं [#jsonld-incomplete]
+
+`BLUME_AUDIT_JSONLD_INCOMPLETE` · warning · बिल्ट HTML से
+
+समाधान: हर JSON-LD नोड में `@context` और `@type` होने चाहिए।
+
+### लाइव डिप्लॉयमेंट [#live-deployment]
+
+#### 4XX पेज [#http-4xx]
+
+`BLUME_AUDIT_HTTP_4XX` · error · `--url` आवश्यक
+
+समाधान: पेज किसी लिंक या साइटमैप में है, लेकिन डिप्लॉयमेंट पर यह 404 देता है।
+
+#### 5XX पेज [#http-5xx]
+
+`BLUME_AUDIT_HTTP_5XX` · error · `--url` आवश्यक
+
+समाधान: डिप्लॉयमेंट इस पेज पर त्रुटि दे रहा है।
+
+#### टाइम आउट [#http-timeout]
+
+`BLUME_AUDIT_HTTP_TIMEOUT` · error · `--url` आवश्यक
+
+समाधान: पेज ने समय पर जवाब नहीं दिया।
+
+#### कंप्रेस्ड नहीं है [#not-compressed]
+
+`BLUME_AUDIT_NOT_COMPRESSED` · warning · `--url` आवश्यक
+
+समाधान: होस्ट पर gzip या brotli चालू करें।
+
+#### धीमा पेज [#slow-response]
+
+`BLUME_AUDIT_SLOW_RESPONSE` · warning · `--url` आवश्यक
+
+समाधान: पेज ने जवाब देने में बहुत समय लिया।
+
+#### बाहरी लिंक टूटा हुआ है [#external-link-broken]
+
+`BLUME_AUDIT_EXTERNAL_LINK_BROKEN` · error · `--external` आवश्यक
+
+समाधान: बाहरी लिंक ठीक करें या हटा दें।
+
+#### बाहरी लिंक रीडायरेक्ट होता है [#external-link-redirect]
+
+`BLUME_AUDIT_EXTERNAL_LINK_REDIRECT` · info · `--external` आवश्यक
+
+समाधान: सीधे अंतिम गंतव्य का लिंक दें।

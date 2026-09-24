@@ -47,7 +47,7 @@ A linha `Content-Signal` — a convenção emergente de uso de conteúdo — dec
 Restrinja qualquer sinal definindo-o como `false`; os que você deixar de fora continuam como `yes`:
 
 ```ts blume.config.ts lineNumbers
-seo: {
+agents: {
   contentSignals: {
     aiTrain: false, // opt out of training, keep search + grounding
   },
@@ -63,14 +63,14 @@ Allow: /
 Defina `contentSignals: false` para remover a declaração por completo:
 
 ```ts blume.config.ts lineNumbers
-seo: {
+agents: {
   contentSignals: false,
 }
 ```
 
 <TypeTable
   type={{
-    "seo.contentSignals": {
+    "agents.contentSignals": {
       type: "boolean | object",
       description:
         "Declaração Content-Signal. true ou omitido emite todos os sinais como yes; false remove a linha; um objeto define os sinais individualmente.",

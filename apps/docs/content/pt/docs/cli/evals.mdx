@@ -1,0 +1,108 @@
+---
+title: Evals
+description: >-
+  O blume eval dá à sua documentação uma suíte de testes — um agente de IA responde às perguntas dos seus usuários usando só a documentação, um juiz avalia as respostas e o CI falha quando a documentação não tem a resposta.
+---
+
+`blume audit` diz se os crawlers conseguem encontrar sua documentação. `blume eval` diz se alguém consegue de fato _usá-la_: um agente de IA lê sua documentação como um desconhecido leria e tenta responder a perguntas reais de usuários com base nela. Quando a documentação não traz a resposta, a execução falha e aponta a página que deveria trazê-la.
+
+```bash
+blume eval
+```
+
+```
+blume eval  4 question(s) · Claude Code
+
+  ✔ install-node-version         pass  1.00  14.2s  $0.14
+  ✔ custom-domain                pass  0.92  21.3s  $0.19
+  ✖ deploy-vercel                fail  0.40  38.9s  $0.31
+      missing: deployment: vercel() from blume/deploy
+  ⊘ search-providers             skipped
+
+  fix: content/docs/deployment.mdx  Docs could not answer: "How do I deploy to Vercel?" — missing: deployment: vercel() from blume/deploy
+
+  2 passed · 1 failed · 1 skipped · 1m 42s · $0.64
+```
+
+## Como funciona [#how-it-works]
+
+Cada pergunta passa por duas sessões de agente, usando uma CLI de agente que você já tem instalada — [Claude Code](https://claude.com/claude-code) por padrão, ou [Codex](https://developers.openai.com/codex/cli) com `--agent codex`. O Blume não guarda nenhuma chave de API e não chama nenhum modelo por conta própria. Com `--agent codex`, as duas sessões também rodam sem as ferramentas de shell, de comandos e de imagens do Codex, e não herdam nenhuma das suas variáveis de ambiente.
+
+1. **O leitor** responde à pergunta usando _só_ a sua documentação. Ele roda em um diretório vazio, com as ferramentas de arquivo, shell e web desativadas, conectado a um [servidor MCP](/docs/discoverability/mcp) privado que serve a sua documentação — as mesmas ferramentas `search_docs`/`get_page` que um agente real usa no seu site publicado. Ele não consegue ler o seu repositório, então vivencia a documentação exatamente como um usuário novo: o que não está escrito não existe.
+2. **O juiz** avalia a resposta com base nos fatos que você listou, sem nenhuma ferramenta. Paráfrases passam; um fato ausente ou contradito falha — e "a documentação não diz" também falha.
+
+O snapshot do MCP é gerado diretamente a partir das suas fontes de conteúdo, então não é preciso rodar `blume build` antes, e nada é publicado nem enviado para lugar nenhum.
+
+Uma resposta que a documentação _não consegue_ sustentar falha mesmo quando o conhecimento prévio do agente por acaso está certo — e é exatamente essa a ideia. A sua documentação é a única fonte que chega aos usuários.
+
+## Escrevendo evals [#writing-evals]
+
+As perguntas ficam em `evals.yaml`, na raiz do projeto. Para um agente rascunhar um arquivo inicial a partir da documentação que você já tem:
+
+```bash
+blume eval init
+```
+
+Ou escreva à mão:
+
+```yaml
+questions:
+  - id: install-node-version
+    question: What is the minimum Node.js version required?
+    expected:
+      - Node 22.12 or newer
+    routes: /docs/quickstart
+  - id: deploy-vercel
+    question: How do I deploy to Vercel?
+    expected:
+      - run blume build
+      - "server features need deployment: vercel() from blume/deploy"
+    routes:
+      - /docs/deployment
+  - id: search-providers
+    question: Which search providers are supported?
+    expected:
+      - Orama is the default, with no hosted service
+    severity: warning # a miss warns instead of failing CI
+    skip: true # temporarily excluded, reported as skipped
+```
+
+- `expected` lista os fatos que uma resposta correta precisa afirmar, em essência — o juiz aceita paráfrase e rejeita contradição.
+- `routes` indica a(s) página(s) que devem responder à pergunta. Assim, uma falha fica ancorada no arquivo-fonte dessa página no relatório; uma indicação que não corresponde mais a nenhuma página gera um aviso em vez de ser descartada silenciosamente.
+- `severity: warning` mantém a pergunta no relatório sem fazer o CI falhar; `skip: true` deixa a pergunta totalmente de fora.
+
+Escreva as perguntas que seus usuários realmente fazem — as que aparecem em threads de suporte, issues do GitHub e calls de onboarding. As melhores evals transformam uma promessa que a sua documentação faz ("deploys sem configuração") em uma pergunta que quebra quando um PR quebra essa promessa.
+
+## Fazendo o CI falhar [#failing-ci]
+
+O código de saída é o contrato: qualquer pergunta que falhe faz o comando sair com código diferente de zero. Quando a própria execução do agente falha — o leitor ou o juiz dá erro em vez de avaliar uma resposta —, o relatório mostra `run failed:` e aponta para a pergunta no seu arquivo de evals em vez de indicar uma página da documentação para corrigir, já que a documentação nem chegou a ser avaliada. `--threshold` afrouxa a exigência para uma fração mínima de aprovação quando você está tirando o atraso de um backlog:
+
+```bash
+blume eval                    # every question must pass
+blume eval --threshold 0.8    # at least 80% must pass
+blume eval --json             # machine-readable report on stdout
+```
+
+O relatório JSON tem o mesmo formato `diagnostics` + `summary` de `blume validate --json` e `blume audit --json`, junto com os resultados por pergunta (resposta, pontuação, fatos ausentes, custo).
+
+Como cada pergunta envolve duas sessões de modelo, uma execução de eval custa dinheiro de verdade e leva alguns minutos — o gasto por pergunta é exibido durante a execução. Uma configuração sensata de CI roda `blume eval` quando a documentação muda, e não a cada push.
+
+## Corrigindo os problemas encontrados [#fixing-the-findings]
+
+Cada falha aponta os fatos ausentes e a página que deveria afirmá-los. Se preferir entregar o relatório inteiro ao agente:
+
+```bash
+blume eval --fix
+```
+
+Isso grava o relatório JSON completo em um arquivo e abre o agente no modo interativo, com um prompt que o guia por cada pergunta que falhou: ler a página indicada, adicionar os fatos ausentes no tom da página e rodar `blume eval` de novo até tudo passar. A sessão é interativa de propósito — você revisa as edições pelo próprio fluxo de permissões do agente — e o agente é instruído a nunca apagar perguntas nem enfraquecer os fatos esperados só para ficar tudo verde.
+
+## Flags
+
+- `--agent claude|codex` — qual CLI de agente roda o leitor e o juiz. O padrão é `claude`.
+- `--file <path>` — o arquivo de evals. O padrão é `evals.yaml`.
+- `--threshold <0..1>` — fração mínima de aprovação para que a execução não saia com código diferente de zero. O padrão é `1`.
+- `--timeout <seconds>` — limite de tempo do leitor por pergunta. O padrão é `180`.
+- `--json` — emite o relatório como JSON no stdout.
+- `--fix` — depois de uma execução com falhas, entrega o relatório ao agente para corrigir a documentação de forma interativa.
+- `--verbose` — inclui a resposta completa do leitor abaixo de cada falha.

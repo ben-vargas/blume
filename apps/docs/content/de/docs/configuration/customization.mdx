@@ -25,7 +25,7 @@ Die Schlüssel sind die Namen, die du in MDX schreibst (`<Callout>`, `<Pricing>`
 
 ### Referenzformen [#reference-form]
 
-Jedes Override — in `mdx`, `layout` oder `islands` — akzeptiert drei Formen:
+Jedes Override — in `mdx` oder `layout` — akzeptiert drei Formen:
 
 ```ts components.ts
 import { defineComponents } from "blume";
@@ -40,6 +40,8 @@ export default defineComponents({
 });
 ```
 
+Blume liest `components.ts` statisch — es führt die Datei nie aus —, daher sind diese drei Formen die einzigen, die es akzeptiert. Eine Inline-Funktion oder ein Ausdruck, eine in der Datei selbst deklarierte Komponente, ein Spread, ein berechneter Schlüssel oder ein `client`, der keiner der unten aufgeführten Modus-Strings ist, führt zu einem `BLUME_COMPONENTS_INVALID`-Fehler, der den Eintrag benennt: `blume dev` meldet ihn im Terminal und im Browser-Overlay, und `blume build` schlägt fehl.
+
 Die **Descriptor**-Form ergänzt einen Hydration-Modus, damit eine interaktive React-/Vue-/Svelte-Komponente ihr JavaScript ausliefert und auf dem Client zum Leben erwacht. Ohne einen `client`-Modus wird eine Framework-Komponente als statisches HTML gerendert — Blume gibt eine Build-Warnung aus, wenn es so einen Fall entdeckt, da das meist ein Versehen ist.
 
 | `client` | Hydratisiert |
@@ -50,7 +52,7 @@ Die **Descriptor**-Form ergänzt einen Hydration-Modus, damit eine interaktive R
 | `"media"` | Wenn eine `media`-Query zutrifft (ergänze `media: "(min-width: 40rem)"`) |
 | `"only"` | Nur auf dem Client, niemals serverseitig gerendert |
 
-Für interaktive Komponenten, die du auf vielen Seiten einsetzt, ist die [`islands`-Gruppe](/docs/content/islands#registering-islands-in-componentsts) eine Kurzschreibweise für die Descriptor-Form mit `client: "visible"`.
+Ein `mdx`-Eintrag mit einem `client`-Modus _ist_ ein Island: Er ist in jeder Seite verfügbar und hydratisiert genau wie eine Komponente, die du in den [`islands/`-Ordner](/docs/content/islands) legst. Der Ordner bleibt der Weg ganz ohne Konfiguration — nimm einen Eintrag in `components.ts`, wenn du einen anderen Namen als den Dateinamen, eine `media`-Query oder deine Islands neben deinen anderen Overrides haben möchtest.
 
 ### Ein Override typisieren [#typing-an-override]
 
@@ -89,7 +91,7 @@ Verdrahtete Slots:
 | --- | --- | --- |
 | `Layout` | Die gesamte Seitenhülle (`RootLayout`) | Alles, was das eingebaute Layout erhält, plus die `layout`-Map |
 | `Header` | Die obere Navigationsleiste | `site`, `logo`, `navigation`, `route`, `searchEnabled`, … |
-| `Logo` | Der Marken-Link (Bildmarke + Titel) im Header | `site`, `logo` |
+| `Logo` | Der Marken-Link (Bildmarke + Titel) im Header | `site`, `logo`, `locale` |
 | `Search` | Der Suchauslöser im Header + Modal | `navigation`, `strings`, `locale`, `askEnabled` |
 | `Sidebar` | Der primäre Navigationsbaum | `items`, `currentRoute` |
 | `MobileNav` | Die Navigation in der mobilen Schublade (standardmäßig `Sidebar`) | `items`, `currentRoute` |
@@ -151,17 +153,17 @@ Die Kopie importiert den Rest des Frameworks aus `blume/*`, sodass sie exakt wie
 Füge eine beliebige Astro-Integration über das Array `integrations` auf oberster Ebene in `blume.config.ts` hinzu. Installiere die Integration zuerst in deiner Site; Blume fügt sie nicht zu den Abhängigkeiten der generierten Runtime hinzu und verwaltet auch nicht ihre Astro-Kompatibilität.
 
 ```bash
-npm install @astrojs/sitemap
+npm install @astrojs/partytown
 ```
 
 ```ts blume.config.ts lineNumbers
-import sitemap from "@astrojs/sitemap";
+import partytown from "@astrojs/partytown";
 import { defineConfig } from "blume";
 
 export default defineConfig({
   integrations: [
-    sitemap({
-      filter: (page) => !page.includes("/drafts/"),
+    partytown({
+      config: { forward: ["dataLayer.push"] },
     }),
   ],
 });
@@ -178,10 +180,14 @@ Dieselben Integrationen laufen in `blume dev` und `blume build`. Wenn du `blume.
 Wenn du volle Kontrolle möchtest, ejecte die generierte Runtime in ein eigenständiges Astro-Projekt:
 
 ```bash
-blume eject --yes
+npx blume eject --yes
 ```
 
 Eject ist ein einseitiger Schritt: Die versteckte `.blume/`-Runtime wird zu einer normalen Astro-App, die dir gehört und die du direkt verändern kannst. Das Paket `blume` bleibt importierbar, sodass du seine Komponenten, sein Theme und seine Markdown-Prozessoren behältst.
+
+Eject stellt die Skripte in deiner `package.json` auf `astro dev` und `astro build` um und fügt die Pakete hinzu, die die Astro-App namentlich importiert — `astro`, `@tailwindcss/vite`, den Such-Client, die Integrationen und den Adapter, die die Konfiguration einbindet, React, wenn ein Island, ein Beispiel oder Ask AI es verwendet, `ai` für die Ask-AI-Route und `epub-gen-memory` für den EPUB-Export — jeweils in den Versionsbereichen, die Blume selbst verwendet. Führe vor `dev` oder `build` eine Installation aus; Eject listet auf, was es hinzugefügt hat. Jeder Pfad in der ge-ejecteten App ist relativ, sodass sie aus jedem Checkout heraus baut, CI eingeschlossen.
+
+Ab dann startest du die App über ihre eigenen Skripte (`npm run dev`, `npm run build`): `blume dev` und `blume build` brechen in einem ge-ejecteten Projekt ab und verweisen dich dorthin. Auch ein erneutes `blume eject` wird verweigert, da es deine Änderungen überschreiben würde; übergib `--force`, um die App trotzdem neu zu generieren.
 
 ### Was Eject beibehält [#what-eject-keeps]
 

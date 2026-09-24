@@ -12,48 +12,49 @@ Von einem leeren Ordner zu einer laufenden Doku-Website in wenigen Befehlen. Blu
 ## Installieren und ausführen [#install-and-run]
 
 <Steps>
-  <Step title="Blume installieren">
-    Füge das Paket zu einem neuen oder bestehenden Projekt hinzu.
-
-    ```package-install
-    npm i blume
-    ```
-
-  </Step>
   <Step title="Ein Projekt erstellen">
     `blume init` stellt ein paar Fragen – wo das Projekt erstellt werden soll, wie deine
     Doku-Website heißt, welches Template verwendet wird und wo deine Inhalte liegen – und
-    erzeugt dann das Nötigste: einen Inhaltsordner und eine Konfigurationsdatei. Übergib
-    `--yes`, um die Abfragen zu überspringen und die Standardwerte zu übernehmen.
+    erzeugt dann das Nötigste: einen Inhaltsordner, eine Konfigurationsdatei und eine
+    `package.json` mit den Skripten `dev` und `build`. Die Abhängigkeiten installiert es
+    mit dem Paketmanager, mit dem du es ausgeführt hast. Übergib `--yes`, um die Abfragen
+    zu überspringen und die Standardwerte zu übernehmen, oder `--no-install`, um nur die
+    Dateien zu schreiben.
 
-    ```bash
-    blume init
+    ```package-install
+    npx blume init
     ```
+
+    Unter pnpm 12 fügst du `--allow-build=esbuild` nach `pnpm dlx` hinzu (`pnpm dlx --allow-build=esbuild blume init`): pnpm 12 weigert sich, das Installationsskript von esbuild auszuführen, von dem Astro abhängt, solange du es nicht freigibst. Innerhalb eines bestehenden pnpm-Workspaces fügst du `allowBuilds: { esbuild: true }` zur `pnpm-workspace.yaml` des Workspaces hinzu; `init` erinnert dich daran. Mit Yarn 2 oder neuer schreibt `init` eine `.yarnrc.yml`, die Yarn auf eine `node_modules`-Installation umstellt, die Blume benötigt; unter Yarn 1 führst du `npx blume init` aus.
 
     ```txt
     docs/
       index.mdx
     blume.config.ts
+    package.json
     ```
 
   </Step>
   <Step title="Den Entwicklungsserver starten">
-    Blume generiert die Laufzeitumgebung und stellt deine Doku mit Hot Reload bereit.
+    Im Projektverzeichnis generiert Blume die Laufzeitumgebung und stellt deine Doku
+    mit Hot Reload bereit.
 
-    ```bash
-    blume dev
+    ```package-install
+    npm run dev
     ```
 
   </Step>
   <Step title="Für die Produktion bauen">
     Statisches HTML wird nach `dist/` geschrieben, mit einem darauf aufgebauten lokalen Suchindex.
 
-    ```bash
-    blume build
+    ```package-install
+    npm run build
     ```
 
   </Step>
 </Steps>
+
+Du fügst Blume zu einem Projekt hinzu, das bereits eine `package.json` hat? `blume init` lässt bestehende Dateien unangetastet, also füge `"dev": "blume dev"` und `"build": "blume build"` zu dessen Skripten hinzu oder führe `npx blume dev` direkt aus.
 
 :::tip
 Blume funktioniert mit jedem Paketmanager und verlangt nie, dass du Astro oder Tailwind selbst einrichtest.

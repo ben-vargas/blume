@@ -1,0 +1,110 @@
+---
+title: GraphQL
+description: >-
+  Adicione um schema GraphQL e ganhe uma referência de API nativa — uma página real por operação e por tipo, na sua barra lateral e na busca.
+---
+
+Aponte o Blume para um schema GraphQL e ele gera uma referência de API nativa: uma **página real por campo raiz** — queries, mutations e subscriptions — e também uma **página por tipo nomeado** (objects, input objects, enums, interfaces, unions e scalars customizados). Cada página mostra argumentos, valores padrão, depreciações e backlinks de uso. Ela também traz uma operação de exemplo gerada, exemplos de código e um painel interativo [Try it](#try-it-playground). Como cada página é uma página Blume de verdade, ela ganha sua própria URL, aparece na **busca do site** e no `llms.txt` e ganha uma imagem Open Graph, igual a qualquer doc escrita à mão.
+
+A referência é o adapter `graphql()` de `blume/reference`. Ele fica em `reference`, ao lado de qualquer adapter [OpenAPI](/docs/references/openapi) ou [AsyncAPI](/docs/references/asyncapi):
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { graphql } from "blume/reference";
+
+export default defineConfig({
+  reference: [
+    graphql({
+      spec: "./schema.graphql",
+      endpoint: "https://api.example.com/graphql",
+    }),
+  ],
+});
+```
+
+Isso monta a referência em `/graphql` (uma página de visão geral). Os campos raiz ficam em `/graphql/queries/<field>`, `/graphql/mutations/<field>` e `/graphql/subscriptions/<field>`. Os tipos ficam agrupados por categoria em `/graphql/objects/<type>`, `/graphql/enums/<type>` e assim por diante.
+
+O `spec` pode ser um caminho para um arquivo local no seu projeto ou uma URL `http(s)`. Ele aceita dois formatos:
+
+- **Texto SDL**: um arquivo `.graphql` com definições de tipos.
+- **Um resultado de introspecção**: o JSON gerado ao rodar a query de introspecção padrão. Ele pode estar no formato bruto `{ "__schema": … }` ou no envelope de resposta completo `{ "data": { "__schema": … } }`.
+
+O `endpoint` é a URL da API GraphQL em produção. Diferente de um documento OpenAPI, um schema não indica nenhum servidor. Por isso, o painel Try it e os exemplos de código gerados enviam as requisições para o endpoint. Se você não informar um, os exemplos aparecem com uma URL de placeholder que os leitores precisam trocar.
+
+A referência não adiciona uma aba no cabeçalho sozinha. Para exibi-la, aponte uma [aba de navegação](/docs/content/navigation#tabs) para a rota dela. Isso também faz a barra lateral mostrar só a referência:
+
+```ts blume.config.ts
+navigation: {
+  tabs: [{ label: "GraphQL", path: "/graphql" }],
+}
+```
+
+## Exemplos gerados [#generated-examples]
+
+Toda página de operação traz uma operação de exemplo completa e válida. Ela tem uma variável por argumento, tipada a partir do schema, e um selection set de profundidade limitada sobre o tipo de retorno. A página também traz variáveis de exemplo e uma resposta de exemplo que segue a mesma seleção. Os exemplos de código mostram a requisição HTTP exata (um `POST` JSON de `{ query, variables }`) em cada linguagem configurada:
+
+```ts blume.config.ts lineNumbers
+reference: [
+  graphql({
+    spec: "./schema.graphql",
+    codeSamples: ["curl", "js"],   // built in: curl, js, python
+  }),
+],
+```
+
+## Páginas de tipos [#type-pages]
+
+Os tipos nomeados ganham páginas próprias com deep link, agrupadas por categoria na barra lateral. Cada página mostra:
+
+- fields e input fields, com links para os tipos deles
+- valores de enum
+- membros de union
+- implementações de interface
+- uma seção **Usado por**, com as operações que retornam ou aceitam o tipo e os outros tipos que fazem referência a ele
+
+Scalars definidos pela spec (`String`, `Int`, …) não ganham páginas. Já os scalars customizados ganham, incluindo a URL `specifiedBy` deles.
+
+## Múltiplos schemas [#multiple-schemas]
+
+Cada entrada em `sources` renderiza um schema na própria rota. Um `endpoint` definido na source substitui o do adapter:
+
+```ts blume.config.ts lineNumbers
+reference: [
+  graphql({
+    endpoint: "https://api.example.com/graphql",
+    sources: [
+      { label: "Public API", spec: "./schema.graphql" },
+      {
+        label: "Admin API",
+        route: "/graphql-admin",
+        spec: "./admin.graphql",
+        endpoint: "https://admin.example.com/graphql",
+      },
+    ],
+  }),
+],
+```
+
+`spec` é um atalho para um `sources` com uma única entrada. Schemas que precisam de opções de exibição diferentes ficam em adapters `graphql()` separados, cada um com sua própria `route`. Cada source aceita os mesmos [controles por source](/docs/references/openapi#per-source-indexing) que o `openapi()`: `includeInSearch`, `includeInLlms`, `noindex` e `seoDescriptionSuffix`. Aqui, a frase gerada cita a query, a mutation ou o tipo, por exemplo: "Referência da query `pets` na API GraphQL."
+
+## Playground Try it [#try-it-playground]
+
+As páginas de query e mutation mostram um painel interativo. Edite o corpo da requisição (a query e as variáveis), aponte para o seu endpoint ou para uma URL personalizada e envie. Os exemplos de código são atualizados em tempo real, então o que você copia é exatamente, byte a byte, o que foi enviado. Desative com `playground: false`.
+
+As páginas de subscription mostram a operação gerada e um evento de exemplo no lugar do painel. Isso acontece porque subscriptions rodam sobre um transporte com estado (WebSocket ou SSE), e o playground só envia um único `POST` HTTP.
+
+Se a sua API GraphQL não aceita requisições cross-origin vindas do site de docs, faça os envios passarem por um proxy CORS. Use uma URL sua ou `true` para o endpoint embutido `/_api-proxy`. O proxy embutido exige [output de servidor](/docs/deployment#server-rendering), ou seja, um adapter de host como `deployment: vercel()` de `blume/deploy`.
+
+O proxy embutido só encaminha requisições para as origens declaradas nas suas specs documentadas: cada `endpoint` GraphQL configurado e qualquer `servers[].url` absoluta de uma [spec OpenAPI](/docs/references/openapi) documentada. Assim, ninguém consegue usar um deploy público de docs para mandar requisições a outros hosts. Por isso, o `endpoint` é obrigatório para o proxy funcionar. Sem ele, o proxy não tem nenhuma origem liberada para esta referência e recusa todos os envios (o build avisa sobre isso). O limite de tamanho do corpo e os headers de resposta são os mesmos do [proxy OpenAPI](/docs/references/openapi#try-it-playground).
+
+```ts blume.config.ts lineNumbers
+reference: [
+  graphql({
+    spec: "./schema.graphql",
+    endpoint: "https://api.example.com/graphql",
+    playground: { proxy: true },
+  }),
+],
+```
+
+Não existe uma versão Scalar para GraphQL. O embed [`scalar()`](/docs/references/scalar) só lê documentos OpenAPI e AsyncAPI, então uma referência GraphQL é sempre renderizada de forma nativa.

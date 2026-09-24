@@ -1,0 +1,65 @@
+---
+title: Scalar
+description: >-
+  Scalar के स्व-निहित API संदर्भ UI को एक ही रूट पर एम्बेड करें, और कोई भी Scalar विकल्प सीधे आगे पास करें।
+---
+
+[`openapi()`](/docs/references/openapi), [`asyncapi()`](/docs/references/asyncapi) और [`graphql()`](/docs/references/graphql) आपको Blume का अपना रेंडरर देते हैं: प्रत्येक ऑपरेशन के लिए एक वास्तविक पेज, जो आपके साइडबार, खोज और `llms.txt` में शामिल होता है, साथ में एक [Try it प्लेग्राउंड](/docs/references/openapi#try-it-playground) भी। यदि आप इसके बजाय [Scalar](https://scalar.com) का स्व-निहित API संदर्भ UI एम्बेड करना चाहते हैं — एक ही रूट पर उसका अपना साइडबार, खोज, थीम और अनुरोध क्लाइंट — तो `blume/reference` से एक `scalar()` एडैप्टर सूचीबद्ध करें। यह एक OpenAPI या AsyncAPI दस्तावेज़ लेता है, और Scalar स्वयं पहचान लेता है कि वह कौन-सा है:
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { scalar } from "blume/reference";
+
+export default defineConfig({
+  reference: [
+    scalar({
+      spec: "./openapi.yaml",
+      theme: "purple", // a Scalar theme name
+    }),
+  ],
+});
+```
+
+इससे एम्बेड `/reference` पर माउंट हो जाता है। `spec` या तो एक `http(s)` URL होता है, जिसे पेज ब्राउज़र से लोड करता है, या किसी स्थानीय फ़ाइल का पथ, जिसे बिल्ड के समय पढ़कर इनलाइन कर दिया जाता है ताकि पेज स्व-निहित बना रहे। `route` इसे किसी दूसरे रूट पर ले जाता है, और `sources` कई दस्तावेज़ प्रकाशित करता है, प्रत्येक अपने अलग रूट पर। इन पर वही [`label`/`route` नियम](/docs/references/openapi#multiple-specs) लागू होते हैं जिनका नेटिव एडैप्टर पालन करते हैं:
+
+```ts blume.config.ts lineNumbers
+reference: [
+  scalar({
+    route: "/api",
+    sources: [
+      { label: "Public API", spec: "./public.json" },   // → /api/public-api
+      { label: "Legacy API", route: "/legacy", spec: "./legacy.json", noindex: true },
+    ],
+  }),
+],
+```
+
+सूची में Scalar एम्बेड और नेटिव पेज साथ-साथ रह सकते हैं, बशर्ते उनके रूट अलग-अलग हों। उदाहरण के लिए, वर्तमान API के लिए एक `openapi()` एडैप्टर और किसी पुराने (लेगेसी) API के लिए एक `scalar()` एडैप्टर। हर संदर्भ की तरह, एम्बेड अपने आप कोई हेडर टैब नहीं जोड़ता; इसे दिखाने के लिए किसी [नेविगेशन टैब](/docs/content/navigation#tabs) को इसके रूट की ओर इंगित करें।
+
+## एम्बेड क्या नहीं करता [#what-the-embed-doesnt-do]
+
+Scalar द्वारा रेंडर किया गया संदर्भ अपने ही रूट पर एक स्व-निहित पेज होता है। यह Blume के साइडबार, खोज या `llms.txt` में शामिल नहीं होता। इसलिए नेटिव एडैप्टरों के प्रति-स्रोत नियंत्रणों में से यहाँ केवल `noindex` लागू होता है (यह क्रॉलर के लिए noindex मेटाडेटा जोड़ता है और पेज को साइटमैप से बाहर रखता है); यहाँ `codeSamples`, `expandSchemas` या `playground` सेट करने का कोई विकल्प नहीं है। Scalar अपना स्वयं का अनुरोध क्लाइंट लाता है, जो आपके **लक्ष्य API को सीधे ब्राउज़र से** कॉल करता है (Blume का [`playground.proxy`](/docs/references/openapi#cors-and-the-proxy) रूट यहाँ उपलब्ध नहीं है)। इसलिए API को डॉक्स साइट से आने वाले क्रॉस-ऑरिजिन अनुरोधों की अनुमति देनी होगी (`Access-Control-Allow-Origin`)।
+
+हालाँकि, एम्बेड Blume के लाइट/डार्क टॉगल का पालन करता है: माउंट होते समय यह पेज की थीम के अनुसार सेट हो जाता है और थीम बदलने पर साथ में बदल जाता है। इसलिए Scalar का अपना थीम स्विच छिपा रहता है (कलर मोड का नियंत्रण वापस Scalar को सौंपने के लिए `forceDarkModeState` या `darkMode` पास करें)। `theme` न देने पर Blume अपना एक्सेंट और रेडियस Scalar की डिफ़ॉल्ट थीम पर लागू करता है; कोई नामित `theme` देने पर वह थीम इसकी जगह ले लेती है। एडैप्टर `@scalar/astro` को अपनी रनटाइम निर्भरता के रूप में घोषित करता है, इसलिए जनरेट किया गया प्रोजेक्ट इसे केवल तभी सूचीबद्ध करता है जब कोई `scalar()` एडैप्टर कॉन्फ़िगर किया गया हो।
+
+## Scalar विकल्प पास करना [#passing-scalar-options]
+
+अधिकांश लोग `theme` विकल्प का ही उपयोग करते हैं, लेकिन Scalar इसके अलावा कई और विकल्पों का समर्थन करता है। `spec`, `sources`, `route` और `theme` के अतिरिक्त आप `scalar()` को जो भी कुंजी पास करते हैं, वह ज्यों-की-त्यों [Scalar कॉन्फ़िगरेशन](https://github.com/scalar/scalar/blob/main/documentation/configuration.md) के रूप में एम्बेड किए गए संदर्भ तक भेज दी जाती है। Blume कुंजियों पर कोई रोक नहीं लगाता, इसलिए Scalar जो कुछ भी स्वीकार करता है, वह सब उस तक पहुँच जाता है (केवल JSON मान, क्योंकि कॉन्फ़िगरेशन जनरेट किए गए पेज में इनलाइन किया जाता है):
+
+```ts blume.config.ts lineNumbers
+reference: [
+  scalar({
+    spec: "./openapi.yaml",
+    localization: { locale: "es" },   // translate Scalar's own UI
+    agent: { disabled: true },         // disable the Scalar Agent
+    hideTestRequestButton: true,
+    orderSchemaPropertiesBy: "preserve",
+  }),
+],
+```
+
+Blume का अपना [`i18n`](/docs/content/i18n) डॉक्स के इंटरफ़ेस (chrome) का अनुवाद करता है, लेकिन Scalar की स्थानीयकरण प्रणाली अलग है। एम्बेड किए गए संदर्भ का भी अनुवाद करने के लिए `localization.locale` सेट करें। आगे भेजे गए विकल्पों को Blume द्वारा तैयार किए गए कॉन्फ़िगरेशन पर प्राथमिकता मिलती है, इसलिए यहाँ आप जो भी सेट करते हैं (`customCss` या spec के `content`/`url` सहित), वह Blume के डिफ़ॉल्ट को ओवरराइड कर देता है। केवल एक कुंजी आगे नहीं भेजी जा सकती: Scalar का अपना बहु-दस्तावेज़ `sources`। यह नाम Blume उपयोग करता है, और प्रत्येक Blume स्रोत अपना अलग पेज बनता है।
+
+## AsyncAPI दस्तावेज़ [#asyncapi-documents]
+
+`spec` को किसी AsyncAPI दस्तावेज़ की ओर इंगित करें, और एम्बेड चैनल, ऑपरेशन, संदेश और एक Models अनुभाग रेंडर करेगा। Scalar के पास अपना कोई AsyncAPI प्लेग्राउंड नहीं है। इसलिए [`asyncapi()`](/docs/references/asyncapi) के बजाय एम्बेड चुनने पर आपको Blume का [इवेंट कंपोज़र](/docs/references/asyncapi#try-it-for-events) नहीं मिलता। GraphQL स्कीमा के लिए कोई Scalar एम्बेड उपलब्ध ही नहीं है: [`graphql()`](/docs/references/graphql) संदर्भ हमेशा नेटिव रूप से रेंडर किया जाता है।

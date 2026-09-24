@@ -11,7 +11,7 @@ Publicar `llms.txt`, espelhos em Markdown, uma API JSON e um servidor MCP é só
 O Blume escreve um manifesto **`/agent-readability.json`** na raiz do seu site que indexa a superfície voltada a agentes descrita ao longo desta seção — assim um agente consegue descobri-la com uma única requisição, em vez de adivinhar convenções ou raspar HTML. Como o `llms.txt`, ele vem ligado por padrão:
 
 ```ts blume.config.ts lineNumbers
-seo: {
+agents: {
   agentReadability: true,
 }
 ```
@@ -38,7 +38,7 @@ O manifesto lista apenas o que você habilitou — o padrão de espelho em [Mark
     }
   },
   "description": "Docs for the Acme API.",
-  "generator": "blume@1.0.0",
+  "generator": "blume@2.0.0",
   "name": "Acme Docs",
   "site": "https://docs.example.com",
   "contentUsage": { "search": true, "ai-input": true, "ai-train": true },
@@ -48,7 +48,7 @@ O manifesto lista apenas o que você habilitou — o padrão de espelho em [Mark
 
 O campo `contentNegotiation` aparece apenas quando o site publicado realmente respeita o cabeçalho `Accept: text/markdown` — veja [negociação de conteúdo](/docs/discoverability/markdown#content-negotiation); em todo outro tipo de deploy, o manifesto anuncia somente o padrão de espelho `.md`.
 
-Defina `seo.agentReadability` como `false` para pular isso, ou publique seu próprio `public/agent-readability.json` para assumir o controle — o Blume nunca sobrescreve um arquivo que você coloca em `public/`.
+Defina `agents.agentReadability` como `false` para pular isso, ou publique seu próprio `public/agent-readability.json` para assumir o controle — o Blume nunca sobrescreve um arquivo que você coloca em `public/`.
 
 ## Cabeçalho Link de descoberta [#discovery-link-header]
 
@@ -186,11 +186,11 @@ O catálogo de APIs lista APIs. O **catálogo de IA** lista tudo o que um agente
 
 A revisão atual do ARD lê o manifesto em `/.well-known/ard.json` e chama o `ai-catalog.json` de caminho predecessor, então o Blume escreve o mesmo documento nos dois lugares, o anuncia sob ambas as relações de link (`ai-catalog` e `ard`) no head de toda página, e o lista no `llms.txt` e no `agent-readability.json`. O catálogo e seus vizinhos em `.well-known` (o catálogo de APIs, os arquivos de descoberta do MCP) são servidos com `Access-Control-Allow-Origin: *` em todas as superfícies de build, então um registry que os leia de outra origem não é bloqueado.
 
-Os identificadores das entradas são ancorados no seu domínio, então o catálogo precisa de um [`deployment.site`](/docs/deployment) — sem ele nada é emitido. Vem ligado por padrão; `ai.catalog: false` desativa. As queries geradas são derivadas do título do site e da descrição de cada entrada. Para escrever as suas próprias para uma entrada, indexe-as pela cauda do identificador (`<namespace>:<name>`):
+Os identificadores das entradas são ancorados no seu domínio, então o catálogo precisa de um [`deployment.site`](/docs/deployment) — sem ele nada é emitido. Vem ligado por padrão; `agents.catalog: false` desativa. As queries geradas são derivadas do título do site e da descrição de cada entrada. Para escrever as suas próprias para uma entrada, indexe-as pela cauda do identificador (`<namespace>:<name>`):
 
 ```ts blume.config.ts
 export default defineConfig({
-  ai: {
+  agents: {
     catalog: {
       queries: {
         "mcp:acme": ["how do I install Acme", "search the Acme docs"],
@@ -210,17 +210,17 @@ O [WebMCP](https://webmachinelearning.github.io/webmcp/) é uma API de navegador
 Vem ligado por padrão; defina `webmcp: false` para desativar:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   webmcp: false,
 }
 ```
 
 ## Descoberta de skills [#skills-discovery]
 
-Se o seu projeto publica [agent skills](https://agentskills.io) — [o próprio repositório do Blume publica](/docs/advanced/skills) —, aponte `ai.skills` para o diretório que as contém, e o build as publica para descoberta conforme a [RFC de Agent Skills Discovery](https://github.com/cloudflare/agent-skills-discovery-rfc):
+Se o seu projeto publica [agent skills](https://agentskills.io) — [o próprio repositório do Blume publica](/docs/advanced/skills) —, aponte `agents.skills` para o diretório que as contém, e o build as publica para descoberta conforme a [RFC de Agent Skills Discovery](https://github.com/cloudflare/agent-skills-discovery-rfc):
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   skills: "./skills",
 }
 ```
@@ -246,7 +246,7 @@ O `blume audit --url <origin>` verifica isso por você: quando [`deployment.site
 O [Web Bot Auth](https://datatracker.ietf.org/wg/webbotauth/about/) funciona na direção oposta: não se trata de agentes lendo a sua documentação, mas de **os agentes da sua organização se identificarem** ao fazer requisições em outros lugares. Seus agentes assinam as requisições com [HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc9421), e os sites receptores as verificam contra um diretório de chaves públicas publicado no seu domínio. Se a sua organização opera agentes e o seu site Blume vive no domínio com que eles se identificam, publique as chaves públicas deles:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   webBotAuth: {
     keys: [{ kty: "OKP", crv: "Ed25519", x: "JrQLj5P_89iXES9-vFgrIy29c…" }],
   },
@@ -267,7 +267,7 @@ Como o `blume.config.ts` é executado em tempo de build, a chave não precisa fi
 const webBotAuthKey = process.env.WEB_BOT_AUTH_PUBLIC_JWK;
 
 export default defineConfig({
-  ai: {
+  agents: {
     webBotAuth: {
       keys: webBotAuthKey ? [JSON.parse(webBotAuthKey)] : [],
     },

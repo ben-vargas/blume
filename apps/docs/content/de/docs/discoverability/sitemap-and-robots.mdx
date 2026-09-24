@@ -47,7 +47,7 @@ Die `Content-Signal`-Zeile — die aufkommende Konvention zur Inhaltsnutzung —
 Schränke ein beliebiges Signal ein, indem du es auf `false` setzt; die, die du weglässt, bleiben auf `yes`:
 
 ```ts blume.config.ts lineNumbers
-seo: {
+agents: {
   contentSignals: {
     aiTrain: false, // opt out of training, keep search + grounding
   },
@@ -63,14 +63,14 @@ Allow: /
 Setze `contentSignals: false`, um die Deklaration vollständig wegzulassen:
 
 ```ts blume.config.ts lineNumbers
-seo: {
+agents: {
   contentSignals: false,
 }
 ```
 
 <TypeTable
   type={{
-    "seo.contentSignals": {
+    "agents.contentSignals": {
       type: "boolean | object",
       description:
         "Content-Signal-Deklaration. true oder weggelassen gibt alle Signale als yes aus; false lässt die Zeile weg; ein Objekt setzt Signale einzeln.",

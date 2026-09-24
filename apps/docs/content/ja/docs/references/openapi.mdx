@@ -1,0 +1,172 @@
+---
+title: OpenAPI
+description: >-
+  OpenAPI 仕様を追加するだけで、ネイティブな API リファレンスが手に入ります。オペレーションごとに実際のページが生成され、サイドバーと検索に表示されます。
+---
+
+Blume に OpenAPI 仕様を指定すると、ネイティブな API リファレンスが生成されます。**オペレーションごとに実際のページ**が作られ、タブ単位のサイドバーでタグごとにグループ化されます。各ページにはスキーマテーブル、リクエスト/レスポンスの例、生成されたコードサンプル、インタラクティブな [Try it](#try-it-playground) パネルが含まれます。各オペレーションは本物の Blume ページなので、手書きのドキュメントと同じように独自の URL を持ち、**サイト検索**や `llms.txt` に表示され、Open Graph 画像も生成されます。
+
+すべてのリファレンスは、`blume/reference` からインポートして `reference` の下に列挙する**アダプター**です。OpenAPI ドキュメントには `openapi()`、AsyncAPI ドキュメントには [`asyncapi()`](/docs/references/asyncapi)、GraphQL スキーマには [`graphql()`](/docs/references/graphql) を使います。各アダプターは独自の仕様ソース、マウントルート、表示オプションを持つため、リストには各種類のアダプターを必要なだけ含められます。以下の設定では、例として公開されている Petstore 仕様を Blume に指定しています。
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { openapi } from "blume/reference";
+
+export default defineConfig({
+  reference: [
+    openapi({ spec: "https://petstore3.swagger.io/api/v3/openapi.json" }),
+  ],
+});
+```
+
+これにより、リファレンスは `/reference`（概要ページ）にマウントされ、各オペレーションは `/reference/<tag>/<operation>` に配置されます。`spec` には `http(s)` URL か、プロジェクト内のローカルファイルへのパスを指定します。Blume は [Scalar の OpenAPI パーサー](https://github.com/scalar/scalar)で仕様を解析します。Swagger 2.0 と OpenAPI 3.0 の仕様は自動的に 3.1 にアップグレードされます。アダプターは解析済みの仕様ではなく、リファレンスを記述したプレーンな設定です。そのため Blume は事前に検証を行い、生成されるサイトにインライン化できます。`reference` を省略する（または空にする）と、リファレンスは一切レンダリングされません。イベント駆動型 API や GraphQL API をドキュメント化する場合は、[AsyncAPI](/docs/references/asyncapi) と [GraphQL](/docs/references/graphql) を参照してください。
+
+リファレンスを追加しても、ヘッダーのタブは自動では追加されません。表示するには、[ナビゲーションタブ](/docs/content/navigation#tabs)をリファレンスのルートに向けてください。これにより、ネイティブレンダラーのオペレーションサイドバーのスコープも設定されます。
+
+```ts blume.config.ts
+navigation: {
+  tabs: [{ label: "API", path: "/reference" }],
+}
+```
+
+:::note
+オペレーションは**サマリーとタグ**で検索用にインデックスされます。レンダリングされたスキーマテーブルとコードサンプルは全文インデックスの対象外です。検索はオペレーションのタイトルとセクションにマッチし、そのオペレーション自身のページにリンクします。
+:::
+
+## ローカルの仕様 [#a-local-spec]
+
+相対パスはプロジェクトルートから解決され、ビルド時に読み込まれます。JSON と YAML のどちらも使えます。
+
+```ts blume.config.ts lineNumbers
+reference: [openapi({ spec: "./openapi.yaml" })],
+```
+
+## ルート [#route]
+
+`route` は、リファレンスをマウントする場所を制御します。これは概要ページの場所であり、すべてのオペレーションルートのプレフィックス（およびナビゲーションタブを向けるルート）でもあります。
+
+```ts blume.config.ts lineNumbers
+reference: [
+  openapi({
+    route: "/api",   // overview at /api, operations at /api/<tag>/<operation>
+    spec: "./openapi.yaml",
+  }),
+],
+```
+
+## コードサンプルとスキーマ [#code-samples-and-schemas]
+
+`codeSamples` は、オペレーションごとにレンダリングする言語を選択します（組み込み: `curl`、`js`、`python`）。`expandSchemas` を指定すると、ネストされたスキーマ行が折りたたまれた状態ではなく、展開された状態で表示されます。
+
+```ts blume.config.ts lineNumbers
+reference: [
+  openapi({
+    spec: "./openapi.yaml",
+    codeSamples: ["curl", "js"],
+    expandSchemas: true,
+  }),
+],
+```
+
+## Try it プレイグラウンド [#try-it-playground]
+
+ネイティブにレンダリングされたオペレーションページには、デフォルトでインタラクティブな **Try it** パネルが付属します。Blume はオペレーション自体からフォームを生成します。パス、クエリ、ヘッダーの各パラメーターに入力欄が用意され、リクエストボディのスキーマからボディエディターが構築され、すべてに仕様の例があらかじめ入力されます。サーバーピッカーには仕様の `servers` が一覧表示され、それ以外のベース URL を入力できる自由入力欄もあります。認証の入力欄はオペレーションの[解決されたセキュリティ](#authorization)に対応します。ベアラートークン、API キー、Basic 認証の資格情報に対応し、OAuth2 はトークンを貼り付ける欄として表示されます（アクセストークンはご自身で用意してください。Blume は OAuth2 フローを実行しません）。
+
+パネルとコードサンプルは常に連動します。フォームに入力した値は生成されるサンプルにリアルタイムで反映されるため、コピーした curl コマンドは常に **Send** が実行する内容と完全に一致します。また、パネルがページの負担になることもありません。パネルは折りたたまれた状態でサーバーレンダリングされ、その JavaScript は読者が初めてパネルを開いたときにのみ読み込まれます。パネルに一度も触れない読者は、その JavaScript を一切ダウンロードしません。
+
+`playground: false` を指定するだけで、パネルを完全に無効化できます。
+
+```ts blume.config.ts lineNumbers
+reference: [openapi({ spec: "./openapi.yaml", playground: false })],
+```
+
+### 資格情報 [#credentials]
+
+認証の入力欄に入力した資格情報はメモリ内にのみ保持され、ページを再読み込みすると消えます。**Remember on this device** にチェックを入れると、資格情報はドキュメントのオリジンをスコープとして `localStorage` に保存されます。呼び出し先の API 以外に送信されることはありません。読者が **Include my values in samples** をオンにしない限り、何を入力してもコードサンプルにはプレースホルダー（`YOUR_TOKEN` など）が表示されたままになります。
+
+### CORS とプロキシ [#cors-and-the-proxy]
+
+[Scalar の埋め込み](/docs/references/scalar)と同様に、リクエストは**ブラウザから直接**対象の API に送信されます。そのため、API はドキュメントサイトからのクロスオリジンリクエストを許可する必要があります（`Access-Control-Allow-Origin`）。これに対応できない API の場合は、`playground.proxy` を設定してください。URL を指定すると、ご自身でホストするプロキシを経由してリクエストが送信されます。`true` を指定すると組み込みの `/_api-proxy` ルートが有効になります。ただし、これには[サーバー出力](/docs/deployment#server-rendering)、つまり `blume/deploy` の `deployment: vercel()` のようなホストアダプターが必要です。
+
+```ts blume.config.ts lineNumbers
+reference: [
+  openapi({
+    spec: "./openapi.yaml",
+    playground: {
+      proxy: true,   // or a URL of your own
+    },
+  }),
+],
+```
+
+組み込みプロキシは、仕様の `servers` で宣言されたオリジンにのみリクエストを転送します（リダイレクト先も同様です）。そのため、公開されたドキュメントのデプロイメントを悪用して、同じネットワーク上の他のホストにリクエストを送ることはできません。パネルに入力した **Custom base URL** は、仕様に記載されたサーバーとは見なされません。プロキシが有効な場合、そこへのリクエストは 403 で拒否されます。プロキシが読み込むリクエストボディは 4 MB までです（それより大きい場合は `413` が返されます）。また、中継するすべてのレスポンスには `Content-Security-Policy: sandbox`、`X-Content-Type-Options: nosniff`、`Cross-Origin-Resource-Policy: same-origin` が付与され、HTML や SVG の場合はさらに `Content-Disposition: attachment` が付与されます。これにより、入力内容をそのまま返す API のエラーページがあっても、ドキュメントのオリジン上でスクリプトが実行されることはありません。
+
+## 複数の仕様 [#multiple-specs]
+
+1 つのアダプターから複数の仕様を公開するには、`sources` を使います。各ソースは独自の概要ルートとオペレーションページを持ち、アダプターの表示オプションを共有します。各ソースには `label`（サイドバーでの表示とルートの導出に使われます）を指定するか、明示的な `route` を設定してください。
+
+```ts blume.config.ts lineNumbers
+reference: [
+  openapi({
+    sources: [
+      { label: "Public API", spec: "./public.json" },   // → /reference/public-api
+      { label: "Admin API", route: "/admin", spec: "./admin.json" },
+    ],
+  }),
+],
+```
+
+`spec` は単一エントリの `sources` の省略形です。そのため、`sources` を使うのは仕様が複数ある場合だけで十分です。2 つの仕様で異なる表示オプション（たとえば異なるコードサンプルのセット）が必要な場合は、代わりに 2 つの `openapi()` アダプターを、それぞれ独自の `route` を指定して列挙してください。ネイティブページと並べて埋め込む [Scalar](/docs/references/scalar) リファレンスは、リスト内の独立した `scalar()` アダプターとして扱います。ソースはリストの順序で解決され、2 つのソースが同じルートに解決された場合は最初のものが優先されます（除外されたソースについてはビルド時に警告が表示されます）。
+
+### ソースごとのインデックス設定 [#per-source-indexing]
+
+生成されたページは、デフォルトで検索、`llms.txt`、クローラーによるインデックスの対象になります。補助的な仕様や内容が重複する仕様は、ページを非表示にしたりナビゲーションから削除したりすることなく、これらの対象から個別に除外できます。
+
+```ts blume.config.ts lineNumbers
+reference: [
+  openapi({
+    sources: [
+      { label: "Public API", route: "/api", spec: "./public.json" },
+      {
+        label: "Platform API",
+        route: "/platform",
+        spec: "./platform.json",
+        includeInSearch: false,
+        includeInLlms: false,
+        noindex: true,
+      },
+    ],
+  }),
+],
+```
+
+- `includeInSearch: false` を指定すると、ソースの概要とオペレーションがサイト検索から除外されます。
+- `includeInLlms: false` を指定すると、それらが両方の `llms.txt` ファイルから除外されます。
+- `noindex: true` を指定すると、クローラー向けの noindex メタデータが追加され、ページがサイトマップから削除されます。
+
+各オペレーションページのメタディスクリプションは、オペレーション自身の `description`（または `summary`）の後に、エンドポイントを示す生成された文（「Reference for the `GET /pets` endpoint in the Petstore API.」）を続けたものになります。そのため、簡潔な 1 行のサマリーしかない仕様でも、ページごとに固有で、スニペットに適した長さのディスクリプションが付きます。この文は英語です。仕様の文章が別の言語で書かれているサイトでは、ソースに `seoDescriptionSuffix: false` を設定すると、この文が削除され、各ページのディスクリプションは仕様に記述された文章だけになります。`description` と `summary` のどちらもないオペレーションはタイトル（`GET /pets`）にフォールバックするため、ディスクリプションが空のページが公開されることはありません。
+
+```ts blume.config.ts lineNumbers
+reference: [
+  openapi({
+    sources: [{ spec: "./openapi.de.json", seoDescriptionSuffix: false }],
+  }),
+],
+```
+
+[`scalar()`](/docs/references/scalar) の埋め込みでは、これらの設定のうち `noindex` のみを指定できます。埋め込みはもともと Blume の検索と `llms.txt` の対象外であるため、2 つの `include*` 設定は効果がありません。
+
+## 認可 [#authorization]
+
+[セキュリティ要件](https://spec.openapis.org/oas/v3.1.0#security-requirement-object)を宣言したオペレーションでは、パラメーターの上に **Authorization** セクションがレンダリングされます。また、生成されたコードサンプルでは、スキームに応じたプレースホルダーの資格情報（`Authorization: Bearer YOUR_TOKEN`、API キーのヘッダー、またはクエリキー）が送信されます。設定は必要ありません。Blume は仕様から `security` を読み取るため、リファレンスは常に API が実際に要求する内容と一致します。
+
+OpenAPI のセマンティクスはそのまま引き継がれます。
+
+- オペレーション自身の `security` は、ドキュメントのルートで指定されたデフォルトを上書きします。`security: []` を指定したオペレーションは**公開**扱いとなり、Authorization セクションはレンダリングされません。
+- 複数の要件エントリは選択肢を表し、「または」のグループとしてレンダリングされます。1 つのエントリ内のすべてのスキームは同時に必要です。コードサンプルには最初の選択肢が使われます。
+- 空の `{}` エントリは、そのオペレーションで認証が**任意**であることを意味し、セクションにもその旨が表示されます。
+- OAuth2 のスコープはスキームごとに一覧表示されます。`components.securitySchemes` に記述されたスキームの `description` はインラインでレンダリングされます。
+
+## 代わりに Scalar を埋め込む [#embedding-scalar-instead]
+
+`openapi()` は常に Blume 独自のページをレンダリングします。代わりに [Scalar](https://scalar.com) の自己完結型 API リファレンス UI（独自のサイドバー、検索、テーマ、リクエストクライアントを備えています）を単一のルートに埋め込むには、このアダプターの代わりに（または並べて）`blume/reference` の `scalar()` アダプターを列挙してください。埋め込みでできることとできないこと、および Scalar 独自のオプションを渡す方法については、[Scalar](/docs/references/scalar) のページで説明しています。

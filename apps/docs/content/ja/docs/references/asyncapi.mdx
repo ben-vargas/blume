@@ -1,0 +1,60 @@
+---
+title: AsyncAPI
+description: >-
+  AsyncAPI 仕様を追加するだけで、ネイティブなイベントリファレンスが手に入ります。send と receive の各オペレーションごとに実際のページが生成され、サイドバーと検索に表示されます。
+---
+
+イベント駆動型 API では `blume/reference` の `asyncapi()` アダプターを使用し、[OpenAPI](/docs/references/openapi) や [GraphQL](/docs/references/graphql) のアダプターと並べて `reference` に記述します。`openapi()` と同じオプションを受け取り、同じネイティブレンダラーで描画されます。各 `send`/`receive` オペレーションは実際のページになり、次の内容を備えます。メッセージのペイロードとヘッダーのスキーマテーブル、チャネルパラメーター、プロトコルバインディング、仕様の `securitySchemes` から導出される Authorization セクション（サーバーレベルとオペレーションレベルの両方に対応し、代替手段は「or」グループとして表示されます）、そして [Try it](#try-it-for-events) メッセージコンポーザーです。各オペレーションは本物の Blume ページであるため、独自の URL を持ち、**サイト検索**や `llms.txt` に表示され、Open Graph 画像も生成されます。これは手書きのドキュメントとまったく同じです。
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { asyncapi } from "blume/reference";
+
+export default defineConfig({
+  reference: [asyncapi({ spec: "./asyncapi.yaml" })],
+});
+```
+
+これにより、リファレンスは `/events`（概要ページ）にマウントされ、各オペレーションはその配下の個別ページに配置されます。`spec` には `http(s)` の URL か、プロジェクト内のローカルファイル（JSON または YAML）へのパスを指定します。他のリファレンスと同様に、これだけではヘッダータブは追加されません。リファレンスを表示してオペレーションのサイドバーの範囲を限定するには、[ナビゲーションタブ](/docs/content/navigation#tabs)をそのルートに向けてください。
+
+```ts blume.config.ts
+navigation: {
+  tabs: [{ label: "Events", path: "/events" }],
+}
+```
+
+## 仕様のバージョン [#spec-versions]
+
+AsyncAPI **2.x の仕様は、公式の AsyncAPI コンバーターによって自動的に 3.x に正規化されます**。そのため、`publish`/`subscribe` チャネルは、安定した URL を持つ `send`/`receive` オペレーションページに対応付けられます。後から仕様ファイル自体をコンバーターでアップグレードしても、URL は何も変わりません。コンバーターはオプションのピア依存関係のため、1.x または 2.x の仕様を使用するサイトではインストールが必要です（`npm install @asyncapi/converter`）。インストールされていない場合は、このインストールコマンドを示してビルドが失敗します。3.x の仕様では追加のインストールは不要です。オペレーションはタグごとにグループ化され、タグのないオペレーションはチャネルアドレスごとにグループ化されます。
+
+## コードサンプル [#code-samples]
+
+コードサンプルは**プロトコルに対応**しており、オペレーションのバインディング（またはそのサーバーのプロトコル）に応じて切り替わります。WebSocket には `wscat` とブラウザーの `WebSocket` スニペット、Kafka には `kcat`、MQTT には `mosquitto_pub`/`mosquitto_sub` が使われます。`codeSamples` を使うと、`openapi()` で言語を選ぶのと同じ方法でこのセットを絞り込めます。対応するツールがないプロトコルでは、架空のクライアントをでっち上げるのではなく、メッセージペイロードの例のみを表示します。
+
+## 共通オプション [#shared-options]
+
+[OpenAPI](/docs/references/openapi) で説明している内容は、[`playground`](#try-it-for-events) も含めてすべてそのまま使えます。具体的には、[`route`](/docs/references/openapi#route)、`label`/`route` を指定した [`sources`](/docs/references/openapi#multiple-specs)、`expandSchemas`、[ソースごとのインデックス作成](/docs/references/openapi#per-source-indexing)フラグ（`seoDescriptionSuffix` も含みます。生成される文にはエンドポイントの代わりにチャネルとアクションが記載されます）、そしてオペレーションの概要とタグによる検索インデックス作成です。
+
+## 代わりに Scalar を埋め込む [#embedding-scalar-instead]
+
+`asyncapi()` は常に Blume 独自のページを描画します。代わりに [Scalar](https://scalar.com) の UI を埋め込むには、AsyncAPI ドキュメントを指す [`scalar()`](/docs/references/scalar) アダプターを記述してください。埋め込まれた Scalar はドキュメントの種類を検出し、チャネル、オペレーション、メッセージ、および Models セクションを描画します。Scalar には AsyncAPI 用のプレイグラウンドがないため、この切り替えではコンポーザーを使えなくなります。また、ソースごとの設定のうち適用されるのは `noindex` のみです。
+
+## イベント向けの Try it [#try-it-for-events]
+
+ネイティブに描画されるオペレーションページには、ここでも **Try it** パネルが備わっており、[OpenAPI のパネル](/docs/references/openapi#try-it-playground)と同じ仕組みで動作します。サーバー側では折りたたまれた状態で描画され、その JavaScript は読者が初めてパネルを開いたときにのみ読み込まれます。
+
+プロトコルにかかわらず、パネルを開くとペイロードエディターが表示されます。エディターにはメッセージの `examples` があらかじめ入力されており、メッセージに例がない場合はペイロードスキーマからサンプリングした値が入ります。入力内容はメッセージペイロードのスキーマに対して入力中に検証されます。その下には、チャネルパラメーターごとの入力欄と、チャネルの `servers` から候補を取得するサーバーピッカーがあり、その他の URL を指定するための自由入力フィールドもあります。プロトコル対応のコードサンプルは、HTTP オペレーションにおける curl、js、python とまったく同じようにフォームと連動します。チャネルアドレスのテンプレートには入力したパラメーター値が埋め込まれるため、コピーした `wscat`、`WebSocket`、`kcat`、`mosquitto_pub` のスニペットはフォームの内容と一致します。
+
+ライブ接続は WebSocket のみに対応しています。`ws` または `wss` バインディングでは、パネルは解決済みのチャネル URL に接続し、接続状態を表示して、すべてのフレームをタイムスタンプ付きで記録します。AsyncAPI 3 はアクションを API 側の視点で記述しており、パネルもそれに従います。`receive` オペレーションは API があなたから受信するものなので、作成したペイロードを送信する **Send** ボタンが表示されます。`send` オペレーションは API からあなたにメッセージを送るだけなので、接続してログを記録します。再接続の仕組みはありません。ソケットが一度閉じると、再度接続するまで閉じたままです。Kafka、MQTT、AMQP をはじめとするその他のプロトコルでは、コンポーザーとコピー可能な CLI サンプルが提供され、パネルにもその旨がページ上で明示されます。Blume は、ブラウザーのタブからブローカーに接続しているように見せかけることはしません。
+
+`asyncapi()` の `playground` は `openapi()` のものと同じように動作します。ネイティブレンダラーではデフォルトで有効になっており、`false` を指定するだけで完全に無効にできます。
+
+```ts blume.config.ts lineNumbers
+reference: [asyncapi({ spec: "./asyncapi.yaml", playground: false })],
+```
+
+:::note
+`playground.proxy` はイベントオペレーションには適用されません。プロキシは HTTP リクエストを転送するものですが、WebSocket 接続はブラウザーから URL で指定されたサーバーへ直接行われるため、プロキシを間に挟む余地がありません。
+:::
+
+イベントコンポーザーはブローカーの認証情報を一切収集しません。ブローカーが何を求めるかは、各オペレーションページの **Authorization** セクションに記載されています。WebSocket 接続で送られるのは、URL にすでに含まれている情報だけです。イベントオペレーションでは、何も保存されません。

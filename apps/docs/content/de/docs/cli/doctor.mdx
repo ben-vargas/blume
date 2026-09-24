@@ -1,0 +1,30 @@
+---
+title: Doctor
+description: >-
+  blume doctor erkennt Konfigurations- und Inhaltsprobleme, bevor du baust – die Konfiguration, jede Seite, die Node-Version und Features, die einen Server brauchen.
+---
+
+`blume doctor` scannt das Projekt genau so, wie `blume build` es tun würde, und meldet, was es findet, ohne etwas zu generieren oder zu bauen. Führ es als Erstes aus, wenn ein Build aus einem nicht offensichtlichen Grund fehlschlägt. Außerdem eignet es sich als günstige Prüfung in der CI:
+
+```bash
+blume doctor
+```
+
+## Was geprüft wird [#what-it-checks]
+
+- **Die Node-Version** gegen den Bereich, den das installierte `blume`-Paket unterstützt. Dieser wird aus dem eigenen `engines`-Feld des Pakets gelesen. Liegt die Version außerhalb, gibt es eine Warnung: Es kann funktionieren, aber Blume testet diese Kombination nicht.
+- **`blume.config.ts`**, mit derselben Validierung, die auch ein Build durchführt. Ein entfernter oder umbenannter Schlüssel schlägt mit einem Hinweis auf seinen Ersatz fehl statt mit einem bloßen „unrecognized key“.
+- **Jede Inhaltsseite und jede Ordner-Meta**: die Diagnosen, die `blume dev` und `blume build` beim Laden des Projekts ausgeben – ungültiges Frontmatter, Navigationsprobleme, fehlende Include-Ziele und alles Weitere –, gesammelt in einem Bericht.
+- **Features, die einen Server brauchen**, auf einer Site, die für statische Ausgabe konfiguriert ist – Ask AI, der MCP-Server oder der eingebaute Proxy des Try-it-Playgrounds: ein Fehler, der das Feature benennt, zusammen mit dem Deployment-Adapter, zu dem du wechseln solltest (oder, wenn ein Host-Adapter auf `output: "static"` gesetzt ist, mit dem Hinweis, diese Option zu entfernen).
+- **Pakete, die deine Konfiguration braucht**, die aber nicht installiert sind – das SDK, das ein Such-, Content-Source- oder Ask-AI-Adapter importiert, das `@astrojs/*`-Paket eines Deployment-Adapters oder der Renderer für Vue- oder Svelte-Islands: ein Fehler, der jedes Paket benennt, zusammen mit dem Installationsbefehl für deinen Paketmanager. `blume build` bricht bei derselben Prüfung ab.
+- **Überschreibungen in `components.ts`**, die Blume nicht einplanen kann – ein Inline- oder berechneter Eintrag oder ein Import, dessen Datei nicht existiert: jeweils ein Fehler in der entsprechenden Zeile.
+- **Ein Ordner, der wie eine Version aussieht** (`v1.0/`), auf einer Site ohne konfigurierte `versions`, der sonst als gewöhnlicher Inhalt gebaut würde: eine Warnung mit Verweis auf [`blume version`](/docs/cli/version).
+- **Secrets, die ein aktiviertes Feature liest**, die aber nicht gesetzt sind, etwa `ALGOLIA_ADMIN_API_KEY` oder `OPENROUTER_API_KEY`: eine Warnung, die die Variable benennt. Doctor lädt zuerst `.env` und `.env.local`, genau wie `blume dev` und `blume build`.
+
+## Die Zusammenfassung [#the-summary]
+
+Nach den Diagnosen gibt doctor aus, wie das Projekt aufgelöst wurde. So siehst du auf einen Blick, ob sich das, was du für konfiguriert hältst, von dem unterscheidet, was Blume sieht: die Seitenanzahl, der Ausgabemodus und der Deployment-Adapter, der Suchanbieter, die konfigurierten Referenz-, Analytics- und Content-Source-Adapter sowie ob Ask AI aktiviert ist und welches Backend es nutzt.
+
+## Exit-Code und JSON [#exit-code-and-json]
+
+Doctor beendet sich mit einem Exit-Code ungleich null, wenn es Fehlerdiagnosen gibt. Damit schlägt die CI bei denselben Problemen fehl wie ein Build. Warnungen werden gemeldet, lassen die CI aber nicht fehlschlagen. `--json` gibt die Diagnosen statt des Terminal-Berichts als JSON auf stdout aus, im selben Format, das [`blume validate --json`](/docs/cli/validate#json-output) verwendet.

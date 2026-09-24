@@ -4,7 +4,7 @@ description: >-
   Reutilize conteúdo entre páginas — insira arquivos Markdown, MDX ou de código compartilhados em qualquer página com a sintaxe de include.
 ---
 
-Escreva um trecho uma vez e insira ele em qualquer página. Uma instrução `<include>` em sua própria linha embute outro arquivo no momento do build, como se o conteúdo estivesse escrito ali mesmo — os títulos entram no sumário da página, o texto é indexado pela busca, e o conteúdo aparece no espelho `.md` da página e no llms-full.txt.
+Escreva um trecho uma vez e insira ele em qualquer página. Uma instrução `<include>` em sua própria linha embute outro arquivo no momento do build, como se o conteúdo estivesse escrito ali mesmo — os títulos entram no sumário da página, o texto é indexado pela busca, e o conteúdo aparece no espelho `.md` da página e no llms-full.txt. Uma instrução que um formatador quebre em várias linhas continua sendo inserida, e uma que o Blume não consiga interpretar gera um aviso `BLUME_INCLUDE_MALFORMED` na linha dela, em vez de ser renderizada como uma tag bruta.
 
 ```mdx
 <include>./_snippets/prerequisites.mdx</include>
@@ -49,9 +49,7 @@ Um alvo que não seja `.md`/`.mdx` é embutido como um bloco de código cercado,
 ```mdx
 <include>./examples/config.ts</include>
 
-<include lang="ts" meta='title="blume.config.ts"'>
-  ../blume.config.ts
-</include>
+<include meta='title="config.ts"'>./examples/config.ts</include>
 
 <include lang="mdx">./_snippets/prerequisites.mdx</include>
 ```

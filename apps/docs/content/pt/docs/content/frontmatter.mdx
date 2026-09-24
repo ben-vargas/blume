@@ -1,0 +1,187 @@
+---
+title: Frontmatter
+description: >-
+  Todos os campos de frontmatter que uma página aceita, todos opcionais — title, description, sidebar, SEO, search e os demais, com o que cada um controla.
+---
+
+Toda página aceita o frontmatter a seguir. Todos os campos são opcionais.
+
+<TypeTable
+  type={{
+    title: { type: "string", description: "Page title." },
+    description: { type: "string", description: "Page summary." },
+    type: {
+      type: "string",
+      default: "doc",
+      description: "Content type. blog/changelog drive feeds.",
+    },
+    date: {
+      type: "string",
+      description: "Publish date for blog/changelog feeds (ISO or YAML date).",
+    },
+    authors: {
+      type: "string | string[] | object[]",
+      description:
+        "Post author(s) for blog/changelog content — a name, or objects with a name plus optional avatar/url and any extra fields. Preserved as-is.",
+    },
+    slug: { type: "string", description: "Override the generated slug." },
+    draft: {
+      type: "boolean",
+      default: "false",
+      description: "Exclude from production builds.",
+    },
+    deprecated: {
+      type: "boolean",
+      default: "false",
+      description:
+        "Mark the page deprecated: its sidebar row gets a deprecated pill (a translatable UI string).",
+    },
+    hidden: {
+      type: "boolean",
+      default: "false",
+      description: "Shorthand for sidebar.hidden.",
+    },
+    noindex: {
+      type: "boolean",
+      default: "false",
+      description: "Shorthand for seo.noindex.",
+    },
+    icon: {
+      type: "string",
+      description:
+        "Lucide icon for the page's sidebar row when sidebar.icon isn't set (sidebar.icon wins).",
+    },
+    lastModified: {
+      type: "string",
+      description:
+        'Pin the page\'s "last updated" date (ISO or YAML date); overrides the git-derived date.',
+    },
+  }}
+/>
+
+## Barra lateral [#sidebar]
+
+```yaml lineNumbers
+sidebar:
+  label: Install
+  order: 2
+  icon: download
+  badge: New
+  hidden: false
+  display: page
+```
+
+`hidden` remove a página da barra lateral e da paginação anterior/próxima. Na página `index` de uma pasta, ele remove só a linha da própria página: a linha do grupo continua apontando para a página, e os links de anterior/próxima ainda passam por ela.
+
+`display` define o modo de renderização do grupo da pasta da página ([substituições por grupo](/docs/content/navigation#per-group-overrides)) e só faz sentido na página `index` de uma pasta dentro da barra lateral gerada. Em qualquer outro lugar (uma página que não é index, a própria página `index` da raiz do conteúdo ou qualquer página sob um `navigation.sidebar` explícito), não existe grupo para configurar, e o Blume emite o aviso `BLUME_SIDEBAR_DISPLAY_IGNORED`.
+
+## SEO
+
+```yaml lineNumbers
+seo:
+  title: Install Blume
+  description: Install Blume and scaffold your first project.
+  image: /og/install.png
+  canonical: https://acme.com/install
+  noindex: false
+  x:
+    creator: "@jane"
+```
+
+`noindex` emite um `noindex` para robôs, tira a página do sitemap e omite os dados estruturados dela. `x.creator` atribui a página a uma conta do X (`twitter:creator`), como o autor de um post convidado, por exemplo. Veja [Metadados](/docs/discoverability/metadata#per-page-overrides) para conhecer todos os campos.
+
+## Busca [#search]
+
+```yaml lineNumbers
+search:
+  exclude: false
+  tags: [api]
+```
+
+## IA [#ai]
+
+```yaml lineNumbers
+ai:
+  exclude: true
+```
+
+`ai.exclude` deixa a página fora do [`llms.txt` e do `llms-full.txt`](/docs/discoverability/llms-txt#excluding-a-page). A página continua sendo renderizada, aparece na busca e mantém seu lugar no sitemap.
+
+## Changelog
+
+Entradas de changelog (`type: changelog`) aceitam um objeto `changelog` opcional para metadados mais completos de feed e de exibição:
+
+```yaml lineNumbers
+type: changelog
+changelog:
+  version: 1.2.0
+  date: 2026-06-20
+  category: Features
+```
+
+`date` pode ficar aqui ou no nível superior. Os dois alimentam o [feed RSS do changelog](/docs/content#feeds). Veja [Changelog](/docs/advanced/changelog) para saber mais sobre a página de linha do tempo gerada e o feed.
+
+## Chaves personalizadas [#custom-keys]
+
+Qualquer chave que não esteja nesta referência faz o build falhar, então erros de digitação são detectados logo. Projetos com metadados próprios podem habilitar chaves extras com [`frontmatter.extend`](/docs/configuration#frontmatter) no `blume.config.ts`. Cada uma é validada por um schema fornecido pelo projeto:
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { z } from "zod";
+
+export default defineConfig({
+  frontmatter: {
+    extend: {
+      owner: z.string(),
+      reviewedAt: z.coerce.date().optional(),
+    },
+  },
+});
+```
+
+```yaml page.mdx
+---
+title: Install
+owner: "@sam"
+reviewedAt: 2026-06-20
+---
+```
+
+Os schemas são aceitos pela interface [Standard Schema](https://standardschema.dev), então Zod (em qualquer versão que seu projeto instalar), Valibot e ArkType funcionam. Toda chave declarada é validada em todas as páginas, inclusive nas que não têm essa chave. Por isso, um schema obrigatório exige a chave no site inteiro. Marque-o com `.optional()` para validar só onde a chave aparecer. Todas as outras chaves continuam com validação estrita, e os campos nativos não podem ser declarados de novo.
+
+### Chaves por tipo [#per-type-keys]
+
+Para exigir chaves só em um tipo de conteúdo, como o `status` de uma RFC ou a `severity` de um relatório de incidente, declare-as em [`content.types`](/docs/configuration#content). Elas ficam agrupadas pelo `type` de frontmatter ao qual se aplicam:
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { z } from "zod";
+
+export default defineConfig({
+  content: {
+    types: {
+      rfc: {
+        frontmatter: {
+          domain: z.string(),
+          status: z.enum(["draft", "review", "enforced"]),
+        },
+      },
+    },
+  },
+});
+```
+
+```yaml rfcs/openapi-request-schemas.mdx
+---
+title: OpenAPI request schemas
+type: rfc
+domain: architecture
+status: enforced
+---
+```
+
+As chaves por tipo seguem as mesmas regras de validação do `extend`, mas só valem para as páginas cujo `type` resolvido corresponde. Isso inclui páginas que não definem `type`, quando a declaração é para o [`content.defaultType`](/docs/configuration#content). Cada chave pertence a uma única declaração, para o site inteiro ou por tipo, nunca às duas. Além disso, uma chave declarada só para outro tipo continua desconhecida no resto do site. Então um `status` esquecido em uma página de documentação comum ainda faz o build falhar.
+
+Uma página que não passa na validação faz o `blume build` falhar com um diagnóstico que indica o arquivo e a chave. Com [`--no-strict`](/docs/cli#common-flags), o build termina mesmo assim, e as páginas com falha ficam de fora da saída. O resumo do build informa quantas foram.
+
+Os schemas são exportados de `blume/schema` para ferramentas de editor e de migração.

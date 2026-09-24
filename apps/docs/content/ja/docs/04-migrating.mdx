@@ -1,0 +1,59 @@
+---
+title: Blume への移行
+description: >-
+  Mintlify、Fumadocs、Docusaurus、Starlight、Nextra のサイトを、Claude Code または Codex に移行作業を任せる 1 つのコマンドで Blume に移行します。
+sidebar:
+  label: Blume への移行
+  order: 2.4
+---
+
+ドキュメントサイトを Blume らしい構成に移行するには、codemod では下せない判断が必要です。宣言されたナビゲーションのうちどれをフォルダーにするか、どのコンポーネントをディレクティブにするか、そして Blume に相当するものがないのはどれか、といった判断です。そのため `blume migrate` は、Blume の移行プレイブックに沿って作業するコーディングエージェントにこの作業を任せ、あなたは各編集をレビューします。
+
+## 1 つのコマンドで移行する [#migrate-with-one-command]
+
+移行するドキュメントプロジェクトのルートで実行します:
+
+```package-install
+npx blume migrate fumadocs --claude
+```
+
+`fumadocs` はお使いのフレームワークに置き換えてください。Codex を使う場合は `--claude` を `--codex` に置き換えます。pnpm 12 は承認なしに esbuild のインストールスクリプトを実行しないため、pnpm 12 では `pnpm dlx` の後に `--allow-build=esbuild` を追加してください。エージェントはターミナル内で対話的に起動するため、すべての編集はエージェント自身の許可フローを通ります。エージェントはファイルを直接編集するため、クリーンなワーキングツリーから始め、移行全体を 1 つの diff としてレビューしてください。
+
+## 移行元 [#sources]
+
+移行元のフレームワークを指定してください。省略した場合は、Blume がプロジェクト内のファイルから自動的に検出します。指定したフレームワークとプロジェクトの内容が異なるように見える場合、Blume は警告を表示したうえで、指定されたフレームワークのまま処理を続行します:
+
+| 移行元 | 検出の手がかり |
+| --- | --- |
+| `mintlify` | `docs.json` または `mint.json` |
+| `fumadocs` | `source.config.ts`、または `package.json` 内の `fumadocs-core`、`fumadocs-ui`、`fumadocs-mdx` |
+| `docusaurus` | `docusaurus.config.*` |
+| `starlight` | `package.json` 内の `@astrojs/starlight` |
+| `nextra` | `package.json` 内の `nextra` |
+
+各移行元には、プレイブック内に専用のマッピングリファレンスがあります。これら以外で構築されたサイトも移行できます。移行元を指定せずにコマンドを実行すると、エージェントはまずリポジトリの内容を洗い出し、その後プレイブックの一般的なルールに沿って作業します。
+
+## エージェントが行うこと [#what-the-agent-does]
+
+エージェントは、移行元の設定の読み取りからビルドが成功するまで、プレイブックのワークフローに従って作業します:
+
+1. `blume.config.ts` を作成します。移行元で宣言されている項目のみをマッピングし、それ以外は Blume のデフォルトに任せます。
+2. コンテンツを[ファイルシステムナビゲーション](/docs/content/navigation)に合わせて再構成し、フォルダーごとの並び順ファイル(Fumadocs の `meta.json`、Nextra の `_meta`)を `meta.ts` に変換します。
+3. ページを書き換えます。フロントマターを Blume のスキーマに、コールアウトコンポーネントを[ディレクティブ](/docs/content/syntax)に、アイコンを Lucide に変換し、スニペットはインライン化します。
+4. 移動するすべての URL に[リダイレクト](/docs/deployment#redirects)を追加し、リンク切れを防ぎます。
+5. `package.json` のスクリプトを `blume dev` と `blume build` に向け、旧フレームワークの依存関係を `blume` に置き換えます。
+6. `blume build` と `blume validate` の両方が成功するまで実行を繰り返します。
+
+最後に、移行したもの、削除したもの、近似的に対応したもの(Blume に相当する機能がないフッターリンクや動的リダイレクトなど)の概要を示すので、それぞれをどう扱うかを判断できます。
+
+## その他のエージェント [#other-agents]
+
+`--claude` または `--codex` を指定しない場合、コマンドは検出した移行元を報告し、プレイブック(パッケージに同梱されている `blume-migrate` [スキル](/docs/advanced/skills))のパスを表示して、何も変更せずに終了します。他のエージェントにはその `SKILL.md` を参照させるか、表示されるコマンドを使って、エージェントがスキルを探す場所にスキルをインストールしてください:
+
+```bash
+npx skills add haydenbleasel/blume --skill blume-migrate
+```
+
+## まずは比較する [#compare-first]
+
+[比較ページ](/compare)では、Blume を各フレームワークと並べて比較し、移行でそのまま引き継がれるものと書き換えられるものを一覧にしています。

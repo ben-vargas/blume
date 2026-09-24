@@ -215,21 +215,27 @@ theme: {
 
 ### デザイントークン [#design-tokens]
 
-| トークン                    | 制御する対象                                |
-| --------------------------- | ------------------------------------------- |
-| `--blume-background`        | ページの背景                                |
-| `--blume-foreground`        | 本文テキスト                                |
-| `--blume-muted`             | 控えめな面 — コールアウト、テーブルヘッダー |
-| `--blume-muted-foreground`  | 補助的なテキスト                            |
-| `--blume-border`            | ボーダーと区切り線                          |
-| `--blume-accent`            | アクセントカラー                            |
-| `--blume-accent-foreground` | アクセント背景の上のテキストとアイコン      |
-| `--blume-action`            | 二次的なアクセント（デフォルトは accent）   |
-| `--blume-code-background`   | コードブロックの面                          |
-| `--blume-radius`            | 角の丸み                                    |
-| `--blume-font-display`      | 見出しのフォント                            |
-| `--blume-font-body`         | 本文 / UI のフォント                        |
-| `--blume-font-mono`         | コードのフォント                            |
+| トークン | 制御する対象 |
+| --- | --- |
+| `--blume-background` | ページの背景 |
+| `--blume-foreground` | 本文テキスト |
+| `--blume-muted` | 控えめな面 — コールアウト、テーブルヘッダー |
+| `--blume-muted-foreground` | 補助的なテキスト |
+| `--blume-border` | ボーダーと区切り線 |
+| `--blume-accent` | アクセントカラー |
+| `--blume-accent-foreground` | アクセント背景の上のテキストとアイコン |
+| `--blume-action` | 二次的なアクセント（デフォルトは accent） |
+| `--blume-action-foreground` | アクション背景の上のテキストとアイコン（デフォルトは accent foreground） |
+| `--blume-code-background` | コードブロックの面 |
+| `--blume-code-highlight`, `--blume-code-highlight-border` | ハイライトされたコード行の背景と左罫線（`// [!code highlight]` または `{1,4-5}` の範囲指定） |
+| `--blume-code-add`, `--blume-code-add-border` | 追加された行の背景と左罫線（`// [!code ++]`） |
+| `--blume-code-remove`, `--blume-code-remove-border` | 削除された行の背景と左罫線（`// [!code --]`） |
+| `--blume-code-word`, `--blume-code-word-border` | ハイライトされた単語の背景とアウトライン（`// [!code word:…]`） |
+| `--blume-content-width` | 本文カラムの最大幅 — 記事、パンくずリスト、目次、フィードバック、ページネーション（デフォルトは `42rem`） |
+| `--blume-radius` | 角の丸み |
+| `--blume-font-display` | 見出しのフォント |
+| `--blume-font-body` | 本文 / UI のフォント |
+| `--blume-font-mono` | コードのフォント |
 
 厳選リスト外のフォントを使う、あるいはシステムスタックにフォールバックするには、`--blume-font-*` トークンに任意のフォントスタックを設定します:
 
@@ -253,6 +259,9 @@ Blume のテーマは内部的に Tailwind v4 で構築されており、プロ�
 | `--blume-accent`            | `bg-accent`, `text-accent` |
 | `--blume-accent-foreground` | `text-accent-foreground`   |
 | `--blume-action`            | `bg-action`, `text-action` |
+| `--blume-action-foreground` | `text-action-foreground`   |
+| `--blume-code-background`   | `bg-code`                  |
+| `--blume-content-width`     | `max-w-content`            |
 | `--blume-radius`            | `rounded-blume`            |
 | `--blume-font-display`      | `font-display`             |
 | `--blume-font-body`         | `font-sans`                |

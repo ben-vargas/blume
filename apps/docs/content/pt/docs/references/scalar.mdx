@@ -1,0 +1,65 @@
+---
+title: Scalar
+description: >-
+  Incorpore a interface autocontida de referência de API do Scalar em uma única rota, repassando diretamente qualquer opção do Scalar.
+---
+
+O renderizador próprio do Blume é o que [`openapi()`](/docs/references/openapi), [`asyncapi()`](/docs/references/asyncapi) e [`graphql()`](/docs/references/graphql) oferecem: uma página de verdade para cada operação, que aparece na sua barra lateral, na busca e no `llms.txt`, com um [playground Try it](/docs/references/openapi#try-it-playground). Se você preferir incorporar a interface autocontida de referência de API do [Scalar](https://scalar.com), liste um adaptador `scalar()` de `blume/reference`. Essa interface traz barra lateral, busca, tema e cliente de requisições próprios em uma única rota. O adaptador recebe um documento OpenAPI ou AsyncAPI, e o Scalar detecta qual dos dois é:
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { scalar } from "blume/reference";
+
+export default defineConfig({
+  reference: [
+    scalar({
+      spec: "./openapi.yaml",
+      theme: "purple", // a Scalar theme name
+    }),
+  ],
+});
+```
+
+Isso monta o embed em `/reference`. `spec` pode ser uma URL `http(s)` ou o caminho de um arquivo local. Uma URL é carregada pelo navegador. Um arquivo local é lido no build e embutido na página, para que ela continue autocontida. `route` muda a rota do embed. `sources` publica vários documentos, cada um na sua própria rota, seguindo as mesmas [regras de `label`/`route`](/docs/references/openapi#multiple-specs) dos adaptadores nativos:
+
+```ts blume.config.ts lineNumbers
+reference: [
+  scalar({
+    route: "/api",
+    sources: [
+      { label: "Public API", spec: "./public.json" },   // → /api/public-api
+      { label: "Legacy API", route: "/legacy", spec: "./legacy.json", noindex: true },
+    ],
+  }),
+],
+```
+
+Um embed do Scalar e páginas nativas podem ficar lado a lado na lista, desde que tenham rotas diferentes. Você pode, por exemplo, usar um adaptador `openapi()` para a API atual e um adaptador `scalar()` para uma API legada. Assim como qualquer referência, o embed não cria sozinho uma aba no cabeçalho. Para exibi-lo, aponte uma [aba de navegação](/docs/content/navigation#tabs) para a rota dele.
+
+## O que o embed não faz [#what-the-embed-doesnt-do]
+
+Uma referência renderizada pelo Scalar é uma página autocontida, na sua própria rota. Ela não entra na barra lateral, na busca nem no `llms.txt` do Blume. Por isso, dos controles por fonte dos adaptadores nativos, só o `noindex` vale aqui: ele adiciona metadados de noindex para crawlers e deixa a página fora do sitemap. Não existe `codeSamples`, `expandSchemas` nem `playground` para configurar. O Scalar tem o próprio cliente de requisições, que chama a sua **API de destino diretamente do navegador**. A rota [`playground.proxy`](/docs/references/openapi#cors-and-the-proxy) do Blume não está disponível aqui, então a API precisa aceitar requisições cross-origin vindas do site da documentação (`Access-Control-Allow-Origin`).
+
+O embed acompanha o seletor de modo claro/escuro do Blume. Ao ser montado, ele assume o tema da página e passa a mudar junto com ela, por isso o seletor de tema do próprio Scalar fica oculto. Para devolver o controle do modo de cor ao Scalar, passe `forceDarkModeState` ou `darkMode`. Sem um `theme`, o Blume aplica a cor de destaque e o raio de borda dele por cima do tema padrão do Scalar. Um `theme` nomeado substitui isso. O adaptador declara `@scalar/astro` como dependência de runtime, então o projeto gerado só inclui esse pacote quando há um adaptador `scalar()` configurado.
+
+## Passando opções do Scalar [#passing-scalar-options]
+
+`theme` é a opção que a maioria das pessoas procura, mas o Scalar aceita muitas outras. Além de `spec`, `sources`, `route` e `theme`, qualquer chave que você passar para `scalar()` é repassada sem alterações como [configuração do Scalar](https://github.com/scalar/scalar/blob/main/documentation/configuration.md) para a referência incorporada. O Blume não filtra as chaves, então tudo o que o Scalar aceita é repassado. Só valem valores JSON, porque a configuração é embutida na página gerada:
+
+```ts blume.config.ts lineNumbers
+reference: [
+  scalar({
+    spec: "./openapi.yaml",
+    localization: { locale: "es" },   // translate Scalar's own UI
+    agent: { disabled: true },         // disable the Scalar Agent
+    hideTestRequestButton: true,
+    orderSchemaPropertiesBy: "preserve",
+  }),
+],
+```
+
+O [`i18n`](/docs/content/i18n) do Blume traduz a interface da documentação, mas o Scalar tem um sistema de localização separado. Para traduzir também a referência incorporada, defina `localization.locale`. As opções repassadas têm prioridade sobre a configuração que o Blume gera, então o que você definir aqui substitui os padrões do Blume. Isso inclui `customCss` e o `content`/`url` da spec. A única chave que não pode ser repassada é o `sources` multidocumento do próprio Scalar. Esse nome é usado pelo Blume, e cada fonte do Blume vira uma página separada.
+
+## Documentos AsyncAPI [#asyncapi-documents]
+
+Se você apontar `spec` para um documento AsyncAPI, o embed renderiza canais, operações, mensagens e uma seção Models. O Scalar não tem um playground próprio para AsyncAPI. Por isso, ao escolher o embed em vez de [`asyncapi()`](/docs/references/asyncapi), você abre mão do [compositor de eventos](/docs/references/asyncapi#try-it-for-events) do Blume. Schemas GraphQL não têm embed do Scalar: a referência [`graphql()`](/docs/references/graphql) é sempre renderizada nativamente.

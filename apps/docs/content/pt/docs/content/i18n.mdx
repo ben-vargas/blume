@@ -84,7 +84,7 @@ i18n: {
 
 Cada idioma ganha sua própria barra lateral, construída a partir dos arquivos daquele locale — então as traduções podem divergir em estrutura, ordenação ou rótulos. Os arquivos [`meta.ts`](/docs/content/meta) de pasta também são resolvidos por locale: com o parser `dir` padrão, coloque um `meta.ts` em `fr/guides/` para ordenar o grupo em francês de forma independente. Com o parser `dot`, as traduções ficam ao lado das originais, portanto o `meta.ts` de uma pasta se aplica a todos os locales. Todo o resto da [navegação](/docs/content/navigation) funciona da mesma forma, por idioma.
 
-As abas do cabeçalho são configuradas, e não derivadas do conteúdo, então seus rótulos são localizados em `blume.config.ts`: o `label` de uma aba aceita um mapa por locale (`{ en: "Docs", fr: "Documentation" }`) além da forma de string simples, recorrendo à entrada do locale padrão para os locales que você não preencheu. Veja [Abas](/docs/content/navigation#tabs).
+As abas do cabeçalho são configuradas, e não derivadas do conteúdo, então seus rótulos são localizados em `blume.config.ts`: o `label` de uma aba aceita um mapa por locale (`{ en: "Docs", fr: "Documentation" }`) além da forma de string simples, recorrendo à entrada do locale padrão para os locales que você não preencheu. Veja [Abas](/docs/content/navigation#tabs). Os caminhos das abas, os links do cabeçalho e o link do logo do cabeçalho também passam para o locale do leitor sempre que esse locale serve a rota, de modo que o cabeçalho permanece dentro de um único idioma. Uma rota servida apenas pelo locale padrão — uma [página personalizada](/docs/advanced/custom-pages) ou o índice gerado do [changelog](/docs/advanced/changelog) — mantém o próprio caminho em vez de apontar para uma URL localizada que daria 404.
 
 ## Fallbacks
 
@@ -97,7 +97,9 @@ i18n: {
 }
 ```
 
-Páginas de fallback são excluídas do índice de busca e não são anunciadas como traduções reais no `hreflang`, de modo que conteúdo não traduzido não concorre por posicionamento. Elas ainda aparecem na barra lateral daquele locale, então a navegação permanece completa — um leitor consegue chegar a qualquer página em qualquer idioma.
+Páginas de fallback apontam o link canônico para a página que copiam, são excluídas do índice de busca, do `llms.txt` e das listas de páginas do MCP e da API JSON, e não são anunciadas como traduções reais no `hreflang`, de modo que conteúdo não traduzido não concorre por posicionamento. Elas ainda aparecem na barra lateral daquele locale, então a navegação permanece completa — um leitor consegue chegar a qualquer página em qualquer idioma.
+
+As notas de versão de uma fonte [`githubReleases()`](/docs/content/sources#github-releases) são a exceção: elas são publicadas em um único idioma, então nunca são copiadas para as URLs de outros locales e não exibem seletor de idiomas.
 
 :::tip
 Comece traduzindo suas páginas mais importantes — a página inicial, o guia rápido e os principais guias — e deixe o resto usar o fallback. Você pode preencher as traduções ao longo do tempo sem quebrar nenhum link.
@@ -121,7 +123,7 @@ O Blume valida a estrutura de cada resultado — frontmatter, blocos de código,
 
 ## O seletor de idiomas [#the-language-switcher]
 
-Quando a i18n está ativada, um seletor de idiomas aparece automaticamente no cabeçalho, gerado a partir dos seus `locales`. Para cada página, ele aponta para a tradução correspondente em todos os idiomas; onde falta uma tradução, ele aponta para a página de fallback e a marca como não traduzida. Não há nada para configurar.
+Quando a i18n está ativada, um seletor de idiomas aparece automaticamente no cabeçalho, gerado a partir dos seus `locales`. Para cada página, ele aponta para a tradução correspondente em todos os idiomas; onde falta uma tradução, ele aponta para a página de fallback e a marca como não traduzida. Não há nada para configurar. Páginas de uma fonte [GitHub Releases](/docs/content/sources#github-releases) são a exceção: as notas de versão existem em um único idioma, então essas páginas são renderizadas sem seletor.
 
 ## Interface traduzida [#translated-ui]
 

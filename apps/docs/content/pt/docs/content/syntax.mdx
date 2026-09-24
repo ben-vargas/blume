@@ -149,6 +149,8 @@ Para uma tabela sem linha de cabeçalho — pares chave–valor, por exemplo —
 
 Crie links para outras páginas ou sites externos. As imagens aceitam um caminho relativo para um arquivo ao lado do seu conteúdo, qualquer caminho dentro de `public/` (servido na raiz do site) ou uma URL remota.
 
+Um link relativo para uma página (`./install`, `../guides/setup`) é resolvido a partir da pasta da própria página — em uma página de índice, a pasta que ela apresenta — e um link para um arquivo Markdown (`./setup.md`, `../intro.mdx`) leva à página que esse arquivo publica, incluindo o `slug` dela. Um nome de página com ponto (`./node.js` para uma página `node.js.mdx`) conta como link de página quando alguma página é publicada ali, e um `href` em string de um componente (`<Card href="./install">`) é resolvido da mesma forma. O Blume escreve cada um deles como a rota relativa à raiz na página compilada, então links escritos para o GitHub ou o Docusaurus continuam funcionando, e o [`blume validate`](/docs/cli/validate) os verifica da mesma forma.
+
 Leia o [guia rápido](/docs/quickstart) para começar.
 
 ```md
@@ -156,6 +158,8 @@ Read the [quickstart](/docs/quickstart) to get started.
 
 ![Alt text](./screenshot.png)
 ```
+
+Links externos abrem na mesma aba por padrão. Defina `markdown: { externalLinks: true }` no `blume.config.ts` para abri-los em uma nova aba, como os links do cabeçalho e da barra lateral do Blume já fazem: todo link absoluto `https://` ou `//host` recebe `target="_blank"` e `rel="noreferrer"`, uma pequena seta depois do texto e um aviso para leitores de tela informando que ele abre em uma nova aba. Links para as suas próprias páginas, `#fragments` e links `mailto:`/`tel:` continuam na mesma aba, assim como uma tag `<a>` pura, que mantém os atributos que você escreveu.
 
 **Prefira caminhos relativos para imagens locais** — elas são otimizadas em tempo de build: comprimidas, convertidas para WebP e marcadas com `width`/`height` intrínsecos para que a página não salte durante o carregamento. Mantenha a imagem ao lado da página que a usa (ou em uma pasta compartilhada dentro do seu diretório de conteúdo) e a referencie de forma relativa:
 
@@ -201,12 +205,12 @@ export default defineConfig({
 
 O código inline também pode receber realce: adicione um marcador `{:lang}` dentro de um trecho entre crases e ele é colorido como um pequeno bloco de código — `useState(){:js}` ou `T extends object{:ts}`. Isso só entra em ação quando você adiciona o marcador, então o código inline comum permanece intocado — nada para ativar.
 
-O realce usa os temas `github-light`/`github-dark` por padrão. Troque por qualquer [tema Shiki incluído](https://shiki.style/themes) por modo de cor com `markdown.codeBlocks.theme` — ele colore todas as superfícies de código de uma vez (cercas, trechos inline, `<CodeBlock>` e `<Diff>`):
+O realce usa os temas `github-light`/`github-dark` por padrão. Troque por qualquer [tema Shiki incluído](https://shiki.style/themes) por modo de cor com `markdown.code.theme` — ele colore todas as superfícies de código de uma vez (cercas, trechos inline, `<CodeBlock>` e `<Diff>`):
 
 ```ts blume.config.ts
 export default defineConfig({
   markdown: {
-    codeBlocks: {
+    code: {
       theme: { light: "github-light", dark: "vesper" },
     },
   },
@@ -220,7 +224,7 @@ import darkTheme from "./themes/acme-dark.json" with { type: "json" };
 
 export default defineConfig({
   markdown: {
-    codeBlocks: {
+    code: {
       theme: { light: "github-light", dark: darkTheme },
     },
   },
@@ -232,16 +236,16 @@ export default defineConfig({
 Acrescente `lineNumbers` para renderizar uma coluna com números de linha — sozinho ou junto de um título:
 
 ```ts server.ts lineNumbers
-import { serve } from "blume";
+import { createServer } from "node:http";
 
-serve({ port: 3000 });
+createServer().listen(3000);
 ```
 
 ````md
 ```ts server.ts lineNumbers
-import { serve } from "blume";
+import { createServer } from "node:http";
 
-serve({ port: 3000 });
+createServer().listen(3000);
 ```
 ````
 
@@ -266,12 +270,12 @@ export default defineConfig({
 });
 ```
 
-Realce todas as ocorrências de um termo em uma linha com `// [!code word:serve]`:
+Realce todas as ocorrências de um termo em uma linha com `// [!code word:createServer]`:
 
 ```ts
-import { serve } from "blume"; // [!code word:serve]
+import { createServer } from "node:http"; // [!code word:createServer]
 
-serve({ port: 3000 });
+createServer().listen(3000);
 ```
 
 Escureça tudo, exceto as linhas que você marcar com `// [!code focus]` (o restante fica nítido ao passar o cursor):
@@ -567,12 +571,12 @@ Your docs built successfully and are ready to deploy.
 Sinalize algo que exige cuidado para evitar um erro ou comportamento inesperado.
 
 :::warning[Atenção]
-Mudar para `output: "server"` exige um adaptador antes que você possa publicar.
+A saída de servidor precisa de um adaptador de host do `blume/deploy` antes que você possa publicar.
 :::
 
 ```md
 :::warning[Heads up]
-Switching to `output: "server"` requires an adapter before you can deploy.
+Server output needs a host adapter from `blume/deploy` before you can deploy.
 :::
 ```
 

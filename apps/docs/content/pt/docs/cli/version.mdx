@@ -1,0 +1,41 @@
+---
+title: Version
+description: >-
+  O blume version congela a documentação atual como uma versão arquivada, copiando a árvore, reescrevendo os links dela e registrando o id na sua configuração.
+---
+
+O `blume version` é como você cria uma [versão da documentação](/docs/content/versioning). Passe um id para ele e ele congela a árvore de conteúdo atual como um snapshot que continua servindo a documentação do jeito que ela estava:
+
+```bash
+blume version v1.0
+```
+
+Isso faz quatro coisas:
+
+1. **Copia a árvore de conteúdo** para uma pasta com o nome do id (`docs/v1.0/`), deixando os snapshots existentes fora da cópia.
+2. **Reescreve os links absolutos a partir da raiz dentro da cópia** para que eles fiquem dentro do snapshot: `/guides/x` vira `/v1.0/guides/x`. Blocos de código e código inline não são alterados, e links para páginas que não têm cópia no snapshot, como referências de API geradas ou fontes remotas tipo um changelog, continuam apontando para as páginas atuais.
+3. **Registra o id** em `versions.archived` no `blume.config.ts`. O primeiro corte ativa o versionamento, adicionando um bloco `versions` com o id arquivado e a documentação atual com o rótulo "Latest". Quando a configuração está estruturada de um jeito que ele não vai editar, ele mostra um aviso e imprime a entrada para você colar manualmente.
+4. **Informa o que fez**: os arquivos copiados, as páginas que tiveram links reescritos e um lembrete de que versões arquivadas ficam congeladas e de que o `blume dev` precisa ser reiniciado para reconhecer o snapshot.
+
+Revise e faça commit da nova pasta como qualquer outro conteúdo. Tudo sobre como as versões são renderizadas, como o seletor, o aviso nas páginas arquivadas e os rótulos e badges de cada versão, é configuração, explicada na página [Versionamento](/docs/content/versioning).
+
+## Listando versões [#listing-versions]
+
+Rode o comando sem id para listar as versões configuradas: a atual com seu rótulo e badge e, em seguida, cada id arquivado e sua pasta. Antes do primeiro corte, quando `versions` ainda não está configurado, ele explica como criar uma versão.
+
+```bash
+blume version
+```
+
+## Flags
+
+- `--force`: sobrescreve uma pasta de snapshot que já existe. Sem essa flag, uma pasta existente gera um erro, assim uma execução repetida por engano não consegue sobrescrever uma versão arquivada.
+
+## Quando ele se recusa [#when-it-refuses]
+
+O comando termina com código diferente de zero, sem mexer em nada, quando:
+
+- o id não começa com uma letra ou contém caracteres além de letras, dígitos, pontos, hífens e underscores (`v1.0`, não `1.0`, para que um id nunca entre em conflito com um [prefixo numérico de ordenação](/docs/content/navigation#ordering));
+- o projeto tem diagnósticos de erro, já que um snapshot de uma árvore quebrada congelaria o problema. Corrija-os primeiro (o `blume doctor` lista todos eles);
+- o id já está registrado em `versions.archived`;
+- a pasta do snapshot já existe e `--force` não foi passado.

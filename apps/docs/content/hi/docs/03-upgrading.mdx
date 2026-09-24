@@ -1,0 +1,354 @@
+---
+title: Blume 2 में अपग्रेड करें
+description: >-
+  एक कमांड से Blume 1 साइट को Blume 2 पर ले जाएँ, फिर हर कॉन्फ़िग बदलाव के लिए इस गाइड का उपयोग करें — या पूरा अपग्रेड Claude Code या Codex को सौंप दें।
+sidebar:
+  label: Blume 2 में अपग्रेड करें
+  order: 2.5
+---
+
+Blume 2 कॉन्फ़िगरेशन बदलता है, सामग्री नहीं। आपके Markdown और MDX पेजों को संपादित करने की आवश्यकता नहीं है। अपवाद केवल वे पेज हैं जो हटाया गया `search.boost` फ्रंटमैटर फ़ील्ड सेट करते हैं (देखें [फ्रंटमैटर](#frontmatter))। कुछ सेटिंग्स पहले एक नामित स्ट्रिंग या कुंजी वाला ब्लॉक होती थीं: सर्च प्रोवाइडर, डिप्लॉयमेंट टार्गेट, कंटेंट सोर्स, API रेफ़रेंस, एनालिटिक्स, और Ask AI बैकएंड। अब ये **एडैप्टर** हैं, जिन्हें आप किसी `blume/*` सबपाथ से इम्पोर्ट करके कॉल करते हैं। मशीन-पठनीय सेटिंग्स `ai` से एक नई `agents` कुंजी में चली जाती हैं। `components.ts` ओवरराइड्स की जाँच अब बिल्ड से पहले होती है। ज़ीरो-कॉन्फ़िग साइट में, या ऐसी साइट में जो इनमें से कुछ भी सेट नहीं करती, केवल वर्ज़न बढ़ाना होगा।
+
+## एक कमांड से अपग्रेड करें [#upgrade-with-one-command]
+
+अपग्रेड को अपने प्रोजेक्ट से चलाएँ, यानी उस फ़ोल्डर से जिसमें `blume.config.ts` है:
+
+```package-install
+npx blume@latest upgrade
+```
+
+यह कमांड आपके `package.json` में `blume` को 2 पर बढ़ाता है। फिर यह उसे उसी पैकेज मैनेजर से इंस्टॉल करता है जिसका उपयोग आपका प्रोजेक्ट करता है। इसके बाद यह आपके कॉन्फ़िग और `components.ts` की Blume 2 के अनुसार जाँच करता है। हर बाकी बदलाव उसकी फ़ाइल, लाइन और प्रतिस्थापन के साथ सूचीबद्ध होता है। इस सूची में वे `package.json` स्क्रिप्ट्स भी आती हैं जो अब भी हटाए गए `blume build` फ़्लैग पास करती हैं। जब तक कोई बदलाव बाकी रहता है, कमांड नॉन-ज़ीरो कोड के साथ बाहर निकलता है। अगर आप इसे ऐसे फ़ोल्डर से चलाते हैं जिसमें न कॉन्फ़िग है और न `blume` डिपेंडेंसी, तो यह त्रुटि देकर रुक जाता है। इसे `blume` के बजाय `npx blume@latest` से चलाएँ: यह कमांड Blume 2 में आता है, इसलिए जो प्रोजेक्ट अभी Blume 1 पर है, उसमें यह उपलब्ध नहीं है। pnpm 12 पर, `pnpm dlx` के बाद `--allow-build=esbuild` जोड़ें, क्योंकि pnpm 12 बिना अनुमोदन के esbuild की इंस्टॉल स्क्रिप्ट नहीं चलाता।
+
+बदलाव किसी कोडिंग एजेंट को सौंपने के लिए, `--claude` या `--codex` जोड़ें:
+
+```package-install
+npx blume@latest upgrade --claude
+```
+
+एजेंट निष्कर्षों और इस गाइड के साथ इंटरैक्टिव रूप से खुलता है और हर बदलाव लागू करता है। फिर वह `blume doctor` और `blume build` को तब तक चलाता है जब तक दोनों पास न हो जाएँ। आप हर संपादन की समीक्षा एजेंट के अपने अनुमति फ़्लो में करते हैं। इंस्टॉल किए बिना केवल `package.json` में वर्ज़न बढ़ाने के लिए `--no-install` पास करें।
+
+नीचे के अनुभाग हर बदलाव को समझाते हैं। इनका उपयोग आप मैन्युअल रूप से अपग्रेड करने के लिए, या एजेंट के बदलावों की जाँच के लिए कर सकते हैं।
+
+## सर्च [#search]
+
+`search` अब क्रेडेंशियल्स ब्लॉक वाली `provider` स्ट्रिंग के बजाय `blume/search` से एक एडैप्टर लेता है। डिफ़ॉल्ट लोकल सर्च में कोई बदलाव ज़रूरी नहीं है।
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  search: {
+    provider: "algolia",
+    algolia: { appId: "APP_ID", indexName: "docs", searchApiKey: "SEARCH_KEY" },
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { algolia } from "blume/search";
+
+export default defineConfig({
+  search: algolia({ appId: "APP_ID", indexName: "docs", apiKey: "SEARCH_KEY" }),
+});
+```
+
+</CodeGroup>
+
+- Orama Cloud, Typesense और Mixedbread इसी तरह क्रमशः `oramaCloud()`, `typesense()` और `mixedbread()` बन जाते हैं। जो भी एडैप्टर सर्च-ओनली कुंजी लेता है, उसमें इस कुंजी का नाम `apiKey` है। `mixedbread()` कुंजी के बजाय `storeId` लेता है, क्योंकि इसकी क्वेरीज़ डॉक्स सर्वर पर चलती हैं। इसे दिए गए बाकी विकल्प स्टोर सर्च कॉल को भेज दिए जाते हैं, जहाँ `top_k` का डिफ़ॉल्ट मान 8 है। एडमिन कुंजियाँ पहले की तरह अपने env vars (`ALGOLIA_ADMIN_API_KEY`, `ORAMA_PRIVATE_API_KEY`, `TYPESENSE_ADMIN_API_KEY`, `MIXEDBREAD_API_KEY`) में ही रहती हैं।
+- `provider: "pagefind"` अब `pagefind()` बन जाता है, और `provider: "none"` अब `search: false` बन जाता है।
+- `popular` लिंक या `indexing` विकल्प बनाए रखने के लिए, एडैप्टर को रैप करें: `search: { provider: algolia({ … }), popular: […] }`।
+
+## डिप्लॉयमेंट [#deployment]
+
+`deployment` अब `adapter` और `output` फ़ील्ड्स के बजाय `blume/deploy` से एक होस्ट एडैप्टर लेता है। `site` और `base` एडैप्टर के विकल्पों में चले जाते हैं।
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  deployment: {
+    adapter: "vercel",
+    output: "server",
+    site: "https://docs.example.com",
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { vercel } from "blume/deploy";
+
+export default defineConfig({
+  deployment: vercel({ site: "https://docs.example.com" }),
+});
+```
+
+</CodeGroup>
+
+- `netlify()`, `cloudflare()` और `node()` भी इसी तरह काम करते हैं। होस्ट एडैप्टर का नाम देते ही आउटपुट सर्वर पर चला जाता है। उस होस्ट की प्लेटफ़ॉर्म फ़ाइलों के साथ स्टैटिक बिल्ड रखने के लिए `output: "static"` पास करें।
+- जो कॉन्फ़िग केवल `site` या `base` सेट करता है, वह जैसा है वैसा ही रहता है: `deployment: { site, base }` अब भी स्टैटिक रूप है।
+- `redirects` केवल सटीक पाथ लेते हैं। अगर `from` या `to` में `:param` सेगमेंट या `*` वाइल्डकार्ड है, तो वह अब वैलिडेशन में विफल होता है। Blume 1 ने पैटर्न का कभी समर्थन नहीं किया था, और अलग-अलग होस्ट उन्हें अलग-अलग तरीके से संभालते थे। पैटर्न नियमों को अपने होस्ट के कॉन्फ़िग (`vercel.json`, `_redirects`) में ले जाएँ।
+- `blume build` के `--adapter`, `--output` और `--base` फ़्लैग हटा दिए गए हैं। इनमें से कोई भी फ़्लैग पास करने पर बिल्ड त्रुटि के साथ रुक जाता है। त्रुटि उस `deployment` सेटिंग का नाम बताती है जो उस फ़्लैग की जगह लेती है। एडैप्टर को `blume.config.ts` में सेट करें और उसका नाम स्पष्ट रूप से दें, क्योंकि सर्वर आउटपुट अब प्लेटफ़ॉर्म के एनवायरनमेंट से अपने-आप तय नहीं होता।
+
+हर एडैप्टर के विकल्पों के लिए [डिप्लॉयमेंट](/docs/deployment) देखें।
+
+## कंटेंट सोर्स [#content-sources]
+
+हर `content.sources` एंट्री अब `{ type }` ऑब्जेक्ट के बजाय `blume/sources` से एक एडैप्टर है।
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  content: {
+    sources: [
+      { type: "filesystem", root: "content" },
+      {
+        type: "github-releases",
+        owner: "acme",
+        repo: "sdk",
+        prefix: "changelog",
+      },
+    ],
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { filesystem, githubReleases } from "blume/sources";
+
+export default defineConfig({
+  content: {
+    sources: [
+      filesystem({ root: "content" }),
+      githubReleases({ owner: "acme", repo: "sdk", prefix: "changelog" }),
+    ],
+  },
+});
+```
+
+</CodeGroup>
+
+- `mdx-remote`, `sanity`, `notion` और `obsidian` क्रमशः `mdxRemote()`, `sanity()`, `notion()` और `obsidian()` बन जाते हैं। बाकी सभी फ़ील्ड बिना बदलाव के कॉल के अंदर चले जाते हैं। `{ type: "custom", source }` अब `custom(source)` बन जाता है।
+- `content.root`, `content.include` और `content.exclude` अब भी एक फ़ोल्डर के लिए शॉर्टहैंड हैं, लेकिन इन्हें अब `sources` के साथ नहीं रखा जा सकता। इन्हें `filesystem()` एंट्री में ले जाएँ।
+- `githubReleases()` से बने रिलीज़ पेज अब केवल एक भाषा में प्रकाशित होते हैं। इसलिए बहु-लोकेल साइट अब उन्हें हर दूसरे लोकेल के URL (`/de/changelog/…`) पर कॉपी नहीं करती। अगर दूसरी साइटें उन कॉपियों से लिंक करती हैं, तो डिफ़ॉल्ट-लोकेल पेजों पर [रीडायरेक्ट](/docs/deployment#redirects) जोड़ें।
+
+## API रेफ़रेंस [#api-references]
+
+टॉप-लेवल `openapi`, `asyncapi` और `graphql` ब्लॉक अब `blume/reference` के एडैप्टरों की एक `reference` सूची बन जाते हैं। `enabled` हटा दें।
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  openapi: { enabled: true, spec: "./openapi.yaml" },
+  graphql: {
+    enabled: true,
+    spec: "./schema.graphql",
+    endpoint: "https://api.example.com/graphql",
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { graphql, openapi } from "blume/reference";
+
+export default defineConfig({
+  reference: [
+    openapi({ spec: "./openapi.yaml" }),
+    graphql({
+      spec: "./schema.graphql",
+      endpoint: "https://api.example.com/graphql",
+    }),
+  ],
+});
+```
+
+</CodeGroup>
+
+- `asyncapi: { … }` उन्हीं विकल्पों के साथ `asyncapi({ … })` बन जाता है।
+- AsyncAPI 1.x या 2.x स्पेक अब भी आपके लिए 3.0 में बदल दिया जाता है, लेकिन कन्वर्टर अब एक वैकल्पिक पीयर डिपेंडेंसी है। अपने प्रोजेक्ट में `@asyncapi/converter` इंस्टॉल करें। इसके बिना बिल्ड विफल हो जाता है और त्रुटि में इंस्टॉल कमांड दिखाई देता है। 3.x स्पेक के लिए कुछ करने की ज़रूरत नहीं है।
+- `renderer: "scalar"` सूची में अपनी अलग `scalar({ spec, theme, … })` एंट्री बन जाता है। इस एंट्री में ब्लॉक के `route` और `sources` बने रहते हैं।
+- `enabled: false` वाले ब्लॉक को सूची में शामिल ही न करें।
+
+## एनालिटिक्स [#analytics]
+
+`analytics` ऑब्जेक्ट अब `blume/analytics` के एडैप्टरों की एक सूची बन जाता है।
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  analytics: {
+    posthog: { key: "phc_…" },
+    vercel: true,
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { posthog, vercel } from "blume/analytics";
+
+export default defineConfig({
+  analytics: [posthog({ key: "phc_…" }), vercel()],
+});
+```
+
+</CodeGroup>
+
+`cloudflare: { token }` अब `cloudflare({ token })` बन जाता है, और हर `scripts[]` एंट्री `script({ … })` बन जाती है।
+
+## Ask AI
+
+`ai.ask.provider` अब `blume/ai` से एक एडैप्टर लेता है। मॉडल और उससे जुड़े फ़ील्ड्स अब इसी एडैप्टर में आते हैं।
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: "openrouter",
+      model: "anthropic/claude-sonnet-4-5",
+      reasoning: "none",
+    },
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { openrouter } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: openrouter({
+        model: "anthropic/claude-sonnet-4-5",
+        reasoning: "none",
+      }),
+    },
+  },
+});
+```
+
+</CodeGroup>
+
+उपलब्ध एडैप्टर हैं: `gateway()`, `openrouter()`, `llmgateway()`, `inkeep()` और `openaiCompatible({ baseUrl, name, model, apiKeyEnv })`। `model`, `apiKeyEnv`, `baseUrl`, `headers` और `reasoning` एडैप्टर में चले जाते हैं। `enabled`, `instructions`, `retrieval`, `suggestions`, `cors` और `endpoint` `ai.ask` पर ही रहते हैं। `provider` सेट न करने पर पहले की तरह AI Gateway का उपयोग होता है।
+
+## एजेंट्स और अन्य कॉन्फ़िग बदलाव [#agents-and-other-config-moves]
+
+मशीन-पठनीय सेटिंग्स `ai` से एक नई `agents` कुंजी में चली जाती हैं। इसके अलावा तीन छोटे फ़ील्ड्स का स्वरूप बदलता है।
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  ai: { mcp: { enabled: true }, skills: "./skills" },
+  lastModified: true,
+  markdown: {
+    codeBlocks: { theme: { light: "github-light", dark: "github-dark" } },
+  },
+  theme: { layout: "sidebar" },
+});
+```
+
+```ts title="Blume 2"
+export default defineConfig({
+  agents: { mcp: { enabled: true }, skills: "./skills" },
+  lastModified: "git",
+  markdown: {
+    code: { theme: { light: "github-light", dark: "github-dark" } },
+  },
+});
+```
+
+</CodeGroup>
+
+- `ai.api`, `ai.catalog`, `ai.llmsTxt`, `ai.markdownComponents`, `ai.mcp`, `ai.skills`, `ai.webBotAuth` और `ai.webmcp` अब `agents.*` बन जाते हैं। `seo.agentReadability` और `seo.contentSignals` भी `agents.*` में चले जाते हैं। `ai` में अब केवल `ask` और `openInChat` रहते हैं।
+- `lastModified` अब एक सीधा मान है। `true` अब `"git"` बन जाता है, और `{ type: "git" }` या `{ type: "frontmatter" }` की जगह केवल स्ट्रिंग लिखी जाती है।
+- `markdown.codeBlocks` अब `markdown.code` में मर्ज हो जाता है।
+- `theme.layout` हटा दिया गया है। इसे कहीं भी पढ़ा नहीं जाता था, इसलिए इसे हटा दें।
+
+## फ्रंटमैटर [#frontmatter]
+
+एक फ्रंटमैटर फ़ील्ड हटा दिया गया है: `search.boost`। Blume 1 इसे स्वीकार करता था, लेकिन सर्च इसे कभी पढ़ता ही नहीं था, इसलिए इसके होने या न होने से पेज की रैंकिंग नहीं बदलती थी। यह फ़ील्ड जहाँ भी हो, उसे हटा दें। जो पेज अब भी इसे सेट करता है, वह वैलिडेशन में विफल होता है और एक संकेत दिखाता है। `blume upgrade` ऐसे हर पेज को उसकी फ़ाइल और लाइन के साथ सूचीबद्ध करता है।
+
+## कंपोनेंट ओवरराइड्स [#component-overrides]
+
+Blume 2 रनटाइम पर फ़ॉलबैक करने के बजाय बिल्ड से पहले हर `components.ts` एंट्री की जाँच करता है। हर `mdx` और `layout` एंट्री इनमें से कोई एक होनी चाहिए: इम्पोर्ट किया गया कंपोनेंट, पाथ स्ट्रिंग, या `{ component, client, media }` ऑब्जेक्ट। `islands` समूह हटा दिया गया है: `client` मोड वाली `mdx` एंट्री ही एक आइलैंड है।
+
+<CodeGroup>
+
+```ts title="Blume 1"
+import { defineComponents } from "blume";
+import Counter from "./islands/Counter.tsx";
+
+export default defineComponents({
+  islands: { Counter },
+});
+```
+
+```ts title="Blume 2"
+import { defineComponents } from "blume";
+import Counter from "./islands/Counter.tsx";
+
+export default defineComponents({
+  mdx: { Counter: { component: Counter, client: "visible" } },
+});
+```
+
+</CodeGroup>
+
+ये एंट्रियाँ अब `BLUME_COMPONENTS_INVALID` त्रुटि के साथ विफल होती हैं: इनलाइन फ़ंक्शन, `components.ts` के अंदर ही घोषित कंपोनेंट, स्प्रेड, या कंप्यूटेड कुंजी। त्रुटि में संबंधित एंट्री का नाम होता है। कंपोनेंट को उसकी अपनी फ़ाइल में ले जाएँ और वहाँ से इम्पोर्ट करें। `islands/` फ़ोल्डर कन्वेंशन पहले की तरह काम करता है। स्वीकृत रूपों के लिए [कस्टमाइज़ेशन](/docs/configuration/customization) देखें।
+
+## इजेक्ट किए गए ऐप्स [#ejected-apps]
+
+जिस ऐप को आपने Blume 1 पर [इजेक्ट](/docs/configuration/customization#eject) किया था, वह अब Blume CLI से नहीं चलता, लेकिन `blume` पैकेज पर अब भी निर्भर है। उसके पेज Blume के कंपोनेंट्स इम्पोर्ट करते हैं। `src/generated/` में आपकी साइट का एक स्नैपशॉट है, जिसे Blume 1 जनरेटर ने लिखा था। `astro build` सर्च इंडेक्स, `llms.txt` और साइटमैप लिखने के लिए `blume.config.ts` को फिर से लोड करता है। ऐसे ऐप में `blume` को 2 पर बढ़ाने से Blume 1 का यह स्नैपशॉट Blume 2 के कंपोनेंट्स के साथ चलने लगता है, जबकि वे कंपोनेंट्स नए स्वरूपों की अपेक्षा करते हैं। इसलिए वर्ज़न बढ़ाने के बजाय फिर से इजेक्ट करें:
+
+<Steps>
+  <Step title="Copy the project out">
+    `astro.config.mjs`, `src/`, `.blume/`, `dist/` और `node_modules/` को छोड़कर
+    बाकी सब कुछ एक खाली फ़ोल्डर में कॉपी करें। इसमें आपकी सामग्री,
+    `blume.config.ts`, `components.ts`, `islands/`, `public/`, आपके रेफ़रेंस
+    द्वारा पढ़ी जाने वाली स्पेक फ़ाइलें और `package.json` शामिल हैं। इजेक्ट किए
+    गए ऐप को जैसा है वैसा ही रहने दें।
+  </Step>
+  <Step title="Upgrade the copy">
+    कॉपी में `npx blume@latest upgrade` चलाएँ और जो बदलाव यह सूचीबद्ध करता है,
+    उन्हें लागू करें, ताकि `blume.config.ts` और `components.ts` Blume 2 के लिए
+    मान्य हो जाएँ। फिर इजेक्ट करने से पहले `npx blume build` चलाकर पुष्टि करें
+    कि साइट बिल्ड होती है।
+  </Step>
+  <Step title="Eject a fresh copy">
+    कॉपी में `npx blume eject --yes` चलाएँ, इसके द्वारा जोड़े गए पैकेज इंस्टॉल
+    करें, और `npm run build` से इसे बिल्ड करें।
+  </Step>
+  <Step title="Carry your edits across">
+    नए `astro.config.mjs` और `src/` को अपने इजेक्ट किए गए ऐप से diff करें, और
+    अपने बदलाव नई फ़ाइलों में ले जाएँ।
+  </Step>
+</Steps>
+
+जब तक नई कॉपी तैयार न हो जाए, इजेक्ट किए गए ऐप को Blume 1 (`"blume": "^1"`) पर ही रखें और उसमें `blume upgrade` न चलाएँ। जब तक आप वर्ज़न नहीं बढ़ाते, ऐप में कुछ नहीं बदलता।
+
+## कमांड-लाइन फ़्लैग [#command-line-flags]
+
+Blume 1 अनजान फ़्लैग को अनदेखा कर देता था, लेकिन अब हर `blume` कमांड ऐसे फ़्लैग को अस्वीकार करता है जो उसके लिए मान्य नहीं है। अगर कोई स्क्रिप्ट या CI स्टेप कोई अनावश्यक या गलत वर्तनी वाला फ़्लैग पास करता है, तो वह विफल हो जाता है। त्रुटि उस फ़्लैग का नाम बताती है जिसे पहचाना नहीं गया, और उन फ़्लैग्स की सूची भी देती है जिन्हें कमांड स्वीकार करता है। `blume upgrade` केवल `blume build` के तीन हटाए गए फ़्लैग (`--adapter`, `--output`, `--base`) की रिपोर्ट करता है, इसलिए अपनी अन्य `blume` स्क्रिप्ट्स की भी जाँच करें।
+
+## अपने काम की जाँच करें [#check-your-work]
+
+जब `blume upgrade` बताए कि बदलने के लिए कुछ भी बाकी नहीं है, तो साइट की अपनी जाँचें चलाएँ:
+
+```bash
+npx blume doctor
+npx blume build
+```
+
+बदलावों की पूरी सूची और हर बदलाव का कारण [चेंजलॉग](/changelog) में दिया गया है।

@@ -1,102 +1,393 @@
 ---
 title: एनालिटिक्स
 description: >-
-  फ़र्स्ट-पार्टी वेब एनालिटिक्स — Vercel Web Analytics, Cloudflare Web Analytics, PostHog, या कोई भी कस्टम स्क्रिप्ट — blume.config.ts से जुड़ी हुई।
+  फ़र्स्ट-पार्टी वेब एनालिटिक्स — PostHog, Google Analytics, Plausible, Mixpanel, Segment, और दर्जन भर अन्य — blume.config.ts में एडैप्टर्स के रूप में।
 ---
 
-Blume आपके लिए `blume.config.ts` में एक ही `analytics` ब्लॉक से एनालिटिक्स इंजेक्ट करता है। Vercel Web Analytics, Cloudflare Web Analytics और PostHog फ़र्स्ट-क्लास हैं, और एक `scripts` एस्केप हैच बाक़ी हर प्रोवाइडर को कवर करता है — Plausible, Fathom, Google Analytics, Umami, और अन्य।
+Blume आपके लिए `blume.config.ts` में एक `analytics` सूची से एनालिटिक्स इंजेक्ट करता है। हर एंट्री `blume/analytics` से इम्पोर्ट किया गया एक एडैप्टर है: हर प्रोवाइडर के लिए एक, और जिनका कोई एडैप्टर नहीं है उनके लिए `script()`।
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { googleAnalytics, plausible, posthog, vercel } from "blume/analytics";
+
+export default defineConfig({
+  analytics: [
+    posthog({ key: "phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" }),
+    vercel(),
+    googleAnalytics({ id: "G-XXXXXXXXXX" }),
+    plausible({ domain: "docs.example.com" }),
+  ],
+});
+```
+
+एडैप्टर्स `<head>` में उसी क्रम में उत्सर्जित होते हैं जिसमें आप उन्हें सूचीबद्ध करते हैं, और आप जितने चाहें उतने एडैप्टर्स को मिला सकते हैं। हर एडैप्टर सादा डेटा है: वह जो लौटाता है, उसे आपके बाक़ी कॉन्फ़िग के साथ वैलिडेट किया जाता है और बिल्ट साइट में इनलाइन किया जाता है, इसलिए उसमें कोई भी JSON मान हो सकता है, लेकिन कभी कोई फ़ंक्शन नहीं। कोई पासथ्रू विकल्प जिसे JSON वहन नहीं कर सकता (एक फ़ंक्शन, `undefined`, एक bigint) बिल्ड से गायब होने के बजाय अपने पाथ के साथ वैलिडेशन में विफल होता है।
 
 एनालिटिक्स **केवल प्रोडक्शन बिल्ड** में लोड होता है। स्क्रिप्ट्स `blume build` द्वारा उत्सर्जित की जाती हैं, कभी भी `blume dev` द्वारा नहीं, इसलिए लोकल ट्रैफ़िक कभी आपके डैशबोर्ड तक नहीं पहुँचता और आपको अलग "डेवलपमेंट" प्रोजेक्ट की ज़रूरत नहीं पड़ती।
 
 :::note
-एनालिटिक्स ऑप्ट-इन है। `analytics` ब्लॉक न होने पर Blume कुछ भी इंजेक्ट नहीं करता।
+एनालिटिक्स ऑप्ट-इन है। `analytics` सूची न होने पर (या उसके खाली होने पर) Blume कुछ भी इंजेक्ट नहीं करता।
 :::
+
+नीचे दिया गया हर आइडेंटिफ़ायर — प्रोजेक्ट की, मेज़रमेंट ID, साइट टोकन — प्रोवाइडर के अपने इंस्टॉल स्निपेट वाला सार्वजनिक, ब्राउज़र-साइड आइडेंटिफ़ायर है। हर एडैप्टर वही स्निपेट रेंडर करता है, इसलिए इसे अपनी डॉक्स रिपॉज़िटरी में कमिट करना सुरक्षित है; Blume कभी कोई सीक्रेट नहीं माँगता।
+
+## एडैप्टर्स [#adapters]
+
+| एडैप्टर | प्रोवाइडर | आवश्यक |
+| --- | --- | --- |
+| `adobe()` | [Adobe Analytics](#adobe-analytics) | `url` |
+| `amplitude()` | [Amplitude](#amplitude) | `key` |
+| `clarity()` | [Microsoft Clarity](#microsoft-clarity) | `id` |
+| `clearbit()` | [Clearbit](#clearbit) | `key` |
+| `cloudflare()` | [Cloudflare Web Analytics](#cloudflare-web-analytics) | `token` |
+| `fathom()` | [Fathom](#fathom) | `site` |
+| `googleAnalytics()` | [Google Analytics 4](#google-analytics-4) | `id` |
+| `googleTagManager()` | [Google Tag Manager](#google-tag-manager) | `id` |
+| `heap()` | [Heap](#heap) | `id` |
+| `hightouch()` | [Hightouch](#hightouch) | `key` |
+| `hotjar()` | [Hotjar](#hotjar) | `id` |
+| `logrocket()` | [LogRocket](#logrocket) | `id` |
+| `mixpanel()` | [Mixpanel](#mixpanel) | `token` |
+| `pirsch()` | [Pirsch](#pirsch) | `code` |
+| `plausible()` | [Plausible](#plausible) | `domain` |
+| `posthog()` | [PostHog](#posthog) | `key` |
+| `segment()` | [Segment](#segment) | `key` |
+| `vercel()` | [Vercel Web Analytics](#vercel-web-analytics) | — |
+| `script()` | [अन्य कुछ भी](#custom-scripts) | `src` या `content` |
+
+Blume के डॉक्स क्लाइंट-साइड राउटर का उपयोग करते हैं, इसलिए अधिकांश नेविगेशन पूरे पेज लोड के बजाय पेज के भीतर एक स्वैप होता है। हर एडैप्टर इन्हें पेजव्यू के रूप में गिनता है: जिन प्रोवाइडर्स की स्क्रिप्ट हिस्ट्री में होने वाले बदलावों को स्वयं ट्रैक करती है, उन्हें कुछ अतिरिक्त नहीं चाहिए, और जो केवल वास्तविक लोड गिनते हैं (PostHog, Segment, Hightouch), उनके लिए Blume स्वयं पेजव्यू भेजता है। दो अपवाद टैग मैनेजर्स हैं — [Google Tag Manager](#google-tag-manager) और [Adobe](#adobe-analytics) एक कंटेनर लोड करते हैं जिसके अपने नियम तय करते हैं कि क्या फ़ायर होगा, इसलिए उसे एक हिस्ट्री-चेंज ट्रिगर दें।
+
+## PostHog
+
+[PostHog](https://posthog.com) जोड़ने के लिए `posthog()` को अपनी **प्रोजेक्ट API की** दें। होस्ट डिफ़ॉल्ट रूप से PostHog Cloud US होता है; EU Cloud (`https://eu.i.posthog.com`) या सेल्फ़-होस्टेड इंस्टेंस के लिए `host` सेट करें।
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  posthog({
+    key: "phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    host: "https://us.i.posthog.com", // optional, this is the default
+  }),
+],
+```
+
+`key` और `host` वे दो विकल्प हैं जिन्हें Blume मैप करता है (`host`, `api_host` बन जाता है)। आप जो कुछ भी और पास करते हैं — `persistence`, `capture_pageview`, `autocapture`, `disable_session_recording`, और `posthog.init` का हर अन्य विकल्प — वह ज्यों का त्यों `posthog.init` को फ़ॉरवर्ड किया जाता है।
 
 ## Vercel Web Analytics
 
-[Vercel Web Analytics](https://vercel.com/docs/analytics) जोड़ने के लिए `vercel: true` सेट करें। Blume, Vercel की फ़र्स्ट-पार्टी स्क्रिप्ट इंजेक्ट करता है, जो Vercel डैशबोर्ड में प्रोजेक्ट के लिए Web Analytics सक्षम होने के बाद आपके अपने डोमेन से सर्व की जाती है।
+[Vercel Web Analytics](https://vercel.com/docs/analytics) शामिल करने के लिए `vercel()` जोड़ें। Blume, Vercel का आधिकारिक Astro कंपोनेंट रेंडर करता है, जो Vercel डैशबोर्ड में प्रोजेक्ट के लिए Web Analytics सक्षम होने के बाद आपके अपने डोमेन से सर्व की जाने वाली फ़र्स्ट-पार्टी स्क्रिप्ट इंजेक्ट करता है।
 
 ```ts blume.config.ts lineNumbers
-analytics: {
-  vercel: true,
-}
+analytics: [vercel()],
 ```
 
-किसी की-ज़रूरत नहीं है — स्क्रिप्ट उसी प्रोजेक्ट को रिपोर्ट करती है जिसके तहत वह डिप्लॉय हुई है। यह केवल Vercel डिप्लॉयमेंट्स पर डेटा एकत्र करती है, जहाँ `/_vercel/insights` एंडपॉइंट मौजूद होता है।
+किसी की-ज़रूरत नहीं है — स्क्रिप्ट उसी प्रोजेक्ट को रिपोर्ट करती है जिसके तहत वह डिप्लॉय हुई है। यह केवल Vercel डिप्लॉयमेंट्स पर डेटा एकत्र करती है, जहाँ `/_vercel/insights` एंडपॉइंट मौजूद होता है। आप जो भी विकल्प पास करते हैं, वह कंपोनेंट को प्रॉप के रूप में फ़ॉरवर्ड किया जाता है (`mode`, `debug`, `endpoint`, `scriptSrc`, …); `beforeSend` एक फ़ंक्शन है और कॉन्फ़िग के ज़रिए नहीं जा सकता, इसलिए इसके बजाय किसी `script()` एडैप्टर से `window.webAnalyticsBeforeSend` असाइन करें।
 
 ## Cloudflare Web Analytics
 
-[Cloudflare Web Analytics](https://developers.cloudflare.com/web-analytics/) के दो सेटअप हैं, और उनमें से केवल एक को कॉन्फ़िग की ज़रूरत होती है।
+[Cloudflare Web Analytics](https://developers.cloudflare.com/web-analytics/) के दो सेटअप हैं, और उनमें से केवल एक को एडैप्टर की ज़रूरत होती है।
 
-**प्रॉक्सी किया गया ज़ोन (स्वचालित सेटअप)।** यदि Cloudflare आपकी साइट सर्व करता है — कस्टम डोमेन वाला Worker, Pages, या कोई भी ज़ोन जिसमें ऑरेंज क्लाउड चालू हो — तो Cloudflare डैशबोर्ड में ज़ोन के लिए Web Analytics सक्षम करें और बस इतना ही करें। Cloudflare एज पर बीकन इंजेक्ट करता है, इसलिए `analytics.cloudflare` को सेट न करें; इसे भी कॉन्फ़िगर करने पर हर पेजव्यू दो बार गिना जाएगा।
+**प्रॉक्सी किया गया ज़ोन (स्वचालित सेटअप)।** यदि Cloudflare आपकी साइट सर्व करता है — कस्टम डोमेन वाला Worker, Pages, या कोई भी ज़ोन जिसमें ऑरेंज क्लाउड चालू हो — तो Cloudflare डैशबोर्ड में ज़ोन के लिए Web Analytics सक्षम करें और बस इतना ही करें। Cloudflare एज पर बीकन इंजेक्ट करता है, इसलिए `cloudflare()` को शामिल न करें; इसे भी सूचीबद्ध करने पर हर पेजव्यू दो बार गिना जाएगा।
 
 **कोई अन्य होस्ट (मैनुअल सेटअप)।** जिस साइट को Cloudflare प्रॉक्सी नहीं करता, उसके लिए डैशबोर्ड में Web Analytics के अंतर्गत साइट जोड़ें, आपको दिए गए JS स्निपेट से टोकन कॉपी करें (`data-cf-beacon` के अंदर का `token`), और उसे यहाँ दें। Blume वही बीकन टैग रेंडर करता है जो स्निपेट करता है।
 
 ```ts blume.config.ts lineNumbers
-analytics: {
-  cloudflare: {
+analytics: [
+  cloudflare({
     token: "0123456789abcdef0123456789abcdef",
-  },
-}
+  }),
+],
 ```
 
-टोकन को ब्राउज़र तक भेजना सुरक्षित है — यह केवल साइट की पहचान करता है। बीकन हिस्ट्री में होने वाले बदलावों को स्वयं ट्रैक करता है, इसलिए क्लाइंट-राउटर नेविगेशन बिना किसी अतिरिक्त वायरिंग के गिने जाते हैं।
+पूरा विकल्प ऑब्जेक्ट बीकन का `data-cf-beacon` JSON बन जाता है, इसलिए कोई भी अन्य बीकन सेटिंग (`spa`, …) सीधे आगे पहुँच जाती है।
 
-## PostHog
+## Google Analytics 4
 
-[PostHog](https://posthog.com) जोड़ने के लिए अपनी **प्रोजेक्ट API की** दें। होस्ट डिफ़ॉल्ट रूप से PostHog Cloud US होता है; EU Cloud (`https://eu.i.posthog.com`) या सेल्फ़-होस्टेड इंस्टेंस के लिए `host` सेट करें।
+अपनी GA4 वेब डेटा स्ट्रीम की **मेज़रमेंट ID** (`G-…`, जो प्रॉपर्टी के Admin → Data Streams में स्ट्रीम के विवरण के अंतर्गत मिलती है) `googleAnalytics()` को दें। Blume, Google टैग को ठीक वैसे ही रेंडर करता है जैसा स्ट्रीम के इंस्टॉल निर्देशों में दिया गया है: async `gtag.js` लोडर के साथ `dataLayer` बूटस्ट्रैप और `config` कॉल।
 
 ```ts blume.config.ts lineNumbers
-analytics: {
-  posthog: {
-    key: "phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    host: "https://us.i.posthog.com", // optional, this is the default
-  },
-}
+analytics: [
+  googleAnalytics({
+    id: "G-XXXXXXXXXX",
+    anonymize_ip: true, // optional: any other `config` parameter
+  }),
+],
 ```
 
-प्रोजेक्ट API की को ब्राउज़र तक भेजना सुरक्षित है — यह एक सार्वजनिक, राइट-ओनली की है।
+`id` ही वह एकमात्र विकल्प है जिसे Blume मैप करता है। आप जो कुछ भी और पास करते हैं, वह ज्यों का त्यों `gtag('config', …)` कॉल के साथ जाता है (`send_page_view`, `cookie_domain`, `debug_mode`, …)। GA4 का एन्हांस्ड मेज़रमेंट डिफ़ॉल्ट रूप से हिस्ट्री में होने वाले बदलावों को पेज व्यू के रूप में गिनता है, इसलिए क्लाइंट-साइड नेविगेशन बिना किसी अतिरिक्त सेटअप के ट्रैक होते हैं। Google Analytics को नया डेटा दिखाने में एक-दो दिन लगते हैं; [Google Analytics Debugger](https://chrome.google.com/webstore/detail/google-analytics-debugger/jnkmfdileelhofjcijamephohjechhna) एक्सटेंशन रिक्वेस्ट्स को होते ही दिखाता है।
+
+## Google Tag Manager
+
+अपनी **कंटेनर ID** (`GTM-…`, जो वर्कस्पेस हेडर में दिखाई देती है) `googleTagManager()` को दें। Blume कंटेनर स्निपेट का `<head>` वाला हिस्सा रेंडर करता है; `<noscript>` iframe बिना JavaScript वाले ब्राउज़र्स के लिए है, जो वैसे भी कभी एनालिटिक्स नहीं चलाते।
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  googleTagManager({
+    id: "GTM-XXXXXXX",
+    dataLayer: "dataLayer", // optional, this is the default
+  }),
+],
+```
+
+कौन-से टैग फ़ायर होते हैं, और किस पर, यह कंटेनर के कॉन्फ़िगरेशन पर निर्भर है। क्लाइंट-साइड नेविगेशन कंटेनर तक हिस्ट्री में बदलाव के रूप में पहुँचते हैं, इसलिए पेजव्यू टैग्स को पेज-लोड ट्रिगर के बजाय **History Change** ट्रिगर से फ़ायर करें। कुकी सहमति बैनर भी आपको कंटेनर में ही सेट अप करने होंगे।
+
+## Plausible
+
+[Plausible](https://plausible.io) में आपके द्वारा जोड़ा गया **डोमेन** `plausible()` को दें। सेल्फ़-होस्टेड या प्रॉक्सी किए गए इंस्टेंस के लिए, `host` को उसके ओरिजिन पर सेट करें; डिफ़ॉल्ट Plausible Cloud है।
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  plausible({
+    domain: "docs.example.com",
+    host: "https://plausible.example.com", // optional, defaults to https://plausible.io
+  }),
+],
+```
+
+`domain`, `data-domain` बन जाता है और `host` तय करता है कि `/js/script.js` कहाँ से लोड हो। कोई भी अन्य विकल्प टैग पर अपना अलग `data-` एट्रिब्यूट बन जाता है (`api: "/api/event"` → `data-api`)। जिन स्क्रिप्ट वेरिएंट्स का अतिरिक्त व्यवहार फ़ाइलनाम में ही निहित होता है (`script.outbound-links.js`, …), वे एक अलग टैग हैं; उन्हें [`script()`](#custom-scripts) से लोड करें।
+
+## Fathom
+
+अपनी **साइट ID** ([Fathom](https://usefathom.com) में साइट की स्क्रिप्ट सेटिंग्स से) `fathom()` को दें।
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  fathom({
+    site: "ABCDEFGH",
+    "honor-dnt": "true", // optional: any other `data-` setting
+  }),
+],
+```
+
+`site`, `data-site` बन जाता है। कोई भी अन्य विकल्प स्ट्रिंग के रूप में टैग पर अपना अलग `data-` एट्रिब्यूट बन जाता है (`honor-dnt`, `excluded-domains`, `canonical`, …)। `spa` डिफ़ॉल्ट रूप से `"auto"` होता है ताकि Fathom क्लाइंट राउटर के नेविगेशन गिन सके; इसे ओवरराइड करने के लिए अपना `spa` मान पास करें।
+
+## Pirsch
+
+अपना **आइडेंटिफ़िकेशन कोड** ([Pirsch](https://pirsch.io) में Settings → Developer → Identification Code) `pirsch()` को दें।
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  pirsch({
+    code: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  }),
+],
+```
+
+`code`, `data-code` बन जाता है, और Blume टैग को वह `pianjs` id देता है जिससे Pirsch की स्क्रिप्ट स्वयं को ढूँढती है। कोई भी अन्य विकल्प अपना अलग `data-` एट्रिब्यूट बन जाता है (`dev`, `exclude`, `include`, `domain`, `endpoint`, …)।
+
+## Mixpanel
+
+अपना **प्रोजेक्ट टोकन** ([Mixpanel](https://mixpanel.com) में project settings → Access Keys) `mixpanel()` को दें। यदि प्रोजेक्ट EU या India डेटा रेज़िडेंसी का उपयोग करता है, तो `region` को उसी के अनुसार सेट करें, अन्यथा Mixpanel इवेंट्स को ड्रॉप कर देगा।
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  mixpanel({
+    token: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    region: "eu", // optional: "us" (default), "eu", or "in"
+  }),
+],
+```
+
+`token` और `region` वे विकल्प हैं जिन्हें Blume मैप करता है (`region`, `api_host` बन जाता है)। Blume `track_pageview` को भी `"url-with-path-and-query-string"` पर सेट करता है, ताकि लाइब्रेरी हर नेविगेशन को स्वयं ट्रैक करे। आप जो कुछ भी और पास करते हैं — `track_pageview` सहित — वह ज्यों का त्यों `mixpanel.init` को फ़ॉरवर्ड किया जाता है (`persistence`, `autocapture`, `record_sessions_percent`, …)।
+
+## Amplitude
+
+अपनी **प्रोजेक्ट API की** ([Amplitude](https://amplitude.com) में प्रोजेक्ट सेटिंग्स से) `amplitude()` को दें। Blume, Browser SDK का स्क्रिप्ट-लोडर स्निपेट रेंडर करता है: की-युक्त SDK बंडल के साथ `init` कॉल।
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  amplitude({
+    key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    serverZone: "EU", // optional: any other `init` option
+  }),
+],
+```
+
+`key` ही वह एकमात्र विकल्प है जिसे Blume मैप करता है। `init` विकल्प उन्हीं मानों से शुरू होते हैं जो डैशबोर्ड स्निपेट में आते हैं — `autocapture: true` और `fetchRemoteConfig: true` — और आप जो कुछ भी और पास करते हैं, वह ज्यों का त्यों उनके ऊपर मर्ज किया जाता है। Autocapture पेज व्यू और हिस्ट्री में होने वाले बदलावों को कवर करता है, इसलिए क्लाइंट-साइड नेविगेशन गिने जाते हैं।
+
+## Segment
+
+[Segment](https://segment.com) में अपने JavaScript सोर्स की **राइट की** `segment()` को दें। यदि आप ऐड ब्लॉकर्स से बचने के लिए analytics.js को किसी [कस्टम डोमेन](https://segment.com/docs/connections/sources/custom-domain/) से सर्व करते हैं, तो `cdn` को उस ओरिजिन पर सेट करें।
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  segment({
+    key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    cdn: "https://cdn.example.com", // optional, defaults to https://cdn.segment.com
+  }),
+],
+```
+
+`key` और `cdn` वे विकल्प हैं जिन्हें Blume मैप करता है: स्निपेट लाइब्रेरी को `cdn` से लोड करता है और उसे अपने इंटीग्रेशन्स भी वहीं से फ़ेच करने के लिए कहता है। आप जो कुछ भी और पास करते हैं, वह ज्यों का त्यों `analytics.load` विकल्पों के रूप में फ़ॉरवर्ड किया जाता है (`integrations`, …)।
+
+## Hightouch
+
+[Hightouch](https://hightouch.com) में अपने इवेंट सोर्स की **राइट की** `hightouch()` को दें। इवेंट्स API होस्ट डिफ़ॉल्ट रूप से US East रीजन होता है; यदि आपका वर्कस्पेस किसी अन्य रीजन का उपयोग करता है, तो `host` (बिना स्कीम के) सेट करें।
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  hightouch({
+    key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    host: "us-east-1.hightouch-events.com", // optional, this is the default
+  }),
+],
+```
+
+`key` और `host` वे विकल्प हैं जिन्हें Blume मैप करता है (`host`, `apiHost` बन जाता है)। आप जो कुछ भी और पास करते हैं, वह ज्यों का त्यों `htevents.load` विकल्पों के रूप में फ़ॉरवर्ड किया जाता है।
+
+## Heap
+
+अपनी **ऐप ID** ([Heap](https://heap.io) में प्रोजेक्ट की इंस्टॉल सेटिंग्स के अंतर्गत एनवायरनमेंट ID) `heap()` को दें।
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  heap({
+    id: "1234567890",
+    disableTextCapture: true, // optional: any other `heap.load` option
+  }),
+],
+```
+
+`id` ही वह एकमात्र विकल्प है जिसे Blume मैप करता है। आप जो कुछ भी और पास करते हैं, वह ज्यों का त्यों `heap.load` का कॉन्फ़िग ऑब्जेक्ट बन जाता है।
+
+## Hotjar
+
+अपनी **साइट ID** ([Hotjar](https://hotjar.com) में साइट के ट्रैकिंग कोड में दी गई संख्या) `hotjar()` को दें।
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  hotjar({
+    id: 1234567,
+    version: 6, // optional, this is the default
+  }),
+],
+```
+
+Hotjar के ट्रैकिंग कोड में `id`, `hjid` है और `version`, `hjsv` है; एडैप्टर इसके अलावा कुछ नहीं लेता।
+
+## Microsoft Clarity
+
+अपनी **प्रोजेक्ट ID** ([Clarity](https://clarity.microsoft.com) में प्रोजेक्ट के ट्रैकिंग कोड से) `clarity()` को दें।
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  clarity({
+    id: "xxxxxxxxxx",
+  }),
+],
+```
+
+एडैप्टर इसके अलावा कुछ नहीं लेता; Clarity की सेटिंग्स उसके डैशबोर्ड में रहती हैं।
+
+## LogRocket
+
+अपनी **ऐप ID** (`org/app`, [LogRocket](https://logrocket.com) में प्रोजेक्ट सेटिंग्स से) `logrocket()` को दें। Blume इंस्टॉल स्निपेट रेंडर करता है: SDK के साथ गार्ड किया गया `LogRocket.init` कॉल।
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  logrocket({
+    id: "your-org/your-app",
+    release: "1.2.0", // optional: any other `init` option
+  }),
+],
+```
+
+`id` ही वह एकमात्र विकल्प है जिसे Blume मैप करता है। आप जो कुछ भी और पास करते हैं, वह ज्यों का त्यों `LogRocket.init` को फ़ॉरवर्ड किया जाता है (`release`, `console`, `network`, `dom`, …)। रिक्वेस्ट या रिस्पॉन्स सैनिटाइज़र एक फ़ंक्शन होता है और कॉन्फ़िग के ज़रिए नहीं जा सकता; उनके लिए, एडैप्टर हटा दें और किसी [`script()`](#custom-scripts) एडैप्टर से `LogRocket.init` को स्वयं कॉल करें।
+
+## Clearbit
+
+अपनी **पब्लिशेबल API की** (`pk_…`) `clearbit()` को दें। Blume, Clearbit टैग रेंडर करता है, जो Clearbit में आपके द्वारा प्रबंधित सभी टैग्स — Reveal, फ़ॉर्म्स — लोड करता है।
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  clearbit({
+    key: "pk_xxxxxxxxxxxxxxxx",
+  }),
+],
+```
+
+एडैप्टर इसके अलावा कुछ नहीं लेता।
+
+## Adobe Analytics
+
+अपने Launch (Adobe Experience Platform Tags) एनवायरनमेंट का **एम्बेड स्क्रिप्ट URL** `adobe()` को दें। इसे Data Collection में Environments के अंतर्गत एनवायरनमेंट के इंस्टॉल निर्देशों से कॉपी करें; प्रोडक्शन वाला URL `https://assets.adobedtm.com/…/launch-….min.js` जैसा दिखता है।
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  adobe({
+    url: "https://assets.adobedtm.com/xxxxxxxx/launch-xxxxxxxx.min.js",
+  }),
+],
+```
+
+Blume स्क्रिप्ट को एसिंक्रोनस रूप से लोड करता है; यह क्या ट्रैक करती है, यह प्रॉपर्टी के नियमों पर निर्भर है। क्लाइंट-साइड नेविगेशन पेज को रीलोड नहीं करते, इसलिए प्रॉपर्टी को हिस्ट्री में होने वाले बदलावों पर एक नियम दें (या किसी [`script()`](#custom-scripts) एडैप्टर से `_satellite.track` कॉल करें)।
 
 ## कस्टम स्क्रिप्ट्स [#custom-scripts]
 
-किसी भी अन्य एनालिटिक्स प्रोवाइडर को लोड करने के लिए `scripts` का उपयोग करें। हर एंट्री एक `<script>` टैग रेंडर करती है और उसमें `src` (बाहरी) या `content` (इनलाइन) में से **ठीक एक** सेट होना चाहिए।
+बिना एडैप्टर वाले किसी भी प्रोवाइडर को, या किसी प्रोवाइडर के टैग को ऐसे रूप में जिसे उसका एडैप्टर रेंडर नहीं करता, लोड करने के लिए `script()` का उपयोग करें। हर एक, एक `<script>` टैग रेंडर करता है और उसमें `src` (बाहरी) या `content` (इनलाइन) में से **ठीक एक** सेट होना चाहिए।
 
 ```ts blume.config.ts lineNumbers
-analytics: {
-  scripts: [
-    // Plausible
-    {
-      src: "https://plausible.io/js/script.js",
-      strategy: "defer",
-      attributes: { "data-domain": "example.com" },
-    },
-    // Fathom
-    {
-      src: "https://cdn.usefathom.com/script.js",
-      strategy: "defer",
-      attributes: { "data-site": "ABCDEFG" },
-    },
-    // An inline snippet
-    {
-      content: "console.log('analytics ready')",
-    },
-  ],
-}
+analytics: [
+  // Umami
+  script({
+    src: "https://cloud.umami.is/script.js",
+    strategy: "defer",
+    attributes: { "data-website-id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
+  }),
+  // An inline snippet
+  script({
+    content: "console.log('analytics ready')",
+  }),
+],
 ```
 
 `attributes` अतिरिक्त HTML एट्रिब्यूट्स (`data-*`, `id`, …) का मैप है जो टैग पर स्प्रेड किए जाते हैं, और `strategy` बाहरी स्क्रिप्ट्स में `async` या `defer` जोड़ता है।
 
 ## विकल्प [#options]
 
-| विकल्प | डिफ़ॉल्ट | विवरण |
-| --- | --- | --- |
-| `vercel` | `false` | Vercel Web Analytics जोड़ें (केवल Vercel डिप्लॉयमेंट्स)। |
-| `cloudflare.token` | — | Cloudflare Web Analytics साइट टोकन (मैनुअल सेटअप)। सेट होने पर बीकन सक्षम करता है। |
-| `posthog.key` | — | PostHog प्रोजेक्ट API की। सेट होने पर PostHog सक्षम करती है। |
-| `posthog.host` | `https://us.i.posthog.com` | PostHog इंजेशन होस्ट (EU Cloud या सेल्फ़-होस्टेड)। |
-| `scripts[].src` | — | बाहरी स्क्रिप्ट URL. `content` के साथ परस्पर अनन्य। |
-| `scripts[].content` | — | इनलाइन स्क्रिप्ट बॉडी। `src` के साथ परस्पर अनन्य। |
-| `scripts[].strategy` | — | बाहरी स्क्रिप्ट के लिए `async` या `defer`. |
-| `scripts[].attributes` | — | `<script>` टैग पर स्प्रेड किए जाने वाले अतिरिक्त HTML एट्रिब्यूट्स। |
+| एडैप्टर | विकल्प | डिफ़ॉल्ट | विवरण |
+| --- | --- | --- | --- |
+| `adobe()` | `url` | — | Launch एनवायरनमेंट का एम्बेड स्क्रिप्ट URL। आवश्यक। |
+| `amplitude()` | `key` | — | Amplitude प्रोजेक्ट API की। आवश्यक। |
+| `amplitude()` | अन्य कुछ भी | `autocapture: true`, `fetchRemoteConfig: true` | `amplitude.init` विकल्पों में ज्यों का त्यों मर्ज किया जाता है। |
+| `clarity()` | `id` | — | Clarity प्रोजेक्ट ID। आवश्यक। |
+| `clearbit()` | `key` | — | Clearbit पब्लिशेबल API की। आवश्यक। |
+| `cloudflare()` | `token` | — | Cloudflare Web Analytics साइट टोकन (मैनुअल सेटअप)। आवश्यक। |
+| `cloudflare()` | अन्य कुछ भी | — | बीकन के `data-cf-beacon` JSON में ज्यों का त्यों फ़ॉरवर्ड किया जाता है। |
+| `fathom()` | `site` | — | Fathom साइट ID। आवश्यक। |
+| `fathom()` | `spa` | `"auto"` | Fathom की हिस्ट्री-चेंज ट्रैकिंग (`data-spa`)। |
+| `fathom()` | अन्य कुछ भी | — | टैग पर `data-` एट्रिब्यूट के रूप में रेंडर किया जाता है। |
+| `googleAnalytics()` | `id` | — | GA4 मेज़रमेंट ID। आवश्यक। |
+| `googleAnalytics()` | अन्य कुछ भी | — | `gtag('config', …)` कॉल पर ज्यों का त्यों फ़ॉरवर्ड किया जाता है। |
+| `googleTagManager()` | `id` | — | Tag Manager कंटेनर ID। आवश्यक। |
+| `googleTagManager()` | `dataLayer` | `dataLayer` | उस डेटा लेयर ग्लोबल का नाम जिसे कंटेनर पढ़ता है। |
+| `heap()` | `id` | — | Heap ऐप ID। आवश्यक। |
+| `heap()` | अन्य कुछ भी | — | `heap.load` कॉन्फ़िग के रूप में ज्यों का त्यों फ़ॉरवर्ड किया जाता है। |
+| `hightouch()` | `key` | — | Hightouch इवेंट सोर्स राइट की। आवश्यक। |
+| `hightouch()` | `host` | `us-east-1.hightouch-events.com` | इवेंट्स API होस्ट, बिना स्कीम के। |
+| `hightouch()` | अन्य कुछ भी | — | `htevents.load` विकल्पों के रूप में ज्यों का त्यों फ़ॉरवर्ड किया जाता है। |
+| `hotjar()` | `id` | — | Hotjar साइट ID (`hjid`)। आवश्यक। |
+| `hotjar()` | `version` | `6` | ट्रैकिंग-कोड वर्ज़न (`hjsv`)। |
+| `logrocket()` | `id` | — | LogRocket ऐप ID (`org/app`)। आवश्यक। |
+| `logrocket()` | अन्य कुछ भी | — | ज्यों का त्यों `LogRocket.init` को फ़ॉरवर्ड किया जाता है। |
+| `mixpanel()` | `token` | — | Mixpanel प्रोजेक्ट टोकन। आवश्यक। |
+| `mixpanel()` | `region` | `us` | डेटा रेज़िडेंसी रीजन: `us`, `eu`, या `in`। |
+| `mixpanel()` | अन्य कुछ भी | `track_pageview: "url-with-path-and-query-string"` | `mixpanel.init` विकल्पों में ज्यों का त्यों मर्ज किया जाता है। |
+| `pirsch()` | `code` | — | Pirsch आइडेंटिफ़िकेशन कोड। आवश्यक। |
+| `pirsch()` | अन्य कुछ भी | — | टैग पर `data-` एट्रिब्यूट के रूप में रेंडर किया जाता है। |
+| `plausible()` | `domain` | — | Plausible में साइट का डोमेन। आवश्यक। |
+| `plausible()` | `host` | `https://plausible.io` | सेल्फ़-होस्टेड या प्रॉक्सी किए गए इंस्टेंस का ओरिजिन। |
+| `plausible()` | अन्य कुछ भी | — | टैग पर `data-` एट्रिब्यूट के रूप में रेंडर किया जाता है। |
+| `posthog()` | `key` | — | PostHog प्रोजेक्ट API की। आवश्यक। |
+| `posthog()` | `host` | `https://us.i.posthog.com` | PostHog इंजेशन होस्ट (EU Cloud या सेल्फ़-होस्टेड)। |
+| `posthog()` | अन्य कुछ भी | — | ज्यों का त्यों `posthog.init` को फ़ॉरवर्ड किया जाता है। |
+| `segment()` | `key` | — | Segment सोर्स राइट की। आवश्यक। |
+| `segment()` | `cdn` | `https://cdn.segment.com` | Segment के CDN को प्रॉक्सी करने वाले कस्टम डोमेन का ओरिजिन। |
+| `segment()` | अन्य कुछ भी | — | `analytics.load` विकल्पों के रूप में ज्यों का त्यों फ़ॉरवर्ड किया जाता है। |
+| `vercel()` | `mode`, `debug`, … | — | आधिकारिक Astro कंपोनेंट को प्रॉप्स के रूप में फ़ॉरवर्ड किए जाते हैं। |
+| `script()` | `src` | — | बाहरी स्क्रिप्ट URL. `content` के साथ परस्पर अनन्य। |
+| `script()` | `content` | — | इनलाइन स्क्रिप्ट बॉडी। `src` के साथ परस्पर अनन्य। |
+| `script()` | `strategy` | — | बाहरी स्क्रिप्ट के लिए `async` या `defer`. |
+| `script()` | `attributes` | — | `<script>` टैग पर स्प्रेड किए जाने वाले अतिरिक्त HTML एट्रिब्यूट्स। |
 
-तीनों को मिलाकर इस्तेमाल किया जा सकता है — Vercel, PostHog, और कस्टम स्क्रिप्ट्स एक साथ सक्षम करें। अपनी बिल्ट साइट को डिप्लॉय करने के लिए, [Deployment](/docs/deployment) देखें।
+## कस्टम इवेंट्स [#custom-events]
+
+Blume का पेज फ़ीडबैक हर उस कॉन्फ़िगर किए गए एडैप्टर के ज़रिए एक कस्टम इवेंट भेजता है जिसके पास क्लाइंट API है — PostHog, Mixpanel, Heap, Segment, Hightouch, Amplitude, LogRocket, Adobe, Google Analytics, Google Tag Manager (`window.dataLayer` पर `{ event }` पुश के रूप में), Plausible, Fathom, Pirsch, Clarity, Hotjar, और Vercel। Cloudflare और Clearbit के पास कोई इवेंट API नहीं है। हर इवेंट `window` पर `blume:track` CustomEvent के रूप में भी फ़ायर होता है, जिसके `detail` में `{ event, props }` होता है, इसलिए कोई `script()` एडैप्टर उसे कहीं और भी फ़ॉरवर्ड कर सकता है। अपनी बिल्ट साइट को डिप्लॉय करने के लिए, [Deployment](/docs/deployment) देखें।

@@ -47,7 +47,7 @@ Sitemap: https://docs.example.com/sitemap.xml
 किसी भी संकेत को `false` पर सेट करके प्रतिबंधित करें; जिन्हें आप छोड़ देते हैं वे `yes` ही बने रहते हैं:
 
 ```ts blume.config.ts lineNumbers
-seo: {
+agents: {
   contentSignals: {
     aiTrain: false, // opt out of training, keep search + grounding
   },
@@ -63,14 +63,14 @@ Allow: /
 घोषणा को पूरी तरह हटाने के लिए `contentSignals: false` सेट करें:
 
 ```ts blume.config.ts lineNumbers
-seo: {
+agents: {
   contentSignals: false,
 }
 ```
 
 <TypeTable
   type={{
-    "seo.contentSignals": {
+    "agents.contentSignals": {
       type: "boolean | object",
       description:
         "Content-Signal घोषणा। true या छोड़ देने पर सभी संकेत yes के रूप में उत्सर्जित होते हैं; false पंक्ति हटा देता है; कोई ऑब्जेक्ट संकेतों को अलग-अलग सेट करता है।",

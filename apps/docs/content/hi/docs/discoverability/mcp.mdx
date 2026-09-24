@@ -7,7 +7,7 @@ description: >-
 एक [Model Context Protocol](https://modelcontextprotocol.io) सर्वर होस्ट करें ताकि कोडिंग एजेंट (Claude Code, Cursor, VS Code, claude.ai कनेक्टर) आपके दस्तावेज़ों को सीधे खोज और पढ़ सकें — बिना स्क्रैपिंग के। यह ऑप्ट-इन है:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   mcp: {
     enabled: true,
     route: "/mcp", // where the server is mounted
@@ -24,15 +24,15 @@ ai: {
 
 ## टूल और संसाधन [#tools-and-resources]
 
-सर्वर केवल-पढ़ने योग्य टूल उपलब्ध कराता है — `search_docs`, `get_page`, `list_pages`, और `get_navigation` — तथा प्रत्येक पृष्ठ को एक MCP संसाधन के रूप में (`resources/list` पृष्ठों को उनके सर्व किए गए URL पर `text/markdown` प्रकार के साथ सूचीबद्ध करता है; `resources/read` पृष्ठ का [एजेंट Markdown](/docs/discoverability/markdown) लौटाता है, वही आउटपुट जो `get_page` देता है), जिससे URI द्वारा संदर्भ जोड़ने वाले क्लाइंट बिना कोई टूल कॉल किए दस्तावेज़ ब्राउज़ कर सकते हैं। यह `/.well-known/mcp.json` और `/.well-known/mcp/server-card.json` पर डिस्कवरी दस्तावेज़ प्रकाशित करता है। सर्वर कार्ड [SEP-2127](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127) Server Card एक्सटेंशन स्कीमा का पालन करता है (रिवर्स-DNS `name`, `remotes` ट्रांसपोर्ट एंडपॉइंट), साथ ही प्रस्ताव के पुराने संशोधन के अनुसार बने स्कैनर के लिए initialize-आकार वाले संगतता फ़ील्ड (`serverInfo`, `capabilities`, `transports`) भी शामिल हैं। प्रत्येक पृष्ठ का **Connect to MCP** मेन्यू Claude Code, Cursor, VS Code, और Codex के लिए कॉपी-एंड-गो इंस्टॉल प्रदान करता है ([`deployment.site`](/docs/deployment) सेट होने के बाद दिखाया जाता है)।
+सर्वर केवल-पढ़ने योग्य टूल उपलब्ध कराता है — `search_docs`, `get_page`, `list_pages`, और `get_navigation` — तथा प्रत्येक पृष्ठ को एक MCP संसाधन के रूप में (`resources/list` पृष्ठों को उनके सर्व किए गए URL पर `text/markdown` प्रकार के साथ सूचीबद्ध करता है, और `list_pages` की तरह ही बिना अनुवाद वाले पृष्ठों की i18n फ़ॉलबैक प्रतियों को छोड़ देता है; `resources/read` पृष्ठ का [एजेंट Markdown](/docs/discoverability/markdown) लौटाता है, वही आउटपुट जो `get_page` देता है), जिससे URI द्वारा संदर्भ जोड़ने वाले क्लाइंट बिना कोई टूल कॉल किए दस्तावेज़ ब्राउज़ कर सकते हैं। यह `/.well-known/mcp.json` और `/.well-known/mcp/server-card.json` पर डिस्कवरी दस्तावेज़ प्रकाशित करता है। सर्वर कार्ड [SEP-2127](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127) Server Card एक्सटेंशन स्कीमा का पालन करता है (रिवर्स-DNS `name`, `remotes` ट्रांसपोर्ट एंडपॉइंट), साथ ही प्रस्ताव के पुराने संशोधन के अनुसार बने स्कैनर के लिए initialize-आकार वाले संगतता फ़ील्ड (`serverInfo`, `capabilities`, `transports`) भी शामिल हैं। प्रत्येक पृष्ठ का **Connect to MCP** मेन्यू Claude Code, Cursor, VS Code, और Codex के लिए कॉपी-एंड-गो इंस्टॉल प्रदान करता है ([`deployment.site`](/docs/deployment) सेट होने के बाद दिखाया जाता है)।
 
-`search_docs` अपना स्वयं का फ़ुल-टेक्स्ट इंडेक्स चलाता है, इसलिए यह आपके [search](/docs/configuration/search) प्रदाता की परवाह किए बिना काम करता है — और तब भी जब search `none` पर सेट हो। MCP सर्वर ऑन-पेज सर्च से एक अलग सुविधा है।
+`search_docs` अपना स्वयं का फ़ुल-टेक्स्ट इंडेक्स चलाता है, इसलिए यह आपके [search](/docs/configuration/search) प्रदाता की परवाह किए बिना काम करता है — और `search: false` होने पर भी। MCP सर्वर ऑन-पेज सर्च से एक अलग सुविधा है।
 
 वही टूल सादे HTTP पर [JSON API](/docs/discoverability/json-api) के रूप में उपलब्ध हैं, उन फ़्रेमवर्क के लिए जो MCP नहीं समझते।
 
 ## कंटेंट टाइप और फ़ैसेट द्वारा स्कोपिंग [#scoping-by-content-type-and-facets]
 
-`search_docs` और `list_pages` दोनों एक वैकल्पिक `contentTypes` फ़िल्टर स्वीकार करते हैं, जो परिणामों को दिए गए फ़्रंटमैटर [`type`](/docs/reference/frontmatter) वाले पृष्ठों तक सीमित करता है — `["rfc"]`, `["blog", "changelog"]` — ताकि ऐसी साइट पर काम करने वाला एजेंट जो दस्तावेज़ों को RFC, रनबुक, या नीतियों के साथ मिलाती है, अपनी आवश्यकता के अनुसार पृष्ठ प्रकार तक पुनर्प्राप्ति को सीमित कर सके। प्रत्येक परिणाम अपना कंटेंट टाइप बताता है, और `list_pages` का आउटपुट उपयोग में आने वाले प्रकार दिखाता है।
+`search_docs` और `list_pages` दोनों एक वैकल्पिक `contentTypes` फ़िल्टर स्वीकार करते हैं, जो परिणामों को दिए गए फ़्रंटमैटर [`type`](/docs/content/frontmatter) वाले पृष्ठों तक सीमित करता है — `["rfc"]`, `["blog", "changelog"]` — ताकि ऐसी साइट पर काम करने वाला एजेंट जो दस्तावेज़ों को RFC, रनबुक, या नीतियों के साथ मिलाती है, अपनी आवश्यकता के अनुसार पृष्ठ प्रकार तक पुनर्प्राप्ति को सीमित कर सके। प्रत्येक परिणाम अपना कंटेंट टाइप बताता है, और `list_pages` का आउटपुट उपयोग में आने वाले प्रकार दिखाता है।
 
 दोनों टूल एक `filters` ऑब्जेक्ट भी स्वीकार करते हैं जो उन फ़ैसेट से मिलान करता है जिन्हें साइट प्रति कंटेंट टाइप घोषित करती है ([`content.types.<type>.facets`](/docs/configuration#frontmatter)) — कस्टम फ़्रंटमैटर कुंजियाँ जिनके मान फ़िल्टर करने योग्य मेटाडेटा बन जाते हैं:
 
@@ -48,17 +48,17 @@ ai: {
 
 ## सर्वर आउटपुट आवश्यक [#server-output-required]
 
-MCP सर्वर एक लाइव एंडपॉइंट (`/mcp`) है, इसलिए यह स्टैटिक बिल्ड पर नहीं चल सकता। सर्वर आउटपुट पर स्विच करें और एक एडाप्टर चुनें:
+MCP सर्वर एक लाइव एंडपॉइंट (`/mcp`) है, इसलिए यह स्टैटिक बिल्ड पर नहीं चल सकता। सर्वर आउटपुट पर स्विच करने के लिए `blume/deploy` से एक होस्ट एडाप्टर निर्दिष्ट करें:
 
 ```ts blume.config.ts lineNumbers
-deployment: {
-  output: "server",
-  adapter: "node", // or "vercel" | "netlify" | "cloudflare"
-  site: "https://docs.example.com",
-}
+import { node } from "blume/deploy"; // or vercel, netlify, cloudflare
+
+export default defineConfig({
+  deployment: node({ site: "https://docs.example.com" }),
+});
 ```
 
-`ai.mcp.enabled` के साथ स्टैटिक बिल्ड तुरंत विफल हो जाता है और एक संदेश देता है जो आपको `deployment.output` को `server` पर सेट करने के लिए कहता है। एडाप्टर के लिए [Deployment](/docs/deployment) देखें। डिप्लॉय हो जाने के बाद, Claude Code से इस तरह कनेक्ट करें:
+`agents.mcp.enabled` के साथ स्टैटिक बिल्ड तुरंत विफल हो जाता है और एक संदेश देता है जो आपको एक होस्ट एडाप्टर सेट करने के लिए कहता है। एडाप्टर के लिए [Deployment](/docs/deployment) देखें। डिप्लॉय हो जाने के बाद, Claude Code से इस तरह कनेक्ट करें:
 
 ```bash
 claude mcp add --transport http my-docs https://docs.example.com/mcp

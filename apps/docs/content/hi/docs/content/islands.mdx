@@ -31,28 +31,30 @@ Here's a live counter: <Counter />
 
 ## `components.ts` में आइलैंड्स रजिस्टर करना [#registering-islands-in-componentsts]
 
-यदि आप आइलैंड्स को अपने बाकी कंपोनेंट्स के साथ रखना चाहें — या उन्हें फ़ाइल से अलग नाम देना चाहें — तो उन्हें `defineComponents` के साथ रजिस्टर करें। `islands` समूह बिल्कुल `islands/` फ़ोल्डर जैसा ही है: प्रत्येक एंट्री हर MDX पेज में उपलब्ध होती है और हाइड्रेट होती है (डिफ़ॉल्ट `client: "visible"` के साथ)।
+यदि आप आइलैंड्स को अपने बाकी कंपोनेंट्स के साथ रखना चाहें — या उन्हें फ़ाइल से अलग नाम देना चाहें — तो उन्हें `defineComponents` के साथ एक `client` मोड वाली `mdx` एंट्री के रूप में रजिस्टर करें। आइलैंड बस इतना ही है: एक MDX कंपोनेंट जो हाइड्रेट होता है। प्रत्येक एंट्री हर MDX पेज में उपलब्ध होती है, और किसी `islands/` फ़ाइल के समान नाम वाली एंट्री उस फ़ाइल की जगह ले लेती है।
 
 ```ts components.ts
 import { defineComponents } from "blume";
 import Counter from "./widgets/Counter.tsx";
 
 export default defineComponents({
-  islands: {
-    Counter, // <Counter /> in any MDX page, hydrated
+  mdx: {
+    Counter: { component: Counter, client: "visible" }, // <Counter /> in any MDX page, hydrated
   },
 });
 ```
 
-कंपोनेंट को इंपोर्ट के ज़रिए या पाथ स्ट्रिंग के ज़रिए रेफ़र करें, और डिस्क्रिप्टर फ़ॉर्म के साथ प्रति आइलैंड एक हाइड्रेशन मोड सेट करें:
+कंपोनेंट को इंपोर्ट के ज़रिए या पाथ स्ट्रिंग के ज़रिए रेफ़र करें, और प्रति आइलैंड हाइड्रेशन मोड चुनें (`"media"` के साथ एक `media` क्वेरी भी देनी होती है):
 
 ```ts components.ts
 export default defineComponents({
-  islands: {
+  mdx: {
     Chart: { component: "./widgets/Chart.tsx", client: "only" },
   },
 });
 ```
+
+फ़ोल्डर के विपरीत, यहाँ कोई डिफ़ॉल्ट नहीं है: `client` के बिना एक `mdx` एंट्री स्टैटिक HTML के रूप में रेंडर होती है, और यदि वह एंट्री React, Vue या Svelte कंपोनेंट है तो Blume चेतावनी देता है। Blume `components.ts` को स्टैटिक रूप से पढ़ता है, इसलिए एंट्री एक इंपोर्ट किया गया कंपोनेंट, एक पाथ स्ट्रिंग, या एक `{ component, client, media }` ऑब्जेक्ट लिटरल होनी चाहिए — स्वीकृत फ़ॉर्म और अन्यथा मिलने वाली त्रुटि के लिए [कस्टमाइज़ेशन](/docs/configuration/customization#reference-form) देखें।
 
 ## हाइड्रेशन [#hydration]
 
@@ -73,6 +75,9 @@ export default function Chart() {
 | `"load"` | पेज लोड होते ही तुरंत | ऊपरी हिस्से का, तुरंत चाहिए वाला UI |
 | `"idle"` | जब मुख्य थ्रेड निष्क्रिय हो | गैर-अत्यावश्यक इंटरैक्टिविटी |
 | `"only"` | केवल क्लाइंट, कभी सर्वर-रेंडर नहीं | ऐसी लाइब्रेरीज़ जिन्हें `window`/`document` चाहिए (चार्ट, एडिटर) |
+| `"media"` _(केवल `components.ts`)_ | जब कोई CSS मीडिया क्वेरी मेल खाए | ऐसा UI जो केवल कुछ आकारों पर चलता है, जैसे केवल-मोबाइल मेनू |
+
+`"media"` को अपने साथ क्वेरी की ज़रूरत होती है, इसलिए यह केवल [`components.ts` एंट्री](#registering-islands-in-componentsts) के लिए उपलब्ध है — `{ component: Menu, client: "media", media: "(max-width: 50em)" }`। जो `islands/` फ़ाइल इसे घोषित करती है, वह चेतावनी के साथ `"visible"` पर लौट आती है।
 
 ## फ्रेमवर्क [#frameworks]
 

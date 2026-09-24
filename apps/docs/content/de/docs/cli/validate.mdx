@@ -1,0 +1,42 @@
+---
+title: Validieren
+description: >-
+  blume validate prüft jeden Link in deinen Inhalten – Seiten, Anker, Assets und optional externe URLs – und lässt CI fehlschlagen, sobald einer kaputt ist.
+---
+
+`blume validate` liest deine Inhalte so ein, wie es ein Build tut, und prüft jeden Link, den es findet. Es wird nichts generiert oder gebaut, deshalb ist es die schnelle Prüfung, die du vor `blume build` schalten kannst:
+
+```bash
+blume validate
+```
+
+- **Interne Seitenlinks** (`/guides/intro`, `./sibling`) müssen auf eine echte Seite verweisen – kaputte Links werden als Fehler gemeldet. Ein String-`href` einer Komponente (`<Card href="./install">`) wird genauso geprüft, ein `href={…}`-Ausdruck dagegen nicht.
+- **Anker-Links** (`#section`, `/guides/intro#setup`) müssen zu einem Anker auf der Zielseite passen – der ID einer Überschrift (generiert oder [festgelegt](/docs/content/syntax#custom-anchors)) oder dem `id`-Attribut eines rohen HTML-Elements. Treffer, die fehlen, werden als Warnungen gemeldet. IDs in Codeblöcken, Inline-Code, HTML-Kommentaren und `<Prompt>`-Blöcken zählen nicht.
+- **Asset-Links** werden dort geprüft, wo die Datei liegt: ein absoluter Pfad (`/logo.png`) im Verzeichnis `public/`, ein relatives eingebettetes Bild (`![](./diagram.png)`) im Ordner der jeweiligen Seite. Ein normaler Link auf einen relativen Pfad wird weiterhin als Route der Website aufgelöst – nur eingebettete Bilder durchlaufen die Bild-Pipeline.
+- **Externe Links** werden nur mit [`--external`](#flags) geprüft (standardmäßig deaktiviert, da dafür Netzwerkzugriff nötig ist). Tote Links (404/410/nicht erreichbar) sind Fehler, während Antworten mit Rate-Limit oder vorübergehenden Problemen (403/429/5xx/Timeout) Warnungen sind.
+
+## Was als Seite zählt [#what-counts-as-a-page]
+
+Links werden gegen alles aufgelöst, was die gebaute Website ausliefert, nicht nur gegen Markdown-Seiten: eigene [`.astro`-Seiten](/docs/advanced/custom-pages), den generierten [Changelog](/docs/advanced/changelog)-Index, jede konfigurierte [Weiterleitung](/docs/deployment#redirects) und auf einer [mehrsprachigen Website](/docs/content/i18n) die Fallback-URL einer nicht übersetzten Seite unter jeder Locale. Eine Seite, die sich nicht parsen lässt, wird zusammen mit den Link-Ergebnissen gemeldet. Eine Seite, die nie lädt, ist nämlich ein blinder Fleck der Link-Validierung und kein sauberes Ergebnis.
+
+## Flags
+
+- `--external` – prüft zusätzlich externe `http(s)`-Links über das Netzwerk.
+- `--strict` – beendet sich auch bei Warnungen mit einem Exit-Code ungleich null. Hinweise der Stufe „info“ bleiben rein informativ.
+- `--json` – gibt die Diagnosen als JSON auf stdout aus statt als Terminal-Bericht.
+
+## Diagnosen [#diagnostics]
+
+| Code | Schweregrad | Bedeutung |
+| --- | --- | --- |
+| `BLUME_BROKEN_LINK` | error | Ein interner Link zeigt auf eine Route, die von keiner Seite bereitgestellt wird. |
+| `BLUME_BROKEN_ANCHOR` | warning | Die Seite existiert, hat aber keinen Anker, der zum Fragment passt. |
+| `BLUME_BROKEN_ASSET` | warning | Ein absoluter Pfad liegt nicht in `public/`, oder ein relatives eingebettetes Bild liegt nicht neben der Seite. |
+| `BLUME_ASSETS_UNCHECKED` | info | Es gibt kein Verzeichnis `public/`, daher wurden absolute Asset-Pfade nicht geprüft. |
+| `BLUME_DEAD_LINK` | error oder warning | Ein externer Link (mit `--external`) hat 404/410 zurückgegeben oder war nicht erreichbar (error), oder er lieferte vorübergehend 403/429/5xx/Timeout (warning). |
+
+Der Exit-Code ist der Vertrag: Bei Fehlern wird mit einem Wert ungleich null beendet, und `--strict` sorgt dafür, dass Warnungen dasselbe bewirken.
+
+## JSON-Ausgabe [#json-output]
+
+Mit `--json` schreiben `blume validate` (und [`blume doctor`](/docs/cli/doctor)) ein einzelnes Objekt auf stdout. Es enthält eine `diagnostics`-Liste und eine `summary` mit der Anzahl pro Schweregrad. Jeder Eintrag der Liste enthält seinen `code`, `severity` und `message`, die `file` relativ zum Projektstammverzeichnis, dazu `line` und `column`, wenn das Ergebnis eine Position hat, eine `suggestion` und eine `docsUrl`, die auf die Seite verweist, die den Code erklärt. Der Exit-Code bleibt unverändert. Derselbe Aufruf kann also CI absichern und gleichzeitig eine Editor-Integration speisen.

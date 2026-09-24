@@ -31,28 +31,30 @@ Ilhas são para UI **interativa**. Para um componente estático que você reutil
 
 ## Registrando ilhas em `components.ts` [#registering-islands-in-componentsts]
 
-Se você preferir manter as ilhas junto ao restante dos seus componentes — ou dar a elas um nome diferente do arquivo — registre-as com `defineComponents`. O grupo `islands` é exatamente como a pasta `islands/`: cada entrada está disponível em todas as páginas MDX e é hidratada (com padrão `client: "visible"`).
+Se você preferir manter as ilhas junto ao restante dos seus componentes — ou dar a elas um nome diferente do arquivo — registre-as com `defineComponents` como uma entrada `mdx` com um modo `client`. Isso é tudo o que uma ilha é: um componente MDX que é hidratado. Cada entrada está disponível em todas as páginas MDX, e uma entrada com o mesmo nome de um arquivo em `islands/` o substitui.
 
 ```ts components.ts
 import { defineComponents } from "blume";
 import Counter from "./widgets/Counter.tsx";
 
 export default defineComponents({
-  islands: {
-    Counter, // <Counter /> in any MDX page, hydrated
+  mdx: {
+    Counter: { component: Counter, client: "visible" }, // <Counter /> in any MDX page, hydrated
   },
 });
 ```
 
-Referencie o componente por importação ou por uma string de caminho, e defina um modo de hidratação por ilha com a forma de descritor:
+Referencie o componente por importação ou por uma string de caminho, e escolha o modo de hidratação por ilha (`"media"` recebe uma consulta `media` ao lado):
 
 ```ts components.ts
 export default defineComponents({
-  islands: {
+  mdx: {
     Chart: { component: "./widgets/Chart.tsx", client: "only" },
   },
 });
 ```
+
+Diferente da pasta, não há padrão: uma entrada `mdx` sem `client` é renderizada como HTML estático, e o Blume emite um aviso quando essa entrada é um componente React, Vue ou Svelte. O Blume lê o `components.ts` estaticamente, então uma entrada deve ser um componente importado, uma string de caminho ou um literal de objeto `{ component, client, media }` — veja [Personalização](/docs/configuration/customization#reference-form) para as formas aceitas e o erro que você recebe caso contrário.
 
 ## Hidratação [#hydration]
 
@@ -73,6 +75,9 @@ export default function Chart() {
 | `"load"` | Imediatamente ao carregar a página | UI acima da dobra, que deve ser instantânea |
 | `"idle"` | Quando a thread principal está ociosa | Interatividade não urgente |
 | `"only"` | Apenas no cliente, nunca renderizado no servidor | Bibliotecas que precisam de `window`/`document` (gráficos, editores) |
+| `"media"` _(apenas `components.ts`)_ | Quando uma media query CSS corresponde | UI que só roda em alguns tamanhos, como um menu apenas para mobile |
+
+`"media"` precisa da consulta ao lado, então está disponível apenas para uma [entrada em `components.ts`](#registering-islands-in-componentsts) — `{ component: Menu, client: "media", media: "(max-width: 50em)" }`. Um arquivo em `islands/` que o declara volta para `"visible"` com um aviso.
 
 ## Frameworks
 

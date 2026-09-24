@@ -45,7 +45,7 @@ Seu [`blume.config.ts`](/docs/configuration) e cada [`meta.ts`](/docs/content/me
 ## Tudo incluído [#everything-included]
 
 - **Componentes** — callouts, cards, steps, tabs, accordions, badges, árvores de arquivos e tabelas de parâmetros, utilizáveis em MDX [sem imports](/docs/content/components).
-- **Busca local** — o Orama funciona em dev e em produção; o Pagefind está a uma flag de distância para sites grandes. Sem índice hospedado.
+- **Busca local** — o Orama funciona em dev e em produção; para sites grandes, o Pagefind está a um adaptador de distância (`search: pagefind()`). Sem índice hospedado.
 - **IA** — [`llms.txt`, URLs de Markdown bruto, uma API JSON com descrição OpenAPI, Copiar como Markdown, Abrir no chat e um servidor MCP hospedado](/docs/discoverability), além de um [assistente Ask AI](/docs/configuration/ask-ai) opcional.
 - **Navegação** — inferida a partir dos arquivos, refinada com `meta.ts` ou configuração.
 - **SEO** — metadados, imagens Open Graph, feeds RSS e JSON-LD, [já integrados](/docs/discoverability).

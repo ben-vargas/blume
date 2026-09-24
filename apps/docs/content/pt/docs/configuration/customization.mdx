@@ -25,7 +25,7 @@ As chaves são os nomes que você escreve no MDX (`<Callout>`, `<Pricing>`). Use
 
 ### Forma de referência [#reference-form]
 
-Toda substituição — em `mdx`, `layout` ou `islands` — aceita três formas:
+Toda substituição — em `mdx` ou `layout` — aceita três formas:
 
 ```ts components.ts
 import { defineComponents } from "blume";
@@ -40,6 +40,8 @@ export default defineComponents({
 });
 ```
 
+O Blume lê o `components.ts` estaticamente — ele nunca executa o arquivo —, então essas três formas são as únicas que ele aceita. Uma função ou expressão inline, um componente declarado no próprio arquivo, um spread, uma chave computada ou um `client` que não seja uma das strings de modo abaixo gera um erro `BLUME_COMPONENTS_INVALID` que indica a entrada: o `blume dev` o reporta no terminal e no overlay do navegador, e o `blume build` falha.
+
 A forma de **descritor** adiciona um modo de hidratação para que um componente interativo React/Vue/Svelte envie seu JavaScript e ganhe vida no cliente. Sem um modo `client`, um componente de framework é renderizado como HTML estático — o Blume exibe um aviso de build quando detecta um desses, já que isso costuma ser um engano.
 
 | `client` | Hidrata |
@@ -50,7 +52,7 @@ A forma de **descritor** adiciona um modo de hidratação para que um componente
 | `"media"` | Quando uma consulta `media` corresponder (adicione `media: "(min-width: 40rem)"`) |
 | `"only"` | Apenas no cliente, nunca renderizado no servidor |
 
-Para componentes interativos que você usa em muitas páginas, o [grupo `islands`](/docs/content/islands#registering-islands-in-componentsts) é um atalho para a forma de descritor com `client: "visible"`.
+Uma entrada `mdx` com um modo `client` _é_ uma ilha: ela fica disponível em todas as páginas e é hidratada exatamente como um componente colocado na [pasta `islands/`](/docs/content/islands). A pasta continua sendo o caminho sem configuração — recorra a uma entrada no `components.ts` quando quiser um nome diferente do nome do arquivo, uma consulta `media` ou manter as ilhas junto das suas outras substituições.
 
 ### Tipando uma substituição [#typing-an-override]
 
@@ -89,7 +91,7 @@ Slots conectados:
 | --- | --- | --- |
 | `Layout` | Toda a estrutura da página (`RootLayout`) | Tudo o que o layout integrado recebe, mais o mapa `layout` |
 | `Header` | A barra de navegação superior | `site`, `logo`, `navigation`, `route`, `searchEnabled`, … |
-| `Logo` | O link da marca (símbolo + título) no cabeçalho | `site`, `logo` |
+| `Logo` | O link da marca (símbolo + título) no cabeçalho | `site`, `logo`, `locale` |
 | `Search` | O gatilho de busca do cabeçalho + modal | `navigation`, `strings`, `locale`, `askEnabled` |
 | `Sidebar` | A árvore de navegação principal | `items`, `currentRoute` |
 | `MobileNav` | A navegação dentro da gaveta mobile (usa `Sidebar` por padrão) | `items`, `currentRoute` |
@@ -151,17 +153,17 @@ A cópia importa o restante do framework de `blume/*`, então ela renderiza exat
 Adicione qualquer integração do Astro a partir do array `integrations` de nível superior em `blume.config.ts`. Instale a integração no seu site primeiro; o Blume não a adiciona às dependências do runtime gerado nem gerencia sua compatibilidade com o Astro.
 
 ```bash
-npm install @astrojs/sitemap
+npm install @astrojs/partytown
 ```
 
 ```ts blume.config.ts lineNumbers
-import sitemap from "@astrojs/sitemap";
+import partytown from "@astrojs/partytown";
 import { defineConfig } from "blume";
 
 export default defineConfig({
   integrations: [
-    sitemap({
-      filter: (page) => !page.includes("/drafts/"),
+    partytown({
+      config: { forward: ["dataLayer.push"] },
     }),
   ],
 });
@@ -178,10 +180,14 @@ As mesmas integrações são executadas no `blume dev` e no `blume build`. Edita
 Quando quiser controle total, faça o eject do runtime gerado para um projeto Astro independente:
 
 ```bash
-blume eject --yes
+npx blume eject --yes
 ```
 
 O eject é um passo sem volta: o runtime oculto `.blume/` se torna um aplicativo Astro normal que é seu e que você pode modificar diretamente. O pacote `blume` continua importável, então você mantém seus componentes, tema e processadores de Markdown.
+
+O eject aponta os scripts do seu `package.json` para `astro dev` e `astro build` e adiciona os pacotes que o aplicativo Astro importa pelo nome — `astro`, `@tailwindcss/vite`, o cliente de busca, as integrações e o adaptador que a configuração conecta, o React quando uma ilha, um exemplo ou o Ask AI o utiliza, o `ai` para a rota do Ask AI e o `epub-gen-memory` para a exportação em EPUB — nas mesmas faixas de versão que o próprio Blume usa. Execute uma instalação antes do `dev` ou do `build`; o eject lista o que adicionou. Todo caminho no aplicativo após o eject é relativo, então ele faz o build a partir de qualquer checkout, inclusive no CI.
+
+A partir daí, execute o aplicativo pelos próprios scripts dele (`npm run dev`, `npm run build`): o `blume dev` e o `blume build` são interrompidos em um projeto após o eject e direcionam você para esses scripts. Executar o `blume eject` novamente também é recusado, já que isso sobrescreveria suas edições; passe `--force` para regenerar o aplicativo mesmo assim.
 
 ### O que o eject mantém [#what-eject-keeps]
 

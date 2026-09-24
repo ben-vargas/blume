@@ -1,0 +1,187 @@
+---
+title: फ़्रंटमैटर
+description: >-
+  हर पेज द्वारा स्वीकार किया जाने वाला प्रत्येक फ़्रंटमैटर फ़ील्ड, सभी वैकल्पिक — title, description, sidebar, SEO, search और बाकी सभी, साथ ही यह भी कि प्रत्येक फ़ील्ड क्या नियंत्रित करता है।
+---
+
+हर पेज निम्नलिखित फ़्रंटमैटर स्वीकार करता है। सभी फ़ील्ड वैकल्पिक हैं।
+
+<TypeTable
+  type={{
+    title: { type: "string", description: "Page title." },
+    description: { type: "string", description: "Page summary." },
+    type: {
+      type: "string",
+      default: "doc",
+      description: "Content type. blog/changelog drive feeds.",
+    },
+    date: {
+      type: "string",
+      description: "Publish date for blog/changelog feeds (ISO or YAML date).",
+    },
+    authors: {
+      type: "string | string[] | object[]",
+      description:
+        "Post author(s) for blog/changelog content — a name, or objects with a name plus optional avatar/url and any extra fields. Preserved as-is.",
+    },
+    slug: { type: "string", description: "Override the generated slug." },
+    draft: {
+      type: "boolean",
+      default: "false",
+      description: "Exclude from production builds.",
+    },
+    deprecated: {
+      type: "boolean",
+      default: "false",
+      description:
+        "Mark the page deprecated: its sidebar row gets a deprecated pill (a translatable UI string).",
+    },
+    hidden: {
+      type: "boolean",
+      default: "false",
+      description: "Shorthand for sidebar.hidden.",
+    },
+    noindex: {
+      type: "boolean",
+      default: "false",
+      description: "Shorthand for seo.noindex.",
+    },
+    icon: {
+      type: "string",
+      description:
+        "Lucide icon for the page's sidebar row when sidebar.icon isn't set (sidebar.icon wins).",
+    },
+    lastModified: {
+      type: "string",
+      description:
+        'Pin the page\'s "last updated" date (ISO or YAML date); overrides the git-derived date.',
+    },
+  }}
+/>
+
+## साइडबार [#sidebar]
+
+```yaml lineNumbers
+sidebar:
+  label: Install
+  order: 2
+  icon: download
+  badge: New
+  hidden: false
+  display: page
+```
+
+`hidden` पेज को साइडबार से और पिछले/अगले पेजिनेशन से हटा देता है। किसी फ़ोल्डर के `index` पेज पर यह केवल उस पेज की अपनी पंक्ति हटाता है: समूह की पंक्ति फिर भी उस पेज से लिंक करती रहती है, और पिछले/अगले लिंक अब भी उससे होकर गुज़रते हैं।
+
+`display` पेज के फ़ोल्डर समूह का रेंडर मोड सेट करता है ([प्रति-समूह ओवरराइड](/docs/content/navigation#per-group-overrides))। इसका अर्थ केवल जेनरेट किए गए साइडबार के अंतर्गत किसी फ़ोल्डर के `index` पेज पर होता है। कहीं और (कोई गैर-index पेज, कंटेंट रूट का अपना `index` पेज, या किसी स्पष्ट `navigation.sidebar` के अंतर्गत कोई भी पेज) कॉन्फ़िगर करने के लिए कोई समूह नहीं होता, और Blume `BLUME_SIDEBAR_DISPLAY_IGNORED` के साथ चेतावनी देता है।
+
+## SEO
+
+```yaml lineNumbers
+seo:
+  title: Install Blume
+  description: Install Blume and scaffold your first project.
+  image: /og/install.png
+  canonical: https://acme.com/install
+  noindex: false
+  x:
+    creator: "@jane"
+```
+
+`noindex` एक robots `noindex` जोड़ता है, पेज को साइटमैप से हटा देता है, और उसका स्ट्रक्चर्ड डेटा नहीं बनाता। `x.creator` पेज का श्रेय किसी X खाते (`twitter:creator`) को देता है, जैसे किसी गेस्ट पोस्ट के लेखक को। सभी फ़ील्ड के लिए [मेटाडेटा](/docs/discoverability/metadata#per-page-overrides) देखें।
+
+## खोज [#search]
+
+```yaml lineNumbers
+search:
+  exclude: false
+  tags: [api]
+```
+
+## AI
+
+```yaml lineNumbers
+ai:
+  exclude: true
+```
+
+`ai.exclude` पेज को [`llms.txt` और `llms-full.txt`](/docs/discoverability/llms-txt#excluding-a-page) से बाहर रखता है। पेज फिर भी रेंडर होता है, खोज में बना रहता है, और साइटमैप में भी बना रहता है।
+
+## चेंजलॉग [#changelog]
+
+चेंजलॉग प्रविष्टियाँ (`type: changelog`) फ़ीड और डिस्प्ले के लिए अधिक मेटाडेटा देने हेतु एक वैकल्पिक `changelog` ऑब्जेक्ट स्वीकार करती हैं:
+
+```yaml lineNumbers
+type: changelog
+changelog:
+  version: 1.2.0
+  date: 2026-06-20
+  category: Features
+```
+
+`date` को आप यहाँ या शीर्ष स्तर पर रख सकते हैं। दोनों ही [चेंजलॉग RSS फ़ीड](/docs/content#feeds) में इस्तेमाल होते हैं। जेनरेट किए गए टाइमलाइन पेज और फ़ीड के लिए [चेंजलॉग](/docs/advanced/changelog) देखें।
+
+## कस्टम कुंजियाँ [#custom-keys]
+
+इस संदर्भ में दी गई कुंजियों के अलावा कोई भी कुंजी होने पर बिल्ड विफल हो जाता है, ताकि टाइपो जल्दी पकड़े जा सकें। जो प्रोजेक्ट अपना स्वयं का मेटाडेटा रखते हैं, वे `blume.config.ts` में [`frontmatter.extend`](/docs/configuration#frontmatter) के माध्यम से अतिरिक्त कुंजियाँ जोड़ सकते हैं। प्रत्येक कुंजी को प्रोजेक्ट द्वारा दिए गए स्कीमा से सत्यापित किया जाता है:
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { z } from "zod";
+
+export default defineConfig({
+  frontmatter: {
+    extend: {
+      owner: z.string(),
+      reviewedAt: z.coerce.date().optional(),
+    },
+  },
+});
+```
+
+```yaml page.mdx
+---
+title: Install
+owner: "@sam"
+reviewedAt: 2026-06-20
+---
+```
+
+स्कीमा [Standard Schema](https://standardschema.dev) इंटरफ़ेस के माध्यम से स्वीकार किए जाते हैं, इसलिए Zod (आपके प्रोजेक्ट में इंस्टॉल कोई भी संस्करण), Valibot और ArkType सभी काम करते हैं। प्रत्येक घोषित कुंजी को हर पेज पर सत्यापित किया जाता है, उन पेजों पर भी जहाँ वह कुंजी मौजूद नहीं है। इसलिए आवश्यक स्कीमा वाली कुंजी पूरी साइट में अनिवार्य हो जाती है। यदि आप उसे केवल वहीं सत्यापित करना चाहते हैं जहाँ वह मौजूद हो, तो उसे `.optional()` चिह्नित करें। अन्य सभी कुंजियों का सत्यापन पहले की तरह सख्त रहता है, और बिल्ट-इन फ़ील्ड को दोबारा घोषित नहीं किया जा सकता।
+
+### प्रति-प्रकार कुंजियाँ [#per-type-keys]
+
+यदि आप कुंजियों को केवल एक कंटेंट प्रकार पर आवश्यक बनाना चाहते हैं, जैसे किसी RFC का `status` या किसी इंसिडेंट रिपोर्ट का `severity`, तो उन्हें [`content.types`](/docs/configuration#content) के अंतर्गत घोषित करें। वहाँ उन्हें उस फ़्रंटमैटर `type` के नीचे रखें जिस पर वे लागू होती हैं:
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { z } from "zod";
+
+export default defineConfig({
+  content: {
+    types: {
+      rfc: {
+        frontmatter: {
+          domain: z.string(),
+          status: z.enum(["draft", "review", "enforced"]),
+        },
+      },
+    },
+  },
+});
+```
+
+```yaml rfcs/openapi-request-schemas.mdx
+---
+title: OpenAPI request schemas
+type: rfc
+domain: architecture
+status: enforced
+---
+```
+
+प्रति-प्रकार कुंजियों पर भी `extend` वाले सत्यापन नियम लागू होते हैं, लेकिन केवल उन पेजों पर जिनका अंतिम रूप से तय `type` मेल खाता है। यदि घोषणा [`content.defaultType`](/docs/configuration#content) के लिए है, तो इसमें वे पेज भी शामिल हैं जो कोई `type` सेट नहीं करते। एक कुंजी केवल एक घोषणा में हो सकती है: या तो पूरी साइट वाली या प्रति-प्रकार वाली, दोनों में नहीं। जो कुंजी केवल किसी दूसरे प्रकार के लिए घोषित है, वह बाकी जगहों पर अज्ञात मानी जाती है। इसलिए किसी सामान्य डॉक पेज पर गलती से जोड़ा गया `status` अब भी बिल्ड को विफल कर देता है।
+
+यदि कोई पेज सत्यापन में विफल होता है, तो `blume build` विफल हो जाता है और एक डायग्नोस्टिक संदेश फ़ाइल और कुंजी का नाम बताता है। [`--no-strict`](/docs/cli#common-flags) के साथ बिल्ड फिर भी सफल होता है, और विफल पेज आउटपुट से हटा दिए जाते हैं। बिल्ड सारांश बताता है कि ऐसे कितने पेज हटाए गए।
+
+स्कीमा `blume/schema` से एक्सपोर्ट किए जाते हैं, ताकि आप उन्हें एडिटर और माइग्रेशन टूलिंग में इस्तेमाल कर सकें।

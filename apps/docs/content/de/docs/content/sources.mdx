@@ -1,14 +1,14 @@
 ---
 title: Inhaltsquellen
 description: >-
-  Beziehe Dokumentation aus lokalen Dateien, einem entfernten Repository oder einem beliebigen eigenen Backend – und kombiniere mehrere Quellen zu einer static-first-Website, die zur Build-Zeit gelesen wird.
+  Beziehe Dokumentation aus lokalen Dateien, einem entfernten Repository, einem CMS oder einem beliebigen eigenen Backend – und kombiniere mehrere Quellen zu einer static-first-Website, die zur Build-Zeit gelesen wird.
 ---
 
 Standardmäßig liest Blume einen Ordner mit `.md`/`.mdx`-Dateien. **Inhaltsquellen** ermöglichen es dir, Seiten von woanders zu beziehen – aus einem entfernten Repository, einem CMS oder einem beliebigen eigenen Backend – und mehrere Quellen zu einer einzigen Website zu kombinieren. Quellen werden zur Build-Zeit gelesen; Blume bleibt static-first.
 
 ## Die Voreinstellung [#the-default]
 
-Ohne Konfiguration durchsucht Blume dein Inhaltsverzeichnis (standardmäßig `docs`) als eine implizite Dateisystemquelle. Die Optionen `content.root`/`include`/`exclude` auf oberster Ebene funktionieren weiterhin genau wie zuvor – es muss nichts geändert werden.
+Ohne Konfiguration durchsucht Blume dein Inhaltsverzeichnis (standardmäßig `docs`) als eine Dateisystemquelle. Die Optionen `content.root`, `content.include` und `content.exclude` auf oberster Ebene sind eine Kurzschreibweise für genau diese eine Quelle – es muss nichts importiert und nichts geändert werden.
 
 ```ts blume.config.ts
 import { defineConfig } from "blume";
@@ -18,50 +18,59 @@ export default defineConfig({
 });
 ```
 
-## Mehrere Quellen [#multiple-sources]
+## Adapter [#adapters]
 
-Füge ein `content.sources`-Array hinzu, um Quellen zusammenzustellen. Jeder Eintrag erhält über ein optionales `prefix` einen eigenen Namensraum, sodass seine Routen unter `/<prefix>/…` liegen. Wenn `sources` vorhanden ist, ersetzt es die implizite Voreinstellung – nimm daher einen `filesystem`-Eintrag für deine lokale Dokumentation auf.
+Jeder Eintrag in `content.sources` ist ein **Adapter**: eine aus `blume/sources` importierte Factory, die einen einfachen Deskriptor zurückgibt, den Blume zur Build-Zeit liest. Füge ein `sources`-Array hinzu, um Quellen zusammenzustellen. Wenn `sources` vorhanden ist, ersetzt es die implizite Voreinstellung – nimm daher einen `filesystem()`-Eintrag für deine lokale Dokumentation auf und verschiebe `root`, `include` oder `exclude` dorthin. Die Kurzschreibweise und `sources` lassen sich nicht kombinieren; Blume meldet, welches Feld du verschieben musst.
 
 ```ts blume.config.ts
 import { defineConfig } from "blume";
+import { filesystem, mdxRemote } from "blume/sources";
 
 export default defineConfig({
   content: {
     sources: [
       // Local docs at the site root
-      { type: "filesystem", root: "docs" },
+      filesystem({ root: "docs" }),
 
       // Remote MDX from a GitHub repo, mounted under /sdk
-      {
-        type: "mdx-remote",
+      mdxRemote({
         prefix: "sdk",
         github: { owner: "acme", repo: "sdk", ref: "main", path: "docs" },
-      },
+      }),
     ],
   },
 });
 ```
 
-Wenn zwei Quellen dieselbe Route auflösen, meldet Blume den Build-Fehler `BLUME_DUPLICATE_ROUTE` – gib jeder Quelle ein eigenes `prefix`.
+Jeder eingebaute Adapter ist eine aus `blume/sources` exportierte Factory, die unten in einem eigenen Abschnitt beschrieben wird, und [`custom()`](#custom-sources) bindet jedes andere Backend ein. Jeder Adapter, der ein Optionsobjekt entgegennimmt, akzeptiert zwei gemeinsame Optionen:
+
+- **`prefix`** legt die Routen der Quelle in einen eigenen Namensraum unter `/<prefix>/…`; das Präfix wird außerdem zum Namen der Quelle in Diagnosemeldungen und zu ihrem Cache-Verzeichnis. Wenn zwei Quellen dieselbe Route auflösen, meldet Blume den Build-Fehler `BLUME_DUPLICATE_ROUTE` – gib jeder Quelle ein eigenes `prefix`.
+- **`pollInterval`** (in Sekunden) lässt eine entfernte Quelle in der Entwicklung in diesem Intervall erneut abrufen und lädt nur dann neu, wenn sich der Inhalt tatsächlich geändert hat. Lass die Option ungesetzt, um einmal abzurufen und den Inhalt für die Sitzung einzufrieren. Lokale Quellen (`filesystem()`, `obsidian()`) beobachten stattdessen das Dateisystem und ignorieren die Option.
+
+`custom(source)` ist die Ausnahme: Es nimmt eine `ContentSource`-Instanz statt eines Optionsobjekts entgegen, sodass es nichts gibt, dem du `prefix` oder `pollInterval` übergeben könntest. Die Quelle setzt ihre eigene `prefix`-Eigenschaft, und das erneute Abrufen richtet sich danach, was ihre `watch`-Methode implementiert.
+
+Der Deskriptor eines Adapters deklariert außerdem das benötigte SDK und die Umgebungsvariablen, die er liest. Dadurch deklariert das generierte Projekt dieses Paket, `blume dev` und `blume build` warnen, wenn eine Variable nicht gesetzt ist, und `blume doctor` listet die konfigurierten Quellen auf. Optionen werden beim Laden der Konfiguration validiert: Eine fehlende Pflichtoption, ein unbekannter Schlüssel oder ein übrig gebliebenes `{ type: "…" }`-Objekt aus 1.x schlägt mit einer Meldung fehl, die die Lösung nennt.
+
+Eine einzelne `filesystem()`-Quelle verankert die generierte Docs-Collection in ihrem eigenen Verzeichnis. Mehrere Dateisystemquellen müssen sich ein Wurzelverzeichnis teilen und es mit `include`-Globs aufteilen – eine zweite Quelle mit einem anderen Wurzelverzeichnis wird als `BLUME_ENTRY_ID_MISMATCH` gemeldet, damit ihre Seiten nicht stillschweigend auf einer 404 landen.
 
 ## Obsidian
 
-Die eingebaute Quelle `obsidian` liest einen [Obsidian](https://obsidian.md)-Vault direkt an Ort und Stelle. Es gibt keinen Exportschritt, und es wird nichts in dein Repository generiert: Der Vault bleibt die Quelle der Wahrheit, und Blume überführt Obsidians Dialekt beim Laden nach Markdown.
+Der eingebaute Adapter `obsidian()` liest einen [Obsidian](https://obsidian.md)-Vault direkt an Ort und Stelle. Es gibt keinen Exportschritt, und es wird nichts in dein Repository generiert: Der Vault bleibt die Quelle der Wahrheit, und Blume überführt Obsidians Dialekt beim Laden nach Markdown.
 
 ```ts blume.config.ts
 import { defineConfig } from "blume";
+import { filesystem, obsidian } from "blume/sources";
 
 export default defineConfig({
   content: {
     sources: [
-      { type: "filesystem", root: "docs" },
-      {
-        type: "obsidian",
+      filesystem({ root: "docs" }),
+      obsidian({
         prefix: "notes",
         vault: "vault",
         // Vault folder names to skip at any depth, on top of dot-folders
         exclude: ["Templates", "Daily"],
-      },
+      }),
     ],
   },
 });
@@ -69,7 +78,7 @@ export default defineConfig({
 
 `[[Wikilinks]]` werden zu Route-Links, die – so wie Obsidian Notizen adressiert – über den Notiznamen im gesamten Vault statt über einen Pfad aufgelöst werden. Eigener Linktext (`[[Note|label]]`), Überschriften-Anker (`[[Note#Install]]`), vollständige Pfade (`[[folder/Note]]` und `[[folder/Note.md]]`), die Teilpfade, die Obsidians Standardeinstellung „Kürzester Pfad, wenn möglich“ schreibt (`[[guides/Note]]`), und die Form `[[Note\|label]]`, die Obsidian innerhalb einer Tabellenzelle schreibt, funktionieren alle; und eine Notiz, die `slug` in ihrem Frontmatter setzt, wird unter der Route verlinkt, die dieser Slug veröffentlicht. Wenn zwei Notizen denselben Namen haben, gewinnt eine Notiz, deren vollständiger Vault-Pfad genau diesem Namen entspricht – Obsidian löst einen Link zuerst als Pfad und dann als Namen auf –, danach die erste in Vault-Reihenfolge (Ordner vor Notizen, ohne Beachtung der Groß-/Kleinschreibung, wie in Obsidians Dateiexplorer). Blume warnt nur, wenn ein Wikilink tatsächlich über eine solche Kollision aufgelöst wird; schreibe einen längeren Pfad, um die Mehrdeutigkeit aufzulösen. Eine Blockreferenz (`[[Note#^id]]`) verlinkt auf ihre Notiz ohne Anker: Blöcke werden ohne id gerendert, auf der man landen könnte. Ein Überschriften-Anker wird gegen die echten Überschriften der Zielnotiz aufgelöst, abgeglichen so, wie Obsidians Autovervollständigung sie schreibt (ohne `**bold**`, `` `code` `` und Link-Syntax), und mit demselben `extractHeadings`-Durchlauf zu einem Slug gemacht, der auch das Seiten-Manifest füllt – ein Link auf `#Install` landet also auf der Überschrift statt auf einer id, die keine Seite ausgibt. `[[#Install]]` adressiert eine Überschrift in der Notiz, die du gerade schreibst. Ein Link auf eine Überschrift, die nicht existiert, behält den Seitenlink, verwirft den Anker und warnt.
 
-Das Frontmatter behält, was Blumes [Seitenschema](/docs/reference/frontmatter) akzeptiert, plus jeden Schlüssel, den du in [`frontmatter.extend`](/docs/reference/frontmatter#custom-keys) deklarierst (oder, für Notizen dieses `type`, im `frontmatter` eines Inhaltstyps); jede andere Obsidian-Eigenschaft – Dataview-Felder, Templater-Daten, `publish` sowie Obsidians eigene `tags`, `aliases` und `cssclasses` – wird beim Überführen einer Notiz verworfen, sodass ein mit der Properties-Oberfläche geschriebener Vault ohne Frontmatter-Fehler baut. `aliases` wird verworfen statt aufgelöst – Alias-Linkziele werden noch nicht unterstützt. Ein relatives Markdown-Bild neben einer Notiz (`![chart](./chart.png)`) wird aus dem Vault ausgeliefert, und wenn der Vault innerhalb deines Git-Repositorys liegt, erhalten Vault-Seiten wie jede andere Seite aus Git abgeleitete [„Zuletzt aktualisiert“-Daten](/docs/configuration#last-modified). „Diese Seite bearbeiten“-Links werden über `github.dir` aufgelöst, sodass ein Vault, der in einem Monorepo neben der Dokumentations-App liegt, weiterhin auf seine Datei verlinkt; ein Vault außerhalb des Repositorys bekommt keinen Link.
+Das Frontmatter behält, was Blumes [Seitenschema](/docs/content/frontmatter) akzeptiert, plus jeden Schlüssel, den du in [`frontmatter.extend`](/docs/content/frontmatter#custom-keys) deklarierst (oder, für Notizen dieses `type`, im `frontmatter` eines Inhaltstyps); jede andere Obsidian-Eigenschaft – Dataview-Felder, Templater-Daten, `publish` sowie Obsidians eigene `tags`, `aliases` und `cssclasses` – wird beim Überführen einer Notiz verworfen, sodass ein mit der Properties-Oberfläche geschriebener Vault ohne Frontmatter-Fehler baut. `aliases` wird verworfen statt aufgelöst – Alias-Linkziele werden noch nicht unterstützt. Ein relatives Markdown-Bild neben einer Notiz (`![chart](./chart.png)`) wird aus dem Vault ausgeliefert, und wenn der Vault innerhalb deines Git-Repositorys liegt, erhalten Vault-Seiten wie jede andere Seite aus Git abgeleitete [„Zuletzt aktualisiert“-Daten](/docs/configuration#last-modified). „Diese Seite bearbeiten“-Links werden über `github.dir` aufgelöst, sodass ein Vault, der in einem Monorepo neben der Dokumentations-App liegt, weiterhin auf seine Datei verlinkt; ein Vault außerhalb des Repositorys bekommt keinen Link.
 
 Locale-Verzeichnisse und Versions-Snapshots innerhalb des Vaults werden genauso gelesen, wie die Dateisystemquelle sie liest: `fr/Note.md` wird bei konfiguriertem [i18n](/docs/content/i18n) unter `/fr/` veröffentlicht, `v1.0/Note.md` bei [Versionen](/docs/content/versioning) unter `/v1.0/`, und Wikilinks auf diese Notizen zeigen auf die Route, die die jeweilige Notiz veröffentlicht.
 
@@ -79,24 +88,23 @@ Eine Überschrift, die selbst einen Link enthält, erhält ihren Manifest-Anker 
 
 Ein Link auf eine `index`-Notiz landet auf der Route ihres Ordners statt auf einem Phantom-`/index`. **Ein nicht auflösbarer Wikilink wird zu einfachem Text mit einer Build-Warnung abgestuft, statt den Build fehlschlagen zu lassen**, sodass ein Vault mitten im Refactoring weiterhin veröffentlicht wird. Einzeilige `%%comments%%` werden entfernt, ein Wikilink innerhalb eines HTML-Kommentars (`<!-- [[Draft]] -->`) bleibt unangetastet, da Obsidian ihn ebenfalls verbirgt, und eine Notiz ohne `title` im Frontmatter erhält ihren Dateinamen als Titel – dieselbe Regel, die auch Obsidian selbst anwendet. Eine `index`-Notiz ist die einzige Ausnahme: Sie benennt eine Route statt einer Notiz, daher fällt ihr Titel auf Blumes übliche Herleitung zurück (erste Überschrift, dann das lesbar gemachte Segment). Code in Fences, eingerückter Code und Inline-Code werden wortwörtlich durchgereicht, sodass eine Notiz, die die Syntax dokumentiert, erhalten bleibt.
 
-Punkt-Ordner werden übersprungen, einschließlich Obsidians eigenem Konfigurationsverzeichnis `.obsidian` und `.trash` – das der Dev-Watcher ebenfalls ignoriert, sodass das Verschieben eines Panels in der App oder das Löschen einer Notiz in den Papierkorb deine Website nicht neu baut. Das Bearbeiten einer Notiz schon. Die Verzeichnisse, die kein Inhaltsscan liest (`node_modules`, `dist`, `.git`, …), werden ebenfalls übersprungen, sodass ein Vault, der im Projekt selbst wurzelt, keine READMEs von Abhängigkeiten veröffentlicht. Symlinks innerhalb des Vaults werden verfolgt, so wie die Dateisystemquelle sie verfolgt, sodass ein in den Vault verlinkter geteilter Ordner mit ihm veröffentlicht wird. Ein Vault, der innerhalb von `content.root` liegt, muss von der Dateisystemquelle ausgeschlossen werden (`exclude: ["vault/**"]`); `blume version cut` lässt ihn dann aus dem Snapshot heraus, da der Vault seine eigenen Notizen weiterhin als aktuell veröffentlicht.
+Punkt-Ordner werden übersprungen, einschließlich Obsidians eigenem Konfigurationsverzeichnis `.obsidian` und `.trash` – das der Dev-Watcher ebenfalls ignoriert, sodass das Verschieben eines Panels in der App oder das Löschen einer Notiz in den Papierkorb deine Website nicht neu baut. Das Bearbeiten einer Notiz schon. Die Verzeichnisse, die kein Inhaltsscan liest (`node_modules`, `dist`, `.git`, …), werden ebenfalls übersprungen, sodass ein Vault, der im Projekt selbst wurzelt, keine READMEs von Abhängigkeiten veröffentlicht. Symlinks innerhalb des Vaults werden verfolgt, so wie die Dateisystemquelle sie verfolgt, sodass ein in den Vault verlinkter geteilter Ordner mit ihm veröffentlicht wird. Ein Vault, der innerhalb des Wurzelverzeichnisses der Dateisystemquelle liegt, muss von ihr ausgeschlossen werden (`filesystem({ root: "docs", exclude: ["vault/**"] })`); `blume version cut` lässt ihn dann aus dem Snapshot heraus, da der Vault seine eigenen Notizen weiterhin als aktuell veröffentlicht.
 
 Noch nicht überführt: Callouts (`> [!note]`) werden als einfache Blockzitate gerendert, Einbettungen (`![[image.png]]`) werden unverändert durchgereicht, mehrzeilige `%%comments%%` bleiben stehen, und es gibt keinen Backlink-Graphen.
 
 ## Entferntes MDX [#remote-mdx]
 
-Die eingebaute Quelle `mdx-remote` lädt rohe `.md`/`.mdx`-Dateien über HTTP. Zähle die Dateien entweder über einen Teilbaum eines GitHub-Repositorys (`github`) oder explizit gegenüber einer Raw-Basis-URL (`url` + `files`) auf:
+Der eingebaute Adapter `mdxRemote()` lädt rohe `.md`/`.mdx`-Dateien über HTTP. Zähle die Dateien entweder über einen Teilbaum eines GitHub-Repositorys (`github`) oder explizit gegenüber einer Raw-Basis-URL (`url` + `files`) auf:
 
 ```ts blume.config.ts
-{
-  type: "mdx-remote",
+mdxRemote({
   prefix: "sdk",
   url: "https://raw.githubusercontent.com/acme/sdk/main/docs",
   files: ["intro.mdx", "guide.mdx"],
-}
+});
 ```
 
-Das Token eines privaten Repositorys wird aus der Umgebungsvariable `GITHUB_TOKEN` gelesen – es wird niemals in deine Konfiguration oder die generierte Ausgabe eingebettet und ausschließlich an GitHubs eigene Hosts (`api.github.com`, `raw.githubusercontent.com`) gesendet, niemals an eine eigene `url`-Basis.
+Das Token eines privaten Repositorys wird aus der Umgebungsvariable `GITHUB_TOKEN` gelesen – der Adapter deklariert sie, sodass `blume dev` und `blume build` warnen, wenn sie nicht gesetzt ist. Das Token wird niemals in deine Konfiguration oder die generierte Ausgabe eingebettet und ausschließlich an GitHubs eigene Hosts (`api.github.com`, `raw.githubusercontent.com`) gesendet, niemals an eine eigene `url`-Basis. Ein öffentliches Repository funktioniert auch ohne.
 
 Entfernte Seiten werden mit voller MDX-plus-Komponenten-Treue gerendert: Ihre Inhalte werden in einem versteckten Staging-Verzeichnis materialisiert und zusammen mit deiner lokalen Dokumentation über Astro gerendert, sodass Callouts, Tabs und alle anderen Blume-Komponenten weiterhin funktionieren.
 
@@ -104,28 +112,28 @@ Entfernte Seiten werden mit voller MDX-plus-Komponenten-Treue gerendert: Ihre In
 
 Jede entfernte Quelle hält einen Snapshot unter `.blume/cache/<source>/` vor. Wenn ein Abruf fehlschlägt – eine Netzwerkstörung oder ein CMS-Ausfall –, liefert Blume den letzten funktionierenden Snapshot mit einer Warnung aus, anstatt den Build fehlschlagen zu lassen. Der Cache liegt innerhalb von `.blume/` und wird neu erzeugt, niemals eingecheckt.
 
-In der Entwicklung werden entfernte Inhalte einmal abgerufen und für die Sitzung eingefroren; starte den Dev-Server neu, um sie zu aktualisieren. Lokale Dateisystemquellen laden wie gewohnt per Hot-Reload neu. Um eine entfernte Quelle stattdessen auf Änderungen abzufragen, setze bei ihr `pollInterval` (in Sekunden) – der Dev-Server ruft in diesem Intervall erneut ab und lädt nur dann neu, wenn sich der Inhalt tatsächlich geändert hat. Lass die Option ungesetzt, um die API während der Arbeit nicht zu belasten.
+In der Entwicklung werden entfernte Inhalte einmal abgerufen und für die Sitzung eingefroren; starte den Dev-Server neu, um sie zu aktualisieren. Lokale Dateisystemquellen laden wie gewohnt per Hot-Reload neu. Um eine entfernte Quelle stattdessen auf Änderungen abzufragen, setze bei ihr die gemeinsame Option `pollInterval` (in Sekunden) – der Dev-Server ruft in diesem Intervall erneut ab und lädt nur dann neu, wenn sich der Inhalt tatsächlich geändert hat. Lass die Option ungesetzt, um die API während der Arbeit nicht zu belasten.
 
 ## GitHub Releases
 
-Die eingebaute Quelle `github-releases` verwandelt die Releases eines Repositorys in ein Changelog: Jedes Release wird zu einem Eintrag mit `type: changelog`, sodass deine Release Notes _dein_ Changelog sind – nichts muss doppelt geschrieben werden. In Kombination mit der generierten [Changelog-Timeline](/docs/advanced/changelog) liefert die Veröffentlichung eines GitHub-Releases direkt einen Changelog-Eintrag.
+Der eingebaute Adapter `githubReleases()` verwandelt die Releases eines Repositorys in ein Changelog: Jedes Release wird zu einem Eintrag mit `type: changelog`, sodass deine Release Notes _dein_ Changelog sind – nichts muss doppelt geschrieben werden. In Kombination mit der generierten [Changelog-Timeline](/docs/advanced/changelog) liefert die Veröffentlichung eines GitHub-Releases direkt einen Changelog-Eintrag.
 
 ```ts blume.config.ts
 import { defineConfig } from "blume";
+import { filesystem, githubReleases } from "blume/sources";
 
 export default defineConfig({
   content: {
     sources: [
-      { type: "filesystem", root: "content" },
-      {
-        type: "github-releases",
+      filesystem({ root: "content" }),
+      githubReleases({
         prefix: "changelog",
         owner: "acme",
         repo: "sdk",
         // prereleases: false,  // include prereleases (default off)
         // drafts: false,       // include drafts (needs a write token)
         // limit: 100,          // cap releases, newest-first
-      },
+      }),
     ],
   },
 });
@@ -133,66 +141,153 @@ export default defineConfig({
 
 Jedes Release wird automatisch auf die Changelog-Felder abgebildet: Sein Name (oder Tag) wird zum Titel, sein Veröffentlichungsdatum bestimmt die Reihenfolge in der Timeline, der Tag wird zu `changelog.version`, und Prereleases werden mit `Prerelease` gekennzeichnet (alle anderen mit `Release`). Die Notes werden als Inhalt des Eintrags gerendert. Gib der Quelle ein `prefix`, damit ihre Release-Seiten unter einer Route wie `/changelog/v1-2-0` liegen.
 
-Ein privates Repository authentifiziert sich über die Umgebungsvariable `GITHUB_TOKEN` – dasselbe Token, das auch die anderen GitHub-Funktionen verwenden, und es wird niemals in deine Konfiguration eingebettet. Wie jede entfernte Quelle wird sie unter `.blume/cache/<source>/` zwischengespeichert und offline ausgeliefert, falls die API nicht erreichbar ist. Da ein Changelog ergänzend ist, führt ein fehlgeschlagener Abruf ohne Cache (etwa ein CI-Build ohne Token) zu einem leeren Changelog mit einer Warnung, statt den Build fehlschlagen zu lassen – setze `GITHUB_TOKEN` in deinen CI- und Deploy-Umgebungen, um es zu befüllen.
+Ein privates Repository authentifiziert sich über die Umgebungsvariable `GITHUB_TOKEN` – dasselbe Token, das auch die anderen GitHub-Funktionen verwenden, und es wird niemals in deine Konfiguration eingebettet; der Adapter deklariert die Variable, sodass ein Build ohne sie warnt. Wie jede entfernte Quelle wird sie unter `.blume/cache/<source>/` zwischengespeichert und offline ausgeliefert, falls die API nicht erreichbar ist. Da ein Changelog ergänzend ist, führt ein fehlgeschlagener Abruf ohne Cache (etwa ein CI-Build ohne Token) zu einem leeren Changelog mit einer Warnung, statt den Build fehlschlagen zu lassen – setze `GITHUB_TOKEN` in deinen CI- und Deploy-Umgebungen, um es zu befüllen.
 
 ## Sanity
 
-Die eingebaute Quelle `sanity` führt eine GROQ-Abfrage aus und bildet die Felder jedes Dokuments auf Frontmatter sowie seinen Portable-Text-Inhalt auf Markdown ab. Das Paket `@sanity/client` ist eine optionale Peer-Abhängigkeit – installiere es nur, wenn du diese Quelle verwendest.
+Der eingebaute Adapter `sanity()` führt eine GROQ-Abfrage aus und bildet die Felder jedes Dokuments auf Frontmatter sowie seinen Portable-Text-Inhalt auf Markdown ab. Der Adapter deklariert `@sanity/client` als Laufzeitabhängigkeit – eine optionale Peer-Abhängigkeit, installiere sie also nur, wenn du diese Quelle verwendest.
 
 ```ts blume.config.ts
 import { defineConfig } from "blume";
+import { filesystem, sanity } from "blume/sources";
 
 export default defineConfig({
   content: {
     sources: [
-      { type: "filesystem", root: "docs" },
-      {
-        type: "sanity",
+      filesystem({ root: "docs" }),
+      sanity({
         prefix: "guides",
         projectId: "abc123",
         dataset: "production",
         query: `*[_type == "guide"]`,
         // Field paths default to title / slug.current / body / _updatedAt
         fields: { slug: "slug.current", body: "content" },
-      },
+      }),
     ],
   },
 });
 ```
 
-Ein Lesetoken für ein privates Dataset stammt aus der Umgebungsvariable `SANITY_TOKEN`. Eigene Portable-Text-Blocktypen werden über die Option `serializers` des Adapters auf Blume-Komponenten abgebildet; sie steht zur Verfügung, wenn du `sanitySource` direkt über eine [eigene Quelle](#custom-sources) konstruierst.
+Ein Lesetoken für ein privates Dataset stammt aus der Umgebungsvariable `SANITY_TOKEN`, die der Adapter deklariert. Eigene Portable-Text-Blocktypen werden über die Option `serializers` der Engine auf Blume-Komponenten abgebildet; sie steht zur Verfügung, wenn du `sanitySource` direkt konstruierst und an [`custom()`](#custom-sources) übergibst. Wenn `serializers` gesetzt ist, werden die Seiten der Quelle als MDX geschrieben, sodass eine Komponente oder Direktive, die ein Serializer zurückgibt, gerendert wird.
 
 ## Notion
 
-Die eingebaute Quelle `notion` verwandelt eine Notion-Datenbank in eine Sammlung: Jede Zeile wird zu einer Seite, ihre Eigenschaften werden zu Frontmatter und ihr Blockbaum wird zu MDX. Callouts, Toggles, Spalten und Codeblöcke werden auf die passenden Blume-Komponenten abgebildet. Videoblöcke werden zu einer `<YouTube>`-Einbettung, wenn sie einen YouTube-Link enthalten, und ansonsten zu einem `<video>`-Player – in beiden Fällen mit der Beschriftung des Blocks als `<Frame>`-Beschriftung; ein Link auf eine Videoseite statt auf eine Mediendatei (etwa eine Vimeo- oder Loom-URL) wird als Warnung gemeldet, statt eingebettet zu werden. `@notionhq/client` (v5 oder neuer) ist eine optionale Peer-Abhängigkeit; Blume liest die Datenbank über ihre erste Datenquelle.
+Der eingebaute Adapter `notion()` verwandelt eine Notion-Datenbank in eine Sammlung: Jede Zeile wird zu einer Seite, ihre Eigenschaften werden zu Frontmatter und ihr Blockbaum wird zu MDX. Callouts, Toggles, Spalten und Codeblöcke werden auf die passenden Blume-Komponenten abgebildet, und der Text, den du in Notion tippst, wird genau so gerendert, wie du ihn geschrieben hast: Ein `{`, `<` oder Markdown-Zeichen auf einer Seite wird maskiert, statt als MDX, JSX oder Formatierung gelesen zu werden. Videoblöcke werden zu einer `<YouTube>`-Einbettung, wenn sie einen YouTube-Link enthalten, und ansonsten zu einem `<video>`-Player – in beiden Fällen mit der Beschriftung des Blocks als `<Frame>`-Beschriftung; ein Link auf eine Videoseite statt auf eine Mediendatei (etwa eine Vimeo- oder Loom-URL) wird als Warnung gemeldet, statt eingebettet zu werden. Der Adapter deklariert `@notionhq/client` (v5 oder neuer) als Laufzeitabhängigkeit – eine optionale Peer-Abhängigkeit; Blume liest die Datenbank über ihre erste Datenquelle.
 
 ```ts blume.config.ts
 import { defineConfig } from "blume";
+import { filesystem, notion } from "blume/sources";
 
 export default defineConfig({
   content: {
     sources: [
-      { type: "filesystem", root: "docs" },
-      {
-        type: "notion",
+      filesystem({ root: "docs" }),
+      notion({
         prefix: "handbook",
-        database: process.env.NOTION_DB_ID,
+        database: "8f2c1e0a4b7d4f3c9e6a5d2b1c0f9e8d", // the id in the database URL
         // Property names default to the title-typed prop / Description / Slug / Order
         // Set publishedValue to treat Status as a publish gate (opt-in)
         publishedValue: "Published",
-      },
+      }),
     ],
   },
 });
 ```
 
-Das Integrationstoken stammt aus der Umgebungsvariable `NOTION_TOKEN` (teile die Datenbank mit deiner Integration). Standardmäßig wird jede Seite importiert; setze `publishedValue`, um die Eigenschaft `Status` zu einer Veröffentlichungssperre zu machen – jeder andere Wert wird dann auf `draft: true` abgebildet, was Produktions-Builds verwerfen. **Notion-Bild- und Video-URLs sind signiert und laufen ab**, daher lädt der Adapter sie zur Build-Zeit in die Assets der Website herunter und schreibt die Verweise um – so verdirbt ein CMS-Asset niemals einen statischen Build. API-Aufrufe werden über einen kleinen Request-Pool getaktet (3 gleichzeitig, passend zum Rate-Limit pro Integration bei Notion), sodass sich Datenbanken mit Hunderten von Seiten importieren lassen, ohne `429`-Antworten auszulösen; setze `concurrency` an der Quelle, um das anzupassen.
+Das Integrationstoken stammt aus der Umgebungsvariable `NOTION_TOKEN` (teile die Datenbank mit deiner Integration); der Adapter deklariert die Variable, sodass ein Build ohne sie warnt. Standardmäßig wird jede Seite importiert; setze `publishedValue`, um die Eigenschaft `Status` zu einer Veröffentlichungssperre zu machen – jeder andere Wert wird dann auf `draft: true` abgebildet, was Produktions-Builds verwerfen. **Notion-Bild- und Video-URLs sind signiert und laufen ab**, daher lädt der Adapter sie zur Build-Zeit in die Assets der Website herunter und schreibt die Verweise um – so verdirbt ein CMS-Asset niemals einen statischen Build. API-Aufrufe werden über einen kleinen Request-Pool getaktet (3 gleichzeitig, passend zum Rate-Limit pro Integration bei Notion), sodass sich Datenbanken mit Hunderten von Seiten importieren lassen, ohne `429`-Antworten auszulösen; setze `concurrency` an der Quelle, um das anzupassen.
+
+## Contentful
+
+Der eingebaute Adapter `contentful()` liest die Einträge eines Inhaltstyps über die Content Delivery API und überführt den Rich-Text-Inhalt jedes Eintrags nach Markdown: Überschriften, Auszeichnungen, Links, Listen, Zitate, Tabellen und eingebettete Assets werden auf ihre Markdown-Entsprechungen abgebildet, und ein Inhalt aus einem Markdown-Langtextfeld wird unverändert durchgereicht. Es muss nichts installiert werden – der Adapter spricht direkt mit der REST-API.
+
+```ts blume.config.ts
+import { defineConfig } from "blume";
+import { contentful, filesystem } from "blume/sources";
+
+export default defineConfig({
+  content: {
+    sources: [
+      filesystem({ root: "docs" }),
+      contentful({
+        prefix: "guides",
+        space: "abc123",
+        contentType: "guide",
+        // environment: "master", locale: "en-US"
+        // Field ids default to title / description / slug / body, and the
+        // date to sys.updatedAt
+        fields: { body: "content" },
+        // Extra Delivery API query parameters
+        params: { "fields.section": "sdk" },
+      }),
+    ],
+  },
+});
+```
+
+Das Token für die Delivery API stammt aus der Umgebungsvariable `CONTENTFUL_ACCESS_TOKEN`, die der Adapter deklariert. Mit `--preview` liest der Adapter Entwürfe über die Preview API mit `CONTENTFUL_PREVIEW_TOKEN`. Die Preview API lehnt Delivery-Tokens ab, daher schlägt `--preview` ohne Preview-Token mit einer klaren Fehlermeldung fehl, statt auf `CONTENTFUL_ACCESS_TOKEN` zurückzufallen. Assets werden vom CDN von Contentful referenziert statt heruntergeladen – ihre URLs sind stabil. Ein eingebetteter Eintrag wird über die Option `serializers` der Engine, mit der ID des Inhaltstyps als Schlüssel, auf eine Blume-Komponente abgebildet, wenn du `contentfulSource` direkt konstruierst und an [`custom()`](#custom-sources) übergibst; wenn `serializers` gesetzt ist, werden die Seiten der Quelle als MDX geschrieben, sodass die zurückgegebenen Komponenten gerendert werden, und ein eingebetteter Eintrag ohne Serializer wird in einem Kommentar vermerkt. Ein Link auf einen anderen Eintrag wird als einfacher Text gerendert, da es keine Route gibt, auf die er zeigen könnte.
+
+## Payload
+
+Der eingebaute Adapter `payload()` liest eine Collection über die Payload-REST-API (`/api/<collection>`) und überführt den Lexical-Inhalt jedes Dokuments nach Markdown: Absätze, Überschriften, Aufzählungs-, nummerierte und Checklisten, Zitate, Links, Uploads und horizontale Linien. Ein Inhalt aus einem Textfeld wird als Markdown durchgereicht. Es muss nichts installiert werden.
+
+```ts blume.config.ts
+import { defineConfig } from "blume";
+import { filesystem, payload } from "blume/sources";
+
+export default defineConfig({
+  content: {
+    sources: [
+      filesystem({ root: "docs" }),
+      payload({
+        prefix: "handbook",
+        url: "https://cms.example.com",
+        collection: "docs",
+        // Field paths default to title / description / slug / content / updatedAt
+        fields: { body: "richText" },
+        // Extra query parameters: where[...], sort
+        params: { sort: "title" },
+      }),
+    ],
+  },
+});
+```
+
+Der API-Schlüssel stammt aus der Umgebungsvariable `PAYLOAD_API_KEY` und wird als `users API-Key <key>` gesendet; setze `authCollection`, wenn der Schlüssel zu einer anderen Collection mit aktivierter Authentifizierung gehört. Nur veröffentlichte Dokumente werden importiert – `--preview` fordert Entwürfe an und übernimmt sie mit `draft: true`. Dokumente werden mit `depth: 1` abgerufen, sodass Uploads ihre URLs mitbringen, und ein relativer Upload-Pfad (`/media/x.png`) wird gegen `url` aufgelöst. Ein `block`- oder `inlineBlock`-Knoten wird über die Option `serializers` der Engine, mit `blockType` als Schlüssel, auf eine Blume-Komponente abgebildet, wenn du `payloadSource` direkt konstruierst und an [`custom()`](#custom-sources) übergibst. Wenn `serializers` gesetzt ist, werden die Seiten der Quelle als MDX geschrieben, sodass die zurückgegebenen Komponenten gerendert werden; ein Inhalt aus einem Markdown-Textfeld bleibt Markdown.
+
+## Strapi
+
+Der eingebaute Adapter `strapi()` liest einen Inhaltstyp über die Strapi-REST-API (`/api/<pluralApiId>`) und überführt den Blocks-Inhalt jedes Eintrags nach Markdown: Absätze, Überschriften, Listen, Zitate, Codeblöcke, Bilder und Links. Ein Markdown-Rich-Text-Feld wird unverändert durchgereicht. Antworten von Strapi 5 werden so gelesen, wie sie sind, und die `attributes`-Hülle von Strapi 4 wird abgeflacht, sodass dieselben Feldpfade gelten. Es muss nichts installiert werden.
+
+```ts blume.config.ts
+import { defineConfig } from "blume";
+import { filesystem, strapi } from "blume/sources";
+
+export default defineConfig({
+  content: {
+    sources: [
+      filesystem({ root: "docs" }),
+      strapi({
+        prefix: "guides",
+        url: "https://cms.example.com",
+        contentType: "guides",
+        // locale: "en"
+        // Field paths default to title / description / slug / content / updatedAt
+        fields: { body: "body" },
+        // Extra query parameters: filters[...], sort
+        params: { "filters[section][$eq]": "sdk" },
+      }),
+    ],
+  },
+});
+```
+
+Das API-Token stammt aus der Umgebungsvariable `STRAPI_API_TOKEN` und wird als Bearer-Token gesendet. Einträge werden mit `populate=*` abgerufen, sodass Bilder ihre URLs mitbringen (setze `populate`, um das einzugrenzen), und ein relativer Upload-Pfad (`/uploads/x.png`) wird gegen `url` aufgelöst. Nur veröffentlichte Einträge werden importiert – `--preview` fordert Entwürfe an (`status=draft` bei Strapi 5, `publicationState=preview` bei Strapi 4) und übernimmt jedes noch nie veröffentlichte Dokument mit `draft: true`; bei einem veröffentlichten Dokument zeigt die Vorschau seinen neuesten Entwurf.
 
 ## Preview und Sync [#preview-and-sync]
 
 Zwei Flags steuern, wie entfernte Inhalte abgerufen werden und was enthalten ist:
 
-- **`--preview`** bei `blume dev` oder `blume build` rendert Entwürfe und lädt unveröffentlichte CMS-Inhalte – Sanity wechselt in seine `previewDrafts`-Perspektive, und Notion filtert nicht mehr nach `Status`. Produktions-Builds ohne das Flag schließen Entwürfe wie gewohnt aus, sodass ein Preview-Build eine sichere Möglichkeit ist, unveröffentlichte Arbeit vor der Auslieferung zu prüfen.
+- **`--preview`** bei `blume dev` oder `blume build` rendert Entwürfe und lädt unveröffentlichte CMS-Inhalte – Sanity wechselt in seine `previewDrafts`-Perspektive, Notion filtert nicht mehr nach `Status`, Contentful liest über die Preview API, und Payload und Strapi fordern Entwürfe an. Produktions-Builds ohne das Flag schließen Entwürfe wie gewohnt aus, sodass ein Preview-Build eine sichere Möglichkeit ist, unveröffentlichte Arbeit vor der Auslieferung zu prüfen.
 - **`blume sync`** ruft jede entfernte Quelle erneut ab und generiert die Runtime neu. Die Entwicklung ist cache-first – eine entfernte Quelle wird einmal abgerufen und beim Neustart aus `.blume/cache` ausgeliefert (schnell und offline-tolerant), daher ist `blume sync` der Weg, die neuesten CMS-Inhalte zu holen, ohne den Dev-Server neu zu starten (ein laufender Server lädt per Hot-Reload neu). Ergänze `--force`, um zuerst den Cache zu verwerfen, oder setze `pollInterval` an einer Quelle, um automatisch zu aktualisieren.
 
 ```sh
@@ -204,19 +299,19 @@ blume sync --force       # ...ignoring any cached snapshot
 
 ## Eigene Quellen [#custom-sources]
 
-Jedes Objekt, das die `ContentSource`-Schnittstelle implementiert, kann direkt übergeben werden. So lässt sich ein Adapter mit eigenen Serializern – oder ein beliebiges nicht eingebautes Backend – einbinden, ohne dass dessen SDK die Kerninstallation berührt:
+Jedes Objekt, das die `ContentSource`-Schnittstelle implementiert, kann an `custom()` übergeben werden. So lässt sich ein Adapter mit eigenen Serializern – oder ein beliebiges nicht eingebautes Backend – einbinden, ohne dass dessen SDK die Kerninstallation berührt:
 
 ```ts blume.config.ts
 import { defineConfig } from "blume";
+import { custom, filesystem } from "blume/sources";
 import { sanitySource } from "blume/sources/sanity.ts";
 
 export default defineConfig({
   content: {
     sources: [
-      { type: "filesystem", root: "docs" },
-      {
-        type: "custom",
-        source: sanitySource({
+      filesystem({ root: "docs" }),
+      custom(
+        sanitySource({
           name: "guides",
           prefix: "guides",
           projectId: "abc123",
@@ -226,13 +321,13 @@ export default defineConfig({
           serializers: {
             callout: (block) => `<Callout>${block.text}</Callout>`,
           },
-        }),
-      },
+        })
+      ),
     ],
   },
 });
 ```
 
-Eine Quelle normalisiert ihre native Form (Portable Text, Notion-Blöcke, entferntes HTML) zu Markdown-/MDX-Text, sodass dieselben Komponenten und Markdown-Funktionen gelten, ganz gleich, woher eine Seite stammt.
+Eine Quelle normalisiert ihre native Form (Portable Text, Notion-Blöcke, entferntes HTML) zu Markdown-/MDX-Text, sodass dieselben Komponenten und Markdown-Funktionen gelten, ganz gleich, woher eine Seite stammt. Die eingebauten Adapter maskieren Rich Text beim Überführen, sodass das, was jemand im CMS getippt hat – ein `{`, ein `<b>`, ein Absatz, der mit `import` beginnt, oder `&copy;` –, genau so gerendert wird, wie es geschrieben wurde. Links behalten nur `http(s)`-, `mailto:`-, `tel:`- und relative Ziele; jedes andere Schema (`javascript:`, `data:`) wird als Linktext gerendert, und SVG-Bilder, die eine Quelle herunterlädt, werden in einer Sandbox ausgeliefert. Release Notes aus `githubReleases()` und Dateien aus `mdxRemote()` werden wie deine eigenen Inhalte behandelt: Ihr rohes HTML wird genau so gerendert, wie es geschrieben ist, richte sie daher nur auf Repositorys, denen du vertraust. Anders als die eingebauten Adapter trägt `custom()` eine Live-Instanz statt einfacher Daten, daher deklariert es keine eigene Laufzeitabhängigkeit und kein eigenes Secret – die Instanz verwaltet diese selbst.
 
 Eine eigene Quelle, die lokale Dateien liest, sollte an jedem Eintrag `sourcePath` und an der Quelle selbst `contentRoot` setzen. `sourcePath` benennt die Datei in Diagnosemeldungen und löst relative Bilder daneben auf; `contentRoot` grenzt das `log` von Git ein, das Seiten datiert – ohne die Option erhalten die Seiten der Quelle also kein aus Git abgeleitetes [„Zuletzt aktualisiert“-Datum](/docs/configuration#last-modified).

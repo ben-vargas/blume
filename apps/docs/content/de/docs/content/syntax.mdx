@@ -149,6 +149,8 @@ Für eine Tabelle ohne Kopfzeile — zum Beispiel Schlüssel-Wert-Paare — läs
 
 Verlinke auf andere Seiten oder externe Websites. Bilder akzeptieren einen relativen Pfad zu einer Datei neben deinem Inhalt, jeden Pfad unter `public/` (wird im Site-Root ausgeliefert) oder eine entfernte URL.
 
+Ein relativer Seitenlink (`./install`, `../guides/setup`) wird vom eigenen Ordner der Seite aus aufgelöst — bei einer Index-Seite von dem Ordner, den sie einleitet —, und ein Link auf eine Markdown-Datei (`./setup.md`, `../intro.mdx`) landet auf der Seite, die diese Datei veröffentlicht, einschließlich ihres `slug`. Ein Seitenname mit Punkt (`./node.js` für eine `node.js.mdx`-Seite) zählt als Seitenlink, wenn dort eine Seite veröffentlicht wird, und ein String-`href` einer Komponente (`<Card href="./install">`) wird auf dieselbe Weise aufgelöst. Blume schreibt jeden dieser Links als root-relative Route in die gebaute Seite, sodass Links, die für GitHub oder Docusaurus geschrieben wurden, weiter funktionieren, und [`blume validate`](/docs/cli/validate) prüft sie auf dieselbe Weise.
+
 Lies den [Schnellstart](/docs/quickstart), um loszulegen.
 
 ```md
@@ -156,6 +158,8 @@ Read the [quickstart](/docs/quickstart) to get started.
 
 ![Alt text](./screenshot.png)
 ```
+
+Externe Links öffnen sich standardmäßig im selben Tab. Setze `markdown: { externalLinks: true }` in `blume.config.ts`, um sie in einem neuen Tab zu öffnen, so wie es die Header- und Sidebar-Links von Blume bereits tun: Jeder absolute `https://`- oder `//host`-Link erhält `target="_blank"` und `rel="noreferrer"`, einen kleinen Pfeil nach seinem Text und einen Hinweis für Screenreader, dass er sich in einem neuen Tab öffnet. Links auf deine eigenen Seiten, `#fragments` sowie `mailto:`-/`tel:`-Links bleiben im Tab, ebenso ein rohes `<a>`-Tag, das die von dir geschriebenen Attribute behält.
 
 **Bevorzuge relative Pfade für lokale Bilder** — sie werden beim Build optimiert: komprimiert, nach WebP konvertiert und mit intrinsischer `width`/`height` versehen, damit die Seite beim Laden nicht springt. Lege das Bild neben die Seite, die es verwendet (oder in einen gemeinsamen Ordner innerhalb deines Content-Verzeichnisses) und referenziere es relativ:
 
@@ -201,12 +205,12 @@ export default defineConfig({
 
 Auch Inline-Code lässt sich hervorheben: Setze einen `{:lang}`-Marker in eine Backtick-Spanne, und sie wird wie ein winziger Codeblock eingefärbt — `useState(){:js}` oder `T extends object{:ts}`. Das greift nur, wenn du den Marker hinzufügst, sodass einfacher Inline-Code unberührt bleibt — nichts, was aktiviert werden müsste.
 
-Die Hervorhebung nutzt standardmäßig die Themes `github-light`/`github-dark`. Tausche pro Farbmodus jedes [mitgelieferte Shiki-Theme](https://shiki.style/themes) über `markdown.codeBlocks.theme` ein — es färbt alle Code-Oberflächen auf einmal (Fences, Inline-Snippets, `<CodeBlock>` und `<Diff>`):
+Die Hervorhebung nutzt standardmäßig die Themes `github-light`/`github-dark`. Tausche pro Farbmodus jedes [mitgelieferte Shiki-Theme](https://shiki.style/themes) über `markdown.code.theme` ein — es färbt alle Code-Oberflächen auf einmal (Fences, Inline-Snippets, `<CodeBlock>` und `<Diff>`):
 
 ```ts blume.config.ts
 export default defineConfig({
   markdown: {
-    codeBlocks: {
+    code: {
       theme: { light: "github-light", dark: "vesper" },
     },
   },
@@ -220,7 +224,7 @@ import darkTheme from "./themes/acme-dark.json" with { type: "json" };
 
 export default defineConfig({
   markdown: {
-    codeBlocks: {
+    code: {
       theme: { light: "github-light", dark: darkTheme },
     },
   },
@@ -232,16 +236,16 @@ export default defineConfig({
 Hänge `lineNumbers` an, um eine Zeilennummernspalte zu rendern — allein oder zusammen mit einem Titel:
 
 ```ts server.ts lineNumbers
-import { serve } from "blume";
+import { createServer } from "node:http";
 
-serve({ port: 3000 });
+createServer().listen(3000);
 ```
 
 ````md
 ```ts server.ts lineNumbers
-import { serve } from "blume";
+import { createServer } from "node:http";
 
-serve({ port: 3000 });
+createServer().listen(3000);
 ```
 ````
 
@@ -266,12 +270,12 @@ export default defineConfig({
 });
 ```
 
-Hebe jedes Vorkommen eines Begriffs in einer Zeile mit `// [!code word:serve]` hervor:
+Hebe jedes Vorkommen eines Begriffs in einer Zeile mit `// [!code word:createServer]` hervor:
 
 ```ts
-import { serve } from "blume"; // [!code word:serve]
+import { createServer } from "node:http"; // [!code word:createServer]
 
-serve({ port: 3000 });
+createServer().listen(3000);
 ```
 
 Blende alles außer den mit `// [!code focus]` markierten Zeilen ab (der Rest wird beim Überfahren mit der Maus wieder scharf):
@@ -567,12 +571,12 @@ Your docs built successfully and are ready to deploy.
 Weise auf etwas hin, das Sorgfalt erfordert, um einen Fehler oder überraschendes Verhalten zu vermeiden.
 
 :::warning[Achtung]
-Der Wechsel zu `output: "server"` erfordert einen Adapter, bevor du deployen kannst.
+Die Server-Ausgabe benötigt einen Host-Adapter aus `blume/deploy`, bevor du deployen kannst.
 :::
 
 ```md
 :::warning[Heads up]
-Switching to `output: "server"` requires an adapter before you can deploy.
+Server output needs a host adapter from `blume/deploy` before you can deploy.
 :::
 ```
 

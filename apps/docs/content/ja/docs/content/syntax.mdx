@@ -54,7 +54,7 @@ Pandoc、kramdown、および Markdown ベースの仕様策定ツールチェ�
 
 単語を強調したり、削除を示したり、文中でコードやキー入力を表示したりするためのインライン書式です。
 
-**太字**、_斜体_、~~取り消し線~~、そして `インラインコード`。
+**太字**、_斜体_、~~取り消し線~~、そして `inline code`。
 
 ```md
 **Bold**, _italic_, ~~strikethrough~~, and `inline code`.
@@ -149,6 +149,8 @@ E = mc^2^ and H~2~O.
 
 他のページや外部サイトにリンクします。画像には、コンテンツの隣にあるファイルへの相対パス、`public/` 以下の任意のパス（サイトルートで配信されます）、またはリモート URL を指定できます。
 
+相対ページリンク（`./install`、`../guides/setup`）は、そのページ自身のフォルダを基準に解決されます — インデックスページの場合は、そのページが紹介するフォルダが基準になります — また、Markdown ファイルへのリンク（`./setup.md`、`../intro.mdx`）は、そのファイルが公開するページ（`slug` も反映されます）に遷移します。ドットを含むページ名（`node.js.mdx` ページに対する `./node.js`）は、その場所でページが公開されていればページリンクとして扱われ、コンポーネントの文字列の `href`（`<Card href="./install">`）も同じように解決されます。Blume はビルドされたページでそれぞれをルート相対のパスとして書き出すため、GitHub や Docusaurus 向けに書かれたリンクもそのまま機能し、[`blume validate`](/docs/cli/validate) も同じ方法でそれらをチェックします。
+
 まずは[クイックスタート](/docs/quickstart)をお読みください。
 
 ```md
@@ -156,6 +158,8 @@ Read the [quickstart](/docs/quickstart) to get started.
 
 ![Alt text](./screenshot.png)
 ```
+
+外部リンクはデフォルトで同じタブで開きます。Blume のヘッダーやサイドバーのリンクと同じように新しいタブで開くには、`blume.config.ts` で `markdown: { externalLinks: true }` を指定します：`https://` または `//host` で始まるすべての絶対リンクに、`target="_blank"` と `rel="noreferrer"`、テキストの後ろの小さな矢印、そして新しいタブで開くことを伝えるスクリーンリーダー向けの注記が付与されます。自分のページへのリンク、`#fragments`、`mailto:`/`tel:` のリンクは同じタブで開き、生の `<a>` タグも同様です — こちらは書いたとおりの属性が保たれます。
 
 **ローカル画像には相対パスを推奨します** — ビルド時に最適化されるためです：圧縮され、WebP に変換され、固有の `width`/`height` が付与されるので、読み込み中にページがずれません。画像はそれを使うページの隣（またはコンテンツディレクトリ内の共有フォルダ）に置き、相対パスで参照してください：
 
@@ -201,12 +205,12 @@ export default defineConfig({
 
 インラインコードもハイライトできます：バッククォートで囲んだ範囲の中に `{:lang}` マーカーを追加すると、小さなコードブロックのように色付けされます — `useState(){:js}` や `T extends object{:ts}` のように。マーカーを追加したときだけ有効になるので、通常のインラインコードはそのままです — 何かを有効にする必要はありません。
 
-ハイライトはデフォルトで `github-light`/`github-dark` テーマを使います。`markdown.codeBlocks.theme` を使えば、カラーモードごとに任意の[同梱 Shiki テーマ](https://shiki.style/themes)に差し替えられます — すべてのコード表示（フェンス、インラインスニペット、`<CodeBlock>`、`<Diff>`）が一度に色付けされます：
+ハイライトはデフォルトで `github-light`/`github-dark` テーマを使います。`markdown.code.theme` を使えば、カラーモードごとに任意の[同梱 Shiki テーマ](https://shiki.style/themes)に差し替えられます — すべてのコード表示（フェンス、インラインスニペット、`<CodeBlock>`、`<Diff>`）が一度に色付けされます：
 
 ```ts blume.config.ts
 export default defineConfig({
   markdown: {
-    codeBlocks: {
+    code: {
       theme: { light: "github-light", dark: "vesper" },
     },
   },
@@ -220,7 +224,7 @@ import darkTheme from "./themes/acme-dark.json" with { type: "json" };
 
 export default defineConfig({
   markdown: {
-    codeBlocks: {
+    code: {
       theme: { light: "github-light", dark: darkTheme },
     },
   },
@@ -232,16 +236,16 @@ export default defineConfig({
 `lineNumbers` を付けると行番号の余白がレンダリングされます — 単独でも、タイトルと併用しても使えます：
 
 ```ts server.ts lineNumbers
-import { serve } from "blume";
+import { createServer } from "node:http";
 
-serve({ port: 3000 });
+createServer().listen(3000);
 ```
 
 ````md
 ```ts server.ts lineNumbers
-import { serve } from "blume";
+import { createServer } from "node:http";
 
-serve({ port: 3000 });
+createServer().listen(3000);
 ```
 ````
 
@@ -266,12 +270,12 @@ export default defineConfig({
 });
 ```
 
-`// [!code word:serve]` で、行内のある語のすべての出現箇所をハイライトします：
+`// [!code word:createServer]` で、行内のある語のすべての出現箇所をハイライトします：
 
 ```ts
-import { serve } from "blume"; // [!code word:serve]
+import { createServer } from "node:http"; // [!code word:createServer]
 
-serve({ port: 3000 });
+createServer().listen(3000);
 ```
 
 `// [!code focus]` で印を付けた行以外をすべて暗くします（残りはホバーすると鮮明になります）：
@@ -567,12 +571,12 @@ Your docs built successfully and are ready to deploy.
 ミスや予想外の挙動を避けるために注意が必要な点を示します。
 
 :::warning[ご注意]
-`output: "server"` に切り替える場合、デプロイの前にアダプターが必要です。
+サーバー出力をデプロイするには、事前に `blume/deploy` のホストアダプターが必要です。
 :::
 
 ```md
 :::warning[Heads up]
-Switching to `output: "server"` requires an adapter before you can deploy.
+Server output needs a host adapter from `blume/deploy` before you can deploy.
 :::
 ```
 

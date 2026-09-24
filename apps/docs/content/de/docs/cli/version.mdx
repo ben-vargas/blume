@@ -1,0 +1,41 @@
+---
+title: Version
+description: >-
+  blume version friert die aktuelle Doku als archivierte Version ein – es kopiert den Baum, schreibt dessen Links um und registriert die ID in deiner Config.
+---
+
+Mit `blume version` erstellst du eine [Doku-Version](/docs/content/versioning). Gib ihm eine ID, und es friert den aktuellen Content-Baum als Snapshot ein, der die Doku weiterhin so ausliefert, wie sie zu diesem Zeitpunkt war:
+
+```bash
+blume version v1.0
+```
+
+Das macht vier Dinge:
+
+1. **Kopiert den Content-Baum** in einen Ordner, der nach der ID benannt ist (`docs/v1.0/`). Bereits vorhandene Snapshots werden dabei nicht mitkopiert.
+2. **Schreibt root-absolute Links innerhalb der Kopie um**, damit sie im Snapshot bleiben: Aus `/guides/x` wird `/v1.0/guides/x`. Code in Fences und Inline-Code bleibt unverändert. Links auf Seiten, von denen der Snapshot keine Kopie hat, zeigen weiterhin auf die Live-Seiten. Das betrifft etwa generierte API-Referenzen oder Remote-Quellen wie ein Changelog.
+3. **Registriert die ID** in `versions.archived` in `blume.config.ts`. Die erste Version aktiviert die Versionierung: Dabei wird ein `versions`-Block hinzugefügt, in dem die ID archiviert und die Live-Doku als „Latest“ gekennzeichnet ist. Wenn die Config so aufgebaut ist, dass der Befehl sie nicht bearbeiten kann, gibt er eine Warnung aus und zeigt dir stattdessen den Eintrag, den du selbst einfügen kannst.
+4. **Berichtet, was er gemacht hat**: welche Dateien kopiert wurden, bei welchen Seiten Links umgeschrieben wurden und dazu den Hinweis, dass archivierte Versionen eingefroren sind und `blume dev` neu gestartet werden muss, damit der Snapshot erkannt wird.
+
+Prüfe und committe den neuen Ordner wie jeden anderen Content. Wie Versionen dargestellt werden, also der Versionswechsler, der Hinweis auf archivierten Seiten sowie Labels und Badges pro Version, legst du komplett über die Konfiguration fest. Das wird auf der Seite [Versionierung](/docs/content/versioning) erklärt.
+
+## Versionen auflisten [#listing-versions]
+
+Führe den Befehl ohne ID aus, um die konfigurierten Versionen aufzulisten: zuerst die aktuelle Version mit ihrem Label und Badge, dann jede archivierte ID mit ihrem Ordner. Solange `versions` noch nicht konfiguriert ist, also vor der ersten Version, erklärt er dir stattdessen, wie du eine erstellst.
+
+```bash
+blume version
+```
+
+## Flags
+
+- `--force`: überschreibt einen Snapshot-Ordner, der bereits existiert. Ohne dieses Flag führt ein vorhandener Ordner zu einem Fehler. So kann ein versehentlicher erneuter Aufruf keine archivierte Version überschreiben.
+
+## Wann der Befehl abbricht [#when-it-refuses]
+
+Der Befehl beendet sich mit einem Exit-Code ungleich null und ändert nichts, wenn:
+
+- die ID nicht mit einem Buchstaben beginnt oder andere Zeichen als Buchstaben, Ziffern, Punkte, Bindestriche und Unterstriche enthält (`v1.0`, nicht `1.0`, damit eine ID nie mit einem [numerischen Sortierpräfix](/docs/content/navigation#ordering) kollidieren kann);
+- das Projekt Fehler-Diagnosen hat, weil ein Snapshot eines kaputten Baums die Fehler einfrieren würde. Behebe sie zuerst (`blume doctor` listet sie auf);
+- die ID bereits in `versions.archived` registriert ist;
+- der Snapshot-Ordner existiert und `--force` nicht übergeben wurde.

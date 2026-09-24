@@ -1,0 +1,30 @@
+---
+title: Doctor
+description: >-
+  O blume doctor diagnostica problemas de configuração e de conteúdo antes do build — a config, cada página, a versão do Node e os recursos que precisam de um servidor.
+---
+
+O `blume doctor` analisa o projeto exatamente como o `blume build` faria e informa o que encontrar, sem gerar nem compilar nada. É a primeira coisa a rodar quando um build falha por um motivo que não é óbvio, e uma verificação barata para manter no CI:
+
+```bash
+blume doctor
+```
+
+## O que ele verifica [#what-it-checks]
+
+- **A versão do Node**, comparada com o intervalo que o pacote `blume` instalado suporta, lido do próprio campo `engines` dele. Uma versão fora desse intervalo gera um aviso: as coisas podem funcionar, mas essa não é uma combinação que o Blume testa.
+- **`blume.config.ts`**, com a mesma validação que um build executa. Uma chave removida ou renomeada falha com uma dica que indica a substituta, em vez de um simples "unrecognized key".
+- **Cada página de conteúdo e meta de pasta**: os diagnósticos que o `blume dev` e o `blume build` exibem ao carregar o projeto (frontmatter inválido, problemas de navegação, alvos de include ausentes e o resto), reunidos em um único relatório.
+- **Recursos que precisam de um servidor** em um site configurado para saída estática, como o Ask AI, o servidor MCP ou o proxy embutido do playground Try it: um erro que indica o recurso e o adapter de deploy para o qual você deve trocar (ou, quando um adapter de host está definido com `output: "static"`, que diz para você remover essa opção).
+- **Pacotes que a sua config precisa** e que não estão instalados, como o SDK que um adapter de busca, de fonte de conteúdo ou de Ask AI importa, o pacote `@astrojs/*` de um adapter de deploy ou o renderizador para islands Vue ou Svelte: um erro para cada pacote, com o comando de instalação para o seu gerenciador de pacotes. O `blume build` para na mesma verificação.
+- **Overrides em `components.ts`** que o Blume não consegue planejar, como uma entrada inline ou computada, ou um import cujo arquivo não existe: um erro para cada um, na linha correspondente.
+- **Uma pasta com formato de versão** (`v1.0/`) em um site sem `versions` configuradas, que de outra forma seria compilada como conteúdo comum: um aviso apontando para [`blume version`](/docs/cli/version).
+- **Secrets lidos por um recurso habilitado** que não estão definidos, como `ALGOLIA_ADMIN_API_KEY` ou `OPENROUTER_API_KEY`: um aviso com o nome da variável. O doctor carrega `.env` e `.env.local` primeiro, assim como o `blume dev` e o `blume build`.
+
+## O resumo [#the-summary]
+
+Depois dos diagnósticos, o doctor mostra a configuração final que o projeto resolveu. Assim, qualquer diferença entre o que você acha que está configurado e o que o Blume enxerga fica visível num relance: a contagem de páginas, o modo de saída e o adapter de deploy, o provedor de busca, os adapters de referência, analytics e fonte de conteúdo configurados, e se o Ask AI está ativado e qual backend ele usa.
+
+## Código de saída e JSON [#exit-code-and-json]
+
+O doctor sai com código diferente de zero quando há diagnósticos de erro, então ele faz o CI falhar pelos mesmos problemas que fariam um build falhar; os avisos aparecem no relatório, mas não causam falha. A flag `--json` emite os diagnósticos como JSON no stdout em vez do relatório no terminal, no mesmo formato usado pelo [`blume validate --json`](/docs/cli/validate#json-output).

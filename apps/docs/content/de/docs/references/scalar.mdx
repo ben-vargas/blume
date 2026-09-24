@@ -1,0 +1,65 @@
+---
+title: Scalar
+description: >-
+  Bette die eigenständige API-Referenz-UI von Scalar auf einer einzelnen Route ein und reiche beliebige Scalar-Optionen direkt durch.
+---
+
+Mit [`openapi()`](/docs/references/openapi), [`asyncapi()`](/docs/references/asyncapi) und [`graphql()`](/docs/references/graphql) bekommst du Blumes eigenen Renderer: eine echte Seite pro Operation, in deiner Sidebar, der Suche und `llms.txt`, mit einem [Try-it-Playground](/docs/references/openapi#try-it-playground). Wenn du lieber die eigenständige API-Referenz-UI von [Scalar](https://scalar.com) einbetten möchtest, trag stattdessen einen `scalar()`-Adapter aus `blume/reference` ein. Sie bringt ihre eigene Sidebar, Suche, ihr eigenes Theme und ihren eigenen Request-Client mit, alles auf einer einzigen Route. Der Adapter nimmt ein OpenAPI- oder AsyncAPI-Dokument entgegen, und Scalar erkennt selbst, um welches es sich handelt:
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { scalar } from "blume/reference";
+
+export default defineConfig({
+  reference: [
+    scalar({
+      spec: "./openapi.yaml",
+      theme: "purple", // a Scalar theme name
+    }),
+  ],
+});
+```
+
+Damit wird das Embed unter `/reference` eingebunden. `spec` ist entweder eine `http(s)`-URL, die die Seite im Browser lädt, oder ein Pfad zu einer lokalen Datei. Eine lokale Datei wird zur Build-Zeit gelesen und inline eingebettet, damit die Seite eigenständig bleibt. Mit `route` verschiebst du das Embed. Mit `sources` veröffentlichst du mehrere Dokumente, jedes auf seiner eigenen Route. Dabei gelten dieselben [`label`/`route`-Regeln](/docs/references/openapi#multiple-specs) wie bei den nativen Adaptern:
+
+```ts blume.config.ts lineNumbers
+reference: [
+  scalar({
+    route: "/api",
+    sources: [
+      { label: "Public API", spec: "./public.json" },   // → /api/public-api
+      { label: "Legacy API", route: "/legacy", spec: "./legacy.json", noindex: true },
+    ],
+  }),
+],
+```
+
+Ein Scalar-Embed und native Seiten können in der Liste nebeneinander stehen, solange sich ihre Routen unterscheiden. Du kannst zum Beispiel einen `openapi()`-Adapter für die aktuelle API und einen `scalar()`-Adapter für eine Legacy-API nutzen. Wie jede Referenz fügt das Embed nicht von selbst einen Header-Tab hinzu. Lass einen [Navigations-Tab](/docs/content/navigation#tabs) auf seine Route zeigen, damit es in der Navigation auftaucht.
+
+## Was das Embed nicht kann [#what-the-embed-doesnt-do]
+
+Eine von Scalar gerenderte Referenz ist eine eigenständige Seite auf ihrer eigenen Route. Sie fügt sich nicht in Blumes Sidebar, Suche oder `llms.txt` ein. Von den Einstellungen, die die nativen Adapter pro Quelle bieten, gilt hier deshalb nur `noindex`. Es fügt noindex-Metadaten für Crawler hinzu und hält die Seite aus der Sitemap heraus. `codeSamples`, `expandSchemas` oder `playground` kannst du hier nicht setzen. Scalar bringt seinen eigenen Request-Client mit, der deine **Ziel-API direkt aus dem Browser** aufruft. Blumes [`playground.proxy`](/docs/references/openapi#cors-and-the-proxy)-Route steht hier nicht zur Verfügung. Deshalb muss die API Cross-Origin-Requests von der Docs-Seite erlauben (`Access-Control-Allow-Origin`).
+
+Blumes Hell/Dunkel-Umschalter gilt aber auch für das Embed. Beim Mounten übernimmt es das Theme der Seite und wechselt mit ihm, deshalb ist Scalars eigener Theme-Schalter ausgeblendet. Übergib `forceDarkModeState` oder `darkMode`, wenn Scalar den Farbmodus wieder selbst steuern soll. Ohne `theme` legt Blume seine Akzentfarbe und seinen Radius über Scalars Standard-Theme. Ein benanntes `theme` ersetzt das. Der Adapter deklariert `@scalar/astro` als Runtime-Abhängigkeit. Das generierte Projekt listet es also nur dann auf, wenn ein `scalar()`-Adapter konfiguriert ist.
+
+## Scalar-Optionen übergeben [#passing-scalar-options]
+
+`theme` ist die Option, zu der die meisten greifen, aber Scalar unterstützt noch viele weitere. Jeder Key, den du `scalar()` zusätzlich zu `spec`, `sources`, `route` und `theme` übergibst, wird unverändert als [Scalar-Konfiguration](https://github.com/scalar/scalar/blob/main/documentation/configuration.md) an die eingebettete Referenz weitergereicht. Blume filtert die Keys nicht, also kommt alles durch, was Scalar akzeptiert. Erlaubt sind nur JSON-Werte, da die Konfiguration inline in die generierte Seite eingebettet wird:
+
+```ts blume.config.ts lineNumbers
+reference: [
+  scalar({
+    spec: "./openapi.yaml",
+    localization: { locale: "es" },   // translate Scalar's own UI
+    agent: { disabled: true },         // disable the Scalar Agent
+    hideTestRequestButton: true,
+    orderSchemaPropertiesBy: "preserve",
+  }),
+],
+```
+
+Blumes eigenes [`i18n`](/docs/content/i18n) übersetzt die Oberfläche rund um deine Docs. Scalar hat aber ein separates Lokalisierungssystem. Setz `localization.locale`, damit auch die eingebettete Referenz übersetzt wird. Weitergereichte Optionen haben Vorrang vor der Konfiguration, die Blume selbst ableitet. Alles, was du hier setzt, überschreibt also Blumes Standardwerte, auch `customCss` oder `content`/`url` der Spec. Nur Scalars eigenes Multi-Dokument-`sources` kannst du nicht weiterreichen. Dieser Name ist schon von Blume belegt, und jede Blume-Quelle wird zu einer eigenen Seite.
+
+## AsyncAPI-Dokumente [#asyncapi-documents]
+
+Lass `spec` auf ein AsyncAPI-Dokument zeigen, dann rendert das Embed Channels, Operationen, Messages und einen Models-Bereich. Scalar hat keinen eigenen AsyncAPI-Playground. Wenn du das Embed statt [`asyncapi()`](/docs/references/asyncapi) wählst, verzichtest du also auf Blumes [Event-Composer](/docs/references/asyncapi#try-it-for-events). Für ein GraphQL-Schema gibt es überhaupt kein Scalar-Embed. Die [`graphql()`](/docs/references/graphql)-Referenz wird immer nativ gerendert.

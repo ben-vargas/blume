@@ -35,6 +35,8 @@ pages फ़ोल्डर के अंतर्गत हर फ़ाइल 
 
 एक ही पाथ पर कस्टम पेज जेनरेट किए गए रूट पर **भारी पड़ता** है। उदाहरण के लिए, `pages/changelog.astro` जोड़ने पर Blume की [जेनरेट की गई चेंजलॉग टाइमलाइन](/docs/advanced/changelog) की जगह आपका अपना पेज आ जाता है।
 
+Blume उन पाथ्स को सूचीबद्ध नहीं कर सकता जिन्हें कोई डायनैमिक `[param]` रूट सर्व करता है, इसलिए ऐसे पेज [साइटमैप](/docs/discoverability/sitemap-and-robots) से बाहर रह जाते हैं, उन्हें कोई जेनरेट किया गया [Open Graph कार्ड](/docs/discoverability/open-graph) नहीं मिलता, और वे [`blume validate`](/docs/cli/validate) के लिए अज्ञात रहते हैं, जो उनमें से किसी के लिंक को टूटा हुआ बताता है। उनकी शेयर इमेज के लिए `PageLayout` को `ogImage` पास करें, या तीनों लाभ पाने के लिए हर पाथ को उसकी अपनी स्टैटिक फ़ाइल दें (`pages/compare/[tool].astro` के बजाय `pages/compare/mintlify.astro`)।
+
 ## साइट डेटा पढ़ना [#reading-site-data]
 
 वही रिज़ॉल्व किया गया कॉन्फ़िग, नेविगेशन, रूट्स और फ़ीड्स पढ़ने के लिए `blume:data` इम्पोर्ट करें जिनका उपयोग बाकी साइट करती है:
@@ -127,15 +129,21 @@ const indexable = (data: BlumeData): BlumeRoute[] =>
 ---
 import { getCollection } from "astro:content";
 import data from "blume:data";
+import { getBlumeCollection } from "blume/runtime";
 
-// Each route's id matches its collection entry id.
-const routeById = new Map(data.routes.map((route) => [route.id, route.path]));
+// Under i18n every locale serves a route for each entry (its translation, or
+// a copy of the untranslated page), all sharing the entry's id. Key the map on
+// the default locale's routes only, so each post links once, in one language.
+const routes = getBlumeCollection(data, {
+  locale: data.config.i18n?.defaultLocale,
+});
+const routeByEntry = new Map(routes.map((route) => [route.entryId, route.path]));
 
 const posts = (await getCollection("docs"))
-  .filter((entry) => entry.data.type === "blog" && !entry.data.draft)
+  .filter((entry) => entry.data.type === "blog" && routeByEntry.has(entry.id))
   .map((entry) => ({
     description: entry.data.description,
-    href: routeById.get(entry.id),
+    href: routeByEntry.get(entry.id),
     title: entry.data.title,
   }));
 ---
@@ -156,7 +164,7 @@ const posts = (await getCollection("docs"))
 
 `blume/runtime` सामान्य डेटा पैटर्न को बंडल करता है ताकि आपको `blume:data` के आंतरिक हिस्सों तक पहुँचना न पड़े।
 
-**`getBlumeCollection(data, query?)`** कंटेंट रूट्स चुनता है — कलेक्शन, लोकेल, या पाथ प्रीफ़िक्स के आधार पर फ़िल्टर किए हुए, ड्राफ़्ट और छिपे हुए पेज हटाकर और परिणाम पाथ के अनुसार क्रमबद्ध — जो ठीक वही है जिसकी एक कस्टम इंडेक्स को ज़रूरत होती है:
+**`getBlumeCollection(data, query?)`** कंटेंट रूट्स चुनता है — कलेक्शन, लोकेल, या पाथ प्रीफ़िक्स के आधार पर फ़िल्टर किए हुए, ड्राफ़्ट, छिपे हुए पेज और i18n फ़ॉलबैक प्रतियाँ हटाकर और परिणाम पाथ के अनुसार क्रमबद्ध — जो ठीक वही है जिसकी एक कस्टम इंडेक्स को ज़रूरत होती है:
 
 ```astro pages/blog/index.astro lineNumbers
 ---
@@ -225,7 +233,11 @@ const { config } = data;
 
 कस्टम पेज को वही हेडर मिलता है जो डॉक्स पेजों को मिलता है, इसलिए उसमें रहने वाला क्रोम भी साथ आता है: सर्च, थीम टॉगल, भाषा स्विचर, और — जब [Ask AI](/docs/configuration/ask-ai) कॉन्फ़िगर हो — Ask AI ट्रिगर। इनमें से किसी को भी प्रति पेज जोड़ने की ज़रूरत नहीं। किसी एक पेज पर Ask ट्रिगर बंद रखने और बाकी हर जगह चालू रखने के लिए `askEnabled={false}` पास करें।
 
-`siteUrl` (और `ogEnabled`) पास करने से पेज का `canonical` और एक जेनरेट किया गया `og:image` स्वतः प्राप्त होता है: Blume हर स्टैटिक कस्टम पेज के लिए एक Open Graph कार्ड रेंडर करता है — होम सहित, जो सबसे अधिक साझा किया जाने वाला URL है — जो `/og/<route>.png` पर सर्व होता है (`/` के लिए `/og/index.png`)। होम कार्ड साइट टाइटल का उपयोग करता है और डिस्क्रिप्शन को आइब्रो के रूप में रखता है; किसी गहरे पेज का शीर्षक उसके अंतिम पाथ सेगमेंट से बनता है। किसी को भी ओवरराइड करने के लिए `ogImage` या `canonical` स्पष्ट रूप से सेट करें। `ogImage` एक रूट-रिलेटिव पाथ लेता है — `public/` में मौजूद कोई फ़ाइल, जो [`deployment.site`](/docs/deployment) के सापेक्ष उस पूर्ण URL में रिज़ॉल्व होती है जिसकी क्रॉलर्स को ज़रूरत होती है — या एक बाहरी URL, जो बिना बदले पास हो जाता है:
+[एजेंट-डिस्कवरी हेड लिंक](/docs/discoverability/agent-discovery#discovery-link-header) भी साथ आते हैं: लेआउट रिज़ॉल्व किया गया कॉन्फ़िग पढ़ता है, इसलिए किसी कस्टम पेज में बिना कोई प्रॉप पास किए वही `describedby`, `ai-catalog` और `ard` लिंक होते हैं जो डॉक्स पेजों में होते हैं। होम पेज अपने `/index.md` Markdown मिरर को भी एक `text/markdown` वैकल्पिक रूप (alternate) के रूप में घोषित करता है, क्योंकि वह मिरर हमेशा मौजूद रहता है; अन्य कस्टम पेजों का कोई मिरर नहीं होता, इसलिए कोई घोषित नहीं किया जाता। किसी एक पेज से ये लिंक हटाने के लिए `discovery={null}` पास करें।
+
+हेडर को पारदर्शी रूप में और उसके क्रोम को सफ़ेद रंग में शुरू करने के लिए `transparentHeader` पास करें, ताकि वह पेज के शीर्ष पर किसी गहरे रंग के हीरो सेक्शन के ऊपर रह सके; पेज स्क्रॉल होते ही यह सामान्य फ़्रॉस्टेड बार बन जाता है, और सर्च डायलॉग पूरे समय पेज के अपने रंग बनाए रखता है। इसके दिखने के लिए हीरो का हेडर के नीचे तक फैलना आवश्यक है — उसे हेडर की ऊँचाई (`-mt-16`) जितना ऊपर खींचें और इसकी भरपाई के लिए उसके शीर्ष पर पैडिंग जोड़ें।
+
+`siteUrl` (और `ogEnabled`) पास करने से पेज का `canonical` और एक जेनरेट किया गया `og:image` स्वतः प्राप्त होता है: Blume हर स्टैटिक कस्टम पेज (डायनैमिक `[param]` पेज नहीं) के लिए एक Open Graph कार्ड रेंडर करता है — होम सहित, जो सबसे अधिक साझा किया जाने वाला URL है — जो `/og/<route>.png` पर सर्व होता है (`/` के लिए `/og/index.png`)। होम कार्ड साइट टाइटल का उपयोग करता है और डिस्क्रिप्शन को आइब्रो के रूप में रखता है; किसी गहरे पेज का शीर्षक उसके अंतिम पाथ सेगमेंट से बनता है। किसी को भी ओवरराइड करने के लिए `ogImage` या `canonical` स्पष्ट रूप से सेट करें। `ogImage` एक रूट-रिलेटिव पाथ लेता है — `public/` में मौजूद कोई फ़ाइल, जो [`deployment.site`](/docs/deployment) के सापेक्ष उस पूर्ण URL में रिज़ॉल्व होती है जिसकी क्रॉलर्स को ज़रूरत होती है — या एक बाहरी URL, जो बिना बदले पास हो जाता है:
 
 ```astro pages/index.astro lineNumbers
 <PageLayout
@@ -275,7 +287,7 @@ import data from "blume:data";
 
 Blume बॉक्स से बाहर ही एक डिफ़ॉल्ट **not found** पेज देता है: साइट क्रोम (हेडर, सर्च, थीम) में लिपटा एक केंद्रित "404" संदेश, जो किसी भी अमेल URL के लिए सर्व होता है। `blume build` इसे `404.html` में लिखता है, जिसे स्टैटिक होस्ट स्वतः सर्व करते हैं, और `blume dev` इसे अज्ञात रूट्स के लिए दिखाता है। संदेश के नीचे एक **Where to look next** सूची हर टॉप-लेवल सेक्शन को लिंक करती है, साथ ही `sitemap.xml` और [`llms.txt`](/docs/discoverability/llms-txt) इंडेक्स भी जब वे मौजूद हों, ताकि किसी पाठक — या किसी पुराने URL का अनुसरण करने वाले एजेंट — के पास लौटने का रास्ता रहे।
 
-इस पेज का एक Markdown जुड़वाँ रूप `/404.md` पर और एक JSON जुड़वाँ रूप `/404.json` पर ([RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) प्रॉब्लम डिटेल्स) भी है, जिनमें वही रिकवरी लिंक होते हैं ([`deployment.site`](/docs/deployment) सेट होने पर पूर्ण URL के रूप में), साथ ही JSON API चालू होने पर [`openapi.json`](/docs/discoverability/json-api) का विवरण भी। किसी [Vercel सर्वर बिल्ड](/docs/deployment#server-rendering) पर, किसी अनुपस्थित पेज के लिए ऐसा अनुरोध जो [`Accept: text/markdown`](/docs/discoverability/markdown#content-negotiation) भेजता है, या ऐसे `.md` URL की माँग करता है जिसके पीछे कोई पेज नहीं है, उसे HTML शेल के बजाय `404` स्टेटस के साथ Markdown बॉडी मिलती है; और जो `Accept: application/json` भेजता है, या ऐसे `.json` URL की माँग करता है जिसके पीछे कोई फ़ाइल नहीं है, उसे प्रॉब्लम डॉक्यूमेंट मिलता है — ताकि किसी एजेंट को यह जानने के लिए कि आगे कहाँ जाना है, क्रोम से भरा पूरा पेज कभी पार्स न करना पड़े।
+इस पेज का एक Markdown जुड़वाँ रूप `/404.md` पर और एक JSON जुड़वाँ रूप `/404.json` पर ([RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) प्रॉब्लम डिटेल्स) भी है, जिनमें वही रिकवरी लिंक होते हैं ([`deployment.site`](/docs/deployment) सेट होने पर पूर्ण URL के रूप में), साथ ही JSON API चालू होने पर [`openapi.json`](/docs/discoverability/json-api) का विवरण भी। किसी [Vercel या Cloudflare सर्वर बिल्ड](/docs/deployment#server-rendering) पर, किसी अनुपस्थित पेज के लिए ऐसा अनुरोध जो [`Accept: text/markdown`](/docs/discoverability/markdown#content-negotiation) भेजता है, उसे HTML शेल के बजाय `404` स्टेटस के साथ Markdown बॉडी मिलती है, और जो `Accept: application/json` भेजता है, उसे प्रॉब्लम डॉक्यूमेंट मिलता है — ताकि किसी एजेंट को यह जानने के लिए कि आगे कहाँ जाना है, क्रोम से भरा पूरा पेज कभी पार्स न करना पड़े। Vercel पर यही बात ऐसे `.md` या `.json` URL पर भी लागू होती है जिसके पीछे कोई फ़ाइल नहीं है।
 
 इसे अपने पेज से बदलने के लिए, एक `pages/404.astro` जोड़ें। यह `/404` रूट का स्वामी उसी तरह बनता है जैसे `pages/changelog.astro` चेंजलॉग को अपने अधीन ले लेता है — आपका पेज जीतता है और डिफ़ॉल्ट हटा दिया जाता है। इसे किसी भी अन्य कस्टम पेज की तरह बनाएँ, `PageLayout` या `RootLayout` में:
 

@@ -1,67 +1,68 @@
 ---
 title: Início rápido
 description: >-
-  Instale o Blume, crie a estrutura de um novo projeto e publique a sua primeira página de documentação em minutos — depois faça-a crescer até um site completo ao seu próprio ritmo.
+  Instale o Blume, crie a estrutura de um novo projeto e publique sua primeira página de documentação em minutos — depois faça-a crescer até virar um site completo no seu próprio ritmo.
 sidebar:
   label: Início rápido
   order: 1
 ---
 
-Passe de uma pasta vazia a um site de documentação em funcionamento com apenas alguns comandos. O Blume precisa de **Node.js 22.12 ou superior** e de uma pasta `docs/` com pelo menos um ficheiro `.md` ou `.mdx` — não há mais nada para configurar.
+Passe de uma pasta vazia a um site de documentação funcionando com apenas alguns comandos. O Blume precisa do **Node.js 22.12 ou superior** e de uma pasta `docs/` com pelo menos um arquivo `.md` ou `.mdx` — não há mais nada para configurar.
 
 ## Instalar e executar [#install-and-run]
 
 <Steps>
-  <Step title="Install Blume">
-    Adicione o pacote a um projeto novo ou já existente.
+  <Step title="Create a project">
+    O `blume init` faz algumas perguntas — onde criar o projeto, qual o nome do
+    seu site de documentação, que modelo usar e onde fica o seu conteúdo — e
+    depois gera a estrutura mínima: uma pasta de conteúdo, um arquivo de
+    configuração e um `package.json` com os scripts `dev` e `build`. Ele instala
+    as dependências com o gerenciador de pacotes que o executou. Passe `--yes`
+    para pular as perguntas e aceitar os padrões, ou `--no-install` para apenas
+    criar os arquivos.
 
     ```package-install
-    npm i blume
+    npx blume init
     ```
 
-  </Step>
-  <Step title="Scaffold a project">
-    O `blume init` faz algumas perguntas — onde criar o projeto, qual o nome do
-    seu site de documentação, que modelo usar e onde reside o seu conteúdo — e
-    depois gera a estrutura mínima: uma pasta de conteúdo e um ficheiro de
-    configuração. Passe `--yes` para saltar as perguntas e aceitar as predefinições.
-
-    ```bash
-    blume init
-    ```
+    No pnpm 12, adicione `--allow-build=esbuild` depois de `pnpm dlx` (`pnpm dlx --allow-build=esbuild blume init`): o pnpm 12 se recusa a executar o script de instalação do esbuild, do qual o Astro depende, a menos que você o aprove. Dentro de um workspace pnpm já existente, adicione `allowBuilds: { esbuild: true }` ao `pnpm-workspace.yaml` do workspace; o `init` lembra você disso. Com o Yarn 2 ou posterior, o `init` cria um `.yarnrc.yml` que muda o Yarn para uma instalação com `node_modules`, que é o que o Blume precisa; no Yarn 1, execute `npx blume init`.
 
     ```txt
     docs/
       index.mdx
     blume.config.ts
+    package.json
     ```
 
   </Step>
   <Step title="Start the dev server">
-    O Blume gera o runtime e serve a sua documentação com recarregamento automático.
+    No diretório do projeto, o Blume gera o runtime e serve a sua documentação
+    com recarregamento automático.
 
-    ```bash
-    blume dev
+    ```package-install
+    npm run dev
     ```
 
   </Step>
   <Step title="Build for production">
-    O HTML estático é escrito em `dist/`, com um índice de pesquisa local construído sobre ele.
+    O HTML estático é gerado em `dist/`, com um índice de pesquisa local construído sobre ele.
 
-    ```bash
-    blume build
+    ```package-install
+    npm run build
     ```
 
   </Step>
 </Steps>
 
+Vai adicionar o Blume a um projeto que já tem um `package.json`? O `blume init` não mexe nos arquivos existentes, então adicione `"dev": "blume dev"` e `"build": "blume build"` aos scripts dele, ou execute `npx blume dev` diretamente.
+
 :::tip
-O Blume funciona com qualquer gestor de pacotes e nunca exige que configure o Astro ou o Tailwind por si próprio.
+O Blume funciona com qualquer gerenciador de pacotes e nunca exige que você configure o Astro ou o Tailwind por conta própria.
 :::
 
 ## Escrever a sua primeira página [#write-your-first-page]
 
-Cada página é Markdown ou MDX com um pouco de frontmatter — o `title` e a `description` são apresentados automaticamente como o cabeçalho e a introdução da página. Coloque isto em `docs/index.mdx`:
+Cada página é Markdown ou MDX com um pouco de frontmatter — o `title` e a `description` são exibidos automaticamente como o cabeçalho e a introdução da página. Coloque isso em `docs/index.mdx`:
 
 ```mdx docs/index.mdx lineNumbers
 ---
@@ -76,13 +77,13 @@ Blume ships callouts, cards, tabs, steps, and more.
 :::
 ```
 
-Guarde o ficheiro e o servidor de desenvolvimento recarrega de imediato. A navegação, a pesquisa e os metadados das páginas são inferidos a partir dos seus ficheiros à medida que os adiciona — continue a escrever, que o site acompanha.
+Salve o arquivo e o servidor de desenvolvimento recarrega na hora. A navegação, a pesquisa e os metadados das páginas são inferidos a partir dos seus arquivos à medida que você os adiciona — continue escrevendo, que o site acompanha.
 
 ## Próximos passos [#next-steps]
 
 <CardGroup cols={2}>
   <Card title="Configuration" href="/docs/configuration" icon="file">
-    Ajuste o título, o tema, a pesquisa e a implementação.
+    Ajuste o título, o tema, a pesquisa e a implantação.
   </Card>
   <Card title="Components" href="/docs/content/components" icon="folder">
     Explore a biblioteca de componentes integrada.
@@ -91,6 +92,6 @@ Guarde o ficheiro e o servidor de desenvolvimento recarrega de imediato. A naveg
     Publique um `llms.txt`, cartões sociais e um servidor MCP.
   </Card>
   <Card title="Deployment" href="/docs/deployment" icon="rocket">
-    Entre em produção em qualquer alojamento estático.
+    Coloque no ar em qualquer hospedagem estática.
   </Card>
 </CardGroup>

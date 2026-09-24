@@ -1,0 +1,59 @@
+---
+title: Zu Blume migrieren
+description: >-
+  Zieh eine Mintlify-, Fumadocs-, Docusaurus-, Starlight- oder Nextra-Seite mit einem einzigen Befehl zu Blume um. Der Befehl übergibt die Migration an Claude Code oder Codex.
+sidebar:
+  label: Zu Blume migrieren
+  order: 2.4
+---
+
+Eine Docs-Seite in idiomatisches Blume zu überführen, erfordert Entscheidungen, die ein Codemod nicht treffen kann. Welche deklarierte Navigation wird zu Ordnern? Welche Komponenten werden zu Direktiven? Was hat kein Gegenstück in Blume? Deshalb übergibt `blume migrate` die Aufgabe an einen Coding-Agent. Der arbeitet nach Blumes Migrations-Playbook, und du prüfst jede Änderung.
+
+## Mit einem Befehl migrieren [#migrate-with-one-command]
+
+Führ den Befehl im Stammverzeichnis des Docs-Projekts aus, das du migrierst:
+
+```package-install
+npx blume migrate fumadocs --claude
+```
+
+Ersetze `fumadocs` durch dein Framework. Wenn du Codex verwenden willst, ersetze `--claude` durch `--codex`. Mit pnpm 12 fügst du `--allow-build=esbuild` nach `pnpm dlx` hinzu, weil pnpm 12 das Installationsskript von esbuild nicht ohne Freigabe ausführt. Der Agent öffnet sich interaktiv in deinem Terminal, und jede Änderung durchläuft seinen eigenen Freigabeprozess. Er ändert die Dateien direkt in deinem Projekt. Starte deshalb mit einem sauberen Working Tree und prüfe die gesamte Migration als einen einzigen Diff.
+
+## Quellen [#sources]
+
+Gib das Framework an, von dem du migrierst. Wenn du es weglässt, erkennt Blume es anhand der Dateien im Projekt. Gibst du ein Framework an, das Projekt sieht aber nach einem anderen aus, warnt Blume dich und macht mit dem angegebenen weiter:
+
+| Quelle | Erkannt anhand von |
+| --- | --- |
+| `mintlify` | `docs.json` oder `mint.json` |
+| `fumadocs` | `source.config.ts` oder `fumadocs-core`, `fumadocs-ui` oder `fumadocs-mdx` in `package.json` |
+| `docusaurus` | `docusaurus.config.*` |
+| `starlight` | `@astrojs/starlight` in `package.json` |
+| `nextra` | `nextra` in `package.json` |
+
+Für jede Quelle gibt es im Playbook eine eigene Mapping-Referenz. Auch eine Seite, die mit einem anderen Framework gebaut wurde, lässt sich migrieren. Führ den Befehl einfach ohne Quelle aus. Der Agent sieht sich dann zuerst an, was im Repo liegt, und arbeitet anschließend nach den allgemeinen Regeln des Playbooks.
+
+## Was der Agent macht [#what-the-agent-does]
+
+Der Agent folgt dem Workflow des Playbooks, von der Konfiguration der Quelle bis zu einem erfolgreichen Build:
+
+1. Er schreibt `blume.config.ts` und überträgt dabei nur, was deine Quelle deklariert. Den Rest decken Blumes Standardwerte ab.
+2. Er baut die Inhalte in eine [Dateisystem-Navigation](/docs/content/navigation) um und wandelt die Sortierdateien der einzelnen Ordner (Fumadocs `meta.json`, Nextra `_meta`) in `meta.ts` um.
+3. Er schreibt die Seiten um: Frontmatter auf Blumes Schema, Callout-Komponenten zu [Direktiven](/docs/content/syntax), Icons zu Lucide. Snippets fügt er direkt in die Seiten ein.
+4. Er legt für jede URL, die sich ändert, eine [Weiterleitung](/docs/deployment#redirects) an, damit kein Link kaputtgeht.
+5. Er stellt die Skripte in deiner `package.json` auf `blume dev` und `blume build` um und ersetzt die Abhängigkeiten des alten Frameworks durch `blume`.
+6. Er führt `blume build` und `blume validate` so lange aus, bis beide ohne Fehler durchlaufen.
+
+Zum Schluss fasst er zusammen, was er migriert, weggelassen oder nur annähernd umgesetzt hat. Das betrifft etwa Footer-Links oder dynamische Weiterleitungen, für die es in Blume kein Gegenstück gibt. So kannst du bei jedem Punkt selbst entscheiden, wie du damit umgehst.
+
+## Andere Agents [#other-agents]
+
+Ohne `--claude` oder `--codex` meldet der Befehl nur die erkannte Quelle und gibt den Pfad zum Playbook aus. Das Playbook ist der [Skill](/docs/advanced/skills) `blume-migrate`, der im Paket enthalten ist. Danach beendet sich der Befehl, ohne etwas zu ändern. Du kannst jeden anderen Agent auf diese `SKILL.md` verweisen. Oder du installierst den Skill mit dem ausgegebenen Befehl dort, wo dein Agent nach Skills sucht:
+
+```bash
+npx skills add haydenbleasel/blume --skill blume-migrate
+```
+
+## Zuerst vergleichen [#compare-first]
+
+Die [Vergleichsseiten](/compare) stellen Blume jedem Framework gegenüber. Dort steht auch, was die Migration jeweils übernimmt und was sie umschreibt.

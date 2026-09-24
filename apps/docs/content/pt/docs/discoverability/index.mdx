@@ -6,7 +6,7 @@ description: >-
 
 Mecanismos de busca e agentes de IA querem a mesma coisa da sua documentação: um relato limpo e legível por máquina do que cada página diz, como as páginas se relacionam e quem as publica. O Blume trata os dois como uma única camada de descoberta. Metadados, cartões sociais, feeds e dados estruturados servem aos crawlers que ranqueiam você; `llms.txt`, Markdown bruto, uma API JSON, um servidor MCP e manifestos de descoberta servem aos agentes que respondem perguntas sobre você — e os arquivos no meio do caminho (`robots.txt`, o sitemap, JSON-LD) são lidos por ambos.
 
-Quase tudo isso vem ligado por padrão e não precisa de configuração. Os botões ficam sob duas chaves em `blume.config.ts`: `seo` para o que mecanismos de busca e plataformas sociais veem, e `ai` para o que os agentes veem.
+Quase tudo isso vem ligado por padrão e não precisa de configuração. Os botões ficam sob duas chaves em `blume.config.ts`: `seo` para o que mecanismos de busca e plataformas sociais veem, e `agents` para o que os agentes veem.
 
 ```ts blume.config.ts lineNumbers
 seo: {
@@ -17,7 +17,7 @@ seo: {
   structuredData: true,
   x: { handle: "@acme" },
 },
-ai: {
+agents: {
   llmsTxt: true,
   mcp: { enabled: false },
 },
@@ -42,7 +42,7 @@ Boa parte disso fica mais afiada com uma URL absoluta do site — defina [`deplo
 
 Todo arquivo gerado cede lugar a um que você mesmo publique: coloque um `robots.txt`, `sitemap.xml`, `llms.txt`, `openapi.json` ou `agent-readability.json` em `public/` e o Blume serve o seu no lugar.
 
-O assistente **Ask AI** dentro da página é o único recurso de IA documentado em outro lugar: ele é um recurso de produto voltado ao leitor, e não uma superfície de descoberta, então fica em [Configuração](/docs/configuration/ask-ai).
+O assistente **Ask AI** dentro da página é o único recurso de IA documentado em outro lugar: ele é um recurso de produto voltado ao leitor, e não uma superfície de descoberta, então é configurado sob `ai` e fica em [Configuração](/docs/configuration/ask-ai).
 
 ## Conferindo seu trabalho [#checking-your-work]
 

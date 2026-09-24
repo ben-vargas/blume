@@ -1,0 +1,64 @@
+---
+title: Scalar
+description: Scalar の自己完結型 API リファレンス UI を単一のルートに埋め込み、Scalar のオプションをそのまま渡すことができます。
+---
+
+Blume 独自のレンダラーは、[`openapi()`](/docs/references/openapi)、[`asyncapi()`](/docs/references/asyncapi)、[`graphql()`](/docs/references/graphql) が提供するものです。オペレーションごとに実際のページが 1 つずつ生成され、サイドバー、検索、`llms.txt` に含まれるほか、[Try it プレイグラウンド](/docs/references/openapi#try-it-playground)も備えています。代わりに [Scalar](https://scalar.com) の自己完結型 API リファレンス UI（独自のサイドバー、検索、テーマ、リクエストクライアントを単一のルートで提供します）を埋め込みたい場合は、`blume/reference` の `scalar()` アダプターを指定してください。このアダプターは OpenAPI または AsyncAPI ドキュメントを受け取り、どちらであるかは Scalar が自動的に判別します。
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { scalar } from "blume/reference";
+
+export default defineConfig({
+  reference: [
+    scalar({
+      spec: "./openapi.yaml",
+      theme: "purple", // a Scalar theme name
+    }),
+  ],
+});
+```
+
+これで埋め込みが `/reference` にマウントされます。`spec` には、`http(s)` URL（ページがブラウザから読み込みます）か、ローカルファイルへのパス（ビルド時に読み込まれてインライン化されるため、ページは自己完結したままになります）のいずれかを指定します。`route` で配置先を変更でき、`sources` を使うと複数のドキュメントをそれぞれ独自のルートで公開できます。これはネイティブアダプターと同じ [`label`/`route` のルール](/docs/references/openapi#multiple-specs)に従います。
+
+```ts blume.config.ts lineNumbers
+reference: [
+  scalar({
+    route: "/api",
+    sources: [
+      { label: "Public API", spec: "./public.json" },   // → /api/public-api
+      { label: "Legacy API", route: "/legacy", spec: "./legacy.json", noindex: true },
+    ],
+  }),
+],
+```
+
+ルートが異なっていれば、Scalar の埋め込みとネイティブページをリスト内に並べて配置できます。たとえば、現行の API には `openapi()` アダプターを、レガシー API には `scalar()` アダプターを使うといった構成です。ほかのリファレンスと同様に、埋め込みはそれ自体ではヘッダータブを追加しません。表示するには、[ナビゲーションタブ](/docs/content/navigation#tabs)をそのルートに向けてください。
+
+## 埋め込みでできないこと [#what-the-embed-doesnt-do]
+
+Scalar でレンダリングされたリファレンスは、独自のルート上にある自己完結したページです。Blume のサイドバー、検索、`llms.txt` には組み込まれないため、ネイティブアダプターのソースごとの設定のうち、ここで適用されるのは `noindex` のみです（クローラー向けの noindex メタデータを追加し、ページをサイトマップから除外します）。`codeSamples`、`expandSchemas`、`playground` は設定できません。Scalar は独自のリクエストクライアントを備えており、**ブラウザから対象の API を直接**呼び出します（Blume の [`playground.proxy`](/docs/references/openapi#cors-and-the-proxy) ルートはここでは利用できません）。そのため、API 側でドキュメントサイトからのクロスオリジンリクエストを許可する必要があります（`Access-Control-Allow-Origin`）。
+
+埋め込みは Blume のライト/ダーク切り替えに従います。マウント時にページのテーマに固定され、テーマの切り替えに合わせて変化するため、Scalar 独自のテーマ切り替えは非表示になります（カラーモードの制御を Scalar に戻すには、`forceDarkModeState` または `darkMode` を渡してください）。`theme` を指定しない場合、Blume は Scalar のデフォルトテーマにアクセントカラーと角丸を重ねて適用します。名前付きの `theme` を指定すると、それに置き換わります。このアダプターは `@scalar/astro` をランタイム依存関係として宣言しているため、生成されたプロジェクトにこの依存関係が記載されるのは、`scalar()` アダプターが設定されている場合のみです。
+
+## Scalar のオプションを渡す [#passing-scalar-options]
+
+`theme` は多くの人が真っ先に使うオプションですが、Scalar はほかにも多くのオプションをサポートしています。`scalar()` に渡したキーのうち、`spec`、`sources`、`route`、`theme` 以外はすべて、[Scalar の設定](https://github.com/scalar/scalar/blob/main/documentation/configuration.md)としてそのまま埋め込みリファレンスに転送されます。Blume はキーを制限しないため、Scalar が受け付けるものはすべてそのまま渡されます（設定は生成されたページにインライン化されるため、使用できるのは JSON 値のみです）。
+
+```ts blume.config.ts lineNumbers
+reference: [
+  scalar({
+    spec: "./openapi.yaml",
+    localization: { locale: "es" },   // translate Scalar's own UI
+    agent: { disabled: true },         // disable the Scalar Agent
+    hideTestRequestButton: true,
+    orderSchemaPropertiesBy: "preserve",
+  }),
+],
+```
+
+Blume 独自の [`i18n`](/docs/content/i18n) はドキュメントの外枠部分の UI を翻訳しますが、Scalar には別のローカライズの仕組みがあります。埋め込みリファレンスも翻訳するには、`localization.locale` を設定してください。転送されたオプションは Blume が導出した設定よりも優先されるため、ここで設定したもの（`customCss` や spec の `content`/`url` を含みます）は Blume のデフォルトを上書きします。転送できない唯一のキーは、Scalar 独自のマルチドキュメント用の `sources` です。この名前は Blume が使用しており、Blume の各ソースはそれぞれ独自のページになります。
+
+## AsyncAPI ドキュメント [#asyncapi-documents]
+
+`spec` に AsyncAPI ドキュメントを指定すると、埋め込みはチャンネル、オペレーション、メッセージ、および Models セクションをレンダリングします。Scalar には独自の AsyncAPI プレイグラウンドがないため、[`asyncapi()`](/docs/references/asyncapi) ではなく埋め込みを選ぶと、Blume の[イベントコンポーザー](/docs/references/asyncapi#try-it-for-events)は使えなくなります。GraphQL スキーマには Scalar の埋め込み自体がありません。[`graphql()`](/docs/references/graphql) リファレンスは常にネイティブでレンダリングされます。

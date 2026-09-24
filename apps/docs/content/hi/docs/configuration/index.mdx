@@ -22,8 +22,9 @@ export default defineConfig({
 सबसे आम विकल्पों को छूता हुआ एक व्यापक उदाहरण (बाकी के लिए हर फ़ीचर की गाइड देखें):
 
 ```ts blume.config.ts lineNumbers
-import sitemap from "@astrojs/sitemap";
+import partytown from "@astrojs/partytown";
 import { defineConfig } from "blume";
+import { orama } from "blume/search";
 
 export default defineConfig({
   // Site
@@ -32,7 +33,7 @@ export default defineConfig({
   logo: "/logo.svg",
 
   // Astro integrations — installed and versioned by this site
-  integrations: [sitemap()],
+  integrations: [partytown()],
 
   // Content
   content: {
@@ -46,19 +47,16 @@ export default defineConfig({
     mode: "system",
   },
 
-  // Search — see the Search guide
-  search: {
-    provider: "orama",
-  },
+  // Search — an adapter from "blume/search"; see the Search guide
+  search: orama(),
 
   // Markdown features
   markdown: {
     imageZoom: true,
+    externalLinks: false, // open https:// links in a new tab
     code: {
       icons: true, // language icon in the code-block header
       wrap: false, // wrap long lines instead of scrolling
-    },
-    codeBlocks: {
       theme: {
         light: "github-light", // bundled name or custom Shiki theme object
         dark: "github-dark",
@@ -66,8 +64,8 @@ export default defineConfig({
     },
   },
 
-  // AI — llms.txt, MCP, the AI catalog; see the Discoverability section
-  ai: {
+  // Agents — llms.txt, MCP, the AI catalog; see the Discoverability section
+  agents: {
     llmsTxt: true,
     // AI Catalog / ARD manifest at /.well-known/ai-catalog.json (needs deployment.site)
     catalog: true,
@@ -87,9 +85,8 @@ export default defineConfig({
     structuredData: true,
   },
 
-  // Deployment — see the Deployment guide
+  // Deployment — a static build here; see the Deployment guide for host adapters
   deployment: {
-    output: "static",
     site: "https://docs.example.com",
   },
 });
@@ -123,6 +120,8 @@ logo: {
 ```
 
 `image` वही मान लेता है जो शॉर्टहैंड लेता है — एक अकेला पाथ, या अलग-अलग लाइट/डार्क आर्टवर्क के लिए `{ light, dark, alt }` (रास्टर इमेज `public/` में ही होनी चाहिए)।
+
+`href` किसी टैब पाथ की तरह एक डिफ़ॉल्ट-लोकेल पाथ है: किसी [बहु-लोकेल साइट](/docs/content/i18n) पर, जब भी पाठक की लोकेल उस रूट को सर्व करती है, ब्रांड लिंक उसी लोकेल में चला जाता है (`/en/…` के अंतर्गत `/` बन जाता है `/en`), ताकि लोगो पर क्लिक करने से पाठक उस भाषा से बाहर न निकलें जिसमें वे पढ़ रहे थे। जिस रूट को केवल डिफ़ॉल्ट लोकेल सर्व करती है — कोई [कस्टम पेज](/docs/advanced/custom-pages) या जनरेट किया गया चेंजलॉग इंडेक्स — वह किसी ऐसे स्थानीयकृत URL की ओर इंगित करने के बजाय, जो 404 देता, अपना ही पाथ बनाए रखता है। निरपेक्ष URL का उपयोग जस का तस किया जाता है।
 
 `text` वर्डमार्क को चिह्न से स्वतंत्र रूप से नियंत्रित करता है:
 
@@ -178,10 +177,10 @@ banner: "Docs are in beta — expect changes.",
 
 ```ts blume.config.ts lineNumbers
 banner: {
-  content: "Blume v1 is here!",
-  link: { text: "Read more", href: "/blog/v1" },
+  content: "Version 2.0 is here!",
+  link: { text: "Read the release notes", href: "/changelog" },
   dismissible: true,
-  id: "v1",
+  id: "v2",
 },
 ```
 
@@ -199,9 +198,10 @@ content: {
 
 | विकल्प | डिफ़ॉल्ट | विवरण |
 | --- | --- | --- |
-| `root` | `"docs"` | वह फ़ोल्डर जिसे Blume कंटेंट के लिए स्कैन करता है। |
-| `include` | `["**/*.{md,mdx}"]` | वे ग्लोब्स जो कंटेंट फ़ाइलों से मेल खाते हैं। |
-| `exclude` | `["**/_*", "**/.*"]` | नज़रअंदाज़ करने के लिए ग्लोब्स (अंडरस्कोर- और डॉट-फ़ाइलें)। |
+| `root` | `"docs"` | वह फ़ोल्डर जिसे Blume कंटेंट के लिए स्कैन करता है। एकल `filesystem()` स्रोत के लिए शॉर्टहैंड; `sources` के साथ इसकी अनुमति नहीं है। |
+| `include` | `["**/*.{md,mdx}"]` | वे ग्लोब्स जो कंटेंट फ़ाइलों से मेल खाते हैं। `root` की तरह शॉर्टहैंड। |
+| `exclude` | `["**/_*", "**/.*"]` | नज़रअंदाज़ करने के लिए ग्लोब्स (अंडरस्कोर- और डॉट-फ़ाइलें)। `root` की तरह शॉर्टहैंड। |
+| `sources` | एक `filesystem()` | `blume/sources` से कंटेंट स्रोत अडैप्टर, जो शॉर्टहैंड की जगह लेते हैं। [कंटेंट स्रोत](/docs/content/sources) देखें। |
 | `pages` | `"pages"` | कस्टम `.astro` पेजों के लिए फ़ोल्डर। |
 | `defaultType` | `"doc"` | जब फ़्रंटमैटर में `type` न हो तो उपयोग किया जाने वाला पेज `type`। |
 | `types` | `{}` | प्रति-प्रकार कंटेंट परिभाषाएँ — कस्टम फ़्रंटमैटर कुंजियाँ जो एक ही `type` वाले पेजों तक सीमित होती हैं। [फ़्रंटमैटर](#frontmatter) देखें। |
@@ -244,7 +244,7 @@ export default defineConfig({
 });
 ```
 
-कोई भी [Standard Schema](https://standardschema.dev) लाइब्रेरी काम करती है — Zod (आपका प्रोजेक्ट जो भी संस्करण इंस्टॉल करे), Valibot, ArkType। एक्सटेंशन से बाहर की कुंजियाँ सख़्ती से जाँची जाती रहती हैं, इसलिए टाइपो पकड़ने में कोई बदलाव नहीं आता। जाँच के अर्थ-नियमों के लिए [कस्टम कुंजियाँ](/docs/reference/frontmatter#custom-keys) देखें।
+कोई भी [Standard Schema](https://standardschema.dev) लाइब्रेरी काम करती है — Zod (आपका प्रोजेक्ट जो भी संस्करण इंस्टॉल करे), Valibot, ArkType। एक्सटेंशन से बाहर की कुंजियाँ सख़्ती से जाँची जाती रहती हैं, इसलिए टाइपो पकड़ने में कोई बदलाव नहीं आता। जाँच के अर्थ-नियमों के लिए [कस्टम कुंजियाँ](/docs/content/frontmatter#custom-keys) देखें।
 
 `extend` के अंतर्गत दी गई कुंजियाँ साइट-व्यापी लागू होती हैं। कुंजियों को केवल एक कंटेंट प्रकार के पेजों पर आवश्यक बनाने के लिए — किसी RFC का `status`, किसी रनबुक का `service` — उन्हें इसके बजाय `content.types` के अंतर्गत प्रति-प्रकार घोषित करें:
 
@@ -267,7 +267,7 @@ export default defineConfig({
 });
 ```
 
-कोई कुंजी या तो साइट-व्यापी घोषित की जा सकती है या प्रति-प्रकार, दोनों नहीं। स्कोपिंग कैसे हल होती है, इसके लिए [प्रति-प्रकार कुंजियाँ](/docs/reference/frontmatter#per-type-keys) देखें।
+कोई कुंजी या तो साइट-व्यापी घोषित की जा सकती है या प्रति-प्रकार, दोनों नहीं। स्कोपिंग कैसे हल होती है, इसके लिए [प्रति-प्रकार कुंजियाँ](/docs/content/frontmatter#per-type-keys) देखें।
 
 `facets` उन कस्टम कुंजियों के नाम देता है जिनके मान फ़िल्टर करने योग्य मेटाडेटा बन जाते हैं: वे खोज दस्तावेज़ों (`blume-search.json` और MCP इंडेक्स) के साथ चलती हैं, और [MCP टूल्स](/docs/discoverability/mcp) एक `filters` इनपुट स्वीकार करते हैं जो उनसे मेल खाता है, ताकि कोई एजेंट, मान लीजिए, `architecture` डोमेन में केवल `enforced` RFC ही प्राप्त कर सके। हर फ़ैसेट एक घोषित कस्टम कुंजी होनी चाहिए — प्रति-प्रकार या साइट-व्यापी — और केवल स्ट्रिंग (या स्ट्रिंग में बदले गए संख्या/बूलियन) मान ही फ़ैसेट बनते हैं।
 
@@ -315,18 +315,17 @@ github: {
 
 ## अंतिम बार संशोधित [#last-modified]
 
-हर पेज के नीचे "Last updated on …" पंक्ति दिखाएँ। डिफ़ॉल्ट रूप से बंद; हर पेज की तिथि उसके git इतिहास से निकालने के लिए `lastModified` को `true` सेट करें:
+हर पेज के नीचे "Last updated on …" पंक्ति दिखाएँ। डिफ़ॉल्ट रूप से बंद; हर पेज की तिथि उसके git इतिहास से निकालने के लिए `lastModified` को `"git"` सेट करें:
 
 ```ts blume.config.ts
-lastModified: true,
+lastModified: "git",
 ```
 
 | मान | विवरण |
 | --- | --- |
 | `false` | अक्षम (डिफ़ॉल्ट)। |
-| `true` | तिथि git इतिहास (कमिट तिथियों) से पढ़ें। |
-| `{ type: "git" }` | `true` जैसा ही, स्पष्ट रूप से लिखा हुआ। |
-| `{ type: "frontmatter" }` | git कभी न चलाएँ — केवल `lastModified` फ़्रंटमैटर फ़ील्ड का उपयोग करें। |
+| `"git"` | तिथि git इतिहास (कमिट तिथियों) से पढ़ें। |
+| `"frontmatter"` | git कभी न चलाएँ — केवल `lastModified` फ़्रंटमैटर फ़ील्ड का उपयोग करें। |
 
 git स्रोत हर फ़ाइल को छूने वाला सबसे हालिया कमिट पढ़ता है, इसलिए यह किसी भी git रिपॉज़िटरी में काम करता है — मोनोरिपो सहित — और बिल्ड समय पर रिपो का इतिहास चाहिए। CI प्लेटफ़ॉर्म आम तौर पर उथला (shallow) क्लोन चेकआउट करते हैं, जो चुपचाप ज़्यादातर तिथियाँ गिरा देता है (ऐसा होने पर बिल्ड `BLUME_SHALLOW_GIT_HISTORY` के साथ चेतावनी देता है): Vercel पर `VERCEL_DEEP_CLONE=true` एनवायरनमेंट वेरिएबल सेट करें; `actions/checkout` के साथ `fetch-depth: 0` सेट करें। पेज का अपना `lastModified` फ़्रंटमैटर हमेशा जीतता है, जो किसी तिथि को पिन करने या अभी तक कमिट न हुई फ़ाइलों के लिए उपयोगी है:
 
@@ -366,9 +365,9 @@ dateFormat: { year: "numeric", month: "2-digit", day: "2-digit" },
 | `timeZone` | IANA टाइम ज़ोन। डिफ़ॉल्ट `UTC` है, ताकि साइट कहीं भी बिल्ड हो, तिथि एक जैसी पढ़ी जाए। |
 | `calendar`, `numberingSystem` | कैलेंडर प्रणाली (जैसे `"japanese"`) और अंक प्रणाली (जैसे `"arab"`)। |
 
-## SEO और AI [#seo-and-ai]
+## SEO और एजेंट्स [#seo-and-agents]
 
-मेटाडेटा, Open Graph इमेज, RSS फ़ीड्स, JSON-LD, साइटमैप, और `robots.txt` `seo` के अंतर्गत रहते हैं; `llms.txt`, कच्चा Markdown, JSON API, और MCP सर्वर `ai` के अंतर्गत रहते हैं। दोनों को [खोज-योग्यता](/docs/discoverability) सेक्शन में पेज-दर-पेज कवर किया गया है, जो सर्च इंजनों और AI एजेंट्स को एक ही मशीन-पठनीय परत के दो दर्शक वर्गों की तरह देखता है।
+मेटाडेटा, Open Graph इमेज, RSS फ़ीड्स, JSON-LD, साइटमैप, और `robots.txt` `seo` के अंतर्गत रहते हैं; `llms.txt`, कच्चा Markdown, JSON API, MCP सर्वर, और डिस्कवरी मैनिफ़ेस्ट `agents` के अंतर्गत रहते हैं। दोनों को [खोज-योग्यता](/docs/discoverability) सेक्शन में पेज-दर-पेज कवर किया गया है, जो सर्च इंजनों और AI एजेंट्स को एक ही मशीन-पठनीय परत के दो दर्शक वर्गों की तरह देखता है। पाठकों के सामने आने वाले मॉडल फ़ीचर — Ask AI सहायक और Open in chat एक्शन — `ai` के अंतर्गत रहते हैं।
 
 ```ts blume.config.ts lineNumbers
 seo: {
@@ -410,6 +409,18 @@ export default defineConfig({
 });
 ```
 
+## पेज फ़ीडबैक [#page-feedback]
+
+हर डॉक्स पेज के अंत में एक "Was this page helpful?" रेटिंग होती है। यह डिफ़ॉल्ट रूप से चालू रहती है; इसे हर जगह छिपाने के लिए `feedback` को `false` सेट करें:
+
+```ts blume.config.ts
+export default defineConfig({
+  feedback: false,
+});
+```
+
+पाठक का उत्तर एक `feedback` [कस्टम इवेंट](/docs/configuration/analytics#custom-events) के रूप में — `helpful` (`"yes"` या `"no"`), `path`, और `title` के साथ — हर उस कॉन्फ़िगर किए गए एनालिटिक्स अडैप्टर के ज़रिए भेजा जाता है जिसके पास इवेंट API है, और साथ ही `window` पर एक `blume:track` इवेंट के रूप में भी। एनालिटिक्स अडैप्टर के बिना, उत्तर कहीं भी दर्ज नहीं होता। प्रश्न और धन्यवाद वाला टेक्स्ट UI स्ट्रिंग्स हैं, जिनका अनुवाद आप [`i18n.ui`](/docs/content/i18n#translated-ui) के साथ कर सकते हैं।
+
 ## फ़ीचर विकल्प [#feature-options]
 
 इनमें से हर एक की अपनी गाइड है। कॉन्फ़िग फ़ील्ड प्रवेश-बिंदु है:
@@ -420,13 +431,21 @@ export default defineConfig({
 | `navigation` | स्पष्ट साइडबार और हेडर टैब्स | [नेविगेशन](/docs/content/navigation) |
 | `search` | प्रोवाइडर (Orama, Pagefind, Algolia, और अन्य) और इंडेक्सिंग | [खोज](/docs/configuration/search) |
 | `markdown` | मार्कडाउन रेंडरिंग विकल्प — कोड ब्लॉक्स, हेडिंग एंकर, इमेज ज़ूम | [सिंटैक्स](/docs/content/syntax) |
-| `ai` | `llms.txt`, Markdown मिरर, JSON API, और कोडिंग एजेंट्स के लिए होस्टेड MCP सर्वर | [SEO और AEO](/docs/discoverability) |
-| `ai.ask` | पेज के भीतर मौजूद Ask AI सहायक | [Ask AI](/docs/configuration/ask-ai) |
-| `analytics` | Vercel, PostHog, और कस्टम स्क्रिप्ट्स | [एनालिटिक्स](/docs/configuration/analytics) |
+| `agents` | कोडिंग एजेंट्स के लिए `llms.txt`, Markdown मिरर, JSON API, होस्टेड MCP सर्वर, स्किल्स, और डिस्कवरी मैनिफ़ेस्ट | [SEO और AEO](/docs/discoverability) |
+| `ai` | पेज के भीतर मौजूद Ask AI सहायक और Open in chat एक्शन | [Ask AI](/docs/configuration/ask-ai) |
+| `reference` | API संदर्भ: `blume/reference` से `openapi()`, `asyncapi()`, `graphql()`, और `scalar()` अडैप्टर | [OpenAPI](/docs/references/openapi), [AsyncAPI](/docs/references/asyncapi), [GraphQL](/docs/references/graphql), [Scalar](/docs/references/scalar) |
+| `analytics` | `blume/analytics` से अडैप्टर — PostHog, Google Analytics, Plausible, Mixpanel, Segment, और अन्य — साथ ही कस्टम स्क्रिप्ट्स | [एनालिटिक्स](/docs/configuration/analytics) |
 | `seo` | मेटाडेटा, OG इमेज, फ़ीड्स, स्ट्रक्चर्ड डेटा, साइटमैप, robots | [SEO और AEO](/docs/discoverability) |
-| `deployment` | आउटपुट मोड, अडैप्टर, और साइट URL | [डिप्लॉयमेंट](/docs/deployment) |
+| `deployment` | `blume/deploy` से एक होस्ट अडैप्टर, या स्टैटिक बिल्ड के लिए `{ site, base }` | [डिप्लॉयमेंट](/docs/deployment) |
 | `redirects` | स्थायी और अस्थायी रीडायरेक्ट्स | [डिप्लॉयमेंट](/docs/deployment#redirects) |
 | `integrations` | Blume के अंतर्निर्मित इंटीग्रेशन के बाद जोड़े गए Astro इंटीग्रेशन | [कस्टमाइज़ेशन](/docs/configuration/customization#astro-integrations) |
+| `basePath` | एक पाथ जिसके अंतर्गत हर जनरेट किया गया रूट माउंट होता है (जैसे `/docs`), और जो साइडबार में दिखाई नहीं देता | [डिप्लॉयमेंट](/docs/deployment#mount-the-docs-under-a-path) |
+| `i18n` | लोकेल्स, डिफ़ॉल्ट लोकेल, और अनूदित UI स्ट्रिंग्स | [अंतर्राष्ट्रीयकरण](/docs/content/i18n) |
+| `versions` | संस्करण स्विचर के साथ पुराने दस्तावेज़ों के स्थिर स्नैपशॉट | [वर्ज़निंग](/docs/content/versioning) |
+| `export` | पाठकों के लिए PDF और EPUB डाउनलोड | [एक्सपोर्ट](/docs/configuration/export) |
+| `examples` | `<Component path>` उदाहरण प्रीव्यू कहाँ रहते हैं, और उनके फ़्रेम्स में इंजेक्ट की जाने वाली CSS | [Component](/docs/content/components#component) |
+| `react` | React आइलैंड का व्यवहार — React Compiler का ऑटो-मेमोइज़ेशन | [आइलैंड्स](/docs/content/islands#frameworks) |
+| `feedback` | हर पेज के अंत में "Was this page helpful?" रेटिंग (डिफ़ॉल्ट `true`) | [पेज फ़ीडबैक](#page-feedback) |
 
 ## प्राथमिकता [#precedence]
 

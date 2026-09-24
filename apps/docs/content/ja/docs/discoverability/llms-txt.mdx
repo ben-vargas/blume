@@ -7,7 +7,7 @@ description: >-
 Blume は、コーディングエージェントやチャットアシスタントが利用できる、機械可読なバージョンのドキュメントを出力します。これはデフォルトで有効です。無効にするには `llmsTxt: false` を設定してください:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   llmsTxt: false,
 }
 ```
@@ -17,14 +17,14 @@ ai: {
 - **`/llms.txt`** — コンパクトなインデックス。サイトのタイトルと説明に続いて、各ページのリンクとその要約の一覧が、サイドバーの構成を反映したセクションに整理されて並びます。フォルダやグループは見出しになるため、エージェントはドキュメントを 1 つのフラットな塊としてではなく、構造として認識できます。
 - **`/llms-full.txt`** — コーパス全体。各ページの Markdown 本文がソース URL とともに 1 つのファイルにまとめられます。
 
-下書きページは除外されます。リンクとソース URL が絶対アドレスとして解決されるように、[`deployment.site`](/docs/deployment) を設定してください。
+下書きページ、サイドバーから非表示にされたページ（`sidebar.hidden`、またはトップレベルの `hidden` 省略形）、および `noindex` ページは除外されます。ただし、生成された API リファレンスのページは例外で、両方のファイルに含めるかどうかは `noindex` ではなく、後述の `openapi` によって決まります。リンクとソース URL が絶対アドレスとして解決されるように、[`deployment.site`](/docs/deployment) を設定してください。
 
 ## オプション [#options]
 
 `llmsTxt` は、ファイルに含める内容を調整するオプションを持つオブジェクト形式でも指定できます。[API リファレンス](/docs/references/openapi)がプレースホルダーやサンプルの仕様をドキュメント化している場合は、`openapi: false` を設定して、生成された API リファレンスのページを両方のファイルから除外できます:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   llmsTxt: {
     enabled: true, // default
     openapi: false, // exclude generated API reference pages
@@ -35,7 +35,7 @@ ai: {
 オブジェクト形式では `details` も指定できます。これは `llms.txt` 内で、タイトルと要約の直後、ページのセクションより前に配置される Markdown で、[llms.txt 仕様](https://llmstxt.org)における自由形式の "details" ブロックにあたります。ここは、_いつ_ あなたの製品を使うべきか、そしてどう呼び出すのかをエージェントに伝える場所であり、対応状況をチェックするスキャナーが明示的に参照する箇所でもあります。インストールコマンドやパッケージ名もここに記載するとよいでしょう:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   llmsTxt: {
     details: [
       "## When to use Acme",
@@ -48,7 +48,7 @@ ai: {
 
 ## 生成されるセクション [#generated-sections]
 
-`llms.txt` の末尾には、設定不要で生成される 2 つのセクションが置かれます。**Agent skills** には、[`ai.skills`](/docs/discoverability/agent-discovery#skills-discovery) を通じて公開された各スキルが、その説明（スキル自身がいつ使うべきかを示している箇所）とともに一覧表示されます。**Agent resources** には、ビルドが出力するすべての機械可読なアーティファクトへのリンクが並びます — `llms-full.txt`、ページごとの[生の Markdown](/docs/discoverability/markdown) ミラー、[MCP サーバー](/docs/discoverability/mcp)とそのディスカバリードキュメント、スキルのインデックス、[API カタログ](/docs/discoverability/agent-discovery#api-catalog)、[AI カタログ](/docs/discoverability/agent-discovery#ai-catalog)、[`agent-readability.json`](/docs/discoverability/agent-discovery#agent-readability)、そして[サイトマップ](/docs/discoverability/sitemap-and-robots#sitemap)です。いずれも存在する場合にのみ掲載されるため、`llms.txt` しか読まないエージェントであっても、全体像を把握できます。
+`llms.txt` の末尾には、設定不要で生成される 2 つのセクションが置かれます。**Agent skills** には、[`agents.skills`](/docs/discoverability/agent-discovery#skills-discovery) を通じて公開された各スキルが、その説明（スキル自身がいつ使うべきかを示している箇所）とともに一覧表示されます。**Agent resources** には、ビルドが出力するすべての機械可読なアーティファクトへのリンクが並びます — `llms-full.txt`、ページごとの[生の Markdown](/docs/discoverability/markdown) ミラー、[MCP サーバー](/docs/discoverability/mcp)とそのディスカバリードキュメント、スキルのインデックス、[API カタログ](/docs/discoverability/agent-discovery#api-catalog)、[AI カタログ](/docs/discoverability/agent-discovery#ai-catalog)、[`agent-readability.json`](/docs/discoverability/agent-discovery#agent-readability)、そして[サイトマップ](/docs/discoverability/sitemap-and-robots#sitemap)です。いずれも存在する場合にのみ掲載されるため、`llms.txt` しか読まないエージェントであっても、全体像を把握できます。
 
 ## ページの除外 [#excluding-a-page]
 

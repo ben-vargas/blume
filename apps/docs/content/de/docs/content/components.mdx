@@ -32,9 +32,11 @@ Karten verlinken mit Icon, Titel und kurzem Text auf ein Ziel. Gruppiere sie mit
 
 `Card` nimmt `title`, ein optionales `href` (weglassen für eine nicht klickbare Karte) und ein `icon` aus Blumes integriertem Icon-Set entgegen. `CardGroup` nimmt `cols` entgegen (Standard `2`).
 
+Eine Karte nimmt außerdem `img` entgegen, ein Bild, das sich oben über die Karte erstreckt (oder mit `horizontal` ab dem Breakpoint `sm` neben dem Text steht); `cta`, eine Call-to-Action-Zeile in der Akzentfarbe unter dem Text; `arrow`, einen Pfeil nach dem Titel und dem CTA (standardmäßig nur bei externen Links angezeigt); `type`, das die Karte einfärbt und wie bei einem Callout ein passendes Icon wählt (`note`, `info`, `tip`, `check`, `warning` oder `danger`); und `color`, eine beliebige CSS-Farbe für das Icon.
+
 ## Steps
 
-Eine nummerierte vertikale Abfolge für geordnete Anleitungen – Installationen, Einrichtungsabläufe und Tutorials, bei denen die Reihenfolge zählt. Jeder `Step` nimmt einen `title` entgegen.
+Eine nummerierte vertikale Abfolge für geordnete Anleitungen – Installationen, Einrichtungsabläufe und Tutorials, bei denen die Reihenfolge zählt. Jeder `Step` nimmt einen `title` und ein optionales `icon` entgegen, das in seiner Markierung anstelle der Nummer angezeigt wird. `titleSize` an `Steps` legt die Größe der Schritttitel fest – wie Fließtext (`p`, der Standard) oder wie eine `h4`-, `h3`- oder `h2`-Überschrift.
 
 <Steps>
   <Step title="Install Blume">Füge das Paket zu deinem Projekt hinzu.</Step>
@@ -72,7 +74,9 @@ Wechsle an Ort und Stelle zwischen gleichwertigen Inhalten – Sprachvarianten, 
 
 Füge `inline` hinzu, um randlos zu rendern – eine Tab-Leiste auf einer Linie über die volle Breite, mit dem Inhalt, der darunter als Fließtext folgt – statt der umrandeten Box. Füge `param` hinzu, um den aktiven Tab statt mit dem Hash mit einem URL-Query-Parameter zu synchronisieren; das macht die Auswahl teilbar: Ein Link, der auf `?install=windows` endet, öffnet den Windows-Tab. Jede Gruppe synchronisiert sich mit ihrem eigenen `param`, sodass du mehrere unabhängige, direkt verlinkbare Gruppen auf einer Seite verwenden kannst.
 
-Gruppen mit gleichnamigen Tabs wechseln gemeinsam – wähle in einer „macOS“, und jede Gruppe mit einem macOS-Tab zieht nach. Füge `syncKey` hinzu, um diese Synchronisierung einzugrenzen: Nur Gruppen mit demselben Schlüssel wechseln gemeinsam, sodass unabhängige Gruppen, die zufällig einen Tab-Titel teilen, eigenständig bleiben.
+Gruppen mit gleichnamigen Tabs wechseln gemeinsam – wähle in einer „macOS“, und jede Gruppe mit einem macOS-Tab zieht nach. Füge `syncKey` hinzu, um diese Synchronisierung einzugrenzen: Nur Gruppen mit demselben Schlüssel wechseln gemeinsam, sodass unabhängige Gruppen, die zufällig einen Tab-Titel teilen, eigenständig bleiben – oder `sync={false}`, um eine Gruppe ganz davon auszunehmen.
+
+Der aktive Tab wird in den URL-Hash geschrieben, sodass ein Link direkt mit ihm öffnet; übergib `hash={false}`, um die URL unverändert zu lassen. `defaultTabIndex` wählt den Tab, der zuerst geöffnet wird (nullbasiert, Standard `0`), wenn weder ein Link noch eine synchronisierte Auswahl einen bestimmt. `dropdown` ersetzt die Tab-Leiste durch ein Auswahlmenü (nur im umrandeten Layout), `borderBottom={false}` entfernt die Linie unter der Leiste, und jeder `Tab` nimmt ein `icon` entgegen, das vor seinem Titel angezeigt wird.
 
 <Tabs inline param="install">
   <Tab title="macOS">Nutze Homebrew, um die Toolchain zu installieren.</Tab>
@@ -138,6 +142,16 @@ Ein negativer oder brechender Zustand, etwa eine Veraltung.
 
 ```astro
 <Badge variant="danger">Deprecated</Badge>
+```
+
+### Farbe, Form und Größe [#color-shape-and-size]
+
+Über `variant` hinaus nimmt ein Badge `color` entgegen – einen benannten Farbton (`blue`, `green`, `orange`, `purple`, `red`, `teal`, `violet`, `yellow`), einen neutralen Ton (`gray`, `surface`, `white`, `surface-destructive` oder `white-destructive`) oder einen Hex-Wert – sowie `shape` (`rounded`, der Standard, oder `pill`), `size` (`xs`, `sm`, standardmäßig `md` oder `lg`), `stroke` für eine Umrandung statt einer Füllung, `icon` für ein Icon vor der Beschriftung, `tooltip` für einen Hover-Text und `disabled`, um es abzublenden.
+
+Eine umrandete lila Pille mit Icon: <Badge color="purple" icon="sparkles" shape="pill" stroke>Vorschau</Badge>
+
+```astro
+<Badge color="purple" icon="sparkles" shape="pill" stroke>Preview</Badge>
 ```
 
 ## Icon
@@ -335,7 +349,7 @@ Bette ein YouTube-Video in einen responsiven, datenschutzfreundlichen (`youtube-
 
 ## Color
 
-Zeige Farbfelder mit kopierbaren Hex-Werten – nützlich, um eine Palette oder Markenfarben zu dokumentieren. Verwende `variant="compact"` für eine Liste von Farbfeldern oder `variant="table"` mit `Color.Row`, um sie zu gruppieren. Jedes `Color.Item` nimmt einen `name` und einen `value` entgegen (einen Hex-String oder `{ light, dark }` für themenabhängige Farben).
+Zeige Farbfelder mit kopierbaren Hex-Werten – nützlich, um eine Palette oder Markenfarben zu dokumentieren. Verwende `variant="compact"` für eine Liste von Farbfeldern oder `variant="table"` mit `Color.Row`, um sie zu gruppieren. Jedes `Color.Item` nimmt einen `name` und einen `value` entgegen (einen Hex-String oder `{ light, dark }` für themenabhängige Farben); ein themenabhängiges Farbfeld kopiert den Wert für das Theme, das die Leserschaft gerade sieht.
 
 <Color variant="compact">
   <Color.Item name="blue-500" value="#3B82F6" />
@@ -425,7 +439,7 @@ Eine klickbare Vorschau, die mit einer Grafik – einem Icon oder Bild – über
 
 ## Prompt
 
-Eine einzelne Zeile mit einer Beschriftung und einem Kopier-Button. Die `description` (Markdown) ist die sichtbare Beschriftung; der Body ist der Prompt selbst – ausgeblendet und beim Drücken des Buttons **Copy prompt** in die Zwischenablage kopiert. `actions` steuert die Buttons (z. B. `["copy", "cursor"]`).
+Eine einzelne Zeile mit einer Beschriftung und einem Kopier-Button. Die `description` (Markdown) ist die sichtbare Beschriftung; der Body ist der Prompt selbst – ausgeblendet und beim Drücken des Buttons **Copy prompt** als Markdown in die Zwischenablage kopiert, mit intakten Links, Listen und Code. `actions` steuert die Buttons (z. B. `["copy", "cursor"]`).
 
 <Prompt
   description="Ask the model to **document** an endpoint."
@@ -547,7 +561,7 @@ export interface ButtonProps {
 
 ## GitHub info
 
-Eine Karte, die auf ein GitHub-Repository verlinkt und dessen aktuelle Stern- und Fork-Zahlen anzeigt. Die Zahlen werden zur Build-Zeit abgerufen – kein Client-JavaScript – und die Karte wird auch dann gerendert, wenn die API nicht erreichbar ist. Übergib `owner` und `repo` oder lass beides weg, um das Repository aus deiner `blume.config` zu verwenden. Setze eine Umgebungsvariable `GITHUB_TOKEN`, um das API-Ratenlimit anzuheben.
+Eine Karte, die auf ein GitHub-Repository verlinkt und dessen aktuelle Stern- und Fork-Zahlen anzeigt. Die Zahlen werden zur Build-Zeit abgerufen – kein Client-JavaScript – und die Karte wird auch dann gerendert, wenn die API nicht erreichbar ist. Übergib `owner` und `repo` oder lass beides weg, um das Repository aus deiner `blume.config` zu verwenden. Setze eine Umgebungsvariable `GITHUB_TOKEN`, um das API-Ratenlimit anzuheben; eine `token`-Prop überschreibt sie für eine einzelne Karte, aber die Umgebungsvariable hält das Token aus deinen Inhalten heraus.
 
 Die Karte liest die Instanz aus [`github.host`](/docs/configuration#github-enterprise), sodass auf einer Enterprise-gehosteten Website auch explizite `owner`/`repo` diese Instanz adressieren. Übergib `host`, um eine einzelne Karte woanders hinzurichten – etwa auf ein öffentliches Projekt von einer Enterprise-Website aus; die REST-Basis wird davon genauso abgeleitet wie von `github.host`.
 
@@ -659,6 +673,8 @@ import CodeBlock from "blume/components/content/CodeBlock.astro";
 
 <CodeBlock lang="ts" code={source} />
 ```
+
+`title` legt die Beschriftung der Kopfzeile fest – etwa einen Dateinamen –, die sonst die Sprache anzeigt, und `icons={false}` blendet das Marken-Icon der Sprache aus, so wie es [`markdown.code.icons`](/docs/content/syntax#code-blocks) für Code-Fences tut.
 
 Um selbst zu einem HTML-String hervorzuheben (z. B. innerhalb deiner eigenen Komponente), importiere den zugrunde liegenden Helfer aus `blume/markdown`:
 

@@ -1,10 +1,12 @@
 ---
-title: Changelog
+title: Changelogs
+sidebar:
+  label: Changelog
 description: >-
   Escreva as notas de lançamento como arquivos de conteúdo normais ou obtenha-as do GitHub Releases, e o Blume constrói automaticamente uma página de cronologia e um feed RSS.
 ---
 
-O Blume traz um changelog pronto para usar. Escreva cada versão como um arquivo de conteúdo normal, marque com `type: changelog`, e o Blume reúne todas as entradas em uma página de cronologia gerada e em um feed RSS — sem layout para construir, sem lista para manter. Ou dispense os arquivos por completo e [alimente seu changelog a partir do GitHub Releases](#from-github-releases).
+O Blume traz um changelog pronto para usar. Escreva cada versão como um arquivo de conteúdo normal, marque com `type: changelog`, e o Blume reúne todas as entradas em uma página de índice gerada e em um feed RSS — sem layout para construir, sem lista para manter. Ou dispense os arquivos por completo e [alimente seu changelog a partir do GitHub Releases](#from-github-releases).
 
 ## Escrever uma entrada [#write-an-entry]
 
@@ -26,11 +28,11 @@ A big batch of components landed this release — columns, frames, trees, and to
 - `CodeGroup` tabs with flush code blocks
 ```
 
-Atribua uma `date` a cada entrada para que a cronologia e o feed ordenem da mais recente para a mais antiga. Uma data YAML sem aspas serve — o Blume normaliza.
+Atribua uma `date` a cada entrada para que o índice e o feed ordenem da mais recente para a mais antiga. Uma data YAML sem aspas serve — o Blume normaliza.
 
 ### O objeto `changelog` [#the-changelog-object]
 
-O objeto opcional `changelog` adiciona metadados mais ricos para a cronologia e o feed:
+O objeto opcional `changelog` adiciona metadados mais ricos para o índice e o feed:
 
 <TypeTable
   type={{
@@ -47,53 +49,39 @@ O objeto opcional `changelog` adiciona metadados mais ricos para a cronologia e 
     "changelog.date": {
       type: "string",
       description:
-        "Publish date. May live here or at the top level — both feed the timeline and RSS feed.",
+        "Publish date. May live here or at the top level — both feed the index and RSS feed.",
     },
   }}
 />
 
-## A página de cronologia [#the-timeline-page]
+## A página de índice [#the-index-page]
 
-Assim que você tiver pelo menos uma entrada `type: changelog`, o Blume gera automaticamente uma página **`/changelog`**. Ela é exibida como uma cronologia focada e de largura total — sem barra lateral nem índice — com cada entrada da mais recente para a mais antiga, mostrando a data, o rótulo e a tag `category` em uma coluna à esquerda, ao lado do conteúdo:
+Assim que você tiver pelo menos uma entrada `type: changelog`, o Blume gera automaticamente uma página **`/changelog`**. É um índice focado e de largura total — sem barra lateral nem sumário — que lista cada versão em uma linha, da mais recente para a mais antiga e agrupadas por ano, para que um histórico longo continue sendo uma página curta (bem abaixo do tamanho que um agente consegue ler em uma única janela de contexto):
 
-- O **título** da entrada vira o rótulo dela — ou `v{version}` quando não há título. Ele leva à página da própria entrada, então uma versão é ao mesmo tempo uma linha na cronologia e um permalink compartilhável.
-- A `category` é exibida como uma tag ao lado da data.
+- O **título** da entrada é o rótulo da linha — ou `v{version}` quando não há título. Ele leva à página da própria entrada, que é onde as notas de lançamento são exibidas por completo.
+- A `category` é exibida como uma tag ao lado do título, para que o leitor distinga de relance uma versão de uma pré-versão, ou novos recursos de correções.
+- A data segue o [`dateFormat`](/docs/configuration#date-format) configurado, sem o ano que o grupo da linha já mostra.
 - Os rascunhos e as entradas com `sidebar.hidden` são ignorados.
 
-A página só aparece quando nada já ocupa a rota `/changelog`. Para substituí-la pelo seu próprio design, adicione uma [página personalizada](/docs/advanced/custom-pages) em `pages/changelog.astro` — ela assume o controle e o Blume para de gerar a cronologia padrão.
+A página só aparece quando nada já ocupa a rota `/changelog`. Para substituí-la pelo seu próprio design, adicione uma [página personalizada](/docs/advanced/custom-pages) em `pages/changelog.astro` — ela assume o controle e o Blume para de gerar o índice padrão. O componente `<Update>`, com o qual a cronologia anterior era construída, continua disponível para uma página escrita à mão que queira as notas de lançamento embutidas.
 
-Como essa página é gerada e não escrita, ela não faz parte da árvore de conteúdo — então uma [aba](/docs/content/navigation#tabs) do cabeçalho que aponta para `/changelog` resolve para a entrada mais recente. Dê um `href` à aba para chegar ao índice em si:
-
-```ts blume.config.ts
-navigation: {
-  tabs: [
-    { label: "Changelog", path: "/changelog", href: "/changelog" },
-  ],
-}
-```
-
-### Agrupado por versão principal [#grouped-by-major-version]
-
-Quando suas versões seguem o [semver](https://semver.org) e abrangem mais de uma versão principal, o Blume pagina a cronologia por versão principal. Apenas a linha principal mais recente é exibida, com um botão **Show N.x releases** no rodapé que revela a versão principal imediatamente mais antiga, um clique por vez:
-
-- A detecção é automática — sem configuração. Ela só entra em ação quando todas as versões listadas correspondem a `major.minor.patch` e existe mais de uma versão principal; caso contrário, a cronologia continua plana.
-- Ela tolera as tags com escopo que os monorepos publicam, então `pkg@2.0.0` fica agrupado em `2.x` e `pkg@1.4.0` em `1.x`.
-- É melhoria progressiva: todas as versões continuam presentes no HTML da página (e no feed RSS e no índice de busca), então os leitores sem JavaScript — e os rastreadores — veem o histórico completo. O botão só recolhe as versões principais mais antigas depois que a página hidrata.
+Uma [aba](/docs/content/navigation#tabs) do cabeçalho que aponta para `/changelog` abre esse índice — sem precisar de `href`.
 
 ## A partir do GitHub Releases [#from-github-releases]
 
-Em vez de escrever as entradas à mão, aponte a [fonte `github-releases`](/docs/content/sources#github-releases) integrada para um repositório e cada versão vira uma entrada `type: changelog` — a mesma cronologia e o mesmo feed, alimentados diretamente pelas versões que você já publica. O próprio [changelog](/changelog) do Blume é construído assim:
+Em vez de escrever as entradas à mão, aponte a [fonte `githubReleases()`](/docs/content/sources#github-releases) integrada para um repositório e cada versão vira uma entrada `type: changelog` — a mesma cronologia e o mesmo feed, alimentados diretamente pelas versões que você já publica. O próprio [changelog](/changelog) do Blume é construído assim:
 
 ```ts blume.config.ts
+import { filesystem, githubReleases } from "blume/sources";
+
 content: {
   sources: [
-    { type: "filesystem", root: "content" },
-    {
-      type: "github-releases",
+    filesystem({ root: "content" }),
+    githubReleases({
       prefix: "changelog",
       owner: "acme",
       repo: "sdk",
-    },
+    }),
   ],
 }
 ```
@@ -125,12 +113,12 @@ Quando os [dados estruturados](/docs/discoverability/structured-data) estão ati
 <CardGroup cols={2}>
   <Card
     title="Frontmatter"
-    href="/docs/reference/frontmatter#changelog"
+    href="/docs/content/frontmatter#changelog"
     icon="file"
   >
     O esquema completo do frontmatter do changelog.
   </Card>
-  <Card title="Custom Pages" href="/docs/advanced/custom-pages" icon="folder">
+  <Card title="Custom pages" href="/docs/advanced/custom-pages" icon="folder">
     Substitua a cronologia gerada pelo seu próprio layout.
   </Card>
 </CardGroup>

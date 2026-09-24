@@ -1,11 +1,36 @@
 ---
 title: 検索
-description: APIキー不要ですぐに使えるクライアントサイド検索。ドキュメントの成長に合わせて切り替えられる、ホスト型やセマンティック検索のバックエンドもオプションで利用できます。
+description: APIキー不要ですぐに使えるクライアントサイド検索。ドキュメントの成長に合わせて切り替えられる、ホスト型やセマンティック検索のアダプターも利用できます。
 ---
 
-Blume は、ホストされたインフラも API キーも不要なローカル検索を標準搭載しています。ブラウザ内で動作し、`blume dev` と `blume build` の両方で機能し、実際のコンテンツのみをインデックス化します — ナビゲーションの装飾部分や除外されたページはスキップされます。ローカル検索では足りなくなったら、検索の見た目や挙動を変えることなく、ホスト型やセマンティックのバックエンドに切り替えられます — 変わるのは設定する `search.provider` だけです。
+Blume は、ホストされたインフラも API キーも不要なローカル検索を標準搭載しています。ブラウザ内で動作し、`blume dev` と `blume build` の両方で機能し、実際のコンテンツのみをインデックス化します — ナビゲーションの装飾部分や除外されたページはスキップされます。ローカル検索では足りなくなったら、検索の見た目や挙動を変えることなく、ホスト型やセマンティックのバックエンドに切り替えられます — 変わるのは `search` に渡すアダプターだけです。
 
-Blume は Fumadocs のプロバイダー群と同等の対応範囲を実現しています: **Orama**、**FlexSearch**、**Algolia**、**Orama Cloud**、**Typesense**、**Mixedbread**(さらに **Pagefind**)。設定したプロバイダーの SDK だけがプロジェクトにインストールされるため、あるバックエンドを選んでも他のバックエンドが取り込まれることはありません。
+すべてのバックエンドは `blume/search` からインポートする**アダプター**です: **Orama**(デフォルト)、**FlexSearch**、**Pagefind**、**Algolia**、**Orama Cloud**、**Typesense**、**Mixedbread**。各アダプターは自身のオプション、ランタイム依存関係、必要なシークレットを管理するため、設定したアダプターの SDK だけがプロジェクトにインストールされます — あるバックエンドを選んでも他のバックエンドが取り込まれることはありません。
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { algolia } from "blume/search";
+
+export default defineConfig({
+  search: algolia({
+    appId: "YOUR_APP_ID",
+    apiKey: "YOUR_SEARCH_ONLY_KEY",
+    indexName: "docs",
+  }),
+});
+```
+
+アダプターはバックエンドを記述したプレーンな定義であり、稼働中のクライアントではありません — そのため Blume は、生成されるサイトやイジェクトしたプロジェクトにそれをインライン化できます。アダプターを直接渡すか、[人気リンク](#popular-pages)や[インデックス化](#whats-indexed)のオプションも併せて設定したい場合はオブジェクト形式を使ってください:
+
+```ts blume.config.ts lineNumbers
+import { pagefind } from "blume/search";
+
+search: {
+  provider: pagefind(),
+  popular: [{ href: "/guides/getting-started", icon: "rocket", label: "Getting started" }],
+  indexing: { includeCodeBlocks: true },
+},
+```
 
 ## 検索の使い方 [#using-search]
 
@@ -30,7 +55,7 @@ search: {
 },
 ```
 
-各エントリは `href`(内部ルートまたは外部 URL)と `label` を取り、オプションで `icon` を指定できます — [組み込みアイコン](/docs/content/components#icon)名、画像パス/URL、またはインライン SVG(ナビアイコンと同じ*入力形式*)で、デフォルトはファイルのグリフです。`popular` を省略するか空のままにすると、サイドバーのフォールバックが維持されます。
+各エントリは `href`(内部ルートまたは外部 URL)と `label` を取り、オプションで `icon` を指定できます — [組み込みアイコン](/docs/content/components#icon)名、画像パス/URL、またはインライン SVG(ナビアイコンと同じ*入力形式*)で、デフォルトはファイルのグリフです。`popular` を省略するか空のままにすると、サイドバーのフォールバックが維持されます。オブジェクト形式で `provider` を省略すると、デフォルトの Orama アダプターが使われます。
 
 `href` はサイトがルートにマウントされているかのように書いてください — `basePath` は自動的に適用され、`navigation.featured` と同じ扱いです。外部 URL はそのまま通されます。
 
@@ -39,7 +64,7 @@ search: {
   `i18n`
   が設定されたサイトでは、サイドバーのフォールバックは読者のロケールに従いますが、
   `popular` のエントリはその `href` が指す場所にリンクします —
-  そのため、すべての読者を その 1
+  そのため、すべての読者をその 1
   つの言語に送りたい場合にのみ、ロケールプレフィックス付きのルートを固定してください。
 </Callout>
 
@@ -57,31 +82,31 @@ search: {
 },
 ```
 
-各フェンスの本文とタイトル(上記の `blume.config.ts`)が検索可能になります。言語やフェンスのマーカーは対象外です。`.mdx` ページでは、インデックスはコンポーネントを表示されるテキストとして読み取ります — Card のタイトル、Tab のラベル、TypeTable の説明 — これには[エージェント向けの出力](/docs/discoverability/markdown)と同じシリアライザーが使われるため、`ai.markdownComponents` のエントリは独自のコンポーネントにも適用されます。このオプションは Pagefind と Mixedbread には影響しません。フェンス付きコンテンツが増えるにつれてインデックスも大きくなることに注意してください — クライアントインデックスはすべての読者に配信され、ホスト型プロバイダーにはレコードサイズの上限があり(Algolia は 1 ページのレコードがプランの上限を超えると同期バッチを拒否し、以前のインデックスが有効なまま残ります)、フェンス内でのヒットは検索結果の抜粋にフラット化されたコードとして表示されます。
+各フェンスの本文とタイトル(上記の `blume.config.ts`)が検索可能になります。言語やフェンスのマーカーは対象外です。`.mdx` ページでは、インデックスはコンポーネントを表示されるテキストとして読み取ります — Card のタイトル、Tab のラベル、TypeTable の説明 — これには[エージェント向けの出力](/docs/discoverability/markdown)と同じシリアライザーが使われるため、`agents.markdownComponents` のエントリは独自のコンポーネントにも適用されます。このオプションは Pagefind と Mixedbread には影響しません。フェンス付きコンテンツが増えるにつれてインデックスも大きくなることに注意してください — クライアントインデックスはすべての読者に配信され、ホスト型アダプターにはレコードサイズの上限があり(Algolia は 1 ページのレコードがプランの上限を超えると同期バッチを拒否し、以前のインデックスが有効なまま残ります)、フェンス内でのヒットは検索結果の抜粋にフラット化されたコードとして表示されます。
 
 [バージョン管理された](/docs/content/versioning)サイトでは、結果はデフォルトで閲覧中のバージョンに絞り込まれ、ダイアログのフッターに「すべてのバージョン」の切り替えが表示されます(読者ごとに記憶されます)。他バージョンのヒットは行にそのバージョン名が表示されます。Orama、FlexSearch、Algolia、Typesense はこの絞り込みに対応しています — ホスト型のレコードは `version` ファセットを持ち、現在のドキュメントは `"current"` としてアップロードされます — 一方 Pagefind は、そのロケールの挙動と同様に絞り込みなしのままです。
 
 ## タグ [#tags]
 
-ページのフロントマターに `search.tags` を追加すると、検索ダイアログのフィルターの下にそのページがグループ化されます — 読者はクリック 1 つで結果をタグで絞り込めます。タグはホスト型プロバイダーではファセットにもなります。
+ページのフロントマターに `search.tags` を追加すると、検索ダイアログのフィルターの下にそのページがグループ化されます — 読者はクリック 1 つで結果をタグで絞り込めます。タグはホスト型アダプターではファセットにもなります。
 
 ```yaml
 search:
   tags: [api, reference]
 ```
 
-## プロバイダー [#providers]
+## アダプター [#adapters]
 
-クライアントサイドのプロバイダーはキー不要で、追加の設定は必要ありません。ホスト型のプロバイダーは `blume.config.ts` に**公開**クレデンシャル(ブラウザに配布しても安全)を受け取り、ビルド時に環境変数から**シークレット**の管理キーを読み取ります — シークレットが設定ファイルやクライアントバンドルに含まれることはありません。
+クライアントサイドのアダプターはキー不要で、オプションも必要ありません — クライアントは `i18n` から(Pagefind の場合はビルドされた HTML から)設定されるため、不明なキーは無視されるのではなく、設定の検証で拒否されます。ホスト型のアダプターは**公開**クレデンシャル(ブラウザに配布しても安全)を受け取り、ビルド時に環境変数から**シークレット**の管理キーを読み取ります — シークレットが設定ファイルやクライアントバンドルに含まれることはありません。ホスト型アダプターに渡したオプションはすべてそのまま保持され、ブラウザ内の検索クライアント(Mixedbread の場合は検索エンドポイント)に渡されるため、Blume が名前を定義していないオプションも SDK — Algolia の `liteClient`、Typesense の `Client`、または `OramaClient` — に届きます。これらのオプションは JSON 値でなければなりません — ディスクリプターはリテラルとして生成されるプロジェクトにインライン化されるため、関数、`undefined`、bigint は途中で消えてしまうのではなく、パス付きで設定の検証に失敗します。
 
 ### Orama(デフォルト) [#orama-default]
 
-Blume のデフォルトエンジンです。`/blume-search.json` で配信される JSON インデックスを構築し、ブラウザ内でクエリを実行します — 即座に動作するクライアントサイド検索で、`blume dev` では編集に合わせてライブで更新されます。キーもサービスも不要です。
+Blume のデフォルトエンジンです。`/blume-search.json` で配信される JSON インデックスを構築し、ブラウザ内でクエリを実行します — 即座に動作するクライアントサイド検索で、`blume dev` では編集に合わせてライブで更新されます。キーもサービスも不要です。`search` を完全に省略するとこれが選択されます。明示したい場合にのみ記述してください:
 
 ```ts blume.config.ts lineNumbers
-search: {
-  provider: "orama", // default
-}
+import { orama } from "blume/search";
+
+search: orama(),
 ```
 
 #### 非ラテン文字の文字体系 [#non-latin-scripts]
@@ -106,9 +131,9 @@ i18n: {
 FlexSearch には同等の分割フックがないため、非ラテン文字の文字体系のサイトでは、Orama(デフォルト)か [Pagefind](#pagefind) を選ぶことをおすすめします。Pagefind の `pagefind_extended` バイナリは幅広い言語をインデックス化し、中国語、日本語、韓国語をネイティブに分割します。
 
 ```ts blume.config.ts lineNumbers
-search: {
-  provider: "flexsearch",
-}
+import { flexsearch } from "blume/search";
+
+search: flexsearch(),
 ```
 
 ### Pagefind
@@ -116,26 +141,25 @@ search: {
 非常に大規模なドキュメントには [Pagefind](https://pagefind.app) を選択できます。ビルドされた HTML をインデックス化し、インデックスをシャード単位でオンデマンドに読み込むため、サイトがどれだけ大きくなっても初期ペイロードは小さいまま保たれます。
 
 ```ts blume.config.ts lineNumbers
-search: {
-  provider: "pagefind",
-}
+import { pagefind } from "blume/search";
+
+search: pagefind(),
 ```
 
-Pagefind は `blume build` の実行中のみ動作するため、このプロバイダーでは `blume dev` で検索を利用できません。
+Pagefind は `blume build` の実行中のみ動作するため、このアダプターでは `blume dev` で検索を利用できません。各ドキュメントページの記事部分のみをインデックス化し、その周囲のヘッダー、サイドバー、フッターは対象外です — そのため、`PageLayout` で構築したカスタムページ、404 ページ、生成された変更履歴のインデックスは検索結果に含まれません。
 
 ### Algolia
 
 ブラウザが検索専用キーで [Algolia](https://www.algolia.com) に直接クエリを実行します。`blume build` のたびに、`ALGOLIA_ADMIN_API_KEY` の管理キーを使ってインデックスが置き換えられます(未設定の場合、ビルドは警告を出してアップロードをスキップします)。同期のたびにインデックス全体が置き換えられるため、削除やリネームしたページが古い検索結果として残ることはありません。
 
 ```ts blume.config.ts lineNumbers
-search: {
-  provider: "algolia",
-  algolia: {
-    appId: "YOUR_APP_ID",
-    indexName: "docs",
-    searchApiKey: "YOUR_SEARCH_ONLY_KEY", // public
-  },
-}
+import { algolia } from "blume/search";
+
+search: algolia({
+  appId: "YOUR_APP_ID",
+  apiKey: "YOUR_SEARCH_ONLY_KEY", // public
+  indexName: "docs",
+}),
 ```
 
 ### Orama Cloud
@@ -143,14 +167,13 @@ search: {
 ホスト型の Orama です。ブラウザは公開 API キーを使ってインデックスのエンドポイントにクエリを実行し、`blume build` は `ORAMA_PRIVATE_API_KEY` を使ってレコードをインデックスにプッシュします。同期を有効にするには `indexId` を設定してください。
 
 ```ts blume.config.ts lineNumbers
-search: {
-  provider: "orama-cloud",
-  oramaCloud: {
-    endpoint: "https://cloud.orama.run/v1/indexes/your-index",
-    apiKey: "YOUR_PUBLIC_API_KEY",
-    indexId: "your-index-id", // for the build-time sync
-  },
-}
+import { oramaCloud } from "blume/search";
+
+search: oramaCloud({
+  endpoint: "https://cloud.orama.run/v1/indexes/your-index",
+  apiKey: "YOUR_PUBLIC_API_KEY",
+  indexId: "your-index-id", // for the build-time sync
+}),
 ```
 
 ### Typesense
@@ -158,37 +181,35 @@ search: {
 セルフホストまたはクラウドの [Typesense](https://typesense.org) です。ブラウザは検索専用キーでコレクションにクエリを実行し、`blume build` は `TYPESENSE_ADMIN_API_KEY` を使ってコレクションを再作成し、ドキュメントをインポートします。同期のたびにコレクションは削除・再構築されるため、削除やリネームしたページが古い検索結果として残ることはありません — コレクションの設定を手動で調整している場合は、ビルド後に再適用してください。
 
 ```ts blume.config.ts lineNumbers
-search: {
-  provider: "typesense",
-  typesense: {
-    host: "xyz.a1.typesense.net",
-    collection: "docs",
-    searchApiKey: "YOUR_SEARCH_ONLY_KEY", // public
-    // port + protocol default to 443 / https
-  },
-}
+import { typesense } from "blume/search";
+
+search: typesense({
+  host: "xyz.a1.typesense.net",
+  collection: "docs",
+  apiKey: "YOUR_SEARCH_ONLY_KEY", // public
+  // port + protocol default to 443 / https
+}),
 ```
 
 ### Mixedbread
 
-[Mixedbread](https://www.mixedbread.com) によるセマンティック検索です。クエリはキーを保持する生成された `/api/search` エンドポイントを経由してプロキシされるため、このプロバイダーは**サーバー出力が必須**です(`deployment.output: "server"`)。エンドポイントは `MIXEDBREAD_API_KEY` を読み取ります。ビルド時に Mixedbread CLI でコンテンツをストアに同期してください。例: `mxbai vs sync <STORE_ID> ./content --ci`
+[Mixedbread](https://www.mixedbread.com) によるセマンティック検索です。クエリはキーを保持する生成された `/api/search` エンドポイントを経由してプロキシされるため、このアダプターは**サーバー出力が必須**です: `blume/deploy` の `deployment: vercel()` のようなホストアダプターを使用してください([サーバーレンダリング](/docs/deployment#server-rendering)を参照)。エンドポイントは `MIXEDBREAD_API_KEY` を読み取ります。ビルド時に Mixedbread CLI でコンテンツをストアに同期してください。例: `mxbai vs sync <STORE_ID> ./content --ci`。
 
 ```ts blume.config.ts lineNumbers
-search: {
-  provider: "mixedbread",
-  mixedbread: {
-    storeId: "YOUR_STORE_ID",
-  },
-}
+import { mixedbread } from "blume/search";
+
+search: mixedbread({
+  storeId: "YOUR_STORE_ID",
+}),
 ```
 
 ### 検索の無効化 [#disabling-search]
 
 ```ts blume.config.ts lineNumbers
-search: {
-  provider: "none",
-}
+search: false,
 ```
+
+`indexing` を MCP サーバーのインデックスには引き続き適用したい場合は、代わりにオブジェクト形式で `provider: false` を設定してください。
 
 ## ページの除外 [#excluding-pages]
 

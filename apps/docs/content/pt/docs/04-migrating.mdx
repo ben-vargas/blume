@@ -1,0 +1,59 @@
+---
+title: Migre para o Blume
+description: >-
+  Mova um site em Mintlify, Fumadocs, Docusaurus, Starlight ou Nextra para o Blume com um único comando que entrega a migração ao Claude Code ou ao Codex.
+sidebar:
+  label: Migre para o Blume
+  order: 2.4
+---
+
+Migrar um site de documentação para um Blume idiomático exige decisões que um codemod não consegue tomar: qual navegação declarada vira pastas, quais componentes viram diretivas e o que não tem equivalente no Blume. Por isso, o `blume migrate` entrega o trabalho a um agente de código, que segue o playbook de migração do Blume enquanto você revisa cada edição.
+
+## Migre com um único comando [#migrate-with-one-command]
+
+Rode o comando a partir da raiz do projeto de documentação que você está migrando:
+
+```package-install
+npx blume migrate fumadocs --claude
+```
+
+Troque `fumadocs` pelo seu framework, e `--claude` por `--codex` para usar o Codex. Com o pnpm 12, adicione `--allow-build=esbuild` depois de `pnpm dlx`, já que o pnpm 12 não executa o script de instalação do esbuild sem aprovação. O agente abre de forma interativa no seu terminal, então cada edição passa pelo fluxo de permissões dele. Ele trabalha direto nos arquivos, então comece com uma working tree limpa e revise a migração inteira como um único diff.
+
+## Origens [#sources]
+
+Informe o framework do qual você está migrando, ou deixe de fora e o Blume o detecta pelos próprios arquivos do projeto. Se você informar um e o projeto parecer ser de outro, o Blume mostra um aviso e continua com o que você informou:
+
+| Origem | Detectado por |
+| --- | --- |
+| `mintlify` | `docs.json` ou `mint.json` |
+| `fumadocs` | `source.config.ts`, ou `fumadocs-core`, `fumadocs-ui` ou `fumadocs-mdx` no `package.json` |
+| `docusaurus` | `docusaurus.config.*` |
+| `starlight` | `@astrojs/starlight` no `package.json` |
+| `nextra` | `nextra` no `package.json` |
+
+Cada origem tem sua própria referência de mapeamento no playbook. Um site feito com qualquer outra ferramenta também pode ser migrado: rode o comando sem informar uma origem, e o agente primeiro faz um inventário do repositório e depois trabalha a partir das regras gerais do playbook.
+
+## O que o agente faz [#what-the-agent-does]
+
+O agente segue o fluxo de trabalho do playbook, da config da origem até um build que passa:
+
+1. Escreve o `blume.config.ts`, mapeando só o que a sua origem declara e deixando os padrões do Blume cobrirem o resto.
+2. Reestrutura o conteúdo em [navegação baseada no sistema de arquivos](/docs/content/navigation), convertendo os arquivos de ordenação por pasta (`meta.json` do Fumadocs, `_meta` do Nextra) para `meta.ts`.
+3. Reescreve as páginas: frontmatter para o schema do Blume, componentes de callout para [diretivas](/docs/content/syntax), ícones para Lucide e snippets incorporados diretamente no conteúdo.
+4. Adiciona um [redirect](/docs/deployment#redirects) para cada URL que muda de lugar, para que nenhum link quebre.
+5. Aponta os scripts do seu `package.json` para `blume dev` e `blume build`, e troca as dependências do framework antigo por `blume`.
+6. Roda `blume build` e `blume validate` até que os dois passem.
+
+Ele termina com um resumo do que foi migrado, descartado ou aproximado, como links de rodapé ou redirects dinâmicos sem equivalente no Blume, para que você decida o que fazer com cada um.
+
+## Outros agentes [#other-agents]
+
+Sem `--claude` ou `--codex`, o comando informa a origem que detectou, mostra o caminho para o playbook (a [skill](/docs/advanced/skills) `blume-migrate` que vem incluída no pacote) e encerra sem alterar nada. Aponte qualquer outro agente para esse `SKILL.md`, ou instale a skill onde o seu agente procura skills, com o comando que ele mostra:
+
+```bash
+npx skills add haydenbleasel/blume --skill blume-migrate
+```
+
+## Compare antes [#compare-first]
+
+As [páginas de comparação](/compare) colocam o Blume lado a lado com cada framework e listam o que a migração aproveita e o que ela reescreve em cada caso.

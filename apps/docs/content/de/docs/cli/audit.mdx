@@ -1,0 +1,647 @@
+---
+title: Audit
+description: >-
+  blume audit crawlt die gebaute Site und meldet Probleme bei SEO und Site-Gesundheit – jeder Befund nennt die Quelldatei und die Frontmatter-Zeile, mit der du ihn behebst.
+---
+
+[`blume validate`](/docs/cli/validate) liest deine _Inhalte_; `blume audit` liest die _gebaute Site_. Es crawlt nach einem Build das HTML in `dist/` und meldet Probleme bei SEO und Site-Gesundheit – Titel, Meta-Descriptions, Canonicals, Open-Graph- und X-Cards, Überschriften, hreflang, Bilder, die Sitemap, `robots.txt` und strukturierte Daten.
+
+Weil Blume die Site gebaut hat, nennt jeder Befund die Quelldatei **und die Frontmatter-Zeile**, mit der du ihn behebst – nicht nur die URL, die ein Crawler sehen würde:
+
+```
+⚠ Meta description too long or too short   5 pages
+    /docs/configuration/export    content/docs/configuration/export.mdx:3
+    fix: Rewrite `description` in the frontmatter to fit the length range.
+```
+
+Führe es nach einem Build aus:
+
+```bash
+blume build
+blume audit
+```
+
+Befunde werden nach Check gruppiert statt pro Seite aufgelistet, sodass sich der Bericht wie eine To-do-Liste liest. Mit `--verbose` klappst du jede betroffene Seite mit allen Details auf, und mit `--only`/`--skip` arbeitest du dich Kategorie für Kategorie durch. `blume audit --list-checks` gibt den vollständigen Katalog aus, der auch als [Check-Katalog](#check-catalog) am Ende dieser Seite steht – die `docsUrl` jedes Befunds verlinkt auf den jeweiligen Eintrag dort.
+
+## Flags
+
+- `--fail-on error|warning|info` – das CI-Gate: beendet sich ab diesem Schweregrad mit einem Exit-Code ungleich null. Standard ist `error`; `--strict` ist ein Alias für `--fail-on warning`.
+- `--url <origin>` – prüft zusätzlich ein Live-Deployment auf Statuscodes, Response-Header und Redirect-Ketten.
+- `--external` – prüft ausgehende Links über das Netzwerk.
+- `--only <check|category>` / `--skip <check|category>` – beschränkt den Bericht auf diese Checks oder Kategorien bzw. schließt sie aus (kommagetrennt). Ein Begriff, der weder einen Check noch eine Kategorie bezeichnet, führt zu einem Fehler, der den nächstliegenden Treffer vorschlägt – so kann ein Tippfehler den Bericht nicht unbemerkt leeren.
+- `--list-checks` – gibt jeden Check aus, den das Audit melden kann, und beendet sich dann.
+- `--verbose` – listet jede betroffene Seite mit allen Details jedes Befunds auf statt nur der ersten paar.
+- `--json` – gibt den Bericht als JSON auf stdout aus.
+- `--claude` / `--codex` – übergibt die Befunde an Claude Code oder Codex, damit du sie interaktiv beheben kannst.
+
+## CI fehlschlagen lassen [#failing-ci]
+
+Der Exit-Code ist der Vertrag. Standardmäßig schlägt `blume audit` nur bei Fehlern fehl – also bei Dingen, die definitiv kaputt sind, etwa ein Link auf eine Seite, die nie gebaut wurde, eine Redirect-Schleife oder eine ungültige Sitemap. Hinweisende Befunde (eine zu kurze Description, ein doppelter Titel) sind Warnungen und lassen den Build nicht fehlschlagen:
+
+```bash
+blume audit                      # fails on errors
+blume audit --fail-on warning    # also fails on warnings
+```
+
+## Ein Live-Deployment prüfen [#checking-a-live-deployment]
+
+Manches kann dir nur der echte Server sagen: ob eine Seite, die in `dist/` existiert, hinter einem fehlerhaften Rewrite tatsächlich einen 404 liefert, ob Antworten komprimiert werden und ob ein `X-Robots-Tag`-Header still und leise eine Seite deindexiert, deren HTML völlig in Ordnung aussieht. Richte das Audit auf ein Deployment, um diese Checks hinzuzufügen:
+
+```bash
+blume audit --url https://docs.example.com
+blume audit --url https://docs.example.com --external   # also probe outbound links
+```
+
+Ausgehende Links werden abgestuft bewertet, statt pauschal als Fehler zu gelten: Ein 404 ist ein kaputter Link, den du beheben kannst, während ein 403 oder 5xx meist auf Rate Limiting oder einen Ausfall bei jemand anderem zurückgeht und als Warnung gemeldet wird.
+
+## Befunde mit einem Agenten beheben [#fixing-the-findings-with-an-agent]
+
+Wenn du [Claude Code](https://claude.com/claude-code) oder [Codex](https://developers.openai.com/codex/cli) nutzt, kann das Audit seine Befunde direkt daran übergeben:
+
+```bash
+blume audit --claude   # or --codex
+```
+
+Dabei wird der vollständige JSON-Bericht – jede betroffene Seite, nicht die Drei-Seiten-Vorschau des Terminals – in eine Datei geschrieben und der Agent interaktiv mit einem Prompt gestartet, der ihn durch die Befunde führt: die Quelldatei bearbeiten, die jeder Befund nennt, den vorgeschlagenen Fix anwenden und dann `blume build` und `blume audit` erneut ausführen, bis der Bericht sauber ist. Die Session ist bewusst interaktiv: Du prüfst die Änderungen über den eigenen Freigabeablauf des Agenten, und der Agent wird angewiesen, einen Befund niemals durch das Löschen von Inhalten zu beheben.
+
+`--only` und `--skip` schränken die Übergabe genauso ein wie den Bericht, sodass du eine Kategorie nach der anderen übergeben kannst.
+
+## Was geprüft wird und was nicht [#what-it-does-and-doesnt-check]
+
+Die Auswahl an Checks ist bewusst kleiner als bei einem universellen SEO-Crawler. Vieles von dem, was ein solcher Crawler meldet, kann bei einer Blume-Site gar nicht auftreten – Blume gibt nie `rel=nofollow` aus, und die content-gehashten Bundles von Vite fehlen nie und leiten nie weiter. Diese Punkte als dauerhafte Nullen zu melden, würde dir nur beibringen, den Bericht zu ignorieren.
+
+Zwei Grenzen solltest du kennen:
+
+- **Strukturierte Daten** werden auf Wohlgeformtheit validiert (gültiges JSON, ein `@context`, ein `@type` an jedem Knoten). Blume validiert nicht gegen das vollständige schema.org-Vokabular oder die Rich-Results-Regeln von Google.
+- **Core Web Vitals** werden nicht geprüft. Dafür braucht es einen echten Browser, und ein Flag, das stillschweigend nichts misst, wäre schlimmer als gar keins – deshalb meldet `blume audit` die Ursachen für Layout-Verschiebungen, die es offline erkennen _kann_ (Bilder ohne `width`/`height`, übergroße Assets), und lässt den Rest vorerst außen vor.
+
+Alles, was das Audit nicht ausgeführt hat, wird als übersprungen gemeldet, statt stillschweigend als bestanden zu gelten:
+
+```
+⊘ network      skipped — pass --url <origin> (11 checks)
+⊘ external     skipped — pass --external (2 checks)
+```
+
+## Check-Katalog [#check-catalog]
+
+Hier findest du jeden Check, den `blume audit` melden kann, gruppiert nach Kategorie – mit seinem Standard-Schweregrad, der Stufe, in der er läuft, und dem Fix, den der Bericht vorschlägt. `--only` und `--skip` akzeptieren diese IDs (auch ohne das Präfix `BLUME_AUDIT_`) oder die Kategorienamen.
+
+### Inhalt [#content]
+
+#### Title-Tag fehlt oder ist leer [#title-missing]
+
+`BLUME_AUDIT_TITLE_MISSING` · Fehler · aus dem gebauten HTML
+
+Behebung: Füge dem Frontmatter der Seite einen `title` hinzu.
+
+#### Mehrere Title-Tags [#title-multiple]
+
+`BLUME_AUDIT_TITLE_MULTIPLE` · Fehler · aus dem gebauten HTML
+
+Behebung: Entferne das zusätzliche `<title>` aus dem Layout oder MDX der Seite.
+
+#### Titel zu lang oder zu kurz [#title-length]
+
+`BLUME_AUDIT_TITLE_LENGTH` · Warnung · aus dem gebauten HTML
+
+Behebung: Formuliere `title` im Frontmatter so um, dass er in den Längenbereich passt.
+
+#### Meta-Description fehlt oder ist leer [#description-missing]
+
+`BLUME_AUDIT_DESCRIPTION_MISSING` · Warnung · aus dem gebauten HTML
+
+Behebung: Füge dem Frontmatter der Seite eine `description` hinzu.
+
+#### Mehrere Meta-Description-Tags [#description-multiple]
+
+`BLUME_AUDIT_DESCRIPTION_MULTIPLE` · Fehler · aus dem gebauten HTML
+
+Behebung: Entferne das zusätzliche Description-`<meta>` aus dem Layout oder MDX der Seite.
+
+#### Meta-Description zu lang oder zu kurz [#description-length]
+
+`BLUME_AUDIT_DESCRIPTION_LENGTH` · Warnung · aus dem gebauten HTML
+
+Behebung: Formuliere `description` im Frontmatter so um, dass sie in den Längenbereich passt.
+
+#### H1-Tag fehlt oder ist leer [#h1-missing]
+
+`BLUME_AUDIT_H1_MISSING` · Warnung · aus dem gebauten HTML
+
+Behebung: Gib der Seite einen `title` – Blume rendert ihn als `<h1>` der Seite.
+
+#### Mehrere H1-Tags [#h1-multiple]
+
+`BLUME_AUDIT_H1_MULTIPLE` · Warnung · aus dem gebauten HTML
+
+Behebung: Stufe die zusätzliche `# Heading` im Body auf `##` herab – Blume rendert `title` bereits als h1.
+
+#### Geringe Wortanzahl [#low-word-count]
+
+`BLUME_AUDIT_LOW_WORD_COUNT` · Info · aus dem gebauten HTML
+
+Behebung: Erweitere die Seite oder führe sie mit einer größeren zusammen.
+
+#### Überschriftenebenen werden übersprungen (z. B. h2 zu h4) [#heading-skip]
+
+`BLUME_AUDIT_HEADING_SKIP` · Info · aus dem gebauten HTML
+
+Behebung: Setze die Überschrift auf die nächsttiefere Ebene – übersprungene Ebenen zerstören die Verschachtelung des Inhaltsverzeichnisses und die Gliederung für Screenreader.
+
+#### Seite ist in die Zukunft datiert [#future-dated-page]
+
+`BLUME_AUDIT_FUTURE_DATED_PAGE` · Info · aus dem gebauten HTML
+
+Behebung: Korrigiere das `date` oder halte die Seite zurück, bis sie live gehen soll.
+
+#### Viewport nicht gesetzt [#viewport-missing]
+
+`BLUME_AUDIT_VIEWPORT_MISSING` · Fehler · aus dem gebauten HTML
+
+Behebung: Stelle das Viewport-`<meta>` in deinem ejecteten Layout wieder her.
+
+### Duplikate [#duplicates]
+
+#### Doppelter Titel [#duplicate-title]
+
+`BLUME_AUDIT_DUPLICATE_TITLE` · Warnung · aus dem gebauten HTML
+
+Behebung: Gib jeder Seite einen eigenen `title` – Suchmaschinen zeigen ihn als Überschrift des Suchergebnisses an.
+
+#### Doppelte Meta-Description [#duplicate-description]
+
+`BLUME_AUDIT_DUPLICATE_DESCRIPTION` · Warnung · aus dem gebauten HTML
+
+Behebung: Gib jeder Seite eine eigene `description`.
+
+#### Doppelte Seiten ohne Canonical [#duplicate-content]
+
+`BLUME_AUDIT_DUPLICATE_CONTENT` · Warnung · aus dem gebauten HTML
+
+Behebung: Führe die Seiten zusammen oder setze `seo.canonical` auf allen außer einer.
+
+### Indexierbarkeit [#indexability]
+
+#### deployment.site ist nicht gesetzt [#site-not-set]
+
+`BLUME_AUDIT_SITE_NOT_SET` · Warnung · aus dem gebauten HTML
+
+Behebung: Setze `deployment.site` in blume.config.ts auf die öffentliche URL der Site.
+
+#### deployment.site wird erst beim Deployment ermittelt [#site-inferred-at-deploy]
+
+`BLUME_AUDIT_SITE_INFERRED_AT_DEPLOY` · Info · aus dem gebauten HTML
+
+Behebung: Prüfe einen produktionsähnlichen Build (z. B. `VERCEL=1 VERCEL_PROJECT_PRODUCTION_URL=<host> blume build`) oder das Deployment selbst mit `--url <origin>`. Trage `deployment.site` nicht fest ein – die Plattform setzt es bei jedem Deployment.
+
+#### Seite ist noindex, deklariert aber ein Canonical [#canonical-on-noindex]
+
+`BLUME_AUDIT_CANONICAL_ON_NOINDEX` · Warnung · aus dem gebauten HTML
+
+Behebung: Entferne das Canonical von noindex-Seiten – Google wertet die Kombination als widersprüchlich und ignoriert möglicherweise eine der beiden Angaben.
+
+#### Entwurfsseite ist im Build [#draft-page-published]
+
+`BLUME_AUDIT_DRAFT_PAGE_PUBLISHED` · Warnung · aus dem gebauten HTML
+
+Behebung: Baue vor dem Deployment ohne `--preview` neu oder entferne `draft: true`, wenn die Seite bereit zur Veröffentlichung ist.
+
+#### Canonical-URL fehlt [#canonical-missing]
+
+`BLUME_AUDIT_CANONICAL_MISSING` · Warnung · aus dem gebauten HTML
+
+Behebung: Setze `deployment.site`, damit Blume absolute Canonical-URLs ausgeben kann.
+
+#### Nicht-kanonische Seite [#canonical-not-self]
+
+`BLUME_AUDIT_CANONICAL_NOT_SELF` · Info · aus dem gebauten HTML
+
+Behebung: Lass `seo.canonical` auf diese Seite zeigen oder entferne es, um das standardmäßige Self-Canonical zu verwenden.
+
+#### Canonical zeigt auf eine kaputte oder weiterleitende Seite [#canonical-bad-target]
+
+`BLUME_AUDIT_CANONICAL_BAD_TARGET` · Fehler · aus dem gebauten HTML
+
+Behebung: Lass `seo.canonical` auf eine Seite zeigen, die existiert und nicht weiterleitet.
+
+#### Canonical-Protokoll passt nicht zur Site [#canonical-protocol-mismatch]
+
+`BLUME_AUDIT_CANONICAL_PROTOCOL_MISMATCH` · Fehler · aus dem gebauten HTML
+
+Behebung: Verwende in `seo.canonical` dasselbe Protokoll wie in `deployment.site`.
+
+#### Seite ist nicht indexierbar [#robots-meta-unexpected]
+
+`BLUME_AUDIT_ROBOTS_META_UNEXPECTED` · Info · aus dem gebauten HTML
+
+Behebung: Entferne `noindex` aus dem Frontmatter der Seite, wenn sie indexiert werden soll.
+
+#### Seite überschreitet das 2-MB-Crawl-Limit von Googlebot [#html-too-large]
+
+`BLUME_AUDIT_HTML_TOO_LARGE` · Fehler · aus dem gebauten HTML
+
+Behebung: Teile die Seite auf – Googlebot hört nach 2 MB auf, ein HTML-Dokument zu lesen.
+
+#### X-Robots-Tag-Header widerspricht dem Robots-Meta der Seite [#robots-header-conflict]
+
+`BLUME_AUDIT_ROBOTS_HEADER_CONFLICT` · Fehler · benötigt `--url`
+
+Behebung: Entferne den X-Robots-Tag-Header oder gleiche ihn an das Robots-Meta der Seite an.
+
+### Links
+
+#### Seite enthält Links auf eine kaputte Seite [#link-to-broken]
+
+`BLUME_AUDIT_LINK_TO_BROKEN` · Fehler · aus dem gebauten HTML
+
+Behebung: Korrigiere das Linkziel oder erstelle die Seite, auf die der Link zeigt.
+
+#### Seite enthält Links auf eine Weiterleitung [#link-to-redirect]
+
+`BLUME_AUDIT_LINK_TO_REDIRECT` · Warnung · aus dem gebauten HTML
+
+Behebung: Verlinke direkt auf das Ziel statt über die Weiterleitung.
+
+#### Verwaiste Seite (nur über die Navigation erreichbar) [#orphan-page]
+
+`BLUME_AUDIT_ORPHAN_PAGE` · Warnung · aus dem gebauten HTML
+
+Behebung: Verlinke diese Seite aus dem Body einer verwandten Seite.
+
+#### Interner Link enthält den eigenen Origin der Site fest codiert [#internal-link-absolute]
+
+`BLUME_AUDIT_INTERNAL_LINK_ABSOLUTE` · Warnung · aus dem gebauten HTML
+
+Behebung: Verwende einen root-relativen Pfad (`/docs/x`), damit der Link auch in Previews und mit `basePath` funktioniert.
+
+#### Seite hat ausgehende interne nofollow-Links [#internal-link-nofollow]
+
+`BLUME_AUDIT_INTERNAL_LINK_NOFOLLOW` · Info · aus dem gebauten HTML
+
+Behebung: Entferne `rel="nofollow"` – es verhindert, dass diese Seite intern Autorität weitergibt.
+
+#### Doppelter Schrägstrich in der URL [#double-slash-url]
+
+`BLUME_AUDIT_DOUBLE_SLASH_URL` · Fehler · aus dem gebauten HTML
+
+Behebung: Prüfe `basePath` / `deployment.base` – ein abschließender Schrägstrich dort erzeugt `//`.
+
+#### Link-Fragment passt zu keiner ID auf der Zielseite [#anchor-broken]
+
+`BLUME_AUDIT_ANCHOR_BROKEN` · Warnung · aus dem gebauten HTML
+
+Behebung: Lass das Fragment auf eine Überschrift zeigen, die auf der Zielseite existiert, oder korrigiere die gemeinte Überschrift.
+
+#### URL enthält Großbuchstaben, Unterstriche oder Leerzeichen [#url-style]
+
+`BLUME_AUDIT_URL_STYLE` · Info · aus dem gebauten HTML
+
+Behebung: Benenne die Quelldatei in einen kleingeschriebenen Slug mit Bindestrichen um – und füge eine Weiterleitung von der alten URL hinzu, falls sie bereits veröffentlicht war.
+
+### Weiterleitungen [#redirects]
+
+#### Kaputte Weiterleitung [#redirect-broken]
+
+`BLUME_AUDIT_REDIRECT_BROKEN` · Fehler · aus dem gebauten HTML
+
+Behebung: Lass die Weiterleitung auf eine existierende Seite zeigen.
+
+#### Weiterleitungsschleife [#redirect-loop]
+
+`BLUME_AUDIT_REDIRECT_LOOP` · Fehler · aus dem gebauten HTML
+
+Behebung: Durchbrich den Zyklus in `redirects` – er löst sich nie auf.
+
+#### Weiterleitungskette [#redirect-chain]
+
+`BLUME_AUDIT_REDIRECT_CHAIN` · Warnung · aus dem gebauten HTML
+
+Behebung: Lass jeden Zwischenschritt direkt auf das endgültige Ziel zeigen.
+
+#### Meta-Refresh-Weiterleitung [#meta-refresh]
+
+`BLUME_AUDIT_META_REFRESH` · Warnung · aus dem gebauten HTML
+
+Behebung: Verwende statt eines Meta-Refresh eine echte Weiterleitung in `blume.config.ts`.
+
+#### Weiterleitungsquelle ist auch eine echte Seite [#redirect-source-is-page]
+
+`BLUME_AUDIT_REDIRECT_SOURCE_IS_PAGE` · Fehler · aus dem gebauten HTML
+
+Behebung: Entferne die Weiterleitung oder lösche die Seite, mit der sie kollidiert – die Seite gewinnt, und die Weiterleitung greift nie.
+
+#### Weiterleitung von HTTPS auf HTTP [#redirect-to-http]
+
+`BLUME_AUDIT_REDIRECT_TO_HTTP` · Fehler · benötigt `--url`
+
+Behebung: Leite auf die HTTPS-URL weiter.
+
+### Social Cards
+
+#### Open-Graph-Tags fehlen oder sind unvollständig [#og-incomplete]
+
+`BLUME_AUDIT_OG_INCOMPLETE` · Warnung · aus dem gebauten HTML
+
+Behebung: Füge eine `description` hinzu – Blume füllt die restlichen Open-Graph-Tags für dich aus.
+
+#### Open-Graph-Bild fehlt [#og-image-missing]
+
+`BLUME_AUDIT_OG_IMAGE_MISSING` · Warnung · aus dem gebauten HTML
+
+Behebung: Setze `deployment.site`, um generierte OG-Bilder zu aktivieren, oder setze `seo.image` auf der Seite.
+
+#### Open-Graph-Bild ist nicht im Build [#og-image-broken]
+
+`BLUME_AUDIT_OG_IMAGE_BROKEN` · Warnung · aus dem gebauten HTML
+
+Behebung: Lass `seo.image` auf eine existierende Datei zeigen oder baue neu – ein totes og:image wird überall, wo die Seite geteilt wird, als leere Card dargestellt.
+
+#### Open-Graph-Bild ist zu klein für große Cards [#og-image-small]
+
+`BLUME_AUDIT_OG_IMAGE_SMALL` · Warnung · aus dem gebauten HTML
+
+Behebung: Verwende ein Bild mit mindestens 1200×630 – kleinere werden unscharf dargestellt oder für Layouts mit kleinen Cards zugeschnitten.
+
+#### Open-Graph-URL stimmt nicht mit dem Canonical überein [#og-url-mismatch]
+
+`BLUME_AUDIT_OG_URL_MISMATCH` · Warnung · aus dem gebauten HTML
+
+Behebung: Gleiche `og:url` an die Canonical-URL der Seite an.
+
+#### X-(Twitter-)Card fehlt oder ist unvollständig [#twitter-card-incomplete]
+
+`BLUME_AUDIT_TWITTER_CARD_INCOMPLETE` · Warnung · aus dem gebauten HTML
+
+Behebung: Setze `seo.x.handle` in blume.config.ts, damit X die Card zuordnen kann.
+
+### Internationalisierung [#internationalization]
+
+#### HTML-lang-Attribut fehlt [#html-lang-missing]
+
+`BLUME_AUDIT_HTML_LANG_MISSING` · Fehler · aus dem gebauten HTML
+
+Behebung: Stelle das `lang`-Attribut an `<html>` in deinem ejecteten Layout wieder her.
+
+#### HTML-lang-Attribut ungültig [#html-lang-invalid]
+
+`BLUME_AUDIT_HTML_LANG_INVALID` · Fehler · aus dem gebauten HTML
+
+Behebung: Verwende für die Locale einen gültigen BCP-47-Tag (z. B. `en`, `en-GB`).
+
+#### Hreflang und HTML-lang stimmen nicht überein [#hreflang-lang-mismatch]
+
+`BLUME_AUDIT_HREFLANG_LANG_MISMATCH` · Fehler · aus dem gebauten HTML
+
+Behebung: Das `<html lang>` der Seite muss zu ihrer eigenen hreflang-Annotation passen.
+
+#### Hreflang-Annotation ungültig [#hreflang-invalid]
+
+`BLUME_AUDIT_HREFLANG_INVALID` · Fehler · aus dem gebauten HTML
+
+Behebung: Verwende in der hreflang-Annotation einen gültigen BCP-47-Tag.
+
+#### Selbstreferenzierende hreflang-Annotation fehlt [#hreflang-self-missing]
+
+`BLUME_AUDIT_HREFLANG_SELF_MISSING` · Warnung · aus dem gebauten HTML
+
+Behebung: Die hreflang-Angaben einer Seite müssen eine Selbstreferenz enthalten.
+
+#### X-default-hreflang-Annotation fehlt [#hreflang-xdefault-missing]
+
+`BLUME_AUDIT_HREFLANG_XDEFAULT_MISSING` · Info · aus dem gebauten HTML
+
+Behebung: Füge eine `x-default`-Alternate hinzu, die auf die Seite der Standard-Locale zeigt.
+
+#### Fehlendes wechselseitiges hreflang (kein Return-Tag) [#hreflang-no-return-tag]
+
+`BLUME_AUDIT_HREFLANG_NO_RETURN_TAG` · Fehler · aus dem gebauten HTML
+
+Behebung: Jede Seite in einer hreflang-Gruppe muss auf jede andere zurückverlinken.
+
+#### Hreflang zeigt auf eine kaputte, weiterleitende oder nicht-kanonische Seite [#hreflang-bad-target]
+
+`BLUME_AUDIT_HREFLANG_BAD_TARGET` · Fehler · aus dem gebauten HTML
+
+Behebung: Lass die hreflang-Alternate auf eine Seite zeigen, die existiert und kanonisch ist.
+
+#### Hreflang-Gruppe hat einen Sprachkonflikt [#hreflang-conflict]
+
+`BLUME_AUDIT_HREFLANG_CONFLICT` · Fehler · aus dem gebauten HTML
+
+Behebung: Jede Sprache in einer hreflang-Gruppe muss genau eine Seite benennen.
+
+### Assets
+
+#### Fehlender Alt-Text [#image-alt-missing]
+
+`BLUME_AUDIT_IMAGE_ALT_MISSING` · Warnung · aus dem gebauten HTML
+
+Behebung: Füge einen beschreibenden `alt`-Text hinzu oder `alt=""`, wenn das Bild dekorativ ist.
+
+#### Bild kaputt [#image-broken]
+
+`BLUME_AUDIT_IMAGE_BROKEN` · Fehler · aus dem gebauten HTML
+
+Behebung: Korrigiere den Bildpfad oder füge die Datei zu public/ hinzu.
+
+#### Dateigröße des Assets zu groß [#asset-too-large]
+
+`BLUME_AUDIT_ASSET_TOO_LARGE` · Warnung · aus dem gebauten HTML
+
+Behebung: Komprimiere das Asset oder liefere ein modernes Format aus (WebP/AVIF).
+
+#### Bild hat keine width/height [#image-missing-dimensions]
+
+`BLUME_AUDIT_IMAGE_MISSING_DIMENSIONS` · Warnung · aus dem gebauten HTML
+
+Behebung: Setze `width` und `height`, damit der Browser Platz reservieren kann (vermeidet Layout-Verschiebungen).
+
+#### Referenziertes Skript, Stylesheet oder Asset fehlt im Build [#subresource-missing]
+
+`BLUME_AUDIT_SUBRESOURCE_MISSING` · Fehler · aus dem gebauten HTML
+
+Behebung: Korrigiere die Referenz oder stelle die fehlende Datei wieder her.
+
+#### HTTPS/HTTP-Mixed-Content [#mixed-content]
+
+`BLUME_AUDIT_MIXED_CONTENT` · Fehler · aus dem gebauten HTML
+
+Behebung: Lade die Subressource über HTTPS – Browser blockieren Mixed Content.
+
+### Sitemap
+
+#### Indexierbare Seite nicht in der Sitemap [#indexable-page-not-in-sitemap]
+
+`BLUME_AUDIT_INDEXABLE_PAGE_NOT_IN_SITEMAP` · Warnung · aus dem gebauten HTML
+
+Behebung: Entferne `draft`/`hidden`/`noindex` aus dem Frontmatter der Seite, wenn sie indexiert werden soll.
+
+#### Noindex-Seite in der Sitemap [#noindex-in-sitemap]
+
+`BLUME_AUDIT_NOINDEX_IN_SITEMAP` · Fehler · aus dem gebauten HTML
+
+Behebung: Eine noindex-Seite sollte nicht in der Sitemap aufgeführt werden.
+
+#### Nicht-kanonische Seite in der Sitemap [#non-canonical-in-sitemap]
+
+`BLUME_AUDIT_NON_CANONICAL_IN_SITEMAP` · Fehler · aus dem gebauten HTML
+
+Behebung: Führe in der Sitemap nur kanonische URLs auf.
+
+#### Sitemap nennt eine Seite, die nicht existiert oder weiterleitet [#sitemap-bad-url]
+
+`BLUME_AUDIT_SITEMAP_BAD_URL` · Fehler · aus dem gebauten HTML
+
+Behebung: Entferne die URL aus der Sitemap oder baue die Seite, die sie nennt.
+
+#### Sitemap hat einen Syntaxfehler oder ein falsches Format [#sitemap-invalid]
+
+`BLUME_AUDIT_SITEMAP_INVALID` · Fehler · aus dem gebauten HTML
+
+Behebung: Sitemaps müssen gültiges XML im urlset-Format von sitemaps.org sein.
+
+#### Sitemap überschreitet 50 MB oder 50.000 URLs [#sitemap-too-large]
+
+`BLUME_AUDIT_SITEMAP_TOO_LARGE` · Fehler · aus dem gebauten HTML
+
+Behebung: Teile die Sitemap auf – die Grenzen liegen bei 50 MB und 50.000 URLs.
+
+#### lastmod der Sitemap ist ungültig oder liegt in der Zukunft [#sitemap-lastmod-invalid]
+
+`BLUME_AUDIT_SITEMAP_LASTMOD_INVALID` · Warnung · aus dem gebauten HTML
+
+Behebung: Verwende ein echtes W3C-Datum, das nicht in der Zukunft liegt – Suchmaschinen, die eine Sitemap bei falschen Angaben zur Aktualität ertappen, vertrauen ihrem lastmod überhaupt nicht mehr.
+
+#### Sitemap enthält URLs außerhalb ihres Geltungsbereichs [#sitemap-out-of-scope]
+
+`BLUME_AUDIT_SITEMAP_OUT_OF_SCOPE` · Warnung · aus dem gebauten HTML
+
+Behebung: Eine Sitemap darf nur URLs auf ihrem eigenen Origin auflisten.
+
+#### Sitemap ist nicht erreichbar [#sitemap-not-accessible]
+
+`BLUME_AUDIT_SITEMAP_NOT_ACCESSIBLE` · Fehler · benötigt `--url`
+
+Behebung: Mach sitemap.xml im Root der Site erreichbar.
+
+### robots.txt
+
+#### robots.txt fehlt [#robots-missing]
+
+`BLUME_AUDIT_ROBOTS_MISSING` · Warnung · aus dem gebauten HTML
+
+Behebung: Setze `seo.robots: true`, um robots.txt zu generieren.
+
+#### robots.txt hat einen Syntaxfehler [#robots-invalid]
+
+`BLUME_AUDIT_ROBOTS_INVALID` · Fehler · aus dem gebauten HTML
+
+Behebung: Jede Zeile in robots.txt muss eine `Field: value`-Direktive oder ein Kommentar sein.
+
+#### robots.txt sperrt eine Seite, die in der Sitemap steht [#robots-disallows-indexable]
+
+`BLUME_AUDIT_ROBOTS_DISALLOWS_INDEXABLE` · Fehler · aus dem gebauten HTML
+
+Behebung: Eine Seite kann nicht gleichzeitig in robots.txt gesperrt und in der Sitemap aufgeführt sein.
+
+#### robots.txt verweist nicht auf die Sitemap [#robots-sitemap-missing]
+
+`BLUME_AUDIT_ROBOTS_SITEMAP_MISSING` · Info · aus dem gebauten HTML
+
+Behebung: Setze `deployment.site`, damit robots.txt auf die Sitemap verweisen kann.
+
+#### robots.txt ist nicht erreichbar [#robots-not-accessible]
+
+`BLUME_AUDIT_ROBOTS_NOT_ACCESSIBLE` · Fehler · benötigt `--url`
+
+Behebung: Mach robots.txt im Root der Site erreichbar.
+
+### Auffindbarkeit für KI [#ai-discoverability]
+
+#### llms.txt fehlt im Build [#llms-txt-missing]
+
+`BLUME_AUDIT_LLMS_TXT_MISSING` · Warnung · aus dem gebauten HTML
+
+Behebung: Baue neu – `agents.llmsTxt` ist aktiviert, aber der Build enthält keine llms.txt. Wenn das beabsichtigt ist, setze `agents.llmsTxt: false`.
+
+#### llms.txt listet eine Seite, die der Build nicht ausliefert [#llms-txt-stale-entry]
+
+`BLUME_AUDIT_LLMS_TXT_STALE_ENTRY` · Warnung · aus dem gebauten HTML
+
+Behebung: Baue neu, damit llms.txt zur Site passt – ein veralteter Eintrag schickt einen KI-Agenten auf eine Seite, die es nicht gibt.
+
+#### Indexierbare Seite fehlt in llms.txt [#llms-txt-page-missing]
+
+`BLUME_AUDIT_LLMS_TXT_PAGE_MISSING` · Warnung · aus dem gebauten HTML
+
+Behebung: Baue neu, damit llms.txt zur Site passt; wenn die Seite absichtlich ausgeschlossen ist, markiere sie mit `seo.noindex` oder `sidebar.hidden`.
+
+#### Keine DNS-AID-Records zur Agent-Discovery [#dns-aid-missing]
+
+`BLUME_AUDIT_DNS_AID_MISSING` · Info · benötigt `--url`
+
+Behebung: Veröffentliche bei deinem DNS-Anbieter einen SVCB- oder HTTPS-Record im ServiceMode unter `_index._agents.<host>`, damit Agenten die Site per DNS finden können (DNS-AID).
+
+#### DNS-AID-Records sind nicht per DNSSEC authentifiziert [#dns-aid-unsigned]
+
+`BLUME_AUDIT_DNS_AID_UNSIGNED` · Info · benötigt `--url`
+
+Behebung: Aktiviere DNSSEC für die Zone, damit validierende Resolver authentifizierte DNS-AID-Antworten liefern; falls dein DNS-Anbieter DNSSEC nicht unterstützt, funktionieren die Records auch unsigniert.
+
+### Strukturierte Daten [#structured-data]
+
+#### Strukturierte Daten sind kein gültiges JSON [#jsonld-invalid]
+
+`BLUME_AUDIT_JSONLD_INVALID` · Fehler · aus dem gebauten HTML
+
+Behebung: Der JSON-LD-Block muss gültiges JSON sein.
+
+#### Strukturierten Daten fehlen erforderliche Eigenschaften [#jsonld-incomplete]
+
+`BLUME_AUDIT_JSONLD_INCOMPLETE` · Warnung · aus dem gebauten HTML
+
+Behebung: Jeder JSON-LD-Knoten braucht `@context` und `@type`.
+
+### Live-Deployment
+
+#### 4XX-Seite [#http-4xx]
+
+`BLUME_AUDIT_HTTP_4XX` · Fehler · benötigt `--url`
+
+Behebung: Die Seite ist verlinkt oder steht in der Sitemap, aber das Deployment liefert für sie einen 404.
+
+#### 5XX-Seite [#http-5xx]
+
+`BLUME_AUDIT_HTTP_5XX` · Fehler · benötigt `--url`
+
+Behebung: Das Deployment liefert auf dieser Seite Fehler.
+
+#### Zeitüberschreitung [#http-timeout]
+
+`BLUME_AUDIT_HTTP_TIMEOUT` · Fehler · benötigt `--url`
+
+Behebung: Die Seite hat nicht rechtzeitig geantwortet.
+
+#### Nicht komprimiert [#not-compressed]
+
+`BLUME_AUDIT_NOT_COMPRESSED` · Warnung · benötigt `--url`
+
+Behebung: Aktiviere gzip oder brotli auf dem Host.
+
+#### Langsame Seite [#slow-response]
+
+`BLUME_AUDIT_SLOW_RESPONSE` · Warnung · benötigt `--url`
+
+Behebung: Die Seite hat langsam geantwortet.
+
+#### Externer Link ist kaputt [#external-link-broken]
+
+`BLUME_AUDIT_EXTERNAL_LINK_BROKEN` · Fehler · benötigt `--external`
+
+Behebung: Korrigiere oder entferne den ausgehenden Link.
+
+#### Externer Link leitet weiter [#external-link-redirect]
+
+`BLUME_AUDIT_EXTERNAL_LINK_REDIRECT` · Info · benötigt `--external`
+
+Behebung: Verlinke direkt auf das Ziel.

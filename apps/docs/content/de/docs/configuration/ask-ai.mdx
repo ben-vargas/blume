@@ -1,20 +1,20 @@
 ---
 title: Ask AI
 description: >-
-  Ein In-Page-Assistent, der in deinen Docs verankert ist — vorgeschlagene Fragen, eigene Anweisungen, Dimensionierung des Retrievals, Backends vom Vercel AI Gateway bis zu jedem OpenAI-kompatiblen Endpunkt und die Server-Ausgabe, die er braucht.
+  Ein In-Page-Assistent, der in deinen Docs verankert ist — vorgeschlagene Fragen, eigene Anweisungen, Dimensionierung des Retrievals, Provider-Adapter vom Vercel AI Gateway bis zu jedem OpenAI-kompatiblen Endpunkt und die Server-Ausgabe, die er braucht.
 ---
 
-Füge einen Assistenten hinzu, der Leserfragen in einem In-Page-Chat-Panel beantwortet — unterstützt von einem streamenden Server-Endpunkt und dem [AI SDK](https://ai-sdk.dev). Er ist opt-in, und statische Docs bleiben vollständig statisch, bis du ihn aktivierst:
+Füge einen Assistenten hinzu, der Leserfragen in einem In-Page-Chat-Panel beantwortet, unterstützt von einem streamenden Server-Endpunkt und dem [AI SDK](https://ai-sdk.dev). Er ist opt-in, und statische Docs bleiben vollständig statisch, bis du ihn aktivierst:
 
 ```ts blume.config.ts lineNumbers
 ai: {
   ask: {
     enabled: true,
-    provider: "gateway", // default
-    model: "openai/gpt-5.5",
   },
 }
 ```
+
+Ohne weitere Angaben werden Antworten über das [Vercel AI Gateway](#adapters) von `openai/gpt-5.5` gestreamt. Ein anderes Modell oder einen anderen Provider wählst du mit einem [Adapter](#adapters).
 
 ## Vorgeschlagene Fragen [#suggested-questions]
 
@@ -55,9 +55,9 @@ Dein Text wird an die eingebauten Anweisungen **angehängt** und ersetzt sie nic
 
 Ask AI ist **in deinen Docs verankert**. Für jede Frage ruft es die relevantesten Seiten ab — über denselben lexikalischen [Orama](/docs/configuration/search)-Index, der auch die Suche auf der Seite antreibt — und injiziert sie in den System-Prompt des Modells, sodass Antworten aus deinen Inhalten statt aus dem Eigenwissen des Modells kommen. Der Assistent wird angewiesen, nur anhand der abgerufenen Seiten zu antworten, zu sagen, wenn etwas nicht abgedeckt ist, und die Seiten zu zitieren, aus denen er geschöpft hat.
 
-Die Seite, auf der sich der Leser gerade befindet, wird dem Kontext zuerst hinzugefügt und dient dazu, das Retrieval auf die Sprache dieser Seite zu beschränken, damit Antworten relevant für die aktuelle Stelle in den Docs bleiben. Das Retrieval läuft zur Anfragezeit aus einem in den Build eingebackenen Snapshot, funktioniert also unabhängig von deinem [Such](/docs/configuration/search)-Provider — selbst wenn die Suche auf `none` gesetzt ist — und braucht keine Konfiguration.
+Die Seite, auf der sich der Leser gerade befindet, wird dem Kontext zuerst hinzugefügt und dient dazu, das Retrieval auf die Sprache dieser Seite zu beschränken, damit Antworten relevant für die aktuelle Stelle in den Docs bleiben. Das Retrieval läuft zur Anfragezeit aus einem in den Build eingebackenen Snapshot, funktioniert also unabhängig von deinem [Such](/docs/configuration/search)-Provider — selbst mit `search: false` — und braucht keine Konfiguration.
 
-Grounding ist für jedes Backend aktiv außer **[Inkeep](#backends)**, das sein eigenes Retrieval über die Inhalte ausführt, die du in seinem Dashboard indexiert hast.
+Grounding ist für jeden Adapter aktiv außer **[Inkeep](#inkeep)**, das sein eigenes Retrieval über die Inhalte ausführt, die du in seinem Dashboard indexiert hast.
 
 ## Retrieval-Größe [#retrieval-size]
 
@@ -108,7 +108,7 @@ Blume sendet denselben `POST`-Body wie seine eingebaute Route:
 }
 ```
 
-Gib eine erfolgreiche Antwort zurück, deren Body ein reiner UTF-8-Textstream ist. Liegt der Endpunkt auf einem anderen Origin, erlaube den Docs-Origin per CORS: akzeptiere `OPTIONS` und `POST`, lasse den Request-Header `content-type` zu und gib die CORS-Header sowohl beim Preflight als auch bei der gestreamten Antwort zurück. Mit gesetztem `endpoint` erzeugt Blume die Chat-UI, aber keine Server-Route, keinen Grounding-Snapshot, keine Provider-Abhängigkeit und keine Warnung zu Provider-Secrets; dein Backend verantwortet Retrieval, Authentifizierung, Rate Limiting, Modellzugriff und Zitate.
+Gib eine erfolgreiche Antwort zurück, deren Body ein reiner UTF-8-Textstream ist. Liegt der Endpunkt auf einem anderen Origin, erlaube den Docs-Origin per CORS: akzeptiere `OPTIONS` und `POST`, lasse den Request-Header `content-type` zu und gib die CORS-Header sowohl beim Preflight als auch bei der gestreamten Antwort zurück. Mit gesetztem `endpoint` erzeugt Blume die Chat-UI, aber keine Server-Route, keinen Grounding-Snapshot, keine Provider-Abhängigkeit und keine Warnung zu Provider-Secrets; dein Backend verantwortet Retrieval, Authentifizierung, Rate Limiting, Modellzugriff und Zitate. Ein daneben gesetzter Adapter wird ignoriert.
 
 ## Cross-Origin-Aufrufer [#cross-origin-callers]
 
@@ -143,98 +143,199 @@ Der Content-Type ist entscheidend: Astros Cross-Site-Request-Prüfung weist eine
 
 ## Server-Ausgabe erforderlich [#server-output-required]
 
-Blumes eingebautes Ask-AI-Backend ist eine Server-Route (`POST /api/ask`) und kann daher nicht auf einem statischen Build laufen. Wechsle zur Server-Ausgabe und wähle einen Adapter:
+Blumes eingebautes Ask-AI-Backend ist eine Server-Route (`POST /api/ask`) und kann daher nicht auf einem statischen Build laufen. Gib einen Host-Adapter aus `blume/deploy` an, um zur Server-Ausgabe zu wechseln:
 
 ```ts blume.config.ts lineNumbers
-deployment: {
-  output: "server",
-  adapter: "vercel",
-}
+import { vercel } from "blume/deploy";
+
+export default defineConfig({
+  deployment: vercel(),
+});
 ```
 
-Ein statischer Build mit aktiviertem Ask AI und ohne externen `endpoint` schlägt sofort fehl, mit einer Meldung, die dich auffordert, `deployment.output` auf `server` zu setzen. Die Adapter findest du unter [Deployment](/docs/deployment).
+Ein statischer Build mit aktiviertem Ask AI und ohne externen `endpoint` schlägt sofort fehl, mit einer Meldung, die dich auffordert, einen Host-Adapter zu setzen. Die Adapter findest du unter [Deployment](/docs/deployment).
 
-## Backends
+## Adapter [#adapters]
 
-Standardmäßig läuft Ask AI über das **Vercel AI Gateway**: `model` ist ein `provider/model`-String, du wechselst Modelle also durch Änderung dieses Strings (`openai/gpt-5.5`, `anthropic/claude-sonnet-4-5` und so weiter), ohne ein Provider-SDK installieren zu müssen. Das Gateway liest `AI_GATEWAY_API_KEY` aus deiner Umgebung und wird beim Deployment auf Vercel automatisch verdrahtet.
+`provider` wählt das Backend, das antwortet. Sein Wert ist ein **Adapter**: eine kleine Funktion, die aus `blume/ai` exportiert wird, die eigenen Optionen dieses Backends entgegennimmt und einen einfachen Deskriptor zurückgibt, den Blume in die generierte Route schreibt. Jeder Adapter verantwortet sein Modell, die Umgebungsvariable, aus der sein Key gelesen wird, wie er [Reasoning](#reasoning) abbildet und welches Provider-SDK er braucht — es gibt also keinen gemeinsamen Satz an Feldern, der über Backends hinweg abgeglichen werden müsste:
 
-Setze `provider`, um Ask AI woanders hinzuleiten. Jedes Backend liest seinen API-Key aus einer Umgebungsvariable und streamt über ein Provider-SDK, das du in deinem Projekt installierst — nur das, das du nutzt:
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { openrouter } from "blume/ai";
 
-| `provider` | `model` | API-Key-Umgebungsvariable | Zu installierendes SDK |
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: openrouter({ model: "anthropic/claude-sonnet-4-5" }),
+    },
+  },
+});
+```
+
+| Adapter | Antwortet mit | API-Key-Umgebungsvariable | Zu installierendes SDK |
 | --- | --- | --- | --- |
-| `gateway` (Standard) | ein `provider/model`-String über das AI Gateway | `AI_GATEWAY_API_KEY` | keins — bei Blume enthalten |
-| `openrouter` | jedes [OpenRouter](https://openrouter.ai)-Modell | `OPENROUTER_API_KEY` | `@openrouter/ai-sdk-provider` |
-| `llmgateway` | jedes [LLMGateway](https://llmgateway.io)-Modell | `LLMGATEWAY_API_KEY` | `@ai-sdk/openai-compatible` |
-| `inkeep` | ein [Inkeep](https://inkeep.com)-QA-Modell | `INKEEP_API_KEY` | `@ai-sdk/openai-compatible` |
-| `openai-compatible` | was auch immer dein Endpunkt ausliefert | mit `apiKeyEnv` festgelegt | `@ai-sdk/openai-compatible` |
+| [`gateway()`](#vercel-ai-gateway) (Standard) | einem `provider/model`-String über das Vercel AI Gateway | `AI_GATEWAY_API_KEY` | keins — bei Blume enthalten |
+| [`openrouter()`](#openrouter) | jedem [OpenRouter](https://openrouter.ai)-Modell | `OPENROUTER_API_KEY` | `@openrouter/ai-sdk-provider` |
+| [`llmgateway()`](#llmgateway) | jedem [LLMGateway](https://llmgateway.io)-Modell | `LLMGATEWAY_API_KEY` | `@ai-sdk/openai-compatible` |
+| [`inkeep()`](#inkeep) | einem [Inkeep](https://inkeep.com)-QA-Modell | `INKEEP_API_KEY` | `@ai-sdk/openai-compatible` |
+| [`openaiCompatible()`](#openai-compatible-endpoints) | dem, was dein Endpunkt ausliefert | die `apiKeyEnv`, die du angibst | `@ai-sdk/openai-compatible` |
 
-Die SDKs sind optionale Peer-Dependencies, füge deinem Projekt also das hinzu, das dein Backend braucht (z. B. `npm install @openrouter/ai-sdk-provider`). Fehlt es, warnt der Build mit dem exakten Paketnamen, bevor Vite den Import nicht auflösen könnte.
+Die SDKs sind optionale Peer-Dependencies, füge deinem Projekt also das hinzu, das dein Adapter braucht (z. B. `npm install @openrouter/ai-sdk-provider`). Fehlt es, bricht `blume build` ab, bevor Vite läuft, und nennt das Paket und den Befehl, der es installiert; auch [`blume doctor`](/docs/cli/doctor) meldet es.
 
-Zum Beispiel, um OpenRouter zu nutzen:
+Der Deskriptor, den ein Adapter zurückgibt, besteht aus reinen Daten — seine Art, seine Optionen, die Umgebungsvariablen, die er liest, und das SDK, das er braucht —, sodass die generierte Route (und die per [Eject](/docs/configuration/customization#eject) übernommene) ihn als Literale einbettet und das Provider-SDK per Namen importiert. Nichts liest `blume.config.ts` zur Anfragezeit, und kein Secret wird je in eine Route geschrieben: Adapter nehmen den **Namen** der Umgebungsvariable entgegen, die den Key enthält, und die Route liest den Wert über Astros [`getSecret()`](https://docs.astro.build/en/guides/environment-variables/#retrieving-secrets-programmatically), sodass jeder Deployment-Adapter ihn auf seine eigene Weise bereitstellt: als Umgebungsvariablen auf Node, Vercel und Netlify und über die [Bindings](https://docs.astro.build/en/guides/integrations-guide/cloudflare/#environment-variables-and-secrets) des Workers auf Cloudflare.
+
+### Vercel AI Gateway
+
+Der Standard. `model` ist ein `provider/model`-String, du wechselst Modelle also durch Änderung dieses Strings (`openai/gpt-5.5`, `anthropic/claude-sonnet-4-5` und so weiter), ohne ein Provider-SDK installieren zu müssen. Das Gateway liest `AI_GATEWAY_API_KEY` aus deiner Umgebung und wird beim Deployment auf Vercel automatisch verdrahtet, wo es sich auch mit dem OIDC-Token des Deployments authentifizieren kann:
 
 ```ts blume.config.ts lineNumbers
-ai: {
-  ask: {
-    enabled: true,
-    provider: "openrouter",
-    model: "anthropic/claude-sonnet-4-5",
+import { defineConfig } from "blume";
+import { gateway } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: gateway({ model: "anthropic/claude-sonnet-4-5" }),
+    },
   },
-}
+});
 ```
 
-Jeder OpenAI-kompatible Endpunkt funktioniert über `openai-compatible` — gib die `baseUrl` und die Umgebungsvariable mit dem Key an:
+Lässt du `provider` weg, entspricht das `gateway({ model: "openai/gpt-5.5" })`.
+
+### OpenRouter
+
+Jedes Modell auf [OpenRouter](https://openrouter.ai), über dessen eigenen AI-SDK-Provider:
 
 ```ts blume.config.ts lineNumbers
-ai: {
-  ask: {
-    enabled: true,
-    provider: "openai-compatible",
-    baseUrl: "https://my-gateway.example.com/v1",
-    apiKeyEnv: "MY_GATEWAY_API_KEY",
-    model: "gpt-4o",
+import { defineConfig } from "blume";
+import { openrouter } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: openrouter({
+        model: "anthropic/claude-sonnet-4-5",
+        reasoning: "none",
+      }),
+    },
   },
-}
+});
 ```
 
-Setze `apiKeyEnv` (und für die benannten Provider `baseUrl`) bei jedem Backend, um auf eine andere Umgebungsvariable oder einen Proxy zu zeigen.
+### LLMGateway
 
-Um bei jedem Aufruf statische Request-Header mitzusenden — etwa einen Header, der den Aufrufer identifiziert, bei einem gemeinsam genutzten Backend, damit dessen eigene Observability oder sein Rate Limiting deine Docs von anderem Traffic unterscheiden kann — setze `headers`. Das funktioniert bei jedem Backend, auch beim Gateway:
+Jedes Modell auf [LLMGateway](https://llmgateway.io), über dessen OpenAI-kompatiblen Endpunkt:
 
 ```ts blume.config.ts lineNumbers
-ai: {
-  ask: {
-    enabled: true,
-    provider: "openai-compatible",
-    baseUrl: "https://llm.internal.example.com/v1",
-    apiKeyEnv: "INTERNAL_LLM_API_KEY",
-    headers: { "X-Caller-Id": "docs" },
+import { defineConfig } from "blume";
+import { llmgateway } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: llmgateway({ model: "openai/gpt-5.5" }),
+    },
   },
-}
+});
+```
+
+`baseUrl` überschreibt den voreingestellten Endpunkt (`https://api.llmgateway.io/v1`), wenn du LLMGateway selbst betreibst.
+
+### Inkeep
+
+[Inkeep](https://inkeep.com) antwortet anhand der Inhalte, die du im Inkeep-Dashboard indexiert hast — es führt sein eigenes Retrieval aus — deshalb lässt Blume es **ungegroundet**: Es wird kein Snapshot der Seiten dieser Site injiziert, und die Optionen zur [Retrieval-Größe](#retrieval-size) gelten nicht. Eine Reasoning-Steuerung hat es auch nicht, deshalb akzeptiert der Adapter kein `reasoning`:
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { inkeep } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: inkeep({ model: "inkeep-qa-expert" }),
+    },
+  },
+});
+```
+
+`baseUrl` überschreibt den voreingestellten Endpunkt (`https://api.inkeep.com/v1`).
+
+### OpenAI-kompatible Endpunkte [#openai-compatible-endpoints]
+
+Jeder Endpunkt, der die OpenAI-API spricht, funktioniert über `openaiCompatible()` — gib seine `baseUrl`, das `model`, das er ausliefert, und die Umgebungsvariable mit seinem Key an. Ein generischer Endpunkt hat für keins davon eine Voreinstellung, deshalb sind alle drei Pflicht; `name` ist der Provider-Name, den das AI SDK meldet, und ist standardmäßig `openai-compatible`:
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { openaiCompatible } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: openaiCompatible({
+        baseUrl: "https://my-gateway.example.com/v1",
+        apiKeyEnv: "MY_GATEWAY_API_KEY",
+        model: "gpt-4o",
+        name: "my-gateway",
+      }),
+    },
+  },
+});
+```
+
+### Optionen, die jeder Adapter akzeptiert [#options-every-adapter-takes]
+
+**`apiKeyEnv`** lässt einen Adapter auf eine andere Umgebungsvariable als seine Standardvariable zeigen — `gateway({ apiKeyEnv: "DOCS_GATEWAY_KEY" })` liest diese Variable statt `AI_GATEWAY_API_KEY`, und die Warnung zu fehlenden Secrets bei `blume dev`/`build` prüft ebenfalls sie. Solange der Key nicht gesetzt ist, antwortet die deployte Route mit `503` und einer Meldung, die die Variable nennt. Die Route liest einen Request-Body nur bis 64 KB und beantwortet alles Größere mit `413`.
+
+**`headers`** sendet bei jedem Aufruf statische Request-Header mit — etwa einen Header, der den Aufrufer identifiziert, bei einem gemeinsam genutzten Backend, damit dessen eigene Observability oder sein Rate Limiting deine Docs von anderem Traffic unterscheiden kann:
+
+```ts blume.config.ts lineNumbers
+provider: openaiCompatible({
+  baseUrl: "https://llm.internal.example.com/v1",
+  apiKeyEnv: "INTERNAL_LLM_API_KEY",
+  model: "gpt-4o",
+  headers: { "X-Caller-Id": "docs" },
+}),
 ```
 
 Die Werte werden unverändert in die generierte Route geschrieben, halte Secrets also in `apiKeyEnv` statt in `headers`. Der `Authorization`-Header des API-Keys wird zuerst angewendet, ein eigener Header kann ihn also nicht verdrängen.
 
-:::note
-**Inkeep** antwortet anhand der Inhalte, die du im Inkeep-Dashboard indexiert hast — es führt sein eigenes Retrieval aus — deshalb lässt Blume es ungegroundet. Jedes andere Backend ist in den Seiten dieser Site [verankert](#grounding).
-:::
+**`providerOptions`** reicht alles andere direkt an die [`providerOptions`](https://ai-sdk.dev/docs/foundations/prompts#provider-options) des AI SDK durch, in der eigenen Form des SDK — geschlüsselt nach Provider, dann nach Option —, sodass eine neue Modellsteuerung nie ein eigenes Blume-Feld braucht:
 
-Keys werden über Astros [`getSecret()`](https://docs.astro.build/en/guides/environment-variables/#retrieving-secrets-programmatically) gelesen, sodass jeder Adapter sie auf seine eigene Weise bereitstellt: als Umgebungsvariablen auf Node, Vercel und Netlify und über die [Bindings](https://docs.astro.build/en/guides/integrations-guide/cloudflare/#environment-variables-and-secrets) des Workers auf Cloudflare. Ask AI zu aktivieren schaltet außerdem React für die In-Page-Island ein — siehe [Customization](/docs/configuration/customization#interactive-islands).
+```ts blume.config.ts lineNumbers
+provider: gateway({
+  model: "openai/gpt-5.5",
+  providerOptions: { openai: { textVerbosity: "low" } },
+}),
+```
+
+Blume bildet nur die Optionen ab, die es benennt (`model`, `reasoning`, `apiKeyEnv`, `headers`), und leitet `providerOptions` unverändert weiter. Es muss also JSON sein — es wird in die Route eingebettet — und den Key verwenden, den der zugrunde liegende Provider erwartet (`openai` für ein OpenAI-Modell hinter dem Gateway, `openrouter` bei OpenRouter). Ask AI zu aktivieren schaltet außerdem React für die In-Page-Island ein — siehe [Customization](/docs/configuration/customization#interactive-islands).
 
 ## Reasoning
 
-Reasoning-Modelle denken nach, bevor sie antworten, und wie viel sie das standardmäßig tun, unterscheidet sich je Modell. Bei verankerten Docs-Q&A tragen die abgerufenen Auszüge die Antwort, der größte Teil dieses Nachdenkens ist also Latenz, die der Leser aussitzt. `reasoning` legt fest, wie viel das Modell nachdenkt: `"none"`, `"minimal"`, `"low"`, `"medium"`, `"high"` oder `"xhigh"`:
+Reasoning-Modelle denken nach, bevor sie antworten, und wie viel sie das standardmäßig tun, unterscheidet sich je Modell. Bei verankerten Docs-Q&A tragen die abgerufenen Auszüge die Antwort, der größte Teil dieses Nachdenkens ist also Latenz, die der Leser aussitzt. Die Option `reasoning` eines Adapters legt fest, wie viel das Modell nachdenkt: `"none"`, `"minimal"`, `"low"`, `"medium"`, `"high"` oder `"xhigh"`:
 
 ```ts blume.config.ts lineNumbers
-ai: {
-  ask: {
-    enabled: true,
-    model: "openai/gpt-5.5",
-    reasoning: "none",
-  },
-}
+provider: gateway({ model: "openai/gpt-5.5", reasoning: "none" }),
 ```
 
-Der Wert wird als die eigene Reasoning-Effort-Steuerung des Backends gesendet. Über das Gateway reist er als [`reasoning`-Option des AI SDK](https://ai-sdk.dev/docs/ai-sdk-core/reasoning), die das Gateway auf die Einstellung des Modells abbildet — etwa auf OpenAIs `reasoning_effort`. Bei OpenRouter wird er als `reasoning.effort` gesendet und bei LLMGateway oder einem eigenen `openai-compatible`-Endpunkt als `reasoning_effort` im Request, der Endpunkt muss diesen Parameter also akzeptieren. Das Modell muss die von dir gewählte Stufe unterstützen: OpenAI weist eine Stufe ab, die ein Modell nicht anbietet (`"none"` und `"xhigh"` gibt es nur bei manchen), prüfe also die Dokumentation des Modells, bevor du eine setzt. Inkeep führt seine eigene QA-Pipeline aus und hat keine Reasoning-Steuerung, `reasoning` mit diesem Backend zu setzen ist also ein Konfigurationsfehler. Lässt du es weg, bleibt der Standard des Modells erhalten. Wie die [Retrieval-Größe](#retrieval-size) tauscht es Gründlichkeit gegen die Zeit bis zum ersten Token, und Antworten bleiben in beiden Fällen verankert.
+Jeder Adapter sendet die Stufe als die eigene Reasoning-Steuerung seines Backends, deshalb liegt sie beim Adapter statt bei `ask`:
+
+| Adapter | Was aus der Stufe wird |
+| --- | --- |
+| `gateway()` | Die [`reasoning`](https://ai-sdk.dev/docs/ai-sdk-core/reasoning)-Aufrufoption des AI SDK, die das Gateway auf die Einstellung des Modells abbildet — etwa auf OpenAIs `reasoning_effort`. |
+| `openrouter()` | OpenRouters `reasoning.effort`, am Modell gesetzt. Sein Provider ignoriert die Aufrufoption des AI SDK, deshalb wird die Stufe dort platziert, wo OpenRouter sie liest. |
+| `llmgateway()` | `reasoning_effort` im Request, über die Aufrufoption des AI SDK. |
+| `openaiCompatible()` | `reasoning_effort` im Request, der Endpunkt muss diesen Parameter also akzeptieren. |
+| `inkeep()` | Nicht verfügbar. Inkeep führt seine eigene QA-Pipeline ohne Reasoning-Steuerung aus, deshalb hat der Adapter keine `reasoning`-Option, und eine zu setzen ist ein Konfigurationsfehler. |
+
+Das Modell muss die von dir gewählte Stufe unterstützen: OpenAI weist eine Stufe ab, die ein Modell nicht anbietet (`"none"` und `"xhigh"` gibt es nur bei manchen), prüfe also die Dokumentation des Modells, bevor du eine setzt. Lässt du es weg, bleibt der Standard des Modells erhalten. Wie die [Retrieval-Größe](#retrieval-size) tauscht es Gründlichkeit gegen die Zeit bis zum ersten Token, und Antworten bleiben in beiden Fällen verankert.
 
 ## Analytics
 

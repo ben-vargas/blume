@@ -32,9 +32,11 @@ Blume には、アクセシブルでテーマ設定可能なコンポーネン�
 
 `Card` は `title`、任意の `href`（省略するとクリックできないカードになります）、そして Blume 組み込みのアイコンセットから選ぶ `icon` を受け取ります。`CardGroup` は `cols`（デフォルトは `2`）を受け取ります。
 
+カードはさらに次のプロパティも受け取ります。`img` はカード上部に表示される画像です（`horizontal` を指定すると、`sm` ブレークポイント以上ではテキストの横に並びます）。`cta` はテキストの下にアクセントカラーで表示される行動喚起（CTA）の行です。`arrow` はタイトルと CTA の後ろに矢印を表示します（デフォルトでは外部リンクの場合のみ表示されます）。`type` はコールアウトと同じようにカードに色を付け、対応するアイコンを選びます（`note`、`info`、`tip`、`check`、`warning`、`danger` のいずれか）。`color` はアイコンの色で、任意の CSS カラーを指定できます。
+
 ## Steps
 
-順序のある手順（インストール、セットアップの流れ、順番が重要なチュートリアルなど）のための、番号付きの縦方向シーケンスです。各 `Step` は `title` を受け取ります。
+順序のある手順（インストール、セットアップの流れ、順番が重要なチュートリアルなど）のための、番号付きの縦方向シーケンスです。各 `Step` は `title` と任意の `icon` を受け取ります。`icon` は番号の代わりにマーカー内に表示されます。`Steps` の `titleSize` は、ステップのタイトルを本文テキスト（デフォルトの `p`）、または `h4`、`h3`、`h2` の見出しと同じサイズにします。
 
 <Steps>
   <Step title="Blume をインストール">
@@ -76,7 +78,9 @@ Blume には、アクセシブルでテーマ設定可能なコンポーネン�
 
 `inline` を追加すると、枠線付きのボックスではなく、ボーダーレスで描画されます — 全幅の罫線上にタブストリップが並び、コンテンツはその下に本文として流れます。`param` を追加すると、アクティブなタブがハッシュではなく URL のクエリパラメータに同期され、選択状態を共有できるようになります。`?install=windows` で終わるリンクを開くと Windows タブが表示されます。各グループはそれぞれ独自の `param` に同期するため、1 ページ内に独立してディープリンク可能なグループを複数配置できます。
 
-同じタイトルのタブを持つグループは連動して切り替わります — 1 つのグループで「macOS」を選ぶと、macOS タブを持つすべてのグループがそれに追従します。`syncKey` を追加すると、その連動の範囲を限定できます。同じキーを共有するグループだけが連動して切り替わるため、たまたまタブのタイトルが一致しただけの無関係なグループは独立したままになります。
+同じタイトルのタブを持つグループは連動して切り替わります — 1 つのグループで「macOS」を選ぶと、macOS タブを持つすべてのグループがそれに追従します。`syncKey` を追加すると、その連動の範囲を限定できます。同じキーを共有するグループだけが連動して切り替わるため、たまたまタブのタイトルが一致しただけの無関係なグループは独立したままになります。あるいは `sync={false}` を指定すると、そのグループを連動の対象から完全に外せます。
+
+アクティブなタブは URL のハッシュに書き込まれるため、リンクを開くとそのタブが表示されます。URL を変更したくない場合は `hash={false}` を渡します。`defaultTabIndex` は、リンクや連動による選択でタブが決まらない場合に最初に開くタブを指定します（0 始まり、デフォルトは `0`）。`dropdown` はタブストリップをセレクトメニューに置き換え（枠線付きのレイアウトでのみ有効）、`borderBottom={false}` はストリップ下の罫線を取り除きます。また、各 `Tab` はタイトルの前に表示される `icon` を受け取ります。
 
 <Tabs inline param="install">
   <Tab title="macOS">Homebrew を使ってツールチェーンをインストールします。</Tab>
@@ -142,6 +146,16 @@ Blume には、アクセシブルでテーマ設定可能なコンポーネン�
 
 ```astro
 <Badge variant="danger">Deprecated</Badge>
+```
+
+### 色、形、サイズ [#color-shape-and-size]
+
+`variant` のほかに、バッジは `color` を受け取ります — 名前付きの色相（`blue`、`green`、`orange`、`purple`、`red`、`teal`、`violet`、`yellow`）、ニュートラルカラー（`gray`、`surface`、`white`、`surface-destructive`、`white-destructive`）、または 16 進数値を指定できます。さらに、`shape`（デフォルトの `rounded` または `pill`）、`size`（`xs`、`sm`、デフォルトの `md`、`lg`）、塗りつぶしの代わりにアウトラインで描画する `stroke`、ラベルの前にアイコンを表示する `icon`、ホバー時のテキストを指定する `tooltip`、表示を薄くする `disabled` も受け取ります。
+
+アイコン付きの、アウトラインの紫色のピル: <Badge color="purple" icon="sparkles" shape="pill" stroke>プレビュー</Badge>
+
+```astro
+<Badge color="purple" icon="sparkles" shape="pill" stroke>Preview</Badge>
 ```
 
 ## Icon
@@ -339,7 +353,7 @@ YouTube 動画を、レスポンシブでプライバシーに配慮した（`yo
 
 ## Color
 
-コピー可能な 16 進数値とともにカラースウォッチを表示します — パレットやブランドカラーを文書化するのに便利です。スウォッチのリストには `variant="compact"` を、グループ化するには `Color.Row` と併せて `variant="table"` を使います。各 `Color.Item` は `name` と `value`（16 進数の文字列、またはテーマ対応の色のための `{ light, dark }`）を受け取ります。
+コピー可能な 16 進数値とともにカラースウォッチを表示します — パレットやブランドカラーを文書化するのに便利です。スウォッチのリストには `variant="compact"` を、グループ化するには `Color.Row` と併せて `variant="table"` を使います。各 `Color.Item` は `name` と `value`（16 進数の文字列、またはテーマ対応の色のための `{ light, dark }`）を受け取ります。テーマ対応のスウォッチでは、読者が表示しているテーマの値がコピーされます。
 
 <Color variant="compact">
   <Color.Item name="blue-500" value="#3B82F6" />
@@ -437,7 +451,7 @@ Hover the <Tooltip tip="A set of protocols software uses to communicate." headli
 
 ## Prompt
 
-ラベルとコピーボタンからなる 1 行の要素です。`description`（Markdown）が表示されるラベルで、本文がプロンプトそのものになります。本文は非表示で、**Copy prompt** ボタンを押すとクリップボードにコピーされます。`actions` でボタンを制御します（例: `["copy", "cursor"]`）。
+ラベルとコピーボタンからなる 1 行の要素です。`description`（Markdown）が表示されるラベルで、本文がプロンプトそのものになります。本文は非表示で、**Copy prompt** ボタンを押すと、リンク、リスト、コードをそのまま保った Markdown としてクリップボードにコピーされます。`actions` でボタンを制御します（例: `["copy", "cursor"]`）。
 
 <Prompt
   description="エンドポイントを**ドキュメント化**するようモデルに依頼します。"
@@ -559,7 +573,7 @@ export interface ButtonProps {
 
 ## GitHub 情報 [#github-info]
 
-GitHub リポジトリへのリンクを、最新のスター数とフォーク数とともに表示するカードです。カウントはビルド時に取得され — クライアント JavaScript は不要 — API に到達できない場合でもカードは描画されます。`owner` と `repo` を渡すか、省略して `blume.config` のリポジトリを使用します。API のレート制限を緩和するには、環境変数 `GITHUB_TOKEN` を設定してください。
+GitHub リポジトリへのリンクを、最新のスター数とフォーク数とともに表示するカードです。カウントはビルド時に取得され — クライアント JavaScript は不要 — API に到達できない場合でもカードは描画されます。`owner` と `repo` を渡すか、省略して `blume.config` のリポジトリを使用します。API のレート制限を緩和するには、環境変数 `GITHUB_TOKEN` を設定してください。`token` プロパティを指定すると特定のカードだけその値を上書きできますが、環境変数を使えばトークンをコンテンツに含めずに済みます。
 
 このカードはインスタンスを [`github.host`](/docs/configuration#github-enterprise) から読み取ります。そのため Enterprise でホストされているサイトでは、明示的に指定した `owner` / `repo` もそのインスタンスを参照します。特定のカードだけ別の場所を指すようにするには `host` を渡します — 例えば Enterprise のサイトから公開プロジェクトを示す場合などです。REST のベースは、`github.host` の場合と同じ方法でそこから導出されます。
 
@@ -671,6 +685,8 @@ import CodeBlock from "blume/components/content/CodeBlock.astro";
 
 <CodeBlock lang="ts" code={source} />
 ```
+
+`title` はヘッダーのラベル（例えばファイル名）を設定します。指定しない場合は言語が表示されます。`icons={false}` を指定すると、フェンスに対する [`markdown.code.icons`](/docs/content/syntax#code-blocks) と同様に、言語のブランドアイコンが非表示になります。
 
 （独自コンポーネントの中などで）自分で HTML 文字列にハイライトしたい場合は、`blume/markdown` から基盤となるヘルパーをインポートします。
 

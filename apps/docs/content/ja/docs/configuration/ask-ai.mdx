@@ -1,7 +1,7 @@
 ---
 title: Ask AI
 description: >-
-  ドキュメントに基づいたページ内アシスタント — 推奨質問、カスタム指示、検索サイズの調整、Vercel AI Gateway から任意の OpenAI 互換エンドポイントまでのバックエンド、そして必要となるサーバー出力について解説します。
+  ドキュメントに基づいたページ内アシスタント — 推奨質問、カスタム指示、検索サイズの調整、Vercel AI Gateway から任意の OpenAI 互換エンドポイントまでのプロバイダーアダプター、そして必要となるサーバー出力について解説します。
 ---
 
 読者の質問にページ内チャットパネルで回答するアシスタントを追加します。ストリーミング対応のサーバーエンドポイントと [AI SDK](https://ai-sdk.dev) によって動作します。これはオプトイン方式であり、有効にするまで静的ドキュメントは完全に静的なままです。
@@ -10,11 +10,11 @@ description: >-
 ai: {
   ask: {
     enabled: true,
-    provider: "gateway", // default
-    model: "openai/gpt-5.5",
   },
 }
 ```
+
+ほかに何も設定しなければ、回答は `openai/gpt-5.5` から [Vercel AI Gateway](#adapters) を経由してストリーミングされます。別のモデルやプロバイダーを使用するには、[アダプター](#adapters)で選択してください。
 
 ## 推奨質問 [#suggested-questions]
 
@@ -55,9 +55,9 @@ ai: {
 
 Ask AI は**ドキュメントに基づいて**動作します。質問ごとに最も関連性の高いページを取得し（オンページ検索を支えるものと同じ字句ベースの [Orama](/docs/configuration/search) インデックスを使用）、モデルのシステムプロンプトに挿入します。これにより、回答はモデル自身の知識ではなくコンテンツから生成されます。アシスタントには、取得したページのみに基づいて回答すること、扱われていない内容についてはその旨を伝えること、参照したページを引用することが指示されています。
 
-読者が現在閲覧しているページが最初にコンテキストへ追加され、そのページの言語に検索範囲を絞り込むために使用されます。これにより、ドキュメント内のどこにいても関連性の高い回答が得られます。検索はビルド時に焼き込まれたスナップショットからリクエスト時に実行されるため、[検索](/docs/configuration/search)プロバイダーに関係なく動作し（検索が `none` に設定されている場合でも）、設定は不要です。
+読者が現在閲覧しているページが最初にコンテキストへ追加され、そのページの言語に検索範囲を絞り込むために使用されます。これにより、ドキュメント内のどこにいても関連性の高い回答が得られます。検索はビルド時に焼き込まれたスナップショットからリクエスト時に実行されるため、[検索](/docs/configuration/search)プロバイダーに関係なく動作し（`search: false` の場合でも）、設定は不要です。
 
-グラウンディングは **[Inkeep](#backends)** を除くすべてのバックエンドで有効です。Inkeep はダッシュボードでインデックス化したコンテンツに対して独自の検索を実行します。
+グラウンディングは **[Inkeep](#inkeep)** を除くすべてのアダプターで有効です。Inkeep はダッシュボードでインデックス化したコンテンツに対して独自の検索を実行します。
 
 ## 検索サイズ [#retrieval-size]
 
@@ -108,7 +108,7 @@ Blume は組み込みルートと同じ `POST` ボディを送信します。
 }
 ```
 
-ボディがプレーンな UTF-8 テキストストリームである成功レスポンスを返してください。エンドポイントが別のオリジンにある場合は、CORS でドキュメントのオリジンを許可してください。`OPTIONS` と `POST` を受け付け、`content-type` リクエストヘッダーを許可し、プリフライトとストリーミングレスポンスの両方で CORS ヘッダーを返します。`endpoint` を設定すると、Blume はチャット UI のみを生成し、サーバールート、グラウンディング用スナップショット、プロバイダーの依存関係、プロバイダーシークレットの警告は生成しません。検索、認証、レート制限、モデルへのアクセス、引用はすべてバックエンド側の責任となります。
+ボディがプレーンな UTF-8 テキストストリームである成功レスポンスを返してください。エンドポイントが別のオリジンにある場合は、CORS でドキュメントのオリジンを許可してください。`OPTIONS` と `POST` を受け付け、`content-type` リクエストヘッダーを許可し、プリフライトとストリーミングレスポンスの両方で CORS ヘッダーを返します。`endpoint` を設定すると、Blume はチャット UI のみを生成し、サーバールート、グラウンディング用スナップショット、プロバイダーの依存関係、プロバイダーシークレットの警告は生成しません。検索、認証、レート制限、モデルへのアクセス、引用はすべてバックエンド側の責任となります。併せて設定したアダプターは無視されます。
 
 ## クロスオリジンの呼び出し元 [#cross-origin-callers]
 
@@ -143,98 +143,199 @@ const response = await fetch("https://docs.example.com/api/ask", {
 
 ## サーバー出力が必要です [#server-output-required]
 
-Blume の組み込み Ask AI バックエンドはサーバールート（`POST /api/ask`）であるため、静的ビルドでは動作しません。サーバー出力に切り替えて、アダプターを選択してください。
+Blume の組み込み Ask AI バックエンドはサーバールート（`POST /api/ask`）であるため、静的ビルドでは動作しません。`blume/deploy` からホストアダプターを指定して、サーバー出力に切り替えてください。
 
 ```ts blume.config.ts lineNumbers
-deployment: {
-  output: "server",
-  adapter: "vercel",
-}
+import { vercel } from "blume/deploy";
+
+export default defineConfig({
+  deployment: vercel(),
+});
 ```
 
-Ask AI が有効で外部 `endpoint` が設定されていない静的ビルドは、`deployment.output` を `server` に設定するよう促すメッセージとともに即座に失敗します。アダプターについては [デプロイ](/docs/deployment) を参照してください。
+Ask AI が有効で外部 `endpoint` が設定されていない静的ビルドは、ホストアダプターを設定するよう促すメッセージとともに即座に失敗します。アダプターについては [デプロイ](/docs/deployment) を参照してください。
 
-## バックエンド [#backends]
+## アダプター [#adapters]
 
-デフォルトでは、Ask AI は **Vercel AI Gateway** を経由します。`model` は `provider/model` 形式の文字列なので、これを変更するだけでモデルを切り替えられ（`openai/gpt-5.5`、`anthropic/claude-sonnet-4-5` など）、プロバイダー SDK をインストールする必要はありません。ゲートウェイは環境から `AI_GATEWAY_API_KEY` を読み取り、Vercel にデプロイする際は自動的に接続されます。
+`provider` は回答するバックエンドを選択します。その値は**アダプター**です。アダプターは `blume/ai` からエクスポートされる小さな関数で、そのバックエンド固有のオプションを受け取り、Blume が生成されたルートに書き込むプレーンなディスクリプターを返します。各アダプターはモデル、キーを読み取る環境変数、[推論](#reasoning)のマッピング方法、必要なプロバイダー SDK をそれぞれ独自に持つため、バックエンド間で共通のフィールドを揃える必要はありません。
 
-Ask AI を別の場所に向けるには `provider` を設定します。各バックエンドは環境変数から API キーを読み取り、プロジェクトにインストールしたプロバイダー SDK を通じてストリーミングします。インストールが必要なのは実際に使用するものだけです。
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { openrouter } from "blume/ai";
 
-| `provider` | `model` | API キーの環境変数 | インストールする SDK |
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: openrouter({ model: "anthropic/claude-sonnet-4-5" }),
+    },
+  },
+});
+```
+
+| アダプター | 回答に使用するもの | API キーの環境変数 | インストールする SDK |
 | --- | --- | --- | --- |
-| `gateway`（デフォルト） | AI Gateway 経由の `provider/model` 形式の文字列 | `AI_GATEWAY_API_KEY` | 不要 — Blume に同梱 |
-| `openrouter` | 任意の [OpenRouter](https://openrouter.ai) モデル | `OPENROUTER_API_KEY` | `@openrouter/ai-sdk-provider` |
-| `llmgateway` | 任意の [LLMGateway](https://llmgateway.io) モデル | `LLMGATEWAY_API_KEY` | `@ai-sdk/openai-compatible` |
-| `inkeep` | [Inkeep](https://inkeep.com) の QA モデル | `INKEEP_API_KEY` | `@ai-sdk/openai-compatible` |
-| `openai-compatible` | エンドポイントが提供するもの | `apiKeyEnv` で設定 | `@ai-sdk/openai-compatible` |
+| [`gateway()`](#vercel-ai-gateway)（デフォルト） | Vercel AI Gateway 経由の `provider/model` 形式の文字列 | `AI_GATEWAY_API_KEY` | 不要 — Blume に同梱 |
+| [`openrouter()`](#openrouter) | 任意の [OpenRouter](https://openrouter.ai) モデル | `OPENROUTER_API_KEY` | `@openrouter/ai-sdk-provider` |
+| [`llmgateway()`](#llmgateway) | 任意の [LLMGateway](https://llmgateway.io) モデル | `LLMGATEWAY_API_KEY` | `@ai-sdk/openai-compatible` |
+| [`inkeep()`](#inkeep) | [Inkeep](https://inkeep.com) の QA モデル | `INKEEP_API_KEY` | `@ai-sdk/openai-compatible` |
+| [`openaiCompatible()`](#openai-compatible-endpoints) | エンドポイントが提供するもの | `apiKeyEnv` で指定 | `@ai-sdk/openai-compatible` |
 
-これらの SDK はオプションのピア依存関係なので、バックエンドに必要なものをプロジェクトに追加してください（例: `npm install @openrouter/ai-sdk-provider`）。不足している場合は、Vite がインポートの解決に失敗する前に、ビルドが正確なパッケージ名を示して警告します。
+これらの SDK はオプションのピア依存関係なので、アダプターに必要なものをプロジェクトに追加してください（例: `npm install @openrouter/ai-sdk-provider`）。不足している場合、`blume build` は Vite の実行前に停止し、パッケージ名とそれをインストールするコマンドを示します。[`blume doctor`](/docs/cli/doctor) でも報告されます。
 
-たとえば、OpenRouter を使用するには次のようにします。
+アダプターが返すディスクリプターは、種類、オプション、読み取る環境変数、必要な SDK からなるプレーンなデータです。そのため、生成されたルート（および[イジェクト](/docs/configuration/customization#eject)したルート）はこれをリテラルとしてインライン化し、プロバイダー SDK を名前でインポートします。リクエスト時に `blume.config.ts` を読み取るものはなく、シークレットがルートに書き込まれることもありません。アダプターはキーを保持する環境変数の**名前**を受け取り、ルートは Astro の [`getSecret()`](https://docs.astro.build/en/guides/environment-variables/#retrieving-secrets-programmatically) を通じてその値を読み取るため、各デプロイアダプターがそれぞれの方法でキーを提供します。Node、Vercel、Netlify では環境変数、Cloudflare では Worker の[バインディング](https://docs.astro.build/en/guides/integrations-guide/cloudflare/#environment-variables-and-secrets)が使用されます。
+
+### Vercel AI Gateway [#vercel-ai-gateway]
+
+デフォルトのアダプターです。`model` は `provider/model` 形式の文字列なので、これを変更するだけでモデルを切り替えられ（`openai/gpt-5.5`、`anthropic/claude-sonnet-4-5` など）、プロバイダー SDK をインストールする必要はありません。ゲートウェイは環境から `AI_GATEWAY_API_KEY` を読み取り、Vercel にデプロイする際は自動的に接続されます。Vercel 上ではデプロイメントの OIDC トークンで認証することもできます。
 
 ```ts blume.config.ts lineNumbers
-ai: {
-  ask: {
-    enabled: true,
-    provider: "openrouter",
-    model: "anthropic/claude-sonnet-4-5",
+import { defineConfig } from "blume";
+import { gateway } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: gateway({ model: "anthropic/claude-sonnet-4-5" }),
+    },
   },
-}
+});
 ```
 
-OpenAI 互換のエンドポイントであれば `openai-compatible` を通じて動作します。`baseUrl` とキーを保持する環境変数を指定してください。
+`provider` を未設定のままにすると、`gateway({ model: "openai/gpt-5.5" })` と同じになります。
+
+### OpenRouter [#openrouter]
+
+[OpenRouter](https://openrouter.ai) 上の任意のモデルを、専用の AI SDK プロバイダーを通じて使用できます。
 
 ```ts blume.config.ts lineNumbers
-ai: {
-  ask: {
-    enabled: true,
-    provider: "openai-compatible",
-    baseUrl: "https://my-gateway.example.com/v1",
-    apiKeyEnv: "MY_GATEWAY_API_KEY",
-    model: "gpt-4o",
+import { defineConfig } from "blume";
+import { openrouter } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: openrouter({
+        model: "anthropic/claude-sonnet-4-5",
+        reasoning: "none",
+      }),
+    },
   },
-}
+});
 ```
 
-いずれのバックエンドでも `apiKeyEnv`（および名前付きプロバイダーの場合は `baseUrl`）を設定すれば、別の環境変数やプロキシを指定できます。
+### LLMGateway [#llmgateway]
 
-すべての呼び出しで静的なリクエストヘッダーを送信するには、`headers` を設定します。たとえば共有バックエンドに対して呼び出し元を識別するヘッダーを付与すれば、そのバックエンド側の可観測性やレート制限がドキュメントからのトラフィックを他のトラフィックと区別できます。これはゲートウェイを含むすべてのバックエンドで動作します。
+[LLMGateway](https://llmgateway.io) 上の任意のモデルを、その OpenAI 互換エンドポイントを通じて使用できます。
 
 ```ts blume.config.ts lineNumbers
-ai: {
-  ask: {
-    enabled: true,
-    provider: "openai-compatible",
-    baseUrl: "https://llm.internal.example.com/v1",
-    apiKeyEnv: "INTERNAL_LLM_API_KEY",
-    headers: { "X-Caller-Id": "docs" },
+import { defineConfig } from "blume";
+import { llmgateway } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: llmgateway({ model: "openai/gpt-5.5" }),
+    },
   },
-}
+});
+```
+
+LLMGateway をセルフホストしている場合は、`baseUrl` でプリセットのエンドポイント（`https://api.llmgateway.io/v1`）を上書きできます。
+
+### Inkeep [#inkeep]
+
+[Inkeep](https://inkeep.com) は Inkeep ダッシュボードでインデックス化したコンテンツから回答し、独自の検索を実行するため、Blume はこれに**グラウンディングを適用しません**。このサイトのページのスナップショットは挿入されず、[検索サイズ](#retrieval-size)のオプションも適用されません。また推論の制御も持たないため、このアダプターは `reasoning` を受け付けません。
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { inkeep } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: inkeep({ model: "inkeep-qa-expert" }),
+    },
+  },
+});
+```
+
+`baseUrl` でプリセットのエンドポイント（`https://api.inkeep.com/v1`）を上書きできます。
+
+### OpenAI 互換エンドポイント [#openai-compatible-endpoints]
+
+OpenAI API に対応したエンドポイントであれば `openaiCompatible()` を通じて動作します。`baseUrl`、エンドポイントが提供する `model`、キーを保持する環境変数を指定してください。汎用エンドポイントにはこれらのプリセットがないため、3つとも必須です。`name` は AI SDK が報告するプロバイダー名で、デフォルトは `openai-compatible` です。
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { openaiCompatible } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: openaiCompatible({
+        baseUrl: "https://my-gateway.example.com/v1",
+        apiKeyEnv: "MY_GATEWAY_API_KEY",
+        model: "gpt-4o",
+        name: "my-gateway",
+      }),
+    },
+  },
+});
+```
+
+### すべてのアダプターで使えるオプション [#options-every-adapter-takes]
+
+**`apiKeyEnv`** を指定すると、アダプターはデフォルトとは別の環境変数を参照します。`gateway({ apiKeyEnv: "DOCS_GATEWAY_KEY" })` は `AI_GATEWAY_API_KEY` の代わりにその変数を読み取り、`blume dev`/`build` 時のシークレット不足の警告もその変数をチェックします。キーが設定されるまで、デプロイされたルートは変数名を示すメッセージとともに `503` を返します。ルートはリクエストボディを 64 KB までしか読み取らず、それより大きいものには `413` を返します。
+
+**`headers`** は、すべての呼び出しで静的なリクエストヘッダーを送信します。たとえば共有バックエンドに対して呼び出し元を識別するヘッダーを付与すれば、そのバックエンド側の可観測性やレート制限がドキュメントからのトラフィックを他のトラフィックと区別できます。
+
+```ts blume.config.ts lineNumbers
+provider: openaiCompatible({
+  baseUrl: "https://llm.internal.example.com/v1",
+  apiKeyEnv: "INTERNAL_LLM_API_KEY",
+  model: "gpt-4o",
+  headers: { "X-Caller-Id": "docs" },
+}),
 ```
 
 値は生成されたルートにそのまま書き込まれるため、シークレットは `headers` ではなく `apiKeyEnv` に保持してください。API キーの `Authorization` ヘッダーが最初に適用されるため、カスタムヘッダーがそれを置き換えることはできません。
 
-:::note
-**Inkeep** は Inkeep ダッシュボードでインデックス化したコンテンツから回答し、独自の検索を実行するため、Blume はグラウンディングを適用しません。それ以外のすべてのバックエンドは、このサイトのページに[グラウンディング](#grounding)されます。
-:::
+**`providerOptions`** は、それ以外のあらゆる設定を AI SDK の [`providerOptions`](https://ai-sdk.dev/docs/foundations/prompts#provider-options) へ、SDK 自身の形式（プロバイダー、次にオプションをキーとする形式）のまま渡します。そのため、新しいモデルの制御項目のために Blume 側で専用のフィールドを用意する必要はありません。
 
-キーは Astro の [`getSecret()`](https://docs.astro.build/en/guides/environment-variables/#retrieving-secrets-programmatically) を通じて読み取られるため、各アダプターがそれぞれの方法でキーを提供します。Node、Vercel、Netlify では環境変数、Cloudflare では Worker の[バインディング](https://docs.astro.build/en/guides/integrations-guide/cloudflare/#environment-variables-and-secrets)が使用されます。Ask AI を有効にすると、ページ内アイランドのために React も有効になります。詳細は[カスタマイズ](/docs/configuration/customization#interactive-islands)を参照してください。
+```ts blume.config.ts lineNumbers
+provider: gateway({
+  model: "openai/gpt-5.5",
+  providerOptions: { openai: { textVerbosity: "low" } },
+}),
+```
+
+Blume がマッピングするのは Blume 自身が定義するオプション（`model`、`reasoning`、`apiKeyEnv`、`headers`）のみで、`providerOptions` はそのまま転送します。そのため `providerOptions` はルートにインライン化される JSON である必要があり、基盤となるプロバイダーが想定するキー（ゲートウェイ経由の OpenAI モデルなら `openai`、OpenRouter なら `openrouter`）を使用する必要があります。Ask AI を有効にすると、ページ内アイランドのために React も有効になります。詳細は[カスタマイズ](/docs/configuration/customization#interactive-islands)を参照してください。
 
 ## 推論 [#reasoning]
 
-推論モデルは回答する前に思考しますが、デフォルトでどれだけ思考するかはモデルによって異なります。ドキュメントに基づいた Q&A では取得した抜粋が回答を含んでいるため、その思考の大半は読者が待たされるだけのレイテンシになります。`reasoning` はモデルがどれだけ推論するかを設定します。指定できる値は `"none"`、`"minimal"`、`"low"`、`"medium"`、`"high"`、`"xhigh"` です。
+推論モデルは回答する前に思考しますが、デフォルトでどれだけ思考するかはモデルによって異なります。ドキュメントに基づいた Q&A では取得した抜粋が回答を含んでいるため、その思考の大半は読者が待たされるだけのレイテンシになります。アダプターの `reasoning` オプションは、モデルがどれだけ推論するかを設定します。指定できる値は `"none"`、`"minimal"`、`"low"`、`"medium"`、`"high"`、`"xhigh"` です。
 
 ```ts blume.config.ts lineNumbers
-ai: {
-  ask: {
-    enabled: true,
-    model: "openai/gpt-5.5",
-    reasoning: "none",
-  },
-}
+provider: gateway({ model: "openai/gpt-5.5", reasoning: "none" }),
 ```
 
-この値はバックエンド自身の推論強度の制御として送信されます。ゲートウェイ経由では [AI SDK の `reasoning` オプション](https://ai-sdk.dev/docs/ai-sdk-core/reasoning)として渡され、ゲートウェイがそれをモデルの設定（たとえば OpenAI の `reasoning_effort`）にマッピングします。OpenRouter では `reasoning.effort` として、LLMGateway やカスタムの `openai-compatible` エンドポイントではリクエスト内の `reasoning_effort` として送信されるため、エンドポイントがそのパラメーターを受け付ける必要があります。また、選択したレベルをモデルがサポートしている必要があります。OpenAI はモデルが提供していないレベルを拒否するため（`"none"` と `"xhigh"` は一部のモデルにのみ存在します）、設定する前にモデルのドキュメントを確認してください。Inkeep は独自の QA パイプラインを実行し、推論の制御を持たないため、このバックエンドで `reasoning` を設定すると設定エラーになります。未設定のままにすると、モデルのデフォルトが維持されます。[検索サイズ](#retrieval-size)と同様に、これは網羅性と最初のトークンまでの時間のトレードオフであり、いずれの場合も回答はドキュメントに基づいたままです。
+各アダプターはこのレベルをバックエンド自身の推論強度の制御として送信します。そのため、このオプションは `ask` ではなくアダプターに置かれています。
+
+| アダプター | レベルの変換先 |
+| --- | --- |
+| `gateway()` | AI SDK の [`reasoning`](https://ai-sdk.dev/docs/ai-sdk-core/reasoning) 呼び出しオプション。ゲートウェイがこれをモデル自身の設定（たとえば OpenAI の `reasoning_effort`）にマッピングします。 |
+| `openrouter()` | モデルに設定される OpenRouter の `reasoning.effort`。このプロバイダーは AI SDK の呼び出しオプションを無視するため、レベルは OpenRouter が読み取る場所に配置されます。 |
+| `llmgateway()` | AI SDK の呼び出しオプションを通じて送信される、リクエスト内の `reasoning_effort`。 |
+| `openaiCompatible()` | リクエスト内の `reasoning_effort`。そのため、エンドポイントがそのパラメーターを受け付ける必要があります。 |
+| `inkeep()` | 利用できません。Inkeep は推論の制御を持たない独自の QA パイプラインを実行するため、このアダプターには `reasoning` オプションがなく、設定すると設定エラーになります。 |
+
+選択したレベルをモデルがサポートしている必要があります。OpenAI はモデルが提供していないレベルを拒否するため（`"none"` と `"xhigh"` は一部のモデルにのみ存在します）、設定する前にモデルのドキュメントを確認してください。未設定のままにすると、モデルのデフォルトが維持されます。[検索サイズ](#retrieval-size)と同様に、これは網羅性と最初のトークンまでの時間のトレードオフであり、いずれの場合も回答はドキュメントに基づいたままです。
 
 ## アナリティクス [#analytics]
 

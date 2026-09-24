@@ -6,7 +6,7 @@ description: >-
 
 Suchmaschinen und KI-Agents wollen dasselbe von deiner Dokumentation: eine saubere, maschinenlesbare Beschreibung dessen, was jede Seite sagt, wie die Seiten zusammenhängen und wer sie veröffentlicht. Blume behandelt beides als eine gemeinsame Discoverability-Ebene. Metadaten, Social Cards, Feeds und strukturierte Daten bedienen die Crawler, die dich ranken; `llms.txt`, rohes Markdown, eine JSON-API, ein MCP-Server und Discovery-Manifeste bedienen die Agents, die Fragen über dich beantworten — und die Dateien dazwischen (`robots.txt`, die Sitemap, JSON-LD) werden von beiden gelesen.
 
-Fast alles davon ist standardmäßig aktiv und braucht keine Konfiguration. Die Stellschrauben liegen unter zwei Keys in `blume.config.ts`: `seo` für das, was Suchmaschinen und soziale Plattformen sehen, und `ai` für das, was Agents sehen.
+Fast alles davon ist standardmäßig aktiv und braucht keine Konfiguration. Die Stellschrauben liegen unter zwei Keys in `blume.config.ts`: `seo` für das, was Suchmaschinen und soziale Plattformen sehen, und `agents` für das, was Agents sehen.
 
 ```ts blume.config.ts lineNumbers
 seo: {
@@ -17,7 +17,7 @@ seo: {
   structuredData: true,
   x: { handle: "@acme" },
 },
-ai: {
+agents: {
   llmsTxt: true,
   mcp: { enabled: false },
 },
@@ -42,7 +42,7 @@ Das meiste davon wird mit einer absoluten Site-URL deutlich schärfer — setze 
 
 Jede generierte Datei weicht einer, die du selbst mitlieferst: Lege eine `robots.txt`, `sitemap.xml`, `llms.txt`, `openapi.json` oder `agent-readability.json` in `public/` ab, und Blume liefert stattdessen deine aus.
 
-Der **Ask AI**-Assistent auf der Seite ist das eine KI-Feature, das anderswo dokumentiert ist: Es ist eher ein Produktfeature für Leser als eine Discovery-Oberfläche und liegt deshalb unter [Konfiguration](/docs/configuration/ask-ai).
+Der **Ask AI**-Assistent auf der Seite ist das eine KI-Feature, das anderswo dokumentiert ist: Es ist eher ein Produktfeature für Leser als eine Discovery-Oberfläche, wird deshalb unter `ai` konfiguriert und liegt unter [Konfiguration](/docs/configuration/ask-ai).
 
 ## Deine Arbeit prüfen [#checking-your-work]
 

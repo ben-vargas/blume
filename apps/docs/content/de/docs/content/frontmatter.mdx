@@ -1,0 +1,187 @@
+---
+title: Frontmatter
+description: >-
+  Alle Frontmatter-Felder, die eine Seite akzeptiert, alle optional — Titel, Beschreibung, Sidebar, SEO, Suche und der Rest, jeweils mit dem, was sie steuern.
+---
+
+Jede Seite akzeptiert die folgenden Frontmatter-Felder. Alle Felder sind optional.
+
+<TypeTable
+  type={{
+    title: { type: "string", description: "Page title." },
+    description: { type: "string", description: "Page summary." },
+    type: {
+      type: "string",
+      default: "doc",
+      description: "Content type. blog/changelog drive feeds.",
+    },
+    date: {
+      type: "string",
+      description: "Publish date for blog/changelog feeds (ISO or YAML date).",
+    },
+    authors: {
+      type: "string | string[] | object[]",
+      description:
+        "Post author(s) for blog/changelog content — a name, or objects with a name plus optional avatar/url and any extra fields. Preserved as-is.",
+    },
+    slug: { type: "string", description: "Override the generated slug." },
+    draft: {
+      type: "boolean",
+      default: "false",
+      description: "Exclude from production builds.",
+    },
+    deprecated: {
+      type: "boolean",
+      default: "false",
+      description:
+        "Mark the page deprecated: its sidebar row gets a deprecated pill (a translatable UI string).",
+    },
+    hidden: {
+      type: "boolean",
+      default: "false",
+      description: "Shorthand for sidebar.hidden.",
+    },
+    noindex: {
+      type: "boolean",
+      default: "false",
+      description: "Shorthand for seo.noindex.",
+    },
+    icon: {
+      type: "string",
+      description:
+        "Lucide icon for the page's sidebar row when sidebar.icon isn't set (sidebar.icon wins).",
+    },
+    lastModified: {
+      type: "string",
+      description:
+        'Pin the page\'s "last updated" date (ISO or YAML date); overrides the git-derived date.',
+    },
+  }}
+/>
+
+## Sidebar
+
+```yaml lineNumbers
+sidebar:
+  label: Install
+  order: 2
+  icon: download
+  badge: New
+  hidden: false
+  display: page
+```
+
+`hidden` entfernt die Seite aus der Sidebar und aus der Zurück/Weiter-Paginierung. Auf der `index`-Seite eines Ordners entfernt es nur die eigene Zeile der Seite: Die Gruppenzeile verlinkt weiterhin auf die Seite, und die Zurück/Weiter-Links führen weiterhin durch sie hindurch.
+
+`display` legt den Darstellungsmodus der Ordnergruppe der Seite fest ([Überschreibungen pro Gruppe](/docs/content/navigation#per-group-overrides)) und ist nur auf der `index`-Seite eines Ordners in der generierten Sidebar sinnvoll — überall sonst (auf einer Nicht-Index-Seite, der eigenen `index`-Seite des Content-Stammverzeichnisses oder jeder Seite unter einer expliziten `navigation.sidebar`) gibt es keine Gruppe zu konfigurieren, und Blume warnt mit `BLUME_SIDEBAR_DISPLAY_IGNORED`.
+
+## SEO
+
+```yaml lineNumbers
+seo:
+  title: Install Blume
+  description: Install Blume and scaffold your first project.
+  image: /og/install.png
+  canonical: https://acme.com/install
+  noindex: false
+  x:
+    creator: "@jane"
+```
+
+`noindex` gibt ein robots-`noindex` aus, entfernt die Seite aus der Sitemap und lässt ihre strukturierten Daten weg. `x.creator` schreibt die Seite einem X-Account zu (`twitter:creator`) — etwa der Person, die einen Gastbeitrag verfasst hat. Alle Felder findest du unter [Metadaten](/docs/discoverability/metadata#per-page-overrides).
+
+## Suche [#search]
+
+```yaml lineNumbers
+search:
+  exclude: false
+  tags: [api]
+```
+
+## KI [#ai]
+
+```yaml lineNumbers
+ai:
+  exclude: true
+```
+
+`ai.exclude` hält die Seite aus [`llms.txt` und `llms-full.txt`](/docs/discoverability/llms-txt#excluding-a-page) heraus. Die Seite wird trotzdem gerendert, bleibt in der Suche und behält ihren Platz in der Sitemap.
+
+## Changelog
+
+Changelog-Einträge (`type: changelog`) akzeptieren ein optionales `changelog`-Objekt für umfangreichere Feed- und Anzeige-Metadaten:
+
+```yaml lineNumbers
+type: changelog
+changelog:
+  version: 1.2.0
+  date: 2026-06-20
+  category: Features
+```
+
+`date` kann hier oder auf oberster Ebene stehen — beides fließt in den [Changelog-RSS-Feed](/docs/content#feeds) ein. Die generierte Timeline-Seite und den Feed findest du unter [Changelog](/docs/advanced/changelog).
+
+## Eigene Schlüssel [#custom-keys]
+
+Jeder Schlüssel, der nicht in dieser Referenz steht, lässt den Build fehlschlagen, sodass Tippfehler früh auffallen. Projekte mit eigenen Metadaten können zusätzliche Schlüssel über [`frontmatter.extend`](/docs/configuration#frontmatter) in `blume.config.ts` freischalten. Jeder davon wird durch ein Schema validiert, das das Projekt selbst mitbringt:
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { z } from "zod";
+
+export default defineConfig({
+  frontmatter: {
+    extend: {
+      owner: z.string(),
+      reviewedAt: z.coerce.date().optional(),
+    },
+  },
+});
+```
+
+```yaml page.mdx
+---
+title: Install
+owner: "@sam"
+reviewedAt: 2026-06-20
+---
+```
+
+Schemas werden über die [Standard Schema](https://standardschema.dev)-Schnittstelle akzeptiert, sodass Zod (egal welche Version dein Projekt installiert hat), Valibot und ArkType alle funktionieren. Jeder deklarierte Schlüssel wird auf jeder Seite validiert, auch dort, wo er fehlt. Ein Pflichtschema erzwingt den Schlüssel also auf der gesamten Website. Markiere ihn mit `.optional()`, damit er nur dort validiert wird, wo er vorhanden ist. Alle anderen Schlüssel werden weiterhin strikt validiert, und eingebaute Felder kannst du nicht neu deklarieren.
+
+### Schlüssel pro Typ [#per-type-keys]
+
+Wenn du Schlüssel nur für einen bestimmten Inhaltstyp verlangen willst, etwa den `status` eines RFC oder die `severity` eines Incident-Reports, deklariere sie stattdessen unter [`content.types`](/docs/configuration#content). Als Schlüssel dient dabei der Frontmatter-`type`, für den sie gelten:
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { z } from "zod";
+
+export default defineConfig({
+  content: {
+    types: {
+      rfc: {
+        frontmatter: {
+          domain: z.string(),
+          status: z.enum(["draft", "review", "enforced"]),
+        },
+      },
+    },
+  },
+});
+```
+
+```yaml rfcs/openapi-request-schemas.mdx
+---
+title: OpenAPI request schemas
+type: rfc
+domain: architecture
+status: enforced
+---
+```
+
+Schlüssel pro Typ folgen denselben Validierungsregeln wie `extend`, gelten aber nur für Seiten, deren aufgelöster `type` passt. Ist die Deklaration für [`content.defaultType`](/docs/configuration#content), gehören dazu auch Seiten, die gar keinen `type` setzen. Ein Schlüssel gehört zu genau einer Deklaration, entweder für die gesamte Website oder pro Typ, nicht zu beiden. Ein Schlüssel, der nur für einen anderen Typ deklariert ist, bleibt überall sonst unbekannt. Ein verirrter `status` auf einer normalen Doku-Seite lässt den Build also weiterhin fehlschlagen.
+
+Besteht eine Seite die Validierung nicht, schlägt `blume build` fehl, und die Diagnose nennt Datei und Schlüssel. Mit [`--no-strict`](/docs/cli#common-flags) läuft der Build trotzdem durch, und die fehlerhaften Seiten werden aus der Ausgabe entfernt. Wie viele das sind, steht in der Build-Zusammenfassung.
+
+Die Schemas werden aus `blume/schema` exportiert, damit du sie für Editor- und Migrations-Tools nutzen kannst.

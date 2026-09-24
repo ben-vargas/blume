@@ -35,6 +35,8 @@ Der Pfad jeder Datei innerhalb des pages-Ordners wird zu ihrer Route. `index` ve
 
 Eine benutzerdefinierte Seite **gewinnt** gegenüber einer generierten Route mit demselben Pfad. Fügt man beispielsweise `pages/changelog.astro` hinzu, ersetzt das Blumes [generierte Changelog-Zeitleiste](/docs/advanced/changelog) durch deine eigene.
 
+Blume kann die Pfade, die eine dynamische `[param]`-Route bedient, nicht aufzählen. Deshalb fehlen diese Seiten in der [Sitemap](/docs/discoverability/sitemap-and-robots), erhalten keine generierte [Open-Graph-Karte](/docs/discoverability/open-graph) und sind [`blume validate`](/docs/cli/validate) unbekannt, das einen Link auf eine solche Seite als defekt meldet. Übergib `ogImage` an `PageLayout`, um ihnen ein Teilen-Bild zu geben, oder gib jedem Pfad eine eigene statische Datei (`pages/compare/mintlify.astro` statt `pages/compare/[tool].astro`), um alle drei Vorteile zu erhalten.
+
 ## Website-Daten lesen [#reading-site-data]
 
 Importiere `blume:data`, um dieselbe aufgelöste Konfiguration, Navigation, Routen und Feeds zu lesen, die auch der Rest der Website verwendet:
@@ -127,15 +129,21 @@ Das Modul stellt Folgendes bereit:
 ---
 import { getCollection } from "astro:content";
 import data from "blume:data";
+import { getBlumeCollection } from "blume/runtime";
 
-// Each route's id matches its collection entry id.
-const routeById = new Map(data.routes.map((route) => [route.id, route.path]));
+// Under i18n every locale serves a route for each entry (its translation, or
+// a copy of the untranslated page), all sharing the entry's id. Key the map on
+// the default locale's routes only, so each post links once, in one language.
+const routes = getBlumeCollection(data, {
+  locale: data.config.i18n?.defaultLocale,
+});
+const routeByEntry = new Map(routes.map((route) => [route.entryId, route.path]));
 
 const posts = (await getCollection("docs"))
-  .filter((entry) => entry.data.type === "blog" && !entry.data.draft)
+  .filter((entry) => entry.data.type === "blog" && routeByEntry.has(entry.id))
   .map((entry) => ({
     description: entry.data.description,
-    href: routeById.get(entry.id),
+    href: routeByEntry.get(entry.id),
     title: entry.data.title,
   }));
 ---
@@ -156,7 +164,7 @@ const posts = (await getCollection("docs"))
 
 `blume/runtime` bündelt die gängigen Datenmuster, sodass du nicht auf die Interna von `blume:data` zugreifen musst.
 
-**`getBlumeCollection(data, query?)`** wählt Inhaltsrouten aus — gefiltert nach Sammlung, Locale oder Pfadpräfix, wobei Entwürfe und ausgeblendete Seiten ausgeschlossen und die Ergebnisse nach Pfad sortiert werden — genau das, was ein benutzerdefinierter Index braucht:
+**`getBlumeCollection(data, query?)`** wählt Inhaltsrouten aus — gefiltert nach Sammlung, Locale oder Pfadpräfix, wobei Entwürfe, ausgeblendete Seiten und i18n-Fallback-Kopien ausgeschlossen und die Ergebnisse nach Pfad sortiert werden — genau das, was ein benutzerdefinierter Index braucht:
 
 ```astro pages/blog/index.astro lineNumbers
 ---
@@ -225,7 +233,11 @@ const { config } = data;
 
 Die Kopfzeile, die eine benutzerdefinierte Seite erhält, ist dieselbe wie bei den Dokumentationsseiten, sodass das darin enthaltene Chrome mitkommt: Suche, der Theme-Umschalter, der Sprachwechsler und — wenn [Ask AI](/docs/configuration/ask-ai) konfiguriert ist — der Ask-AI-Auslöser. Nichts davon muss pro Seite eingerichtet werden. Übergib `askEnabled={false}`, um den Ask-Auslöser auf einer Seite wegzulassen und ihn überall sonst beizubehalten.
 
-Die Übergabe von `siteUrl` (und `ogEnabled`) leitet automatisch das `canonical` der Seite und ein generiertes `og:image` ab: Blume rendert für jede statische benutzerdefinierte Seite eine Open-Graph-Karte — einschließlich der Startseite, der am häufigsten geteilten URL —, ausgeliefert unter `/og/<route>.png` (`/og/index.png` für `/`). Die Startseiten-Karte verwendet den Website-Titel mit der Beschreibung als Kopfzeile; eine tiefer liegende Seite wird nach ihrem letzten Pfadsegment benannt. Setze `ogImage` oder `canonical` explizit, um eines von beiden zu überschreiben. `ogImage` erwartet einen wurzelrelativen Pfad — eine Datei in `public/`, die anhand von [`deployment.site`](/docs/deployment) zu der absoluten URL aufgelöst wird, die Crawler benötigen — oder eine externe URL, die unverändert durchgereicht wird:
+Auch die [Agent-Discovery-Links im Head](/docs/discoverability/agent-discovery#discovery-link-header) kommen mit: Das Layout liest die aufgelöste Konfiguration, sodass eine benutzerdefinierte Seite dieselben `describedby`-, `ai-catalog`- und `ard`-Links wie die Dokumentationsseiten trägt, ohne dass du ein Prop übergeben musst. Die Startseite weist außerdem ihren Markdown-Spiegel `/index.md` als `text/markdown`-Alternative aus, da dieser Spiegel immer existiert; andere benutzerdefinierte Seiten haben keinen, daher wird auch keiner ausgewiesen. Übergib `discovery={null}`, um die Links auf einer Seite wegzulassen.
+
+Übergib `transparentHeader`, damit die Kopfzeile zunächst durchsichtig ist und ihr Chrome in Weiß erscheint — so kann sie oben auf der Seite über einem dunklen Hero-Bereich liegen. Sobald die Seite scrollt, wird sie zur üblichen Milchglas-Leiste, und der Suchdialog behält durchgehend die eigenen Farben der Seite. Damit das sichtbar wird, muss der Hero-Bereich unter der Kopfzeile verlaufen — zieh ihn um die Höhe der Kopfzeile nach oben (`-mt-16`) und gleiche das mit einem Innenabstand oben aus.
+
+Die Übergabe von `siteUrl` (und `ogEnabled`) leitet automatisch das `canonical` der Seite und ein generiertes `og:image` ab: Blume rendert für jede statische benutzerdefinierte Seite (nicht für eine dynamische `[param]`-Seite) eine Open-Graph-Karte — einschließlich der Startseite, der am häufigsten geteilten URL —, ausgeliefert unter `/og/<route>.png` (`/og/index.png` für `/`). Die Startseiten-Karte verwendet den Website-Titel mit der Beschreibung als Kopfzeile; eine tiefer liegende Seite wird nach ihrem letzten Pfadsegment benannt. Setze `ogImage` oder `canonical` explizit, um eines von beiden zu überschreiben. `ogImage` erwartet einen wurzelrelativen Pfad — eine Datei in `public/`, die anhand von [`deployment.site`](/docs/deployment) zu der absoluten URL aufgelöst wird, die Crawler benötigen — oder eine externe URL, die unverändert durchgereicht wird:
 
 ```astro pages/index.astro lineNumbers
 <PageLayout
@@ -275,7 +287,7 @@ import data from "blume:data";
 
 Blume liefert ab Werk eine standardmäßige **Nicht gefunden**-Seite mit: eine zentrierte „404“-Meldung, eingebettet in das Website-Chrome (Kopfzeile, Suche, Theme), die für jede nicht zugeordnete URL ausgeliefert wird. `blume build` schreibt sie nach `404.html`, was statische Hoster automatisch ausliefern, und `blume dev` zeigt sie für unbekannte Routen an. Unterhalb der Meldung verlinkt eine Liste **Wo du als Nächstes nachsehen kannst** jeden Abschnitt der obersten Ebene sowie die Indizes `sitemap.xml` und [`llms.txt`](/docs/discoverability/llms-txt), sofern vorhanden, damit eine lesende Person — oder ein Agent, der einer veralteten URL gefolgt ist — einen Weg zurück hat.
 
-Die Seite hat außerdem ein Markdown-Gegenstück unter `/404.md` und ein JSON-Gegenstück unter `/404.json` ([RFC 9457](https://www.rfc-editor.org/rfc/rfc9457)-Problemdetails) mit denselben Rückkehr-Links (absolute URLs, sobald [`deployment.site`](/docs/deployment) gesetzt ist), dazu die [`openapi.json`](/docs/discoverability/json-api)-Beschreibung, wenn die JSON-API aktiviert ist. Bei einem [Vercel-Server-Build](/docs/deployment#server-rendering) erhält eine Anfrage nach einer fehlenden Seite, die [`Accept: text/markdown`](/docs/discoverability/markdown#content-negotiation) sendet oder eine `.md`-URL anfordert, hinter der keine Seite steht, diesen Markdown-Textkörper mit dem Status `404` statt der HTML-Hülle; eine Anfrage, die `Accept: application/json` sendet oder eine `.json`-URL anfordert, hinter der keine Datei steht, erhält das Problemdokument — sodass ein Agent nie eine Seite voller Chrome parsen muss, um zu erfahren, wohin es weitergeht.
+Die Seite hat außerdem ein Markdown-Gegenstück unter `/404.md` und ein JSON-Gegenstück unter `/404.json` ([RFC 9457](https://www.rfc-editor.org/rfc/rfc9457)-Problemdetails) mit denselben Rückkehr-Links (absolute URLs, sobald [`deployment.site`](/docs/deployment) gesetzt ist), dazu die [`openapi.json`](/docs/discoverability/json-api)-Beschreibung, wenn die JSON-API aktiviert ist. Bei einem [Vercel- oder Cloudflare-Server-Build](/docs/deployment#server-rendering) erhält eine Anfrage nach einer fehlenden Seite, die [`Accept: text/markdown`](/docs/discoverability/markdown#content-negotiation) sendet, den Markdown-Textkörper mit dem Status `404` statt der HTML-Hülle, und eine Anfrage, die `Accept: application/json` sendet, erhält das Problemdokument — sodass ein Agent nie eine Seite voller Chrome parsen muss, um zu erfahren, wohin es weitergeht. Auf Vercel gilt dasselbe für eine `.md`- oder `.json`-URL, hinter der keine Datei steht.
 
 Um sie durch deine eigene zu ersetzen, füge eine `pages/404.astro` hinzu. Sie übernimmt die `/404`-Route genauso, wie `pages/changelog.astro` den Changelog übernimmt — deine Seite gewinnt, und die Standardseite entfällt. Bau sie wie jede andere benutzerdefinierte Seite, in `PageLayout` oder `RootLayout`:
 

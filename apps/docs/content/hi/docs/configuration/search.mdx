@@ -1,12 +1,37 @@
 ---
 title: खोज
 description: >-
-  क्लाइंट-साइड खोज जो बिना किसी API keys के तुरंत काम करती है, साथ ही वैकल्पिक होस्टेड और सिमेंटिक बैकएंड जिन पर आप अपने docs के बढ़ने के साथ स्विच कर सकते हैं।
+  क्लाइंट-साइड खोज जो बिना किसी API keys के तुरंत काम करती है, साथ ही वैकल्पिक होस्टेड और सिमेंटिक एडैप्टर जिन पर आप अपने docs के बढ़ने के साथ स्विच कर सकते हैं।
 ---
 
-Blume बिना किसी होस्टेड इन्फ्रास्ट्रक्चर और बिना API keys के लोकल खोज प्रदान करता है। यह ब्राउज़र में चलती है, `blume dev` और `blume build` दोनों में काम करती है, और केवल आपकी वास्तविक सामग्री को इंडेक्स करती है — नेविगेशन क्रोम और बाहर रखे गए पेज छोड़ दिए जाते हैं। जब आपकी ज़रूरतें इससे आगे बढ़ जाएँ, तो आप खोज के दिखने या व्यवहार करने के तरीके को बदले बिना किसी होस्टेड या सिमेंटिक बैकएंड पर स्विच कर सकते हैं — केवल आपके द्वारा कॉन्फ़िगर किया गया `search.provider` बदलता है।
+Blume बिना किसी होस्टेड इन्फ्रास्ट्रक्चर और बिना API keys के लोकल खोज प्रदान करता है। यह ब्राउज़र में चलती है, `blume dev` और `blume build` दोनों में काम करती है, और केवल आपकी वास्तविक सामग्री को इंडेक्स करती है — नेविगेशन क्रोम और बाहर रखे गए पेज छोड़ दिए जाते हैं। जब आपकी ज़रूरतें इससे आगे बढ़ जाएँ, तो आप खोज के दिखने या व्यवहार करने के तरीके को बदले बिना किसी होस्टेड या सिमेंटिक बैकएंड पर स्विच कर सकते हैं — केवल वह एडैप्टर बदलता है जिसे आप `search` को पास करते हैं।
 
-Blume Fumadocs के प्रोवाइडर सेट की बराबरी करता है: **Orama**, **FlexSearch**, **Algolia**, **Orama Cloud**, **Typesense**, और **Mixedbread** (साथ ही **Pagefind**)। केवल कॉन्फ़िगर किए गए प्रोवाइडर का SDK ही आपके प्रोजेक्ट में इंस्टॉल होता है, इसलिए एक बैकएंड चुनने से बाकी कभी नहीं आते।
+हर बैकएंड `blume/search` से इम्पोर्ट किया गया एक **एडैप्टर** है: **Orama** (डिफ़ॉल्ट), **FlexSearch**, **Pagefind**, **Algolia**, **Orama Cloud**, **Typesense**, और **Mixedbread**। हर एडैप्टर अपने ऑप्शन, अपनी रनटाइम डिपेंडेंसी, और अपने लिए ज़रूरी सीक्रेट स्वयं संभालता है, इसलिए केवल कॉन्फ़िगर किए गए एडैप्टर का SDK ही आपके प्रोजेक्ट में इंस्टॉल होता है — एक बैकएंड चुनने से बाकी कभी नहीं आते।
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { algolia } from "blume/search";
+
+export default defineConfig({
+  search: algolia({
+    appId: "YOUR_APP_ID",
+    apiKey: "YOUR_SEARCH_ONLY_KEY",
+    indexName: "docs",
+  }),
+});
+```
+
+एडैप्टर बैकएंड का एक सादा विवरण होता है — कोई लाइव क्लाइंट नहीं — इसलिए Blume इसे जनरेट की गई साइट में और eject किए गए प्रोजेक्ट में इनलाइन कर सकता है। एडैप्टर को सीधे पास करें, या जब आप इसके साथ [लोकप्रिय लिंक](#popular-pages) या [इंडेक्सिंग](#whats-indexed) ऑप्शन भी सेट करना चाहें, तो ऑब्जेक्ट फ़ॉर्म का उपयोग करें:
+
+```ts blume.config.ts lineNumbers
+import { pagefind } from "blume/search";
+
+search: {
+  provider: pagefind(),
+  popular: [{ href: "/guides/getting-started", icon: "rocket", label: "Getting started" }],
+  indexing: { includeCodeBlocks: true },
+},
+```
 
 ## खोज का उपयोग [#using-search]
 
@@ -28,7 +53,7 @@ search: {
 },
 ```
 
-प्रत्येक एंट्री एक `href` (आंतरिक रूट या बाहरी URL) और एक `label` लेती है, साथ ही एक वैकल्पिक `icon` — कोई [बिल्ट-इन आइकन](/docs/content/components#icon) नाम, इमेज पाथ/URL, या इनलाइन SVG (nav आइकनों जैसे ही _इनपुट_), जो डिफ़ॉल्ट रूप से एक फ़ाइल ग्लिफ़ होता है। साइडबार फ़ॉलबैक बनाए रखने के लिए `popular` को छोड़ दें या खाली रहने दें।
+प्रत्येक एंट्री एक `href` (आंतरिक रूट या बाहरी URL) और एक `label` लेती है, साथ ही एक वैकल्पिक `icon` — कोई [बिल्ट-इन आइकन](/docs/content/components#icon) नाम, इमेज पाथ/URL, या इनलाइन SVG (nav आइकनों जैसे ही _इनपुट_), जो डिफ़ॉल्ट रूप से एक फ़ाइल ग्लिफ़ होता है। साइडबार फ़ॉलबैक बनाए रखने के लिए `popular` को छोड़ दें या खाली रहने दें। ऑब्जेक्ट फ़ॉर्म में `provider` को छोड़ देने पर डिफ़ॉल्ट Orama एडैप्टर बना रहता है।
 
 `href` ऐसे लिखें जैसे साइट रूट पर माउंट हो — `basePath` आपके लिए अपने आप लागू किया जाता है, ठीक `navigation.featured` की तरह। बाहरी URL बिना बदलाव के आगे बढ़ जाते हैं।
 
@@ -54,31 +79,31 @@ search: {
 },
 ```
 
-हर fence का मुख्य भाग और शीर्षक (ऊपर `blume.config.ts`) खोजे जाने योग्य बन जाते हैं; भाषा और fence मार्कर नहीं। `.mdx` पेजों पर इंडेक्स कंपोनेंट्स को उस टेक्स्ट के रूप में पढ़ता है जो वे दिखाते हैं — किसी Card का शीर्षक, किसी Tab का लेबल, किसी TypeTable के विवरण — और इसके लिए वही सीरियलाइज़र उपयोग होते हैं जो [एजेंट सरफ़ेस](/docs/discoverability/markdown) उपयोग करते हैं, इसलिए एक `ai.markdownComponents` एंट्री आपके अपने कंपोनेंट्स को भी कवर कर लेती है। इस ऑप्शन का Pagefind या Mixedbread पर कोई प्रभाव नहीं पड़ता। यह अपेक्षा रखें कि आपकी fenced सामग्री के साथ इंडेक्स बढ़ेगा — क्लाइंट इंडेक्स हर पाठक तक भेजा जाता है, होस्टेड प्रोवाइडर रिकॉर्ड के आकार की सीमा तय करते हैं (जब किसी एक पेज का रिकॉर्ड उसके प्लान की सीमा से आगे निकल जाता है तो Algolia सिंक बैच को अस्वीकार कर देता है, और पिछला इंडेक्स ही लाइव बना रहता है), और किसी fence के भीतर मिला मिलान परिणाम के अंश में सपाट किया हुआ कोड दिखाता है।
+हर fence का मुख्य भाग और शीर्षक (ऊपर `blume.config.ts`) खोजे जाने योग्य बन जाते हैं; भाषा और fence मार्कर नहीं। `.mdx` पेजों पर इंडेक्स कंपोनेंट्स को उस टेक्स्ट के रूप में पढ़ता है जो वे दिखाते हैं — किसी Card का शीर्षक, किसी Tab का लेबल, किसी TypeTable के विवरण — और इसके लिए वही सीरियलाइज़र उपयोग होते हैं जो [एजेंट सरफ़ेस](/docs/discoverability/markdown) उपयोग करते हैं, इसलिए एक `agents.markdownComponents` एंट्री आपके अपने कंपोनेंट्स को भी कवर कर लेती है। इस ऑप्शन का Pagefind या Mixedbread पर कोई प्रभाव नहीं पड़ता। यह अपेक्षा रखें कि आपकी fenced सामग्री के साथ इंडेक्स बढ़ेगा — क्लाइंट इंडेक्स हर पाठक तक भेजा जाता है, होस्टेड एडैप्टर रिकॉर्ड के आकार की सीमा तय करते हैं (जब किसी एक पेज का रिकॉर्ड उसके प्लान की सीमा से आगे निकल जाता है तो Algolia सिंक बैच को अस्वीकार कर देता है, और पिछला इंडेक्स ही लाइव बना रहता है), और किसी fence के भीतर मिला मिलान परिणाम के अंश में सपाट किया हुआ कोड दिखाता है।
 
 किसी [वर्शन वाली](/docs/content/versioning) साइट पर, परिणाम डिफ़ॉल्ट रूप से उसी वर्शन तक सीमित रहते हैं जिसे देखा जा रहा है, और डायलॉग के फ़ुटर में एक "All versions" टॉगल होता है (जो हर पाठक के लिए याद रखा जाता है)। दूसरे वर्शन के मिलान अपनी पंक्ति पर अपना वर्शन बताते हैं। Orama, FlexSearch, Algolia, और Typesense इस स्कोपिंग का पालन करते हैं — होस्टेड रिकॉर्ड एक `version` facet रखते हैं, जिसमें मौजूदा docs `"current"` के रूप में अपलोड होते हैं — जबकि Pagefind बिना स्कोप के रहता है, जो उसके locale व्यवहार के अनुरूप है।
 
 ## टैग [#tags]
 
-किसी पेज को खोज डायलॉग में एक फ़िल्टर के अंतर्गत समूहित करने के लिए उसके frontmatter में `search.tags` जोड़ें — पाठक एक क्लिक से परिणामों को किसी टैग तक सीमित कर सकते हैं। होस्टेड प्रोवाइडरों पर टैग एक facet भी बन जाते हैं।
+किसी पेज को खोज डायलॉग में एक फ़िल्टर के अंतर्गत समूहित करने के लिए उसके frontmatter में `search.tags` जोड़ें — पाठक एक क्लिक से परिणामों को किसी टैग तक सीमित कर सकते हैं। होस्टेड एडैप्टरों पर टैग एक facet भी बन जाते हैं।
 
 ```yaml
 search:
   tags: [api, reference]
 ```
 
-## प्रोवाइडर [#providers]
+## एडैप्टर [#adapters]
 
-क्लाइंट-साइड प्रोवाइडर बिना keys के चलते हैं और किसी अतिरिक्त config की ज़रूरत नहीं रखते। होस्टेड प्रोवाइडर `blume.config.ts` में **सार्वजनिक** क्रेडेंशियल लेते हैं (ब्राउज़र तक भेजना सुरक्षित) और बिल्ड के समय अपनी **गुप्त** एडमिन key एक environment variable से पढ़ते हैं — सीक्रेट कभी config या क्लाइंट बंडल में नहीं पहुँचता।
+क्लाइंट-साइड एडैप्टर बिना keys के चलते हैं और किसी ऑप्शन की ज़रूरत नहीं रखते — उनके क्लाइंट `i18n` से कॉन्फ़िगर होते हैं (या, Pagefind के लिए, बिल्ड किए गए HTML से), इसलिए कोई अज्ञात key अनदेखी किए जाने के बजाय config वैलिडेशन द्वारा अस्वीकार कर दी जाती है। होस्टेड एडैप्टर **सार्वजनिक** क्रेडेंशियल लेते हैं (ब्राउज़र तक भेजना सुरक्षित) और बिल्ड के समय अपनी **गुप्त** एडमिन key एक environment variable से पढ़ते हैं — सीक्रेट कभी config या क्लाइंट बंडल में नहीं पहुँचता। किसी होस्टेड एडैप्टर को आप जो भी ऑप्शन पास करते हैं, वह ज्यों-का-त्यों रखा जाता है और ब्राउज़र में उसके सर्च क्लाइंट को (या, Mixedbread के लिए, सर्च एंडपॉइंट को) सौंप दिया जाता है, इसलिए जिस ऑप्शन का Blume नाम नहीं लेता, वह भी SDK तक पहुँचता है — Algolia का `liteClient`, Typesense `Client`, या `OramaClient`। ये ऑप्शन JSON वैल्यू होने चाहिए — डिस्क्रिप्टर जनरेट किए गए प्रोजेक्ट में एक literal के रूप में इनलाइन किया जाता है, इसलिए कोई फ़ंक्शन, `undefined`, या bigint रास्ते में गायब होने के बजाय एक पाथ के साथ config वैलिडेशन में विफल हो जाता है।
 
 ### Orama (डिफ़ॉल्ट) [#orama-default]
 
-Blume का डिफ़ॉल्ट इंजन। यह `/blume-search.json` पर सर्व किया जाने वाला एक JSON इंडेक्स बनाता है और ब्राउज़र में उससे क्वेरी करता है — तुरंत, क्लाइंट-साइड, और `blume dev` में संपादन करते ही लाइव। कोई keys नहीं, कोई सेवा नहीं।
+Blume का डिफ़ॉल्ट इंजन। यह `/blume-search.json` पर सर्व किया जाने वाला एक JSON इंडेक्स बनाता है और ब्राउज़र में उससे क्वेरी करता है — तुरंत, क्लाइंट-साइड, और `blume dev` में संपादन करते ही लाइव। कोई keys नहीं, कोई सेवा नहीं। `search` को पूरी तरह छोड़ देने पर यही चुना जाता है; इसे केवल तभी लिखें जब आप इसे स्पष्ट रूप से दर्शाना चाहते हों:
 
 ```ts blume.config.ts lineNumbers
-search: {
-  provider: "orama", // default
-}
+import { orama } from "blume/search";
+
+search: orama(),
 ```
 
 #### गैर-लैटिन लिपियाँ [#non-latin-scripts]
@@ -103,9 +128,9 @@ i18n: {
 FlexSearch में इसके समकक्ष कोई सेगमेंटेशन हुक नहीं है, इसलिए गैर-लैटिन लिपि वाली साइटों के लिए Orama (डिफ़ॉल्ट) या [Pagefind](#pagefind) को प्राथमिकता दें, जिसका `pagefind_extended` बाइनरी भाषाओं के एक व्यापक समूह को इंडेक्स करता है और चीनी, जापानी, और कोरियाई को नेटिव रूप से विभाजित करता है।
 
 ```ts blume.config.ts lineNumbers
-search: {
-  provider: "flexsearch",
-}
+import { flexsearch } from "blume/search";
+
+search: flexsearch(),
 ```
 
 ### Pagefind
@@ -113,26 +138,25 @@ search: {
 बहुत बड़े docs के लिए, [Pagefind](https://pagefind.app) चुनें। यह आपके बिल्ड किए गए HTML को इंडेक्स करता है और इंडेक्स को माँग पर शार्ड्स में लोड करता है, जिससे साइट चाहे कितनी भी बड़ी हो जाए, प्रारंभिक payload छोटा बना रहता है।
 
 ```ts blume.config.ts lineNumbers
-search: {
-  provider: "pagefind",
-}
+import { pagefind } from "blume/search";
+
+search: pagefind(),
 ```
 
-Pagefind केवल `blume build` के दौरान चलता है, इसलिए इस प्रोवाइडर के साथ `blume dev` में खोज उपलब्ध नहीं होती।
+Pagefind केवल `blume build` के दौरान चलता है, इसलिए इस एडैप्टर के साथ `blume dev` में खोज उपलब्ध नहीं होती। यह हर docs पेज के आर्टिकल को इंडेक्स करता है — उसके आस-पास के हेडर, साइडबार, या फ़ुटर को नहीं — इसलिए `PageLayout` पर बने कस्टम पेज, 404 पेज, और जनरेट किया गया changelog इंडेक्स इसके परिणामों में नहीं आते।
 
 ### Algolia
 
 ब्राउज़र आपकी search-only key से सीधे [Algolia](https://www.algolia.com) से क्वेरी करता है। हर `blume build` इंडेक्स को `ALGOLIA_ADMIN_API_KEY` से मिली एडमिन key का उपयोग करके बदल देता है (यदि यह सेट नहीं है तो बिल्ड चेतावनी देकर अपलोड छोड़ देता है)। हर सिंक पर पूरा इंडेक्स बदल दिया जाता है, इसलिए हटाए गए या नाम बदले गए पेज बासी परिणामों के रूप में नहीं टिके रहते।
 
 ```ts blume.config.ts lineNumbers
-search: {
-  provider: "algolia",
-  algolia: {
-    appId: "YOUR_APP_ID",
-    indexName: "docs",
-    searchApiKey: "YOUR_SEARCH_ONLY_KEY", // public
-  },
-}
+import { algolia } from "blume/search";
+
+search: algolia({
+  appId: "YOUR_APP_ID",
+  apiKey: "YOUR_SEARCH_ONLY_KEY", // public
+  indexName: "docs",
+}),
 ```
 
 ### Orama Cloud
@@ -140,14 +164,13 @@ search: {
 होस्टेड Orama। ब्राउज़र सार्वजनिक API key के साथ आपके इंडेक्स एंडपॉइंट से क्वेरी करता है; `blume build`, `ORAMA_PRIVATE_API_KEY` का उपयोग करके रिकॉर्ड इंडेक्स में भेजता है। सिंक सक्षम करने के लिए `indexId` सेट करें।
 
 ```ts blume.config.ts lineNumbers
-search: {
-  provider: "orama-cloud",
-  oramaCloud: {
-    endpoint: "https://cloud.orama.run/v1/indexes/your-index",
-    apiKey: "YOUR_PUBLIC_API_KEY",
-    indexId: "your-index-id", // for the build-time sync
-  },
-}
+import { oramaCloud } from "blume/search";
+
+search: oramaCloud({
+  endpoint: "https://cloud.orama.run/v1/indexes/your-index",
+  apiKey: "YOUR_PUBLIC_API_KEY",
+  indexId: "your-index-id", // for the build-time sync
+}),
 ```
 
 ### Typesense
@@ -155,37 +178,35 @@ search: {
 सेल्फ-होस्टेड या क्लाउड [Typesense](https://typesense.org)। ब्राउज़र search-only key से कलेक्शन से क्वेरी करता है; `blume build`, `TYPESENSE_ADMIN_API_KEY` का उपयोग करके कलेक्शन फिर से बनाता है और डॉक्युमेंट इम्पोर्ट करता है। हर सिंक पर कलेक्शन हटाकर दोबारा बनाया जाता है ताकि हटाए गए या नाम बदले गए पेज बासी परिणामों के रूप में न टिकें — यदि आप कलेक्शन की सेटिंग्स हाथ से समायोजित करते हैं, तो बिल्ड के बाद उन्हें फिर से लागू करें।
 
 ```ts blume.config.ts lineNumbers
-search: {
-  provider: "typesense",
-  typesense: {
-    host: "xyz.a1.typesense.net",
-    collection: "docs",
-    searchApiKey: "YOUR_SEARCH_ONLY_KEY", // public
-    // port + protocol default to 443 / https
-  },
-}
+import { typesense } from "blume/search";
+
+search: typesense({
+  host: "xyz.a1.typesense.net",
+  collection: "docs",
+  apiKey: "YOUR_SEARCH_ONLY_KEY", // public
+  // port + protocol default to 443 / https
+}),
 ```
 
 ### Mixedbread
 
-[Mixedbread](https://www.mixedbread.com) के माध्यम से सिमेंटिक खोज। क्वेरीज़ एक जनरेट किए गए `/api/search` एंडपॉइंट से होकर जाती हैं जो आपकी key रखता है, इसलिए इस प्रोवाइडर को **सर्वर आउटपुट की आवश्यकता है** (`deployment.output: "server"`)। एंडपॉइंट `MIXEDBREAD_API_KEY` पढ़ता है। अपने बिल्ड में Mixedbread CLI से अपनी सामग्री को स्टोर में सिंक करें, जैसे `mxbai vs sync <STORE_ID> ./content --ci`।
+[Mixedbread](https://www.mixedbread.com) के माध्यम से सिमेंटिक खोज। क्वेरीज़ एक जनरेट किए गए `/api/search` एंडपॉइंट से होकर जाती हैं जो आपकी key रखता है, इसलिए इस एडैप्टर को **सर्वर आउटपुट की आवश्यकता है**: एक होस्ट एडैप्टर, जैसे `blume/deploy` से `deployment: vercel()` (देखें [सर्वर रेंडरिंग](/docs/deployment#server-rendering))। एंडपॉइंट `MIXEDBREAD_API_KEY` पढ़ता है। अपने बिल्ड में Mixedbread CLI से अपनी सामग्री को स्टोर में सिंक करें, जैसे `mxbai vs sync <STORE_ID> ./content --ci`।
 
 ```ts blume.config.ts lineNumbers
-search: {
-  provider: "mixedbread",
-  mixedbread: {
-    storeId: "YOUR_STORE_ID",
-  },
-}
+import { mixedbread } from "blume/search";
+
+search: mixedbread({
+  storeId: "YOUR_STORE_ID",
+}),
 ```
 
 ### खोज को अक्षम करना [#disabling-search]
 
 ```ts blume.config.ts lineNumbers
-search: {
-  provider: "none",
-}
+search: false,
 ```
+
+जब आप फिर भी चाहते हों कि `indexing` MCP सर्वर के इंडेक्स पर लागू हो, तो इसके बजाय ऑब्जेक्ट फ़ॉर्म में `provider: false` सेट करें।
 
 ## पेजों को बाहर रखना [#excluding-pages]
 

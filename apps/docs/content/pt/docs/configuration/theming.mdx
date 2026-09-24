@@ -225,7 +225,13 @@ O `theme.css` é embutido no ponto de entrada do Tailwind do site, então direti
 | `--blume-accent` | Cor de destaque |
 | `--blume-accent-foreground` | Texto e ícones sobre um fundo de destaque |
 | `--blume-action` | Destaque secundário (padrão: cor de destaque) |
+| `--blume-action-foreground` | Texto e ícones sobre um fundo de ação (padrão: cor de primeiro plano do destaque) |
 | `--blume-code-background` | Superfície do bloco de código |
+| `--blume-code-highlight`, `--blume-code-highlight-border` | Fundo e borda esquerda de uma linha de código realçada (`// [!code highlight]` ou um intervalo `{1,4-5}`) |
+| `--blume-code-add`, `--blume-code-add-border` | Fundo e borda esquerda de uma linha adicionada (`// [!code ++]`) |
+| `--blume-code-remove`, `--blume-code-remove-border` | Fundo e borda esquerda de uma linha removida (`// [!code --]`) |
+| `--blume-code-word`, `--blume-code-word-border` | Fundo e contorno de uma palavra realçada (`// [!code word:…]`) |
+| `--blume-content-width` | Largura máxima da coluna de prosa — artigo, trilha de navegação, sumário, feedback e paginação (padrão: `42rem`) |
 | `--blume-radius` | Raio dos cantos |
 | `--blume-font-display` | Fonte dos títulos |
 | `--blume-font-body` | Fonte do corpo / interface |
@@ -253,6 +259,9 @@ O tema do Blume é construído internamente com o Tailwind v4, e os arquivos `.a
 | `--blume-accent`            | `bg-accent`, `text-accent` |
 | `--blume-accent-foreground` | `text-accent-foreground`   |
 | `--blume-action`            | `bg-action`, `text-action` |
+| `--blume-action-foreground` | `text-action-foreground`   |
+| `--blume-code-background`   | `bg-code`                  |
+| `--blume-content-width`     | `max-w-content`            |
 | `--blume-radius`            | `rounded-blume`            |
 | `--blume-font-display`      | `font-display`             |
 | `--blume-font-body`         | `font-sans`                |

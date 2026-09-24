@@ -45,7 +45,7 @@ Blume は Astro と Vite の上に構築され、デフォルトで静的 HTML �
 ## すべて同梱 [#everything-included]
 
 - **コンポーネント** — コールアウト、カード、ステップ、タブ、アコーディオン、バッジ、ファイルツリー、パラメータテーブルが、MDX で[インポート不要](/docs/content/components)で使えます。
-- **ローカル検索** — Orama が開発環境でも本番環境でも動作します。大規模サイト向けには Pagefind がフラグ 1 つで利用できます。ホスト型インデックスは不要です。
+- **ローカル検索** — Orama が開発環境でも本番環境でも動作します。大規模サイト向けには Pagefind がアダプター 1 つで利用できます（`search: pagefind()`）。ホスト型インデックスは不要です。
 - **AI** — [`llms.txt`、生の Markdown URL、OpenAPI 記述付きの JSON API、Copy as Markdown、Open in chat、ホスト型 MCP サーバー](/docs/discoverability)。さらにオプションの [Ask AI アシスタント](/docs/configuration/ask-ai)。
 - **ナビゲーション** — ファイルから推論され、`meta.ts` や設定で調整できます。
 - **SEO** — メタデータ、Open Graph 画像、RSS フィード、JSON-LD を[標準搭載](/docs/discoverability)。

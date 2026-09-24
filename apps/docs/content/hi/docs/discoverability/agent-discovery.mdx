@@ -11,7 +11,7 @@ description: >-
 Blume आपकी साइट रूट पर एक **`/agent-readability.json`** मैनिफ़ेस्ट लिखता है जो इस अनुभाग में वर्णित एजेंट-मुखी सरफेस को इंडेक्स करता है — ताकि एजेंट परंपराओं का अनुमान लगाने या HTML स्क्रैप करने के बजाय एक ही फ़ेच में उसे खोज सके। `llms.txt` की तरह, यह डिफ़ॉल्ट रूप से चालू है:
 
 ```ts blume.config.ts lineNumbers
-seo: {
+agents: {
   agentReadability: true,
 }
 ```
@@ -38,7 +38,7 @@ seo: {
     }
   },
   "description": "Docs for the Acme API.",
-  "generator": "blume@1.0.0",
+  "generator": "blume@2.0.0",
   "name": "Acme Docs",
   "site": "https://docs.example.com",
   "contentUsage": { "search": true, "ai-input": true, "ai-train": true },
@@ -48,7 +48,7 @@ seo: {
 
 `contentNegotiation` फ़ील्ड केवल तभी दिखाई देता है जब डिप्लॉय की गई साइट वास्तव में `Accept: text/markdown` हेडर का सम्मान करती है — देखें [कॉन्टेंट नेगोशिएशन](/docs/discoverability/markdown#content-negotiation); हर दूसरे डिप्लॉयमेंट पर मैनिफ़ेस्ट केवल `.md` मिरर पैटर्न का प्रचार करता है।
 
-इसे छोड़ने के लिए `seo.agentReadability` को `false` पर सेट करें, या नियंत्रण अपने हाथ में लेने के लिए अपनी स्वयं की `public/agent-readability.json` भेजें — Blume उस फ़ाइल को कभी अधिलेखित नहीं करता जिसे आप `public/` में रखते हैं।
+इसे छोड़ने के लिए `agents.agentReadability` को `false` पर सेट करें, या नियंत्रण अपने हाथ में लेने के लिए अपनी स्वयं की `public/agent-readability.json` भेजें — Blume उस फ़ाइल को कभी अधिलेखित नहीं करता जिसे आप `public/` में रखते हैं।
 
 ## डिस्कवरी Link हेडर [#discovery-link-header]
 
@@ -186,11 +186,11 @@ API कैटलॉग API सूचीबद्ध करता है। **AI 
 
 ARD का वर्तमान संशोधन मैनिफ़ेस्ट को `/.well-known/ard.json` से पढ़ता है और `ai-catalog.json` को पूर्ववर्ती पथ कहता है, इसलिए Blume वही डॉक्यूमेंट दोनों जगह लिखता है, हर पेज के हेड में उसे दोनों लिंक रिलेशनों (`ai-catalog` और `ard`) के अंतर्गत प्रचारित करता है, और उसे `llms.txt` तथा `agent-readability.json` में सूचीबद्ध करता है। कैटलॉग और उसके `.well-known` पड़ोसी (API कैटलॉग, MCP डिस्कवरी फ़ाइलें) हर बिल्ड सरफेस पर `Access-Control-Allow-Origin: *` के साथ सर्व किए जाते हैं, ताकि किसी अन्य ऑरिजिन से उन्हें पढ़ने वाली रजिस्ट्री ब्लॉक न हो।
 
-प्रविष्टि पहचानकर्ता आपके डोमेन पर एंकर किए जाते हैं, इसलिए कैटलॉग को एक [`deployment.site`](/docs/deployment) की आवश्यकता होती है — उसके बिना कुछ भी उत्सर्जित नहीं होता। यह डिफ़ॉल्ट रूप से चालू है; `ai.catalog: false` इसे बंद कर देता है। जनरेट किए गए प्रश्न साइट शीर्षक और प्रत्येक प्रविष्टि के अपने विवरण से व्युत्पन्न होते हैं। किसी प्रविष्टि के लिए अपने स्वयं के प्रश्न लिखने हेतु, उन्हें पहचानकर्ता की पूँछ (`<namespace>:<name>`) द्वारा कुंजीबद्ध करें:
+प्रविष्टि पहचानकर्ता आपके डोमेन पर एंकर किए जाते हैं, इसलिए कैटलॉग को एक [`deployment.site`](/docs/deployment) की आवश्यकता होती है — उसके बिना कुछ भी उत्सर्जित नहीं होता। यह डिफ़ॉल्ट रूप से चालू है; `agents.catalog: false` इसे बंद कर देता है। जनरेट किए गए प्रश्न साइट शीर्षक और प्रत्येक प्रविष्टि के अपने विवरण से व्युत्पन्न होते हैं। किसी प्रविष्टि के लिए अपने स्वयं के प्रश्न लिखने हेतु, उन्हें पहचानकर्ता की पूँछ (`<namespace>:<name>`) द्वारा कुंजीबद्ध करें:
 
 ```ts blume.config.ts
 export default defineConfig({
-  ai: {
+  agents: {
     catalog: {
       queries: {
         "mcp:acme": ["how do I install Acme", "search the Acme docs"],
@@ -210,17 +210,17 @@ export default defineConfig({
 यह डिफ़ॉल्ट रूप से चालू है; ऑप्ट आउट करने के लिए `webmcp: false` सेट करें:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   webmcp: false,
 }
 ```
 
 ## स्किल्स डिस्कवरी [#skills-discovery]
 
-यदि आपका प्रोजेक्ट [एजेंट स्किल्स](https://agentskills.io) भेजता है — [Blume रिपॉज़िटरी स्वयं ऐसा करती है](/docs/advanced/skills) — तो `ai.skills` को उस डायरेक्टरी की ओर संकेत करें जो उन्हें रखती है, और बिल्ड उन्हें [Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) के अनुसार डिस्कवरी के लिए प्रकाशित करता है:
+यदि आपका प्रोजेक्ट [एजेंट स्किल्स](https://agentskills.io) भेजता है — [Blume रिपॉज़िटरी स्वयं ऐसा करती है](/docs/advanced/skills) — तो `agents.skills` को उस डायरेक्टरी की ओर संकेत करें जो उन्हें रखती है, और बिल्ड उन्हें [Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) के अनुसार डिस्कवरी के लिए प्रकाशित करता है:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   skills: "./skills",
 }
 ```
@@ -246,7 +246,7 @@ _index._agents.docs.example.com. 3600 IN HTTPS 1 docs.example.com. alpn=h2
 [Web Bot Auth](https://datatracker.ietf.org/wg/webbotauth/about/) दूसरी दिशा में काम करता है: यह एजेंटों द्वारा आपके डॉक्स पढ़ने के बारे में नहीं है, बल्कि **आपके संगठन के एजेंटों द्वारा स्वयं की पहचान बताने** के बारे में है जब वे अन्यत्र अनुरोध करते हैं। आपके एजेंट अपने अनुरोधों को [HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc9421) से साइन करते हैं, और प्राप्तकर्ता साइटें उन्हें आपके डोमेन पर प्रकाशित एक सार्वजनिक-कुंजी डायरेक्टरी के विरुद्ध सत्यापित करती हैं। यदि आपका संगठन एजेंट चलाता है और आपकी Blume साइट उसी डोमेन पर रहती है जिससे वे स्वयं की पहचान बताते हैं, तो उनकी सार्वजनिक कुंजियाँ प्रकाशित करें:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   webBotAuth: {
     keys: [{ kty: "OKP", crv: "Ed25519", x: "JrQLj5P_89iXES9-vFgrIy29c…" }],
   },
@@ -267,7 +267,7 @@ node -e 'const { generateKeyPairSync } = require("node:crypto"); const { publicK
 const webBotAuthKey = process.env.WEB_BOT_AUTH_PUBLIC_JWK;
 
 export default defineConfig({
-  ai: {
+  agents: {
     webBotAuth: {
       keys: webBotAuthKey ? [JSON.parse(webBotAuthKey)] : [],
     },

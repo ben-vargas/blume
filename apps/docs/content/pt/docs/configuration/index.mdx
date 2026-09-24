@@ -22,8 +22,9 @@ export default defineConfig({
 Um exemplo mais abrangente que aborda as opções mais comuns (consulte o guia de cada funcionalidade para as demais):
 
 ```ts blume.config.ts lineNumbers
-import sitemap from "@astrojs/sitemap";
+import partytown from "@astrojs/partytown";
 import { defineConfig } from "blume";
+import { orama } from "blume/search";
 
 export default defineConfig({
   // Site
@@ -32,7 +33,7 @@ export default defineConfig({
   logo: "/logo.svg",
 
   // Astro integrations — installed and versioned by this site
-  integrations: [sitemap()],
+  integrations: [partytown()],
 
   // Content
   content: {
@@ -46,19 +47,16 @@ export default defineConfig({
     mode: "system",
   },
 
-  // Search — see the Search guide
-  search: {
-    provider: "orama",
-  },
+  // Search — an adapter from "blume/search"; see the Search guide
+  search: orama(),
 
   // Markdown features
   markdown: {
     imageZoom: true,
+    externalLinks: false, // open https:// links in a new tab
     code: {
       icons: true, // language icon in the code-block header
       wrap: false, // wrap long lines instead of scrolling
-    },
-    codeBlocks: {
       theme: {
         light: "github-light", // bundled name or custom Shiki theme object
         dark: "github-dark",
@@ -66,8 +64,8 @@ export default defineConfig({
     },
   },
 
-  // AI — llms.txt, MCP, the AI catalog; see the Discoverability section
-  ai: {
+  // Agents — llms.txt, MCP, the AI catalog; see the Discoverability section
+  agents: {
     llmsTxt: true,
     // AI Catalog / ARD manifest at /.well-known/ai-catalog.json (needs deployment.site)
     catalog: true,
@@ -87,9 +85,8 @@ export default defineConfig({
     structuredData: true,
   },
 
-  // Deployment — see the Deployment guide
+  // Deployment — a static build here; see the Deployment guide for host adapters
   deployment: {
-    output: "static",
     site: "https://docs.example.com",
   },
 });
@@ -123,6 +120,8 @@ logo: {
 ```
 
 `image` aceita o mesmo valor que a forma abreviada — um único caminho, ou `{ light, dark, alt }` para artes separadas para claro/escuro (as imagens raster precisam ficar em `public/`).
+
+`href` é um caminho do locale padrão, assim como o caminho de uma aba: em um [site com vários locales](/docs/content/i18n), o link da marca passa para o locale do leitor (`/` vira `/en` em `/en/…`) sempre que esse locale serve a rota, então clicar no logotipo não tira o leitor do idioma em que estava lendo. Uma rota que só o locale padrão serve — uma [página personalizada](/docs/advanced/custom-pages) ou o índice de changelog gerado — mantém o próprio caminho em vez de apontar para uma URL localizada que daria 404. Uma URL absoluta é usada sem alterações.
 
 `text` controla o logotipo textual independentemente do símbolo:
 
@@ -178,10 +177,10 @@ banner: "Docs are in beta — expect changes.",
 
 ```ts blume.config.ts lineNumbers
 banner: {
-  content: "Blume v1 is here!",
-  link: { text: "Read more", href: "/blog/v1" },
+  content: "Version 2.0 is here!",
+  link: { text: "Read the release notes", href: "/changelog" },
   dismissible: true,
-  id: "v1",
+  id: "v2",
 },
 ```
 
@@ -199,9 +198,10 @@ content: {
 
 | Opção | Padrão | Descrição |
 | --- | --- | --- |
-| `root` | `"docs"` | Pasta que o Blume analisa em busca de conteúdo. |
-| `include` | `["**/*.{md,mdx}"]` | Globs que correspondem a arquivos de conteúdo. |
-| `exclude` | `["**/_*", "**/.*"]` | Globs a ignorar (arquivos com underscore e com ponto). |
+| `root` | `"docs"` | Pasta que o Blume analisa em busca de conteúdo. Forma abreviada para uma única fonte `filesystem()`; não é permitida junto com `sources`. |
+| `include` | `["**/*.{md,mdx}"]` | Globs que correspondem a arquivos de conteúdo. Forma abreviada, como `root`. |
+| `exclude` | `["**/_*", "**/.*"]` | Globs a ignorar (arquivos com underscore e com ponto). Forma abreviada, como `root`. |
+| `sources` | uma `filesystem()` | Adaptadores de fontes de conteúdo de `blume/sources`, que substituem a forma abreviada. Consulte [Fontes de conteúdo](/docs/content/sources). |
 | `pages` | `"pages"` | Pasta para páginas `.astro` personalizadas. |
 | `defaultType` | `"doc"` | `type` de página usado quando o frontmatter o omite. |
 | `types` | `{}` | Definições de conteúdo por tipo — chaves de frontmatter personalizadas restritas às páginas de um `type`. Consulte [Frontmatter](#frontmatter). |
@@ -244,7 +244,7 @@ export default defineConfig({
 });
 ```
 
-Funciona com qualquer biblioteca [Standard Schema](https://standardschema.dev) — Zod (qualquer que seja a versão que seu projeto instale), Valibot, ArkType. As chaves fora da extensão continuam validadas de forma estrita, então a detecção de erros de digitação segue inalterada. Consulte [Chaves personalizadas](/docs/reference/frontmatter#custom-keys) para a semântica de validação.
+Funciona com qualquer biblioteca [Standard Schema](https://standardschema.dev) — Zod (qualquer que seja a versão que seu projeto instale), Valibot, ArkType. As chaves fora da extensão continuam validadas de forma estrita, então a detecção de erros de digitação segue inalterada. Consulte [Chaves personalizadas](/docs/content/frontmatter#custom-keys) para a semântica de validação.
 
 As chaves em `extend` valem para todo o site. Para exigir chaves apenas em páginas de um tipo de conteúdo — o `status` de um RFC, o `service` de um runbook — declare-as por tipo em `content.types`:
 
@@ -267,7 +267,7 @@ export default defineConfig({
 });
 ```
 
-Uma chave pode ser declarada para todo o site ou por tipo, não os dois. Consulte [Chaves por tipo](/docs/reference/frontmatter#per-type-keys) para saber como o escopo é resolvido.
+Uma chave pode ser declarada para todo o site ou por tipo, não os dois. Consulte [Chaves por tipo](/docs/content/frontmatter#per-type-keys) para saber como o escopo é resolvido.
 
 `facets` indica as chaves personalizadas cujos valores viram metadados filtráveis: elas acompanham os documentos de busca (`blume-search.json` e o índice MCP), e as [ferramentas MCP](/docs/discoverability/mcp) aceitam um input `filters` que faz correspondência com elas, para que um agente possa obter, por exemplo, apenas os RFCs com status `enforced` no domínio `architecture`. Cada faceta precisa ser uma chave personalizada declarada — por tipo ou para todo o site — e apenas os valores do tipo string (ou números/booleanos convertidos em string) funcionam como facetas.
 
@@ -315,18 +315,17 @@ Uma instância acessível apenas por HTTP simples ainda renderiza suas contagens
 
 ## Última modificação [#last-modified]
 
-Mostre uma linha "Última atualização em …" no rodapé de cada página. Desativado por padrão; defina `lastModified` como `true` para derivar a data de cada página do respectivo histórico do git:
+Mostre uma linha "Última atualização em …" no rodapé de cada página. Desativado por padrão; defina `lastModified` como `"git"` para derivar a data de cada página do respectivo histórico do git:
 
 ```ts blume.config.ts
-lastModified: true,
+lastModified: "git",
 ```
 
 | Valor | Descrição |
 | --- | --- |
 | `false` | Desativado (padrão). |
-| `true` | Lê a data do histórico do git (datas dos commits). |
-| `{ type: "git" }` | O mesmo que `true`, escrito explicitamente. |
-| `{ type: "frontmatter" }` | Nunca executa o git — usa apenas o campo `lastModified` do frontmatter. |
+| `"git"` | Lê a data do histórico do git (datas dos commits). |
+| `"frontmatter"` | Nunca executa o git — usa apenas o campo `lastModified` do frontmatter. |
 
 A fonte git lê o commit mais recente que tocou em cada arquivo, então funciona em qualquer repositório git — incluindo monorepos — e precisa do histórico do repositório no momento da build. As plataformas de CI costumam fazer checkout de um clone raso, o que descarta silenciosamente a maioria das datas (a build avisa com `BLUME_SHALLOW_GIT_HISTORY` quando isso acontece): na Vercel, defina a variável de ambiente `VERCEL_DEEP_CLONE=true`; com o `actions/checkout`, defina `fetch-depth: 0`. O `lastModified` do frontmatter da própria página sempre prevalece, o que é útil para fixar uma data ou para arquivos que ainda não foram commitados:
 
@@ -366,9 +365,9 @@ dateFormat: { year: "numeric", month: "2-digit", day: "2-digit" },
 | `timeZone` | Fuso horário IANA. Por padrão é `UTC`, para que uma data seja lida da mesma forma independentemente de onde o site é buildado. |
 | `calendar`, `numberingSystem` | Sistema de calendário (p. ex. `"japanese"`) e sistema de numeração (p. ex. `"arab"`). |
 
-## SEO e IA [#seo-and-ai]
+## SEO e agentes [#seo-and-agents]
 
-Metadados, imagens Open Graph, feeds RSS, JSON-LD, o sitemap e o `robots.txt` ficam em `seo`; o `llms.txt`, o Markdown bruto, a API JSON e o servidor MCP ficam em `ai`. Os dois são abordados página a página na seção [Descoberta](/docs/discoverability), que trata os buscadores e os agentes de IA como dois públicos da mesma camada legível por máquina.
+Metadados, imagens Open Graph, feeds RSS, JSON-LD, o sitemap e o `robots.txt` ficam em `seo`; o `llms.txt`, o Markdown bruto, a API JSON, o servidor MCP e os manifestos de descoberta ficam em `agents`. Os dois são abordados página a página na seção [Descoberta](/docs/discoverability), que trata os buscadores e os agentes de IA como dois públicos da mesma camada legível por máquina. As funcionalidades de modelo voltadas para o leitor — o assistente Ask AI e a ação Abrir no chat — ficam em `ai`.
 
 ```ts blume.config.ts lineNumbers
 seo: {
@@ -410,6 +409,18 @@ export default defineConfig({
 });
 ```
 
+## Feedback da página [#page-feedback]
+
+Cada página de documentação termina com uma avaliação "Esta página foi útil?". Ela vem ativada por padrão; defina `feedback` como `false` para ocultá-la em todo o site:
+
+```ts blume.config.ts
+export default defineConfig({
+  feedback: false,
+});
+```
+
+A resposta do leitor é enviada como um [evento personalizado](/docs/configuration/analytics#custom-events) `feedback` — com `helpful` (`"yes"` ou `"no"`), `path` e `title` — por meio de cada adaptador de analytics configurado que tenha uma API de eventos, e como um evento `blume:track` em `window`. Sem um adaptador de analytics, a resposta não é registrada em lugar nenhum. A pergunta e o texto de agradecimento são strings da interface que você pode traduzir com [`i18n.ui`](/docs/content/i18n#translated-ui).
+
 ## Opções de funcionalidades [#feature-options]
 
 Cada uma delas tem seu próprio guia. O campo de configuração é o ponto de entrada:
@@ -420,13 +431,21 @@ Cada uma delas tem seu próprio guia. O campo de configuração é o ponto de en
 | `navigation` | Barra lateral explícita e abas do cabeçalho | [Navegação](/docs/content/navigation) |
 | `search` | Provedor (Orama, Pagefind, Algolia, entre outros) e indexação | [Busca](/docs/configuration/search) |
 | `markdown` | Opções de renderização de Markdown — blocos de código, âncoras de títulos, zoom em imagens | [Sintaxe](/docs/content/syntax) |
-| `ai` | `llms.txt`, espelhos em Markdown, a API JSON e o servidor MCP hospedado para agentes de programação | [SEO e AEO](/docs/discoverability) |
-| `ai.ask` | O assistente Ask AI dentro da página | [Ask AI](/docs/configuration/ask-ai) |
-| `analytics` | Vercel, PostHog e scripts personalizados | [Analytics](/docs/configuration/analytics) |
+| `agents` | `llms.txt`, espelhos em Markdown, a API JSON, o servidor MCP hospedado, skills e manifestos de descoberta para agentes de programação | [SEO e AEO](/docs/discoverability) |
+| `ai` | O assistente Ask AI dentro da página e a ação Abrir no chat | [Ask AI](/docs/configuration/ask-ai) |
+| `reference` | Referências de API: adaptadores `openapi()`, `asyncapi()`, `graphql()` e `scalar()` de `blume/reference` | [OpenAPI](/docs/references/openapi), [AsyncAPI](/docs/references/asyncapi), [GraphQL](/docs/references/graphql), [Scalar](/docs/references/scalar) |
+| `analytics` | Adaptadores de `blume/analytics` — PostHog, Google Analytics, Plausible, Mixpanel, Segment, entre outros — além de scripts personalizados | [Analytics](/docs/configuration/analytics) |
 | `seo` | Metadados, imagens OG, feeds, dados estruturados, sitemap, robots | [SEO e AEO](/docs/discoverability) |
-| `deployment` | Modo de saída, adaptador e URL do site | [Deploy](/docs/deployment) |
+| `deployment` | Um adaptador de host de `blume/deploy`, ou `{ site, base }` para uma build estática | [Deploy](/docs/deployment) |
 | `redirects` | Redirecionamentos permanentes e temporários | [Deploy](/docs/deployment#redirects) |
 | `integrations` | Integrações do Astro adicionadas depois das integradas do Blume | [Personalização](/docs/configuration/customization#astro-integrations) |
+| `basePath` | Um caminho sob o qual todas as rotas geradas são montadas (p. ex. `/docs`), invisível para a barra lateral | [Deploy](/docs/deployment#mount-the-docs-under-a-path) |
+| `i18n` | Locales, o locale padrão e as strings da interface traduzidas | [Internacionalização](/docs/content/i18n) |
+| `versions` | Snapshots congelados de docs mais antigas com um seletor de versão | [Versionamento](/docs/content/versioning) |
+| `export` | Downloads em PDF e EPUB para os leitores | [Exportação](/docs/configuration/export) |
+| `examples` | Onde ficam as prévias de exemplo de `<Component path>` e o CSS injetado nos frames delas | [Component](/docs/content/components#component) |
+| `react` | Comportamento das ilhas React — a memoização automática do React Compiler | [Ilhas](/docs/content/islands#frameworks) |
+| `feedback` | A avaliação "Esta página foi útil?" no rodapé de cada página (padrão `true`) | [Feedback da página](#page-feedback) |
 
 ## Precedência [#precedence]
 

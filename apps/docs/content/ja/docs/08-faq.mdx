@@ -49,11 +49,11 @@ Blume は第三の道を選びます: **フレームワークがテンプレー�
 
 ## どこにデプロイできますか？ [#where-can-i-deploy-it]
 
-どこにでも。`blume build` はデフォルトで静的 HTML を出力するので、任意の静的ホストや CDN — Vercel、Netlify、Cloudflare Pages、GitHub Pages、S3、あるいは自前のサーバー — から配信できます。サーバー専用の機能（Ask AI、MCP サーバー、オンデマンドレンダリング）を使うと、Vercel、Node、Netlify、Cloudflare 向けのアダプタを通じて、ビルドがサーバー関数へと切り替わります。[デプロイ](/docs/deployment)をご覧ください。
+どこにでも。`blume build` はデフォルトで静的 HTML を出力するので、任意の静的ホストや CDN — Vercel、Netlify、Cloudflare Pages、GitHub Pages、S3、あるいは自前のサーバー — から配信できます。サーバー専用の機能（Ask AI、MCP サーバー、オンデマンドレンダリング）にはサーバー出力が必要です: `blume/deploy` のホストアダプタ — `vercel()`、`netlify()`、`cloudflare()`、または `node()` — を `deployment` に指定してください。[デプロイ](/docs/deployment)をご覧ください。
 
 ## 検索にはホスト型サービスが必要ですか？ [#does-search-need-a-hosted-service]
 
-いいえ。[Orama](/docs/configuration/search) は開発環境でも本番環境でも動作するローカルインデックスを構築し、ホストするものも支払うものもありません。非常に大規模なサイトでは、[Pagefind](/docs/configuration/search) がフラグ 1 つで使えます。いずれの場合も、インデックスはサイトの一部として配信されます。
+いいえ。[Orama](/docs/configuration/search) は開発環境でも本番環境でも動作するローカルインデックスを構築し、ホストするものも支払うものもありません。非常に大規模なサイトでは、[Pagefind](/docs/configuration/search#pagefind) がアダプタ 1 つで使えます: `search: pagefind()`。いずれの場合も、インデックスはサイトの一部として配信されます。
 
 ## 見た目はどうカスタマイズしますか？ [#how-do-i-customize-the-look]
 

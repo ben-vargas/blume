@@ -7,7 +7,7 @@ description: >-
 [Model Context Protocol](https://modelcontextprotocol.io) サーバーをホストすると、コーディングエージェント（Claude Code、Cursor、VS Code、claude.ai コネクター）がスクレイピングなしでドキュメントを直接検索・読み取りできるようになります。これはオプトイン方式です。
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   mcp: {
     enabled: true,
     route: "/mcp", // where the server is mounted
@@ -24,15 +24,15 @@ ai: {
 
 ## ツールとリソース [#tools-and-resources]
 
-サーバーは読み取り専用のツール（`search_docs`、`get_page`、`list_pages`、`get_navigation`）と、すべてのページを MCP リソースとして公開します（`resources/list` は各ページを配信 URL 上で `text/markdown` タイプとして列挙し、`resources/read` はそのページの [エージェント向け Markdown](/docs/discoverability/markdown)（`get_page` と同じ出力）を返します）。そのため、URI でコンテキストを添付するクライアントは、ツールを呼び出さずにドキュメントを閲覧できます。また、ディスカバリードキュメントを `/.well-known/mcp.json` と `/.well-known/mcp/server-card.json` で公開します。サーバーカードは [SEP-2127](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127) Server Card 拡張スキーマ（逆 DNS 形式の `name`、`remotes` トランスポートエンドポイント）に準拠しており、提案の以前のリビジョンに対して構築されたスキャナー向けに initialize 形式の互換フィールド（`serverInfo`、`capabilities`、`transports`）も備えています。各ページの **Connect to MCP** メニューでは、Claude Code、Cursor、VS Code、Codex 向けのコピー＆実行式インストールを提供しています（[`deployment.site`](/docs/deployment) が設定されている場合に表示されます）。
+サーバーは読み取り専用のツール（`search_docs`、`get_page`、`list_pages`、`get_navigation`）と、すべてのページを MCP リソースとして公開します（`resources/list` は、`list_pages` と同様に未翻訳ページの i18n フォールバックコピーを除いて、各ページを配信 URL 上で `text/markdown` タイプとして列挙し、`resources/read` はそのページの [エージェント向け Markdown](/docs/discoverability/markdown)（`get_page` と同じ出力）を返します）。そのため、URI でコンテキストを添付するクライアントは、ツールを呼び出さずにドキュメントを閲覧できます。また、ディスカバリードキュメントを `/.well-known/mcp.json` と `/.well-known/mcp/server-card.json` で公開します。サーバーカードは [SEP-2127](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127) Server Card 拡張スキーマ（逆 DNS 形式の `name`、`remotes` トランスポートエンドポイント）に準拠しており、提案の以前のリビジョンに対して構築されたスキャナー向けに initialize 形式の互換フィールド（`serverInfo`、`capabilities`、`transports`）も備えています。各ページの **Connect to MCP** メニューでは、Claude Code、Cursor、VS Code、Codex 向けのコピー＆実行式インストールを提供しています（[`deployment.site`](/docs/deployment) が設定されている場合に表示されます）。
 
-`search_docs` は独自の全文検索インデックスを実行するため、[search](/docs/configuration/search) プロバイダーに関係なく動作します — 検索が `none` に設定されている場合でも同様です。MCP サーバーはページ内検索とは別の機能です。
+`search_docs` は独自の全文検索インデックスを実行するため、[search](/docs/configuration/search) プロバイダーに関係なく動作します — `search: false` の場合でも同様です。MCP サーバーはページ内検索とは別の機能です。
 
 MCP に対応していないフレームワーク向けに、同じツールが [JSON API](/docs/discoverability/json-api) としてプレーンな HTTP 経由でも利用できます。
 
 ## コンテンツタイプとファセットによるスコープ設定 [#scoping-by-content-type-and-facets]
 
-`search_docs` と `list_pages` はどちらも任意の `contentTypes` フィルターを受け取り、指定したフロントマターの [`type`](/docs/reference/frontmatter)（`["rfc"]`、`["blog", "changelog"]` など）のページに結果を絞り込みます。そのため、ドキュメントと RFC、ランブック、ポリシーが混在するサイトを扱うエージェントは、必要な種類のページに取得範囲を限定できます。すべての結果はそのコンテンツタイプを示し、`list_pages` の出力では使用中のタイプが表示されます。
+`search_docs` と `list_pages` はどちらも任意の `contentTypes` フィルターを受け取り、指定したフロントマターの [`type`](/docs/content/frontmatter)（`["rfc"]`、`["blog", "changelog"]` など）のページに結果を絞り込みます。そのため、ドキュメントと RFC、ランブック、ポリシーが混在するサイトを扱うエージェントは、必要な種類のページに取得範囲を限定できます。すべての結果はそのコンテンツタイプを示し、`list_pages` の出力では使用中のタイプが表示されます。
 
 どちらのツールも、サイトがコンテンツタイプごとに宣言するファセット（[`content.types.<type>.facets`](/docs/configuration#frontmatter)）— 値がフィルター可能なメタデータになるカスタムフロントマターキー — と照合する `filters` オブジェクトも受け取ります。
 
@@ -48,17 +48,17 @@ MCP に対応していないフレームワーク向けに、同じツールが 
 
 ## サーバー出力が必要です [#server-output-required]
 
-MCP サーバーはライブエンドポイント（`/mcp`）であるため、静的ビルドでは実行できません。サーバー出力に切り替えて、アダプターを選択してください。
+MCP サーバーはライブエンドポイント（`/mcp`）であるため、静的ビルドでは実行できません。`blume/deploy` からホストアダプターを指定して、サーバー出力に切り替えてください。
 
 ```ts blume.config.ts lineNumbers
-deployment: {
-  output: "server",
-  adapter: "node", // or "vercel" | "netlify" | "cloudflare"
-  site: "https://docs.example.com",
-}
+import { node } from "blume/deploy"; // or vercel, netlify, cloudflare
+
+export default defineConfig({
+  deployment: node({ site: "https://docs.example.com" }),
+});
 ```
 
-`ai.mcp.enabled` を有効にした静的ビルドは、`deployment.output` を `server` に設定するよう促すメッセージとともに即座に失敗します。アダプターについては [デプロイ](/docs/deployment) を参照してください。デプロイ後は、次のコマンドで Claude Code から接続できます。
+`agents.mcp.enabled` を有効にした静的ビルドは、ホストアダプターを設定するよう促すメッセージとともに即座に失敗します。アダプターについては [デプロイ](/docs/deployment) を参照してください。デプロイ後は、次のコマンドで Claude Code から接続できます。
 
 ```bash
 claude mcp add --transport http my-docs https://docs.example.com/mcp

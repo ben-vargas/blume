@@ -215,21 +215,27 @@ Setze ein Token unter `:root` für den hellen Modus und unter `:root[data-theme=
 
 ### Design-Tokens
 
-| Token                       | Steuert                                       |
-| --------------------------- | --------------------------------------------- |
-| `--blume-background`        | Seitenhintergrund                             |
-| `--blume-foreground`        | Fließtext                                     |
-| `--blume-muted`             | Dezente Flächen — Callouts, Tabellenköpfe     |
-| `--blume-muted-foreground`  | Sekundärer Text                               |
-| `--blume-border`            | Rahmen und Trennlinien                        |
-| `--blume-accent`            | Akzentfarbe                                   |
-| `--blume-accent-foreground` | Text und Icons auf einem Akzenthintergrund    |
-| `--blume-action`            | Sekundäre Akzentfarbe (Standard: Akzentfarbe) |
-| `--blume-code-background`   | Fläche des Codeblocks                         |
-| `--blume-radius`            | Eckenradius                                   |
-| `--blume-font-display`      | Überschriftenschrift                          |
-| `--blume-font-body`         | Body-/UI-Schrift                              |
-| `--blume-font-mono`         | Code-Schrift                                  |
+| Token | Steuert |
+| --- | --- |
+| `--blume-background` | Seitenhintergrund |
+| `--blume-foreground` | Fließtext |
+| `--blume-muted` | Dezente Flächen — Callouts, Tabellenköpfe |
+| `--blume-muted-foreground` | Sekundärer Text |
+| `--blume-border` | Rahmen und Trennlinien |
+| `--blume-accent` | Akzentfarbe |
+| `--blume-accent-foreground` | Text und Icons auf einem Akzenthintergrund |
+| `--blume-action` | Sekundäre Akzentfarbe (Standard: Akzentfarbe) |
+| `--blume-action-foreground` | Text und Icons auf einem Aktionshintergrund (Standard: Akzent-Vordergrundfarbe) |
+| `--blume-code-background` | Fläche des Codeblocks |
+| `--blume-code-highlight`, `--blume-code-highlight-border` | Hintergrund und linke Randlinie einer hervorgehobenen Codezeile (`// [!code highlight]` oder ein `{1,4-5}`-Bereich) |
+| `--blume-code-add`, `--blume-code-add-border` | Hintergrund und linke Randlinie einer hinzugefügten Zeile (`// [!code ++]`) |
+| `--blume-code-remove`, `--blume-code-remove-border` | Hintergrund und linke Randlinie einer entfernten Zeile (`// [!code --]`) |
+| `--blume-code-word`, `--blume-code-word-border` | Hintergrund und Umriss eines hervorgehobenen Worts (`// [!code word:…]`) |
+| `--blume-content-width` | Maximale Breite der Textspalte — Artikel, Breadcrumb, Inhaltsverzeichnis, Feedback und Paginierung (Standard: `42rem`) |
+| `--blume-radius` | Eckenradius |
+| `--blume-font-display` | Überschriftenschrift |
+| `--blume-font-body` | Body-/UI-Schrift |
+| `--blume-font-mono` | Code-Schrift |
 
 Setze ein `--blume-font-*`-Token auf einen beliebigen Font-Stack, um eine Schrift außerhalb der kuratierten Liste zu verwenden oder auf den System-Stack zurückzufallen:
 
@@ -253,6 +259,9 @@ Blumes Theme ist intern mit Tailwind v4 gebaut, und die `.astro`-, `.tsx`- und `
 | `--blume-accent`            | `bg-accent`, `text-accent` |
 | `--blume-accent-foreground` | `text-accent-foreground`   |
 | `--blume-action`            | `bg-action`, `text-action` |
+| `--blume-action-foreground` | `text-action-foreground`   |
+| `--blume-code-background`   | `bg-code`                  |
+| `--blume-content-width`     | `max-w-content`            |
 | `--blume-radius`            | `rounded-blume`            |
 | `--blume-font-display`      | `font-display`             |
 | `--blume-font-body`         | `font-sans`                |

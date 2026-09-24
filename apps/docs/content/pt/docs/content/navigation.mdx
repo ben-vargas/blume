@@ -11,7 +11,7 @@ O Blume monta sua barra lateral a partir do sistema de arquivos e depois permite
 Por padrão, a barra lateral espelha a sua árvore de conteúdo:
 
 - pastas viram **grupos**, arquivos viram **páginas**
-- o rótulo de uma página é o `title` do seu frontmatter; o rótulo de um grupo é o nome humanizado da pasta
+- o rótulo de uma página é o `title` do seu frontmatter; o rótulo de um grupo é o nome humanizado da pasta, com siglas comuns como API, CLI e SDK em maiúsculas (`api-reference` vira "API Reference")
 - os itens são ordenados por [prefixo numérico](/docs/content) e depois alfabeticamente, e a página `index` de uma pasta vem primeiro
 - uma pasta com uma página `index` liga a linha do seu grupo a essa página, então clicar no nome da seção abre a página de destino da seção
 
@@ -29,7 +29,7 @@ sidebar:
   order: 1 # sort position within its group
 ```
 
-Veja [Frontmatter](/docs/reference/frontmatter) para o esquema completo da página.
+Veja [Frontmatter](/docs/content/frontmatter) para o esquema completo da página.
 
 ## Grupos de pastas [#folder-groups]
 
@@ -47,7 +47,7 @@ export default defineMeta({
 
 Veja [Meta de pasta](/docs/content/meta) para todos os campos e para computar meta no momento da varredura.
 
-O `meta.title` de uma pasta e o `title` do frontmatter da sua própria página `index` são resolvidos de forma independente — traduzir um sob i18n e esquecer o outro renderiza uma barra lateral correta, mas com um `<title>`/título desatualizado na própria página de destino. O Blume emite um aviso `BLUME_NAV_INDEX_TITLE_MISMATCH` quando eles divergem. Páginas não traduzidas preenchidas a partir do idioma de fallback são isentas — o título delas pertence ao idioma de fallback, e a correção é traduzir a página, não editar o frontmatter dela.
+O `meta.title` de uma pasta e o `title` do frontmatter da sua própria página `index` são resolvidos de forma independente — traduzir um sob i18n e esquecer o outro renderiza uma barra lateral correta, mas com um `<title>`/título desatualizado na própria página de destino. O Blume emite um aviso `BLUME_NAV_INDEX_TITLE_MISMATCH` quando eles divergem em uma página de índice que oculta a própria linha na barra lateral (`sidebar.hidden: true`), caso em que o título da pasta é o único rótulo que a página tem na barra lateral. Quando a linha do índice está visível, a barra lateral já mostra os dois títulos, então combinar um título de pasta com um título de página diferente ("CLI" acima de "Overview") não tem problema. Páginas não traduzidas preenchidas a partir do idioma de fallback são isentas — o título delas pertence ao idioma de fallback, e a correção é traduzir a página, não editar o frontmatter dela.
 
 Para agrupar páginas _sem_ adicionar um segmento de URL, use um nome de pasta entre parênteses — veja [Páginas](/docs/content#group-folders).
 
@@ -162,17 +162,19 @@ navigation: {
 }
 ```
 
-O `path` de uma aba é o prefixo da sua seção, e ele também serve como destino do link. Uma seção cujo `path` não é uma página própria — uma pasta sem `index.mdx` — apontaria para um 404, então a aba recorre à primeira página da seção. Defina `href` quando quiser que ela leve a outro lugar:
+O `path` de uma aba é o prefixo da sua seção, e ele também serve como destino do link. Uma seção cujo `path` não é uma página própria — uma pasta sem `index.mdx` — apontaria para um 404, então a aba recorre à primeira página da seção. Uma [página personalizada](/docs/advanced/custom-pages) estática no `path` da aba conta como a página própria da seção: com `pages/guides.astro`, uma aba `/guides` cai nessa página enquanto a pasta `guides/` preenche a sua barra lateral. O mesmo vale para o índice de [changelog](/docs/advanced/changelog) gerado, então uma aba `/changelog` abre a linha do tempo em vez da entrada mais recente.
+
+Defina `href` quando quiser que uma aba leve a outro lugar — uma página específica da seção, digamos:
 
 ```ts blume.config.ts
 navigation: {
   tabs: [
-    { label: "Changelog", path: "/changelog", href: "/changelog" },
+    { label: "Guides", path: "/guides", href: "/guides/getting-started" },
   ],
 }
 ```
 
-Isso importa para rotas que não fazem parte da árvore de conteúdo, já que o fallback não as enxerga: o índice de [changelog](/docs/advanced/changelog) gerado, ou uma [página personalizada](/docs/advanced/custom-pages) que você adicionou sob `pages/`. Sem `href`, uma aba `/changelog` cai na entrada mais recente em vez do índice. Abas que não definem `href` não são afetadas.
+Abas que não definem `href` mantêm a resolução descrita acima.
 
 Em um site com [i18n](/docs/content/i18n), o `label` de uma aba (e o de um item de dropdown) pode ser um mapa por idioma em vez de uma string — a entrada do idioma ativo prevalece, depois a do idioma padrão:
 

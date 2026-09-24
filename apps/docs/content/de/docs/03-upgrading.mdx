@@ -1,0 +1,353 @@
+---
+title: Auf Blume 2 upgraden
+description: >-
+  Hebe eine Blume-1-Site mit einem Befehl auf Blume 2 und nutze dann diesen Leitfaden für jede Konfigurationsänderung – oder überlass das gesamte Upgrade Claude Code oder Codex.
+sidebar:
+  label: Auf Blume 2 upgraden
+  order: 2.5
+---
+
+Blume 2 ändert die Konfiguration, nicht die Inhalte: Deine Markdown- und MDX-Seiten brauchen keine Anpassungen, es sei denn, eine davon setzt das entfernte Frontmatter-Feld `search.boost` (siehe [Frontmatter](#frontmatter)). Einstellungen, die früher ein benannter String oder ein Block mit Schlüssel waren – der Suchanbieter, das Deployment-Ziel, Content-Quellen, API-Referenzen, Analytics und das Ask-AI-Backend –, sind jetzt **Adapter**, die du aus einem `blume/*`-Subpath importierst und aufrufst. Die maschinenlesbaren Einstellungen wandern von `ai` in einen neuen Schlüssel `agents`, und Überschreibungen in `components.ts` werden vor dem Build geprüft. Eine Site ohne Konfiguration oder eine, die nichts davon setzt, braucht nur das Versions-Update.
+
+## Mit einem Befehl upgraden [#upgrade-with-one-command]
+
+Führe das Upgrade in deinem Projekt aus, also im Ordner mit `blume.config.ts`:
+
+```package-install
+npx blume@latest upgrade
+```
+
+Der Befehl hebt `blume` in deiner `package.json` auf 2 an, installiert es mit dem Paketmanager, den dein Projekt nutzt, und prüft dann deine Konfiguration und `components.ts` gegen Blume 2. Jede noch nötige Änderung wird mit Datei, Zeile und Ersatz aufgelistet – einschließlich `package.json`-Scripts, die noch die entfernten `blume build`-Flags übergeben –, und der Befehl endet mit einem Exit-Code ungleich null, bis keine mehr übrig ist. Führst du ihn in einem Ordner ohne Konfiguration und ohne `blume`-Abhängigkeit aus, bricht er stattdessen mit einem Fehler ab. Starte ihn über `npx blume@latest` statt über `blume`: Der Befehl kommt mit Blume 2, ein Projekt auf Version 1 hat ihn also noch nicht. Unter pnpm 12 ergänzt du `--allow-build=esbuild` nach `pnpm dlx`, da pnpm 12 das Installationsskript von esbuild nicht ohne Freigabe ausführt.
+
+Wenn du die Änderungen stattdessen einem Coding-Agent überlassen willst, ergänze `--claude` oder `--codex`:
+
+```package-install
+npx blume@latest upgrade --claude
+```
+
+Der Agent startet interaktiv mit den Befunden und diesem Leitfaden, setzt jede Änderung um und führt `blume doctor` und `blume build` aus, bis beide durchlaufen – so prüfst du jede Bearbeitung über seinen eigenen Freigabeablauf. Übergib `--no-install`, um `package.json` anzuheben, ohne zu installieren.
+
+Die folgenden Abschnitte behandeln jede Änderung – zum Upgraden von Hand oder um zu prüfen, was der Agent gemacht hat.
+
+## Suche [#search]
+
+`search` nimmt einen Adapter aus `blume/search` statt eines `provider`-Strings mit Zugangsdaten-Block. Die standardmäßige lokale Suche braucht keine Änderung.
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  search: {
+    provider: "algolia",
+    algolia: { appId: "APP_ID", indexName: "docs", searchApiKey: "SEARCH_KEY" },
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { algolia } from "blume/search";
+
+export default defineConfig({
+  search: algolia({ appId: "APP_ID", indexName: "docs", apiKey: "SEARCH_KEY" }),
+});
+```
+
+</CodeGroup>
+
+- Orama Cloud, Typesense und Mixedbread werden genauso auf `oramaCloud()`, `typesense()` und `mixedbread()` abgebildet. Der reine Such-Key heißt in jedem Adapter, der einen erwartet, `apiKey`; `mixedbread()` nimmt statt eines Keys eine `storeId`, da seine Abfragen auf dem Docs-Server laufen. Alle weiteren Optionen, die du ihm übergibst, werden an den Store-Suchaufruf weitergereicht, bei dem `top_k` standardmäßig 8 ist. Admin-Keys bleiben in ihren Umgebungsvariablen (`ALGOLIA_ADMIN_API_KEY`, `ORAMA_PRIVATE_API_KEY`, `TYPESENSE_ADMIN_API_KEY`, `MIXEDBREAD_API_KEY`).
+- `provider: "pagefind"` wird zu `pagefind()`, und `provider: "none"` wird zu `search: false`.
+- Um `popular`-Links oder `indexing`-Optionen zu behalten, umschließt du den Adapter: `search: { provider: algolia({ … }), popular: […] }`.
+
+## Deployment
+
+`deployment` nimmt einen Host-Adapter aus `blume/deploy` statt der Felder `adapter` und `output`. `site` und `base` wandern in die Optionen des Adapters.
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  deployment: {
+    adapter: "vercel",
+    output: "server",
+    site: "https://docs.example.com",
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { vercel } from "blume/deploy";
+
+export default defineConfig({
+  deployment: vercel({ site: "https://docs.example.com" }),
+});
+```
+
+</CodeGroup>
+
+- `netlify()`, `cloudflare()` und `node()` funktionieren genauso. Sobald du einen Host-Adapter angibst, wird auf Server-Output umgeschaltet; übergib `output: "static"`, um einen statischen Build mit den Plattformdateien dieses Hosts zu behalten.
+- Eine Konfiguration, die nur `site` oder `base` setzt, bleibt, wie sie ist: `deployment: { site, base }` ist weiterhin die statische Form.
+- `redirects` erwarten exakte Pfade. Ein `from` oder `to` mit einem `:param`-Segment oder einer `*`-Wildcard besteht die Validierung jetzt nicht mehr; Blume 1 hat Muster nie unterstützt, und Hosts haben sie unterschiedlich behandelt. Verschiebe Regeln mit Mustern in die eigene Konfiguration deines Hosts (`vercel.json`, `_redirects`).
+- Die Flags `--adapter`, `--output` und `--base` von `blume build` gibt es nicht mehr; übergibst du eines davon, bricht der Build mit einem Fehler ab, der die `deployment`-Einstellung nennt, die es ersetzt. Setze den Adapter in `blume.config.ts` und gib ihn explizit an: Server-Output wird nicht mehr aus der Umgebung der Plattform abgeleitet.
+
+Die Optionen der einzelnen Adapter findest du unter [Deployment](/docs/deployment).
+
+## Content-Quellen [#content-sources]
+
+Jeder Eintrag in `content.sources` ist ein Adapter aus `blume/sources` statt eines `{ type }`-Objekts.
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  content: {
+    sources: [
+      { type: "filesystem", root: "content" },
+      {
+        type: "github-releases",
+        owner: "acme",
+        repo: "sdk",
+        prefix: "changelog",
+      },
+    ],
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { filesystem, githubReleases } from "blume/sources";
+
+export default defineConfig({
+  content: {
+    sources: [
+      filesystem({ root: "content" }),
+      githubReleases({ owner: "acme", repo: "sdk", prefix: "changelog" }),
+    ],
+  },
+});
+```
+
+</CodeGroup>
+
+- `mdx-remote`, `sanity`, `notion` und `obsidian` werden zu `mdxRemote()`, `sanity()`, `notion()` und `obsidian()`, wobei alle anderen Felder unverändert in den Aufruf wandern. `{ type: "custom", source }` wird zu `custom(source)`.
+- `content.root`, `content.include` und `content.exclude` sind weiterhin die Kurzform für einen einzelnen Ordner, können aber nicht mehr neben `sources` stehen. Verschiebe sie in den `filesystem()`-Eintrag.
+- Release-Seiten aus `githubReleases()` werden jetzt in nur einer Sprache veröffentlicht, eine mehrsprachige Site kopiert sie also nicht mehr unter die URL jeder anderen Locale (`/de/changelog/…`). Wenn andere Sites auf diese Kopien verlinken, füge [Redirects](/docs/deployment#redirects) auf die Seiten der Standard-Locale hinzu.
+
+## API-Referenzen [#api-references]
+
+Die Top-Level-Blöcke `openapi`, `asyncapi` und `graphql` werden zu einer einzigen `reference`-Liste mit Adaptern aus `blume/reference`. Lass `enabled` weg.
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  openapi: { enabled: true, spec: "./openapi.yaml" },
+  graphql: {
+    enabled: true,
+    spec: "./schema.graphql",
+    endpoint: "https://api.example.com/graphql",
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { graphql, openapi } from "blume/reference";
+
+export default defineConfig({
+  reference: [
+    openapi({ spec: "./openapi.yaml" }),
+    graphql({
+      spec: "./schema.graphql",
+      endpoint: "https://api.example.com/graphql",
+    }),
+  ],
+});
+```
+
+</CodeGroup>
+
+- `asyncapi: { … }` wird zu `asyncapi({ … })` mit denselben Optionen.
+- Eine AsyncAPI-Spec in Version 1.x oder 2.x wird weiterhin automatisch nach 3.0 konvertiert, der Konverter ist jetzt aber eine optionale Peer-Dependency: Installiere `@asyncapi/converter` in deinem Projekt, sonst schlägt der Build fehl und nennt dir den Installationsbefehl. Eine 3.x-Spec braucht nichts.
+- `renderer: "scalar"` wird zu einem eigenen `scalar({ spec, theme, … })`-Eintrag in der Liste, der `route` und `sources` des Blocks übernimmt.
+- Ein Block mit `enabled: false` wird einfach aus der Liste weggelassen.
+
+## Analytics
+
+Das `analytics`-Objekt wird zu einer Liste von Adaptern aus `blume/analytics`.
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  analytics: {
+    posthog: { key: "phc_…" },
+    vercel: true,
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { posthog, vercel } from "blume/analytics";
+
+export default defineConfig({
+  analytics: [posthog({ key: "phc_…" }), vercel()],
+});
+```
+
+</CodeGroup>
+
+`cloudflare: { token }` wird zu `cloudflare({ token })`, und jeder `scripts[]`-Eintrag wird zu `script({ … })`.
+
+## Ask AI
+
+`ai.ask.provider` nimmt einen Adapter aus `blume/ai`, der das Modell und die zugehörigen Felder verwaltet.
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: "openrouter",
+      model: "anthropic/claude-sonnet-4-5",
+      reasoning: "none",
+    },
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { openrouter } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: openrouter({
+        model: "anthropic/claude-sonnet-4-5",
+        reasoning: "none",
+      }),
+    },
+  },
+});
+```
+
+</CodeGroup>
+
+Die Adapter sind `gateway()`, `openrouter()`, `llmgateway()`, `inkeep()` und `openaiCompatible({ baseUrl, name, model, apiKeyEnv })`. `model`, `apiKeyEnv`, `baseUrl`, `headers` und `reasoning` wandern in den Adapter; `enabled`, `instructions`, `retrieval`, `suggestions`, `cors` und `endpoint` bleiben unter `ai.ask`. Lässt du `provider` weg, wird weiterhin das AI Gateway verwendet.
+
+## Agents und weitere Verschiebungen in der Konfiguration [#agents-and-other-config-moves]
+
+Die maschinenlesbaren Einstellungen wandern von `ai` in einen neuen Schlüssel `agents`, und drei kleinere Felder ändern ihre Form.
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  ai: { mcp: { enabled: true }, skills: "./skills" },
+  lastModified: true,
+  markdown: {
+    codeBlocks: { theme: { light: "github-light", dark: "github-dark" } },
+  },
+  theme: { layout: "sidebar" },
+});
+```
+
+```ts title="Blume 2"
+export default defineConfig({
+  agents: { mcp: { enabled: true }, skills: "./skills" },
+  lastModified: "git",
+  markdown: {
+    code: { theme: { light: "github-light", dark: "github-dark" } },
+  },
+});
+```
+
+</CodeGroup>
+
+- `ai.api`, `ai.catalog`, `ai.llmsTxt`, `ai.markdownComponents`, `ai.mcp`, `ai.skills`, `ai.webBotAuth` und `ai.webmcp` werden zu `agents.*`, ebenso `seo.agentReadability` und `seo.contentSignals`. In `ai` bleiben nur `ask` und `openInChat`.
+- `lastModified` ist ein einfacher Wert: `true` wird zu `"git"`, und `{ type: "git" }` oder `{ type: "frontmatter" }` wird zum bloßen String.
+- `markdown.codeBlocks` geht in `markdown.code` auf.
+- `theme.layout` entfällt. Es wurde nirgends gelesen, also lösch es.
+
+## Frontmatter
+
+Ein Frontmatter-Feld entfällt: `search.boost`. Blume 1 hat es akzeptiert, die Suche hat es aber nie ausgewertet – eine Seite wurde ohne das Feld also genauso gerankt. Lösch es überall, wo es vorkommt; eine Seite, die es noch setzt, besteht die Validierung nicht und bekommt einen Hinweis, und `blume upgrade` listet jedes Vorkommen mit Datei und Zeile auf.
+
+## Komponenten-Überschreibungen [#component-overrides]
+
+Blume 2 prüft jeden Eintrag in `components.ts` vor dem Build, statt zur Laufzeit auf einen Fallback zurückzugreifen. Jeder `mdx`- und `layout`-Eintrag muss eine importierte Komponente, ein Pfad-String oder ein `{ component, client, media }`-Objekt sein, und die Gruppe `islands` entfällt: Ein `mdx`-Eintrag mit einem `client`-Modus ist eine Island.
+
+<CodeGroup>
+
+```ts title="Blume 1"
+import { defineComponents } from "blume";
+import Counter from "./islands/Counter.tsx";
+
+export default defineComponents({
+  islands: { Counter },
+});
+```
+
+```ts title="Blume 2"
+import { defineComponents } from "blume";
+import Counter from "./islands/Counter.tsx";
+
+export default defineComponents({
+  mdx: { Counter: { component: Counter, client: "visible" } },
+});
+```
+
+</CodeGroup>
+
+Eine Inline-Funktion, eine direkt in `components.ts` deklarierte Komponente, ein Spread oder ein berechneter Schlüssel schlägt jetzt mit `BLUME_COMPONENTS_INVALID` fehl, wobei der betroffene Eintrag genannt wird. Verschiebe die Komponente in eine eigene Datei und importiere sie. Die Ordnerkonvention `islands/` funktioniert wie bisher. Die akzeptierten Formen findest du unter [Anpassung](/docs/configuration/customization).
+
+## Apps nach einem Eject [#ejected-apps]
+
+Eine App, die du unter Blume 1 [ejectet](/docs/configuration/customization#eject) hast, läuft nicht mehr über die Blume-CLI, hängt aber weiterhin vom Paket `blume` ab. Ihre Seiten importieren Blumes Komponenten, `src/generated/` enthält einen Snapshot deiner Site, den der Generator von Blume 1 geschrieben hat, und `astro build` lädt `blume.config.ts` erneut, um den Suchindex, `llms.txt` und die Sitemap zu schreiben. Hebst du `blume` darunter auf 2 an, trifft dieser Blume-1-Snapshot auf Blume-2-Komponenten, die die neuen Formen erwarten – ejecte also stattdessen erneut:
+
+<Steps>
+  <Step title="Copy the project out">
+    Kopiere alles außer `astro.config.mjs`, `src/`, `.blume/`, `dist/` und
+    `node_modules/` in einen leeren Ordner: deine Inhalte, `blume.config.ts`,
+    `components.ts`, `islands/`, `public/`, alle Spec-Dateien, die deine
+    Referenzen einlesen, und `package.json`. Lass die ejectete App, wie sie ist.
+  </Step>
+  <Step title="Upgrade the copy">
+    Führe in der Kopie `npx blume@latest upgrade` aus und setz um, was der
+    Befehl auflistet, damit `blume.config.ts` und `components.ts` gültiges Blume
+    2 sind. Führe dann `npx blume build` aus, um sicherzustellen, dass die Site
+    baut, bevor du sie ejectest.
+  </Step>
+  <Step title="Eject a fresh copy">
+    Führe `npx blume eject --yes` in der Kopie aus, installiere die Pakete, die
+    der Befehl hinzufügt, und baue sie mit `npm run build`.
+  </Step>
+  <Step title="Carry your edits across">
+    Vergleiche die frische `astro.config.mjs` und `src/` per Diff mit deiner
+    ejecteten App und übertrage deine eigenen Änderungen auf die neuen Dateien.
+  </Step>
+</Steps>
+
+Bis die frische Kopie fertig ist, belässt du die ejectete App auf Blume 1 (`"blume": "^1"`) und führst darin nicht `blume upgrade` aus: Solange du die Version nicht anhebst, ändert sich nichts.
+
+## Kommandozeilen-Flags [#command-line-flags]
+
+Jeder `blume`-Befehl lehnt jetzt Flags ab, die er nicht kennt – Blume 1 hat sie ignoriert. Ein Script oder CI-Schritt, der ein überflüssiges oder falsch geschriebenes Flag übergibt, schlägt fehl und nennt das nicht erkannte Flag sowie die Flags, die der Befehl akzeptiert. `blume upgrade` meldet nur die drei entfernten `blume build`-Flags (`--adapter`, `--output`, `--base`), prüf also auch deine anderen `blume`-Scripts.
+
+## Ergebnis prüfen [#check-your-work]
+
+Sobald `blume upgrade` nichts mehr zu ändern meldet, führe die Prüfungen der Site selbst aus:
+
+```bash
+npx blume doctor
+npx blume build
+```
+
+Die vollständige Liste der Änderungen samt Begründung findest du im [Changelog](/changelog).

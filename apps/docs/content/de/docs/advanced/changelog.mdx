@@ -1,10 +1,12 @@
 ---
-title: Changelog
+title: Changelogs
+sidebar:
+  label: Changelog
 description: >-
   Verfasse Release Notes als gewöhnliche Inhaltsdateien oder beziehe sie aus GitHub Releases – Blume erstellt daraus automatisch eine Timeline-Seite und einen RSS-Feed.
 ---
 
-Blume bringt ein Changelog von Haus aus mit. Schreibe jedes Release als normale Inhaltsdatei, kennzeichne es mit `type: changelog`, und Blume sammelt jeden Eintrag in einer generierten Timeline-Seite und einem RSS-Feed – kein Layout zu bauen, keine Liste zu pflegen. Oder verzichte ganz auf die Dateien und [beziehe dein Changelog aus GitHub Releases](#from-github-releases).
+Blume bringt ein Changelog von Haus aus mit. Schreibe jedes Release als normale Inhaltsdatei, kennzeichne es mit `type: changelog`, und Blume sammelt jeden Eintrag in einer generierten Übersichtsseite und einem RSS-Feed – kein Layout zu bauen, keine Liste zu pflegen. Oder verzichte ganz auf die Dateien und [beziehe dein Changelog aus GitHub Releases](#from-github-releases).
 
 ## Einen Eintrag schreiben [#write-an-entry]
 
@@ -26,11 +28,11 @@ A big batch of components landed this release — columns, frames, trees, and to
 - `CodeGroup` tabs with flush code blocks
 ```
 
-Gib jedem Eintrag ein `date`, damit Timeline und Feed die neuesten zuerst sortieren. Ein YAML-Datum ohne Anführungszeichen ist in Ordnung – Blume normalisiert es.
+Gib jedem Eintrag ein `date`, damit Übersicht und Feed die neuesten zuerst sortieren. Ein YAML-Datum ohne Anführungszeichen ist in Ordnung – Blume normalisiert es.
 
 ### Das `changelog`-Objekt [#the-changelog-object]
 
-Das optionale `changelog`-Objekt ergänzt reichhaltigere Metadaten für Timeline und Feed:
+Das optionale `changelog`-Objekt ergänzt reichhaltigere Metadaten für Übersicht und Feed:
 
 <TypeTable
   type={{
@@ -47,53 +49,39 @@ Das optionale `changelog`-Objekt ergänzt reichhaltigere Metadaten für Timeline
     "changelog.date": {
       type: "string",
       description:
-        "Veröffentlichungsdatum. Kann hier oder auf oberster Ebene stehen – beides speist Timeline und RSS-Feed.",
+        "Veröffentlichungsdatum. Kann hier oder auf oberster Ebene stehen – beides speist Übersicht und RSS-Feed.",
     },
   }}
 />
 
-## Die Timeline-Seite [#the-timeline-page]
+## Die Übersichtsseite [#the-index-page]
 
-Sobald du mindestens einen Eintrag mit `type: changelog` hast, generiert Blume automatisch eine **`/changelog`**-Seite. Sie wird als fokussierte Timeline über die volle Breite gerendert – ohne Seitenleiste oder Inhaltsverzeichnis – mit den neuesten Einträgen zuerst und zeigt Datum, Label und `category`-Tag in einer linken Spalte neben dem Inhalt:
+Sobald du mindestens einen Eintrag mit `type: changelog` hast, generiert Blume automatisch eine **`/changelog`**-Seite. Sie ist eine fokussierte Übersicht über die volle Breite – ohne Seitenleiste oder Inhaltsverzeichnis –, die jedes Release als eine Zeile auflistet, die neuesten zuerst und nach Jahr gruppiert, sodass auch eine lange Historie eine kurze Seite bleibt (deutlich unter der Größe, die ein Agent in einem einzigen Kontextfenster lesen kann):
 
-- Der **Titel** des Eintrags wird zu seinem Label – oder `v{version}`, wenn kein Titel vorhanden ist. Er verlinkt auf die eigene Seite des Eintrags, sodass ein Release zugleich eine Zeile in der Timeline und ein teilbarer Permalink ist.
-- Die `category` wird als Tag neben dem Datum gerendert.
+- Der **Titel** des Eintrags wird zum Label der Zeile – oder `v{version}`, wenn kein Titel vorhanden ist. Er verlinkt auf die eigene Seite des Eintrags, wo die Release Notes vollständig gerendert werden.
+- Die `category` wird als Tag neben dem Titel gerendert, sodass Leser auf einen Blick ein Release von einem Prerelease oder Features von Fixes unterscheiden können.
+- Das Datum folgt dem konfigurierten [`dateFormat`](/docs/configuration#date-format), ohne das Jahr, das die Gruppe der Zeile bereits anzeigt.
 - Entwürfe und Einträge mit `sidebar.hidden` werden übersprungen.
 
-Die Seite erscheint nur, wenn die Route `/changelog` nicht bereits belegt ist. Um sie durch dein eigenes Design zu ersetzen, füge unter `pages/changelog.astro` eine [benutzerdefinierte Seite](/docs/advanced/custom-pages) hinzu – sie übernimmt, und Blume generiert die Standard-Timeline nicht mehr.
+Die Seite erscheint nur, wenn die Route `/changelog` nicht bereits belegt ist. Um sie durch dein eigenes Design zu ersetzen, füge unter `pages/changelog.astro` eine [benutzerdefinierte Seite](/docs/advanced/custom-pages) hinzu – sie übernimmt, und Blume generiert die Standard-Übersicht nicht mehr. Die `<Update>`-Komponente, aus der die bisherige Timeline aufgebaut war, steht weiterhin für eine von Hand verfasste Seite zur Verfügung, die Release Notes inline zeigen soll.
 
-Da diese Seite generiert und nicht verfasst wird, ist sie nicht Teil des Inhaltsbaums – ein Header-[Tab](/docs/content/navigation#tabs), der auf `/changelog` zeigt, löst daher zum neuesten Eintrag auf. Gib dem Tab ein `href`, um auf der Übersichtsseite selbst zu landen:
-
-```ts blume.config.ts
-navigation: {
-  tabs: [
-    { label: "Changelog", path: "/changelog", href: "/changelog" },
-  ],
-}
-```
-
-### Nach Major-Version gruppiert [#grouped-by-major-version]
-
-Wenn deine Versionen [Semver](https://semver.org) folgen und mehr als eine Major-Version umfassen, paginiert Blume die Timeline nach Major-Version. Es wird nur die neueste Major-Reihe angezeigt, mit einer Schaltfläche **Show N.x releases** am unteren Rand, die die nächstältere Major-Version mit je einem Klick einblendet:
-
-- Die Erkennung erfolgt automatisch – ohne Konfiguration. Sie greift nur, wenn jedes aufgeführte Release als `major.minor.patch` geparst wird und es mehr als eine Major-Version gibt; andernfalls bleibt die Timeline flach.
-- Sie kommt mit den Scoped Tags zurecht, die Monorepos veröffentlichen, sodass `pkg@2.0.0` unter `2.x` und `pkg@1.4.0` unter `1.x` gruppiert wird.
-- Es handelt sich um Progressive Enhancement: Jedes Release steht weiterhin im HTML der Seite (sowie im RSS-Feed und im Suchindex), sodass Leser ohne JavaScript – und Crawler – die vollständige Historie sehen. Die Schaltfläche klappt ältere Major-Versionen erst ein, sobald die Seite hydratisiert.
+Ein Header-[Tab](/docs/content/navigation#tabs), der auf `/changelog` zeigt, öffnet diese Übersicht – ein `href` ist nicht nötig.
 
 ## Aus GitHub Releases [#from-github-releases]
 
-Statt Einträge von Hand zu verfassen, richte die eingebaute [`github-releases`-Quelle](/docs/content/sources#github-releases) auf ein Repository, und jedes Release wird zu einem Eintrag mit `type: changelog` – dieselbe Timeline und derselbe Feed, direkt gespeist aus den Releases, die du ohnehin veröffentlichst. Blumes eigenes [Changelog](/changelog) ist so aufgebaut:
+Statt Einträge von Hand zu verfassen, richte die eingebaute [`githubReleases()`-Quelle](/docs/content/sources#github-releases) auf ein Repository, und jedes Release wird zu einem Eintrag mit `type: changelog` – dieselbe Timeline und derselbe Feed, direkt gespeist aus den Releases, die du ohnehin veröffentlichst. Blumes eigenes [Changelog](/changelog) ist so aufgebaut:
 
 ```ts blume.config.ts
+import { filesystem, githubReleases } from "blume/sources";
+
 content: {
   sources: [
-    { type: "filesystem", root: "content" },
-    {
-      type: "github-releases",
+    filesystem({ root: "content" }),
+    githubReleases({
       prefix: "changelog",
       owner: "acme",
       repo: "sdk",
-    },
+    }),
   ],
 }
 ```
@@ -125,12 +113,12 @@ Wenn [strukturierte Daten](/docs/discoverability/structured-data) aktiviert sind
 <CardGroup cols={2}>
   <Card
     title="Frontmatter"
-    href="/docs/reference/frontmatter#changelog"
+    href="/docs/content/frontmatter#changelog"
     icon="file"
   >
     Das vollständige Frontmatter-Schema für das Changelog.
   </Card>
-  <Card title="Custom Pages" href="/docs/advanced/custom-pages" icon="folder">
+  <Card title="Custom pages" href="/docs/advanced/custom-pages" icon="folder">
     Ersetze die generierte Timeline durch dein eigenes Layout.
   </Card>
 </CardGroup>

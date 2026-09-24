@@ -1,0 +1,113 @@
+---
+title: GraphQL
+description: >-
+  GraphQL スキーマを追加するだけで、ネイティブな API リファレンスが生成されます。オペレーションごと・型ごとに実際のページが作成され、サイドバーと検索に表示されます。
+---
+
+Blume に GraphQL スキーマを指定すると、ネイティブな API リファレンスが生成されます。クエリ、ミューテーション、サブスクリプションの**ルートフィールドごとに実際のページ**が 1 つずつ作成されます。さらに、オブジェクト、入力オブジェクト、列挙型、インターフェース、ユニオン、カスタムスカラーの**名前付き型ごとにもページ**が 1 つずつ作成されます。各ページには、引数、デフォルト値、非推奨情報、使用箇所へのバックリンクが表示されます。生成されたオペレーション例、コードサンプル、インタラクティブな [Try it](#try-it-playground) パネルも表示されます。各ページは正真正銘の Blume ページなので、それぞれ独自の URL を持ちます。**サイト検索**や `llms.txt` にも表示され、Open Graph 画像も生成されます。この点は手書きのドキュメントとまったく同じです。
+
+リファレンスを生成するのは `blume/reference` の `graphql()` アダプターです。`reference` の下に、[OpenAPI](/docs/references/openapi) や [AsyncAPI](/docs/references/asyncapi) のアダプターと並べて記述します：
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { graphql } from "blume/reference";
+
+export default defineConfig({
+  reference: [
+    graphql({
+      spec: "./schema.graphql",
+      endpoint: "https://api.example.com/graphql",
+    }),
+  ],
+});
+```
+
+これにより、リファレンスが `/graphql`（概要ページ）にマウントされます。ルートフィールドは `/graphql/queries/<field>`、`/graphql/mutations/<field>`、`/graphql/subscriptions/<field>` に配置されます。型は種類ごとにグループ化され、`/graphql/objects/<type>` や `/graphql/enums/<type>` などに配置されます。
+
+`spec` には、プロジェクト内のローカルファイルへのパスか `http(s)` URL を指定します。次の 2 つの形式に対応しています：
+
+- **SDL テキスト** — 型定義を含む `.graphql` ファイルです。
+- **イントロスペクション結果** — 標準のイントロスペクションクエリを実行して得られる JSON です。生の `{ "__schema": … }` 形式と、完全なレスポンスエンベロープである `{ "data": { "__schema": … } }` 形式のどちらにも対応しています。
+
+`endpoint` には、実際に稼働している GraphQL API の URL を指定します。OpenAPI ドキュメントとは異なり、スキーマにはサーバーが記述されていません。そのため、Try it パネルと生成されるコードサンプルはこのエンドポイントに送信されます。省略した場合、サンプルにはプレースホルダー URL が表示されるので、読者が自分で置き換えます。
+
+リファレンスは、それ自体ではヘッダータブを追加しません。表示するには、[ナビゲーションタブ](/docs/content/navigation#tabs)のパスをリファレンスのルートに設定してください。これにより、リファレンスのサイドバーの表示範囲も設定されます：
+
+```ts blume.config.ts
+navigation: {
+  tabs: [{ label: "GraphQL", path: "/graphql" }],
+}
+```
+
+## 生成される例 [#generated-examples]
+
+すべてのオペレーションページには、完全で有効なオペレーション例が含まれます。この例では、引数ごとにスキーマに基づいて型付けされた変数が 1 つずつ定義されます。また、戻り値の型に対しては、深さを制限した選択セットが付きます。これに対応する変数の例と、同じ選択セットを反映したレスポンスの例も含まれます。コードサンプルには、設定した各言語で実際の HTTP リクエスト（`{ query, variables }` の JSON `POST`）がそのまま表示されます：
+
+```ts blume.config.ts lineNumbers
+reference: [
+  graphql({
+    spec: "./schema.graphql",
+    codeSamples: ["curl", "js"],   // built in: curl, js, python
+  }),
+],
+```
+
+## 型ページ [#type-pages]
+
+名前付き型には、ディープリンクが可能な専用ページが用意され、サイドバーでは種類ごとにグループ化されます。各ページには次の内容が表示されます。
+
+- フィールドと入力フィールド（型へのリンク付き）
+- 列挙値
+- ユニオンのメンバー
+- インターフェースの実装
+- **Used by** セクション（その型を返す・受け取るオペレーションと、その型を参照する他の型の一覧）
+
+仕様で定義されたスカラー（`String`、`Int` など）にはページが作成されません。カスタムスカラーにはページが作成され、`specifiedBy` の URL も表示されます。
+
+## 複数のスキーマ [#multiple-schemas]
+
+`sources` の各エントリは、1 つのスキーマをそれぞれ独自のルートにレンダリングします。ソースごとに `endpoint` を指定すると、アダプターの `endpoint` よりも優先されます：
+
+```ts blume.config.ts lineNumbers
+reference: [
+  graphql({
+    endpoint: "https://api.example.com/graphql",
+    sources: [
+      { label: "Public API", spec: "./schema.graphql" },
+      {
+        label: "Admin API",
+        route: "/graphql-admin",
+        spec: "./admin.graphql",
+        endpoint: "https://admin.example.com/graphql",
+      },
+    ],
+  }),
+],
+```
+
+`spec` は、エントリが 1 つだけの `sources` の省略形です。表示オプションを変えたいスキーマは、別々の `graphql()` アダプターに分け、それぞれに独自の `route` を指定します。各ソースでは、`openapi()` と同じ[ソースごとの制御](/docs/references/openapi#per-source-indexing)を使用できます。使用できるのは `includeInSearch`、`includeInLlms`、`noindex`、`seoDescriptionSuffix` です。GraphQL の場合、生成される文にはクエリ、ミューテーション、または型の名前が入ります（例：「Reference for the `pets` query in the GraphQL API.」）。
+
+## Try it プレイグラウンド [#try-it-playground]
+
+クエリとミューテーションのページには、インタラクティブなパネルが表示されます。このパネルでは、リクエストボディ（クエリと変数）を編集できます。送信先にはエンドポイントかカスタム URL を指定して、そのまま送信できます。コードサンプルはリアルタイムで更新されるため、コピーした内容は実際に送信した内容とバイト単位で一致します。パネルを無効にするには、`playground: false` を指定します。サブスクリプションのページには、パネルの代わりに、生成されたオペレーションとイベントの例が表示されます。サブスクリプションはステートフルなトランスポート（WebSocket または SSE）上で動作するため、プレイグラウンドの単一の HTTP `POST` では扱えません。
+
+GraphQL API がドキュメントサイトからのクロスオリジンリクエストを許可していない場合は、CORS プロキシを経由して送信してください。独自のプロキシの URL を指定するか、`true` を指定して組み込みの `/_api-proxy` エンドポイントを使用します。組み込みのプロキシを使うには[サーバー出力](/docs/deployment#server-rendering)が必要です。具体的には、`blume/deploy` の `deployment: vercel()` のようなホストアダプターを設定します。
+
+組み込みのプロキシは、ドキュメント化された仕様で宣言されているオリジンにのみ転送します。転送先は次のとおりです。
+
+- 設定された各 GraphQL の `endpoint`
+- ドキュメント化された [OpenAPI 仕様](/docs/references/openapi)に記述された絶対 URL の `servers[].url`
+
+そのため、公開されたドキュメントのデプロイを悪用して、他のホストにリクエストを送ることはできません。つまり、プロキシを動作させるには `endpoint` の指定が必須です。指定しない場合、このリファレンスで許可されるオリジンがないため、プロキシはすべての送信を拒否します（この場合、ビルド時に警告が表示されます）。リクエストボディのサイズ制限とレスポンスヘッダーは、[OpenAPI のプロキシ](/docs/references/openapi#try-it-playground)と同じものが適用されます。
+
+```ts blume.config.ts lineNumbers
+reference: [
+  graphql({
+    spec: "./schema.graphql",
+    endpoint: "https://api.example.com/graphql",
+    playground: { proxy: true },
+  }),
+],
+```
+
+GraphQL には、Scalar を使った代替手段はありません。[`scalar()`](/docs/references/scalar) の埋め込みが読み込めるのは OpenAPI と AsyncAPI のドキュメントだけです。そのため、GraphQL リファレンスは常にネイティブでレンダリングされます。

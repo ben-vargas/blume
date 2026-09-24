@@ -11,7 +11,7 @@ Blume erstellt deine Seitenleiste aus dem Dateisystem und lässt dich sie dann s
 Standardmäßig spiegelt die Seitenleiste deinen Inhaltsbaum wider:
 
 - Ordner werden zu **Gruppen**, Dateien werden zu **Seiten**
-- Die Beschriftung einer Seite ist ihr Frontmatter-`title`; die Beschriftung einer Gruppe ist der lesbar gemachte Ordnername
+- Die Beschriftung einer Seite ist ihr Frontmatter-`title`; die Beschriftung einer Gruppe ist der lesbar gemachte Ordnername, wobei gängige Akronyme wie API, CLI und SDK großgeschrieben werden (`api-reference` wird zu „API Reference“)
 - Einträge werden nach [numerischem Präfix](/docs/content) sortiert, dann alphabetisch, und die `index`-Seite eines Ordners steht an erster Stelle
 - Ein Ordner mit einer `index`-Seite verlinkt seine Gruppenzeile auf diese Seite, sodass ein Klick auf den Abschnittsnamen die Landing-Page des Abschnitts öffnet
 
@@ -29,7 +29,7 @@ sidebar:
   order: 1 # sort position within its group
 ```
 
-Das vollständige Seitenschema findest du unter [Frontmatter](/docs/reference/frontmatter).
+Das vollständige Seitenschema findest du unter [Frontmatter](/docs/content/frontmatter).
 
 ## Ordnergruppen [#folder-groups]
 
@@ -47,7 +47,7 @@ export default defineMeta({
 
 Unter [Ordner-Meta](/docs/content/meta) findest du alle Felder sowie Informationen zur Berechnung von Meta-Daten während des Scans.
 
-Das `meta.title` eines Ordners und das Frontmatter-`title` seiner eigenen `index`-Seite werden unabhängig voneinander aufgelöst – übersetzt du unter i18n das eine und vergisst das andere, entsteht eine korrekte Seitenleiste mit einem veralteten `<title>` bzw. einer veralteten Überschrift auf der Landing-Page selbst. Blume meldet eine `BLUME_NAV_INDEX_TITLE_MISMATCH`-Warnung, wenn beide voneinander abweichen. Nicht übersetzte Seiten, die aus der Fallback-Sprache ergänzt werden, sind davon ausgenommen – ihr Titel gehört zur Fallback-Sprache, und die Lösung besteht darin, die Seite zu übersetzen, nicht ihr Frontmatter zu bearbeiten.
+Das `meta.title` eines Ordners und das Frontmatter-`title` seiner eigenen `index`-Seite werden unabhängig voneinander aufgelöst – übersetzt du unter i18n das eine und vergisst das andere, entsteht eine korrekte Seitenleiste mit einem veralteten `<title>` bzw. einer veralteten Überschrift auf der Landing-Page selbst. Blume meldet eine `BLUME_NAV_INDEX_TITLE_MISMATCH`-Warnung, wenn beide auf einer Index-Seite voneinander abweichen, die ihre eigene Zeile in der Seitenleiste ausblendet (`sidebar.hidden: true`) – dort ist der Ordnertitel die einzige Beschriftung, die die Seite in der Seitenleiste hat. Ist die Index-Zeile sichtbar, zeigt die Seitenleiste bereits beide Titel, sodass du einen Ordnertitel problemlos mit einem anderen Seitentitel kombinieren kannst („CLI“ über „Übersicht“). Nicht übersetzte Seiten, die aus der Fallback-Sprache ergänzt werden, sind davon ausgenommen – ihr Titel gehört zur Fallback-Sprache, und die Lösung besteht darin, die Seite zu übersetzen, nicht ihr Frontmatter zu bearbeiten.
 
 Um Seiten zu gruppieren, _ohne_ ein URL-Segment hinzuzufügen, verwende einen in Klammern gesetzten Ordnernamen – siehe [Seiten](/docs/content#group-folders).
 
@@ -163,17 +163,19 @@ navigation: {
 }
 ```
 
-Der `path` eines Tabs ist sein Abschnittspräfix und dient zugleich als Linkziel. Ein Abschnitt, dessen `path` keine eigene Seite ist – ein Ordner ohne `index.mdx` –, würde auf einen 404 verweisen, daher greift der Tab stattdessen auf die erste Seite im Abschnitt zurück. Setze `href`, wenn er woanders landen soll:
+Der `path` eines Tabs ist sein Abschnittspräfix und dient zugleich als Linkziel. Ein Abschnitt, dessen `path` keine eigene Seite ist – ein Ordner ohne `index.mdx` –, würde auf einen 404 verweisen, daher greift der Tab stattdessen auf die erste Seite im Abschnitt zurück. Eine statische [benutzerdefinierte Seite](/docs/advanced/custom-pages) am `path` des Tabs zählt als eigene Seite des Abschnitts: Mit `pages/guides.astro` landet ein `/guides`-Tab auf dieser Seite, während der Ordner `guides/` seine Seitenleiste füllt. Dasselbe gilt für den generierten [Changelog](/docs/advanced/changelog)-Index, sodass ein `/changelog`-Tab die Zeitleiste öffnet statt des neuesten Eintrags.
+
+Setze `href`, wenn ein Tab woanders landen soll – etwa auf einer bestimmten Seite im Abschnitt:
 
 ```ts blume.config.ts
 navigation: {
   tabs: [
-    { label: "Changelog", path: "/changelog", href: "/changelog" },
+    { label: "Guides", path: "/guides", href: "/guides/getting-started" },
   ],
 }
 ```
 
-Das ist wichtig für Routen, die nicht Teil des Inhaltsbaums sind, da der Fallback sie nicht sehen kann: der generierte [Changelog](/docs/advanced/changelog)-Index oder eine [benutzerdefinierte Seite](/docs/advanced/custom-pages), die du unter `pages/` hinzugefügt hast. Ohne `href` landet ein `/changelog`-Tab auf dem neuesten Eintrag statt auf dem Index. Tabs, die kein `href` setzen, sind nicht betroffen.
+Tabs, die kein `href` setzen, behalten die oben beschriebene Auflösung bei.
 
 Auf einer [i18n](/docs/content/i18n)-Website kann die `label` eines Tabs (und die eines Dropdown-Eintrags) statt einer Zeichenkette eine Zuordnung pro Sprache sein – der Eintrag der aktiven Sprache gewinnt, danach der der Standardsprache:
 

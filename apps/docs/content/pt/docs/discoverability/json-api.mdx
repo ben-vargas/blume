@@ -8,7 +8,7 @@ Todo site Blume também serve sua documentação como uma pequena **API JSON** s
 
 | Endpoint | Retorna |
 | --- | --- |
-| `/api/docs/pages.json` | Todas as páginas com sua rota, título, descrição, tipo de conteúdo, idioma, facetas e as URLs de suas formas renderizada, Markdown e JSON. |
+| `/api/docs/pages.json` | Todas as páginas com sua rota, título, descrição, tipo de conteúdo, idioma, facetas e as URLs de suas formas renderizada, Markdown e JSON. As cópias de fallback de i18n de páginas não traduzidas ficam de fora; em saída de servidor, o JSON de uma página inexistente responde `404` com `PAGE_NOT_FOUND`. |
 | `/api/docs/pages/{route}.json` | Uma página: sua entrada no índice mais o Markdown para agentes (o mesmo corpo que `get_page` retorna). `{route}` é a rota da página sem a barra inicial, `index` para a home. |
 | `/api/docs/navigation.json` | A árvore de navegação — abas do cabeçalho e a hierarquia da barra lateral. |
 | `/api/docs/search?q=` | Busca em texto completo, com o mesmo escopo de `limit`, `contentTypes`, `locale`, `version` e `filters[key]` que `search_docs`. Somente em saída de servidor. |
@@ -50,10 +50,10 @@ Nada disso mexe na sua própria [referência de API](/docs/references/openapi): 
 
 ## Desligando [#turning-it-off]
 
-Defina `ai.api` como `false` para não publicar nada disso:
+Defina `agents.api` como `false` para não publicar nada disso:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   api: false,
 }
 ```

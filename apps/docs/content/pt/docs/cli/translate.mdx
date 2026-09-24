@@ -1,0 +1,82 @@
+---
+title: Traduzir
+description: >-
+  blume translate preenche seus locales com um agente de IA — ele encontra as páginas que estão faltando ou desatualizadas em cada idioma, traduz essas páginas com a CLI de agente que você já tem e dá ao CI uma verificação que falha quando as traduções ficam defasadas.
+---
+
+Depois que você ativa o [i18n](/docs/content/i18n), cada edição em uma página de origem deixa as traduções dela desatualizadas, sem nenhum aviso. O `blume translate` fecha esse ciclo: ele calcula exatamente quais páginas estão faltando ou desatualizadas em cada locale, traduz essas páginas em modo headless com uma CLI de agente local e anota o que fez em um registro versionado, para que a próxima execução — e o CI — saiba o que está atualizado.
+
+```bash
+blume translate --claude
+```
+
+```
+blume translate  3 item(s) · 2 locale(s) · Claude Code
+
+  ✔ docs/guides/install.mdx → fr 24.2s $0.11
+  ✔ docs/guides/install.mdx → de 22.8s $0.10
+  ✔ meta titles (2) → de 4.1s $0.01
+
+  Translated 3 files into 2 locales · 1 adopted · 14 already up to date · 51.1s · $0.22
+```
+
+## Como funciona [#how-it-works]
+
+O Blume controla o pipeline; o agente só traduz texto. Para cada arquivo que precisa de trabalho, o Blume monta um prompt de tradução, executa a CLI do agente em modo headless com as ferramentas de arquivo, shell e web desativadas, valida a estrutura da resposta e grava ele mesmo o arquivo de destino — a CLI é o [Claude Code](https://claude.com/claude-code) com `--claude` ou o [Codex](https://developers.openai.com/codex/cli) com `--codex`. O Blume não guarda nenhuma chave de API e não chama nenhum modelo diretamente.
+
+Cada gravação validada fica anotada em `blume.translations.json` na raiz do projeto: para cada arquivo de origem e locale, um hash da origem no momento em que ela foi traduzida. **Faça commit desse arquivo.** É assim que uma nova execução sabe a diferença entre "já traduzido" e "traduzido, mas a origem mudou desde então" — e é isso que torna possível a verificação no CI.
+
+O registro é salvo depois de cada arquivo concluído, então, se você interromper uma execução longa (Ctrl+C), perde no máximo as traduções que estavam em andamento — a próxima execução continua de onde você parou. Por padrão, os arquivos rodam de 4 em 4; aumente esse número com `--concurrency` se a sua máquina e os limites de taxa do agente permitirem.
+
+As novas execuções são incrementais: uma origem que não mudou desde a última tradução é ignorada, então rodar `blume translate` depois de editar uma página traduz uma página por locale. Quando uma página desatualizada é traduzida de novo, o agente recebe a tradução existente e a instrução de manter o mesmo nível de formalidade, dialeto e terminologia — uma edição de um parágrafo na origem gera um diff de um parágrafo na tradução, e não uma reescrita do zero.
+
+Uma primeira tradução não tem precedente para seguir, então defina essa escolha logo de início com [`style` no locale](/docs/content/i18n) (`{ code: "pt", label: "Português", style: "Brazilian Portuguese, informal você" }`). Essa orientação vai junto em todo prompt de tradução e, quando uma tradução existente discorda dela, o `style` prevalece — então uma nova tradução também aproxima as páginas mais antigas do estilo configurado.
+
+## O que é traduzido [#what-gets-translated]
+
+- **Páginas** — arquivos `.md`/`.mdx` no locale padrão. O agente traduz o texto corrido e apenas os valores do frontmatter que aparecem para quem lê (`title`, `description`, `sidebar.label`, `sidebar.badge`, `seo.title`, `seo.description`). Os destinos seguem o seu parser: `fr/guides/install.mdx` com `dir`, `guides/install.fr.mdx` com `dot`.
+- **Títulos de navegação das pastas** — com o parser `dir`, os títulos de [`meta.ts`](/docs/content/meta) de que cada locale precisa são traduzidos em uma única chamada em lote, e o `meta.ts` gerado para cada locale copia todas as outras chaves (`order`, `pages`, `icon`, `collapsed`) literalmente, para que a barra lateral do locale mantenha a ordenação.
+
+As traduções que você escreveu à mão são **adotadas, nunca sobrescritas**: uma tradução que existe, mas não tem entrada no registro, é marcada como atualizada e deixada como está. Só o `--force` faz uma nova tradução dela.
+
+## Validação [#validation]
+
+A estrutura nunca fica nas mãos do agente. Antes de gravar, o Blume verifica cada resposta e reconstrói o arquivo a partir da origem:
+
+- O frontmatter é reconstruído a partir dos dados do arquivo de origem, e só os seis valores traduzíveis são substituídos — chaves inventadas pelo agente são descartadas, chaves que ele apagou são restauradas, e `slug`, `icon`, `order` e datas são, por construção, idênticos aos da origem.
+- O número de blocos de código precisa bater com o da origem, o corpo não pode estar vazio e o frontmatter precisa ser válido.
+- Cada título é fixado ao id de âncora do título correspondente na origem com um [marcador `[#id]`](/docs/content/syntax#custom-anchors) no final, a menos que a tradução já fixe um, para que links com `#fragment` funcionem da mesma forma em todos os idiomas. Os títulos são pareados pela posição, então uma tradução cuja estrutura de títulos não bate com a da origem não recebe nenhum marcador.
+
+Uma resposta que falha na validação não grava nada — o item é reportado como falho e a execução segue em frente. Tudo o que deu certo continua marcado no registro, então uma nova execução tenta de novo só as falhas.
+
+## Fazendo o CI falhar [#failing-ci]
+
+O `blume translate --check` é a verificação somente leitura: ele reporta cada par ausente ou desatualizado e sai com código diferente de zero quando há divergência, sem executar nenhum agente nem gravar nada.
+
+```bash
+blume translate --check           # exit 1 when translations are missing or stale
+blume translate --check --json    # machine-readable drift report on stdout
+```
+
+```yaml .github/workflows/translations.yml
+- run: npx blume translate --check
+```
+
+O relatório JSON tem o mesmo formato `diagnostics` + `summary` de `blume validate --json`, `blume audit --json` e `blume eval --json`, com a divergência agrupada por locale. Cada tradução ausente ou desatualizada é um diagnóstico de erro (`BLUME_TRANSLATE_MISSING`, `BLUME_TRANSLATE_STALE`), então `summary.error` corresponde ao código de saída. Traduções escritas à mão (não rastreadas) nunca fazem a verificação falhar.
+
+## Limitações [#limitations]
+
+- A tradução dos títulos de meta só funciona com o parser `dir` — o parser `dot` não tem um mecanismo de `meta.ts` por locale. Um `meta.ts` cujo export default é uma função é ignorado com um aviso; escreva à mão a versão desse locale.
+- Fontes remotas e baseadas em CMS são ignoradas: não existe um arquivo local onde gravar a tradução.
+- Os rótulos das abas do cabeçalho ficam em `blume.config.ts`, não no conteúdo — traduza esses rótulos lá com [mapas de rótulos por locale](/docs/content/navigation#tabs).
+- A qualidade da tradução depende do agente. Revise o resultado como qualquer outra contribuição — o registro só garante que a tradução está atualizada, não que está fluente.
+
+## Flags
+
+- `--claude` / `--codex` — qual CLI de agente faz a tradução. É obrigatório passar exatamente uma (exceto com `--check`).
+- `--check` — reporta a divergência e sai com código diferente de zero, sem gravar nada.
+- `--concurrency <n>` — sessões de agente em paralelo. O padrão é `4`, e o máximo é `16`.
+- `--locale <codes>` — locales de destino separados por vírgula (por padrão, todos os locales exceto o padrão).
+- `--force` — traduz tudo de novo, incluindo arquivos já atualizados e escritos à mão.
+- `--timeout <seconds>` — limite de tempo do agente por arquivo. O padrão é `600`; esse teto existe para pegar agentes travados, então páginas grandes têm tempo de sobra para terminar.
+- `--json` — emite o relatório como JSON no stdout, nos dois modos.

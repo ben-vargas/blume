@@ -1,0 +1,647 @@
+---
+title: 監査
+description: >-
+  blume audit はビルド済みのサイトをクロールし、SEO とサイトの健全性に関する問題を報告します。各指摘には、修正箇所となるソースファイルとフロントマターの行が示されます。
+---
+
+[`blume validate`](/docs/cli/validate) は _コンテンツ_ を読み取りますが、`blume audit` は _ビルド済みのサイト_ を読み取ります。ビルド後に `dist/` 内の HTML をクロールし、SEO とサイトの健全性に関する問題を報告します。対象は、タイトル、メタディスクリプション、canonical、Open Graph と X のカード、見出し、hreflang、画像、サイトマップ、`robots.txt`、構造化データです。
+
+サイトをビルドしたのは Blume なので、各指摘にはクローラーから見える URL だけでなく、修正すべきソースファイル **とフロントマターの行** も示されます。
+
+```
+⚠ Meta description too long or too short   5 pages
+    /docs/configuration/export    content/docs/configuration/export.mdx:3
+    fix: Rewrite `description` in the frontmatter to fit the length range.
+```
+
+ビルド後に実行します。
+
+```bash
+blume build
+blume audit
+```
+
+指摘はページごとに並ぶのではなく、チェックごとにまとめて表示されます。そのため、レポートは ToDo リストのように読めます。`--verbose` を使うと影響を受けるすべてのページを詳細付きで展開できます。`--only`/`--skip` を使うと、1 カテゴリずつ対処できます。`blume audit --list-checks` はチェックの全カタログを出力します。内容はこのページ末尾の [チェックカタログ](#check-catalog) と同じで、各指摘の `docsUrl` はそのカタログ内の該当項目にリンクしています。
+
+## フラグ [#flags]
+
+- `--fail-on error|warning|info` — CI のゲートです。この重大度以上の指摘があると、0 以外の終了コードで終了します。デフォルトは `error` です。`--strict` は `--fail-on warning` のエイリアスです。
+- `--url <origin>` — 稼働中のデプロイにもリクエストを送り、ステータスコード、レスポンスヘッダー、リダイレクトチェーンを確認します。
+- `--external` — 外部リンクをネットワーク経由で確認します。
+- `--only <check|category>` / `--skip <check|category>` — レポートの対象を指定したチェックやカテゴリだけに絞り込むか、それらを除外します（カンマ区切り）。どのチェックにもカテゴリにも当てはまらない語を指定するとエラーになり、最も近い候補が提案されます。そのため、タイプミスでレポートが気づかないうちに空になることはありません。
+- `--list-checks` — 監査が報告できるすべてのチェックを出力して終了します。
+- `--verbose` — 最初の数件だけでなく、影響を受けるすべてのページを各指摘の詳細とともに一覧表示します。
+- `--json` — レポートを JSON として標準出力に出力します。
+- `--claude` / `--codex` — 指摘を Claude Code または Codex に渡し、対話形式で修正させます。
+
+## CI を失敗させる [#failing-ci]
+
+基準になるのは終了コードです。デフォルトでは、`blume audit` はエラーがあるときだけ失敗します。エラーとは、ビルドされていないページへのリンク、リダイレクトループ、無効なサイトマップなど、確実に壊れているものです。改善を勧めるだけの指摘（短すぎる description、タイトルの重複など）は警告として扱われ、ビルドは失敗しません。
+
+```bash
+blume audit                      # fails on errors
+blume audit --fail-on warning    # also fails on warnings
+```
+
+## 稼働中のデプロイを確認する [#checking-a-live-deployment]
+
+実際のサーバーでしか確認できないこともあります。たとえば、`dist/` にあるページが誤ったリライトのせいで実際には 404 になっていないか、レスポンスが圧縮されているか、といった点です。HTML には問題がないのに、`X-Robots-Tag` ヘッダーのせいで気づかないうちにインデックスから外れていないかも、サーバーでしか確認できません。これらのチェックを追加するには、監査の対象にデプロイを指定します。
+
+```bash
+blume audit --url https://docs.example.com
+blume audit --url https://docs.example.com --external   # also probe outbound links
+```
+
+外部リンクは一律に失敗扱いにはせず、状況に応じて評価します。404 は修正できるリンク切れです。一方、403 や 5xx はたいていレート制限か相手側の障害なので、警告として報告します。
+
+## エージェントで指摘を修正する [#fixing-the-findings-with-an-agent]
+
+[Claude Code](https://claude.com/claude-code) や [Codex](https://developers.openai.com/codex/cli) を使っている場合は、監査の指摘をそのまま渡せます。
+
+```bash
+blume audit --claude   # or --codex
+```
+
+このコマンドは完全な JSON レポートをファイルに書き出します。ターミナルに表示される 3 ページ分のプレビューではなく、影響を受けるすべてのページが含まれます。続いて、指摘を順に処理させるプロンプトとともにエージェントを対話モードで起動します。エージェントは、各指摘が示すソースファイルを編集して提案どおりに修正し、レポートがクリーンになるまで `blume build` と `blume audit` を再実行します。このセッションは意図的に対話型にしています。編集内容はエージェント自身の権限フローで確認できます。また、コンテンツを削除して指摘を解消しないよう、エージェントに指示しています。
+
+`--only` と `--skip` は、レポートと同じように、エージェントに渡す内容も絞り込みます。そのため、1 カテゴリずつ渡すこともできます。
+
+## チェックする項目としない項目 [#what-it-does-and-doesnt-check]
+
+チェックの範囲は、汎用の SEO クローラーより意図的に狭くしています。汎用クローラーが報告する項目の多くは、Blume のサイトでは発生しません。Blume は `rel=nofollow` を出力しませんし、Vite のコンテンツハッシュ付きバンドルが欠けたりリダイレクトしたりすることもありません。こうした項目を毎回ゼロ件と報告しても、レポートを読み飛ばす習慣がつくだけです。
+
+次の 2 つの制限は明記しておきます。
+
+- **構造化データ** は、形式が正しいかどうか（有効な JSON であること、`@context` があること、すべてのノードに `@type` があること）だけを検証します。schema.org の語彙全体や Google のリッチリザルトのルールに照らした検証は行いません。
+- **Core Web Vitals** はチェックしません。計測には実際のブラウザが必要です。実は何も計測しないフラグを用意するくらいなら、フラグがないほうがましです。そのため `blume audit` は、オフラインで確認 _できる_ レイアウトシフトの原因（`width`/`height` のない画像、サイズが大きすぎるアセット）だけを報告し、それ以外は現時点では対象外にしています。
+
+監査で実行されなかったチェックは、合格扱いにはせず、スキップとして報告します。
+
+```
+⊘ network      skipped — pass --url <origin> (11 checks)
+⊘ external     skipped — pass --external (2 checks)
+```
+
+## チェックカタログ [#check-catalog]
+
+`blume audit` が報告できるすべてのチェックをカテゴリ別にまとめています。各チェックには、デフォルトの重大度、実行されるティア、レポートが提案する修正方法を記載しています。`--only` と `--skip` には、これらの ID（`BLUME_AUDIT_` プレフィックスは省略できます）またはカテゴリ名を指定できます。
+
+### コンテンツ [#content]
+
+#### title タグがない、または空 [#title-missing]
+
+`BLUME_AUDIT_TITLE_MISSING` · error · ビルド済み HTML から
+
+修正：ページのフロントマターに `title` を追加します。
+
+#### title タグが複数ある [#title-multiple]
+
+`BLUME_AUDIT_TITLE_MULTIPLE` · error · ビルド済み HTML から
+
+修正：ページのレイアウトまたは MDX から余分な `<title>` を削除します。
+
+#### タイトルが長すぎる、または短すぎる [#title-length]
+
+`BLUME_AUDIT_TITLE_LENGTH` · warning · ビルド済み HTML から
+
+修正：適切な長さに収まるよう、フロントマターの `title` を書き直します。
+
+#### メタディスクリプションがない、または空 [#description-missing]
+
+`BLUME_AUDIT_DESCRIPTION_MISSING` · warning · ビルド済み HTML から
+
+修正：ページのフロントマターに `description` を追加します。
+
+#### メタディスクリプションタグが複数ある [#description-multiple]
+
+`BLUME_AUDIT_DESCRIPTION_MULTIPLE` · error · ビルド済み HTML から
+
+修正：ページのレイアウトまたは MDX から、description 用の余分な `<meta>` を削除します。
+
+#### メタディスクリプションが長すぎる、または短すぎる [#description-length]
+
+`BLUME_AUDIT_DESCRIPTION_LENGTH` · warning · ビルド済み HTML から
+
+修正：適切な長さに収まるよう、フロントマターの `description` を書き直します。
+
+#### H1 タグがない、または空 [#h1-missing]
+
+`BLUME_AUDIT_H1_MISSING` · warning · ビルド済み HTML から
+
+修正：ページに `title` を設定します。Blume はこれをページの `<h1>` としてレンダリングします。
+
+#### H1 タグが複数ある [#h1-multiple]
+
+`BLUME_AUDIT_H1_MULTIPLE` · warning · ビルド済み HTML から
+
+修正：本文中の余分な `# Heading` を `##` に下げます。Blume は `title` をすでに h1 としてレンダリングしています。
+
+#### 単語数が少ない [#low-word-count]
+
+`BLUME_AUDIT_LOW_WORD_COUNT` · info · ビルド済み HTML から
+
+修正：ページの内容を増やすか、より大きなページに統合します。
+
+#### 見出しレベルが飛んでいる（例：h2 から h4） [#heading-skip]
+
+`BLUME_AUDIT_HEADING_SKIP` · info · ビルド済み HTML から
+
+修正：見出しを 1 つ下のレベルに合わせます。レベルが飛んでいると、目次の入れ子構造やスクリーンリーダーのアウトラインが崩れます。
+
+#### ページの日付が未来になっている [#future-dated-page]
+
+`BLUME_AUDIT_FUTURE_DATED_PAGE` · info · ビルド済み HTML から
+
+修正：`date` を修正するか、公開予定日までページを公開しないでおきます。
+
+#### viewport が設定されていない [#viewport-missing]
+
+`BLUME_AUDIT_VIEWPORT_MISSING` · error · ビルド済み HTML から
+
+修正：eject したレイアウトに viewport の `<meta>` を戻します。
+
+### 重複 [#duplicates]
+
+#### タイトルの重複 [#duplicate-title]
+
+`BLUME_AUDIT_DUPLICATE_TITLE` · warning · ビルド済み HTML から
+
+修正：ページごとに異なる `title` を設定します。検索エンジンはこれを検索結果の見出しとして表示します。
+
+#### メタディスクリプションの重複 [#duplicate-description]
+
+`BLUME_AUDIT_DUPLICATE_DESCRIPTION` · warning · ビルド済み HTML から
+
+修正：ページごとに異なる `description` を設定します。
+
+#### canonical のない重複ページ [#duplicate-content]
+
+`BLUME_AUDIT_DUPLICATE_CONTENT` · warning · ビルド済み HTML から
+
+修正：ページを統合するか、1 ページを残してほかのすべてのページに `seo.canonical` を設定します。
+
+### インデックス登録 [#indexability]
+
+#### deployment.site が設定されていない [#site-not-set]
+
+`BLUME_AUDIT_SITE_NOT_SET` · warning · ビルド済み HTML から
+
+修正：blume.config.ts の `deployment.site` に、サイトの公開 URL を設定します。
+
+#### deployment.site がデプロイ時に推定される [#site-inferred-at-deploy]
+
+`BLUME_AUDIT_SITE_INFERRED_AT_DEPLOY` · info · ビルド済み HTML から
+
+修正：本番環境に近いビルド（例：`VERCEL=1 VERCEL_PROJECT_PRODUCTION_URL=<host> blume build`）を監査するか、`--url <origin>` でデプロイそのものを監査します。`deployment.site` はハードコードしないでください。デプロイのたびにプラットフォームが設定します。
+
+#### noindex のページで canonical を宣言している [#canonical-on-noindex]
+
+`BLUME_AUDIT_CANONICAL_ON_NOINDEX` · warning · ビルド済み HTML から
+
+修正：noindex のページから canonical を削除します。Google はこの組み合わせを矛盾とみなし、どちらか一方を無視することがあります。
+
+#### 下書きページがビルドに含まれている [#draft-page-published]
+
+`BLUME_AUDIT_DRAFT_PAGE_PUBLISHED` · warning · ビルド済み HTML から
+
+修正：デプロイ前に `--preview` を付けずに再ビルドします。ページを公開する準備ができている場合は、`draft: true` を削除します。
+
+#### canonical URL がない [#canonical-missing]
+
+`BLUME_AUDIT_CANONICAL_MISSING` · warning · ビルド済み HTML から
+
+修正：`deployment.site` を設定します。これにより、Blume が絶対 URL で canonical を出力できるようになります。
+
+#### canonical でないページ [#canonical-not-self]
+
+`BLUME_AUDIT_CANONICAL_NOT_SELF` · info · ビルド済み HTML から
+
+修正：`seo.canonical` をこのページに向けるか、`seo.canonical` を削除して、デフォルトの自己参照 canonical を使います。
+
+#### canonical がリンク切れのページ、またはリダイレクトするページを指している [#canonical-bad-target]
+
+`BLUME_AUDIT_CANONICAL_BAD_TARGET` · error · ビルド済み HTML から
+
+修正：`seo.canonical` を、実在してリダイレクトしないページに向けます。
+
+#### canonical のプロトコルがサイトと一致しない [#canonical-protocol-mismatch]
+
+`BLUME_AUDIT_CANONICAL_PROTOCOL_MISMATCH` · error · ビルド済み HTML から
+
+修正：`seo.canonical` のプロトコルを `deployment.site` と揃えます。
+
+#### ページがインデックス登録されない設定になっている [#robots-meta-unexpected]
+
+`BLUME_AUDIT_ROBOTS_META_UNEXPECTED` · info · ビルド済み HTML から
+
+修正：インデックスに登録すべきページであれば、フロントマターから `noindex` を削除します。
+
+#### ページが Googlebot のクロール上限（2 MB）を超えている [#html-too-large]
+
+`BLUME_AUDIT_HTML_TOO_LARGE` · error · ビルド済み HTML から
+
+修正：ページを分割します。Googlebot は HTML ドキュメントを 2 MB までしか読み込みません。
+
+#### X-Robots-Tag ヘッダーがページの robots メタタグと矛盾している [#robots-header-conflict]
+
+`BLUME_AUDIT_ROBOTS_HEADER_CONFLICT` · error · `--url` が必要
+
+修正：X-Robots-Tag ヘッダーを削除するか、ページの robots メタタグと内容を揃えます。
+
+### リンク [#links]
+
+#### リンク切れのページへのリンクがある [#link-to-broken]
+
+`BLUME_AUDIT_LINK_TO_BROKEN` · error · ビルド済み HTML から
+
+修正：リンク先を修正するか、リンク先のページを作成します。
+
+#### リダイレクトへのリンクがある [#link-to-redirect]
+
+`BLUME_AUDIT_LINK_TO_REDIRECT` · warning · ビルド済み HTML から
+
+修正：リダイレクトを経由せず、最終的なリンク先に直接リンクします。
+
+#### 孤立ページ（ナビゲーションからしかたどり着けない） [#orphan-page]
+
+`BLUME_AUDIT_ORPHAN_PAGE` · warning · ビルド済み HTML から
+
+修正：関連するページの本文から、このページにリンクします。
+
+#### 内部リンクにサイト自身のオリジンがハードコードされている [#internal-link-absolute]
+
+`BLUME_AUDIT_INTERNAL_LINK_ABSOLUTE` · warning · ビルド済み HTML から
+
+修正：ルート相対パス（`/docs/x`）を使います。こうすると、プレビュー環境や `basePath` を設定した場合でもリンクが切れません。
+
+#### nofollow の付いた内部リンクがある [#internal-link-nofollow]
+
+`BLUME_AUDIT_INTERNAL_LINK_NOFOLLOW` · info · ビルド済み HTML から
+
+修正：`rel="nofollow"` を削除します。これがあると、このページからサイト内の他のページへ評価が渡らなくなります。
+
+#### URL にスラッシュが二重に含まれている [#double-slash-url]
+
+`BLUME_AUDIT_DOUBLE_SLASH_URL` · error · ビルド済み HTML から
+
+修正：`basePath` / `deployment.base` を確認します。値の末尾にスラッシュがあると `//` になります。
+
+#### リンクのフラグメントがリンク先ページのどの id とも一致しない [#anchor-broken]
+
+`BLUME_AUDIT_ANCHOR_BROKEN` · warning · ビルド済み HTML から
+
+修正：フラグメントをリンク先ページに実在する見出しに向けるか、本来指すはずだった見出しを修正します。
+
+#### URL に大文字、アンダースコア、またはスペースが含まれている [#url-style]
+
+`BLUME_AUDIT_URL_STYLE` · info · ビルド済み HTML から
+
+修正：ソースファイル名を、小文字でハイフン区切りのスラッグに変更します。すでに公開済みの場合は、古い URL からのリダイレクトも追加します。
+
+### リダイレクト [#redirects]
+
+#### 壊れたリダイレクト [#redirect-broken]
+
+`BLUME_AUDIT_REDIRECT_BROKEN` · error · ビルド済み HTML から
+
+修正：リダイレクト先を実在するページにします。
+
+#### リダイレクトループ [#redirect-loop]
+
+`BLUME_AUDIT_REDIRECT_LOOP` · error · ビルド済み HTML から
+
+修正：`redirects` 内の循環を解消します。このままではリダイレクトがどこにも到達しません。
+
+#### リダイレクトチェーン [#redirect-chain]
+
+`BLUME_AUDIT_REDIRECT_CHAIN` · warning · ビルド済み HTML から
+
+修正：途中のリダイレクトをすべて、最終的なリンク先に直接向けます。
+
+#### meta refresh によるリダイレクト [#meta-refresh]
+
+`BLUME_AUDIT_META_REFRESH` · warning · ビルド済み HTML から
+
+修正：meta refresh ではなく、`blume.config.ts` で正規のリダイレクトを設定します。
+
+#### リダイレクト元に実在するページがある [#redirect-source-is-page]
+
+`BLUME_AUDIT_REDIRECT_SOURCE_IS_PAGE` · error · ビルド済み HTML から
+
+修正：リダイレクトを削除するか、リダイレクト元と同じパスにあるページを削除します。ページのほうが優先されるため、このままではリダイレクトが動作しません。
+
+#### HTTPS から HTTP へのリダイレクト [#redirect-to-http]
+
+`BLUME_AUDIT_REDIRECT_TO_HTTP` · error · `--url` が必要
+
+修正：HTTPS の URL にリダイレクトします。
+
+### ソーシャルカード [#social-cards]
+
+#### Open Graph タグがない、または不完全 [#og-incomplete]
+
+`BLUME_AUDIT_OG_INCOMPLETE` · warning · ビルド済み HTML から
+
+修正：`description` を追加します。残りの Open Graph タグは Blume が自動で補います。
+
+#### Open Graph 画像がない [#og-image-missing]
+
+`BLUME_AUDIT_OG_IMAGE_MISSING` · warning · ビルド済み HTML から
+
+修正：`deployment.site` を設定して OG 画像の自動生成を有効にするか、ページに `seo.image` を設定します。
+
+#### Open Graph 画像がビルドに含まれていない [#og-image-broken]
+
+`BLUME_AUDIT_OG_IMAGE_BROKEN` · warning · ビルド済み HTML から
+
+修正：`seo.image` を実在するファイルに向けるか、再ビルドします。og:image がリンク切れだと、ページがシェアされたどの場所でもカードが空白で表示されます。
+
+#### Open Graph 画像が大きなカードには小さすぎる [#og-image-small]
+
+`BLUME_AUDIT_OG_IMAGE_SMALL` · warning · ビルド済み HTML から
+
+修正：1200×630 以上の画像を使います。これより小さい画像はぼやけて表示されたり、トリミングされて小さいカードで表示されたりします。
+
+#### Open Graph の URL が canonical と一致しない [#og-url-mismatch]
+
+`BLUME_AUDIT_OG_URL_MISMATCH` · warning · ビルド済み HTML から
+
+修正：`og:url` をページの canonical URL と一致させます。
+
+#### X（Twitter）カードがない、または不完全 [#twitter-card-incomplete]
+
+`BLUME_AUDIT_TWITTER_CARD_INCOMPLETE` · warning · ビルド済み HTML から
+
+修正：blume.config.ts で `seo.x.handle` を設定します。これにより、X がカードにアカウントを表示できるようになります。
+
+### 国際化 [#internationalization]
+
+#### HTML の lang 属性がない [#html-lang-missing]
+
+`BLUME_AUDIT_HTML_LANG_MISSING` · error · ビルド済み HTML から
+
+修正：eject したレイアウトで、`<html>` に `lang` 属性を戻します。
+
+#### HTML の lang 属性が無効 [#html-lang-invalid]
+
+`BLUME_AUDIT_HTML_LANG_INVALID` · error · ビルド済み HTML から
+
+修正：ロケールには有効な BCP 47 タグ（例：`en`、`en-GB`）を使います。
+
+#### hreflang と HTML の lang が一致しない [#hreflang-lang-mismatch]
+
+`BLUME_AUDIT_HREFLANG_LANG_MISMATCH` · error · ビルド済み HTML から
+
+修正：ページの `<html lang>` を、そのページ自身の hreflang アノテーションと一致させる必要があります。
+
+#### hreflang アノテーションが無効 [#hreflang-invalid]
+
+`BLUME_AUDIT_HREFLANG_INVALID` · error · ビルド済み HTML から
+
+修正：hreflang アノテーションには有効な BCP 47 タグを使います。
+
+#### 自己参照の hreflang アノテーションがない [#hreflang-self-missing]
+
+`BLUME_AUDIT_HREFLANG_SELF_MISSING` · warning · ビルド済み HTML から
+
+修正：ページの hreflang の一式には、そのページ自身への参照を含める必要があります。
+
+#### x-default の hreflang アノテーションがない [#hreflang-xdefault-missing]
+
+`BLUME_AUDIT_HREFLANG_XDEFAULT_MISSING` · info · ビルド済み HTML から
+
+修正：デフォルトロケールのページを指す `x-default` の代替ページ指定を追加します。
+
+#### 相互の hreflang がない（戻りタグなし） [#hreflang-no-return-tag]
+
+`BLUME_AUDIT_HREFLANG_NO_RETURN_TAG` · error · ビルド済み HTML から
+
+修正：hreflang グループ内のすべてのページが、グループ内の他のすべてのページを相互に参照している必要があります。
+
+#### hreflang がリンク切れ、リダイレクト、または canonical でないページを指している [#hreflang-bad-target]
+
+`BLUME_AUDIT_HREFLANG_BAD_TARGET` · error · ビルド済み HTML から
+
+修正：hreflang の代替ページを、実在する canonical のページに向けます。
+
+#### hreflang グループ内で言語が競合している [#hreflang-conflict]
+
+`BLUME_AUDIT_HREFLANG_CONFLICT` · error · ビルド済み HTML から
+
+修正：hreflang グループ内の各言語に対応するページは、1 つだけにする必要があります。
+
+### アセット [#assets]
+
+#### 代替テキストがない [#image-alt-missing]
+
+`BLUME_AUDIT_IMAGE_ALT_MISSING` · warning · ビルド済み HTML から
+
+修正：画像の内容を説明する `alt` テキストを追加します。装飾用の画像であれば `alt=""` を指定します。
+
+#### 画像が表示できない [#image-broken]
+
+`BLUME_AUDIT_IMAGE_BROKEN` · error · ビルド済み HTML から
+
+修正：画像のパスを修正するか、ファイルを public/ に追加します。
+
+#### アセットのファイルサイズが大きすぎる [#asset-too-large]
+
+`BLUME_AUDIT_ASSET_TOO_LARGE` · warning · ビルド済み HTML から
+
+修正：アセットを圧縮するか、新しいフォーマット（WebP/AVIF）で配信します。
+
+#### 画像に width/height がない [#image-missing-dimensions]
+
+`BLUME_AUDIT_IMAGE_MISSING_DIMENSIONS` · warning · ビルド済み HTML から
+
+修正：`width` と `height` を設定します。ブラウザが表示領域をあらかじめ確保できるため、レイアウトシフトを防げます。
+
+#### 参照しているスクリプト、スタイル、アセットがビルドに含まれていない [#subresource-missing]
+
+`BLUME_AUDIT_SUBRESOURCE_MISSING` · error · ビルド済み HTML から
+
+修正：参照を修正するか、欠けているファイルを復元します。
+
+#### HTTPS/HTTP の混在コンテンツ [#mixed-content]
+
+`BLUME_AUDIT_MIXED_CONTENT` · error · ビルド済み HTML から
+
+修正：サブリソースを HTTPS で読み込みます。ブラウザは混在コンテンツをブロックします。
+
+### サイトマップ [#sitemap]
+
+#### インデックス対象のページがサイトマップにない [#indexable-page-not-in-sitemap]
+
+`BLUME_AUDIT_INDEXABLE_PAGE_NOT_IN_SITEMAP` · warning · ビルド済み HTML から
+
+修正：インデックスに登録すべきページであれば、フロントマターから `draft`/`hidden`/`noindex` を削除します。
+
+#### noindex のページがサイトマップにある [#noindex-in-sitemap]
+
+`BLUME_AUDIT_NOINDEX_IN_SITEMAP` · error · ビルド済み HTML から
+
+修正：noindex のページはサイトマップに掲載しないでください。
+
+#### canonical でないページがサイトマップにある [#non-canonical-in-sitemap]
+
+`BLUME_AUDIT_NON_CANONICAL_IN_SITEMAP` · error · ビルド済み HTML から
+
+修正：サイトマップには canonical URL だけを掲載します。
+
+#### サイトマップに、存在しないページやリダイレクトするページが載っている [#sitemap-bad-url]
+
+`BLUME_AUDIT_SITEMAP_BAD_URL` · error · ビルド済み HTML から
+
+修正：サイトマップからその URL を削除するか、その URL のページをビルドします。
+
+#### サイトマップに構文エラーがある、または形式が正しくない [#sitemap-invalid]
+
+`BLUME_AUDIT_SITEMAP_INVALID` · error · ビルド済み HTML から
+
+修正：サイトマップは、sitemaps.org の urlset 形式に沿った有効な XML である必要があります。
+
+#### サイトマップが 50 MB または 50,000 URL を超えている [#sitemap-too-large]
+
+`BLUME_AUDIT_SITEMAP_TOO_LARGE` · error · ビルド済み HTML から
+
+修正：サイトマップを分割します。上限は 50 MB と 50,000 URL です。
+
+#### サイトマップの lastmod が無効、または未来の日付 [#sitemap-lastmod-invalid]
+
+`BLUME_AUDIT_SITEMAP_LASTMOD_INVALID` · warning · ビルド済み HTML から
+
+修正：未来ではない、実際の日付を W3C 形式で指定します。更新日時が正しくないサイトマップを検出した検索エンジンは、そのサイトマップの lastmod をまったく信用しなくなります。
+
+#### サイトマップに対象範囲外の URL が含まれている [#sitemap-out-of-scope]
+
+`BLUME_AUDIT_SITEMAP_OUT_OF_SCOPE` · warning · ビルド済み HTML から
+
+修正：サイトマップに掲載できるのは、サイトマップと同じオリジンの URL だけです。
+
+#### サイトマップにアクセスできない [#sitemap-not-accessible]
+
+`BLUME_AUDIT_SITEMAP_NOT_ACCESSIBLE` · error · `--url` が必要
+
+修正：sitemap.xml をサイトのルートに配置し、アクセスできるようにします。
+
+### robots.txt
+
+#### robots.txt がない [#robots-missing]
+
+`BLUME_AUDIT_ROBOTS_MISSING` · warning · ビルド済み HTML から
+
+修正：`seo.robots: true` を設定して robots.txt を生成します。
+
+#### robots.txt に構文エラーがある [#robots-invalid]
+
+`BLUME_AUDIT_ROBOTS_INVALID` · error · ビルド済み HTML から
+
+修正：robots.txt の各行は、`Field: value` 形式のディレクティブかコメントでなければなりません。
+
+#### robots.txt がサイトマップに載っているページを disallow している [#robots-disallows-indexable]
+
+`BLUME_AUDIT_ROBOTS_DISALLOWS_INDEXABLE` · error · ビルド済み HTML から
+
+修正：robots.txt で disallow しているページを、サイトマップに掲載することはできません。
+
+#### robots.txt がサイトマップを参照していない [#robots-sitemap-missing]
+
+`BLUME_AUDIT_ROBOTS_SITEMAP_MISSING` · info · ビルド済み HTML から
+
+修正：`deployment.site` を設定します。これにより、robots.txt でサイトマップを参照できるようになります。
+
+#### robots.txt にアクセスできない [#robots-not-accessible]
+
+`BLUME_AUDIT_ROBOTS_NOT_ACCESSIBLE` · error · `--url` が必要
+
+修正：robots.txt をサイトのルートに配置し、アクセスできるようにします。
+
+### AI からの見つけやすさ [#ai-discoverability]
+
+#### llms.txt がビルドに含まれていない [#llms-txt-missing]
+
+`BLUME_AUDIT_LLMS_TXT_MISSING` · warning · ビルド済み HTML から
+
+修正：再ビルドします。`agents.llmsTxt` が有効なのに、ビルドに llms.txt がありません。意図的に出力していない場合は、`agents.llmsTxt: false` を設定します。
+
+#### llms.txt に、ビルドで配信されないページが載っている [#llms-txt-stale-entry]
+
+`BLUME_AUDIT_LLMS_TXT_STALE_ENTRY` · warning · ビルド済み HTML から
+
+修正：llms.txt がサイトの内容と一致するよう再ビルドします。古いエントリが残っていると、AI エージェントが存在しないページを参照してしまいます。
+
+#### インデックス対象のページが llms.txt にない [#llms-txt-page-missing]
+
+`BLUME_AUDIT_LLMS_TXT_PAGE_MISSING` · warning · ビルド済み HTML から
+
+修正：llms.txt がサイトの内容と一致するよう再ビルドします。意図的に除外しているページであれば、`seo.noindex` または `sidebar.hidden` を設定します。
+
+#### DNS-AID のエージェント検出用レコードがない [#dns-aid-missing]
+
+`BLUME_AUDIT_DNS_AID_MISSING` · info · `--url` が必要
+
+修正：DNS プロバイダーで、`_index._agents.<host>` に ServiceMode の SVCB レコードまたは HTTPS レコードを公開します。これにより、エージェントが DNS 経由でサイトを見つけられるようになります（DNS-AID）。
+
+#### DNS-AID レコードが DNSSEC で認証されていない [#dns-aid-unsigned]
+
+`BLUME_AUDIT_DNS_AID_UNSIGNED` · info · `--url` が必要
+
+修正：ゾーンで DNSSEC を有効にします。これにより、検証を行うリゾルバーが認証済みの DNS-AID 応答を返せるようになります。DNS プロバイダーが DNSSEC に対応していなくても、レコードは署名なしで動作します。
+
+### 構造化データ [#structured-data]
+
+#### 構造化データが有効な JSON ではない [#jsonld-invalid]
+
+`BLUME_AUDIT_JSONLD_INVALID` · error · ビルド済み HTML から
+
+修正：JSON-LD ブロックは有効な JSON でなければなりません。
+
+#### 構造化データに必須プロパティがない [#jsonld-incomplete]
+
+`BLUME_AUDIT_JSONLD_INCOMPLETE` · warning · ビルド済み HTML から
+
+修正：すべての JSON-LD ノードに `@context` と `@type` が必要です。
+
+### 稼働中のデプロイ [#live-deployment]
+
+#### 4XX ページ [#http-4xx]
+
+`BLUME_AUDIT_HTTP_4XX` · error · `--url` が必要
+
+修正：このページはリンクされているか、サイトマップに載っていますが、デプロイでは 404 になっています。
+
+#### 5XX ページ [#http-5xx]
+
+`BLUME_AUDIT_HTTP_5XX` · error · `--url` が必要
+
+修正：デプロイでこのページがエラーになっています。
+
+#### タイムアウト [#http-timeout]
+
+`BLUME_AUDIT_HTTP_TIMEOUT` · error · `--url` が必要
+
+修正：ページが制限時間内に応答しませんでした。
+
+#### 圧縮されていない [#not-compressed]
+
+`BLUME_AUDIT_NOT_COMPRESSED` · warning · `--url` が必要
+
+修正：ホストで gzip または brotli を有効にします。
+
+#### 応答の遅いページ [#slow-response]
+
+`BLUME_AUDIT_SLOW_RESPONSE` · warning · `--url` が必要
+
+修正：ページの応答が遅くなっています。
+
+#### 外部リンクが切れている [#external-link-broken]
+
+`BLUME_AUDIT_EXTERNAL_LINK_BROKEN` · error · `--external` が必要
+
+修正：外部リンクを修正するか、削除します。
+
+#### 外部リンクがリダイレクトする [#external-link-redirect]
+
+`BLUME_AUDIT_EXTERNAL_LINK_REDIRECT` · info · `--external` が必要
+
+修正：最終的なリンク先に直接リンクします。

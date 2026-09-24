@@ -50,11 +50,11 @@ Blume एक तीसरा रास्ता अपनाता है: **फ
 
 ## मैं इसे कहाँ डिप्लॉय कर सकता हूँ? [#where-can-i-deploy-it]
 
-कहीं भी। `blume build` डिफ़ॉल्ट रूप से स्टैटिक HTML आउटपुट करता है, जिसे आप किसी भी स्टैटिक होस्ट या CDN से सर्व कर सकते हैं — Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3, या अपना खुद का सर्वर। केवल-सर्वर फ़ीचर्स (Ask AI, MCP सर्वर, ऑन-डिमांड रेंडरिंग) Vercel, Node, Netlify या Cloudflare के लिए एक अडैप्टर के ज़रिए बिल्ड को सर्वर फ़ंक्शन में बदल देते हैं। [डिप्लॉयमेंट](/docs/deployment) देखें।
+कहीं भी। `blume build` डिफ़ॉल्ट रूप से स्टैटिक HTML आउटपुट करता है, जिसे आप किसी भी स्टैटिक होस्ट या CDN से सर्व कर सकते हैं — Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3, या अपना खुद का सर्वर। केवल-सर्वर फ़ीचर्स (Ask AI, MCP सर्वर, ऑन-डिमांड रेंडरिंग) के लिए सर्वर आउटपुट की ज़रूरत होती है: `blume/deploy` से एक होस्ट अडैप्टर — `vercel()`, `netlify()`, `cloudflare()`, या `node()` — को `deployment` के रूप में निर्दिष्ट करें। [डिप्लॉयमेंट](/docs/deployment) देखें।
 
 ## क्या सर्च के लिए किसी होस्टेड सेवा की ज़रूरत है? [#does-search-need-a-hosted-service]
 
-नहीं। [Orama](/docs/configuration/search) एक लोकल इंडेक्स बनाता है जो dev और production दोनों में काम करता है, और इसके लिए कुछ भी होस्ट या भुगतान नहीं करना पड़ता। बहुत बड़ी साइटों के लिए, [Pagefind](/docs/configuration/search) बस एक फ़्लैग की दूरी पर है। दोनों ही स्थितियों में इंडेक्स आपकी साइट के हिस्से के रूप में भेजा जाता है।
+नहीं। [Orama](/docs/configuration/search) एक लोकल इंडेक्स बनाता है जो dev और production दोनों में काम करता है, और इसके लिए कुछ भी होस्ट या भुगतान नहीं करना पड़ता। बहुत बड़ी साइटों के लिए, [Pagefind](/docs/configuration/search#pagefind) बस एक अडैप्टर की दूरी पर है: `search: pagefind()`। दोनों ही स्थितियों में इंडेक्स आपकी साइट के हिस्से के रूप में भेजा जाता है।
 
 ## मैं लुक कैसे कस्टमाइज़ करूँ? [#how-do-i-customize-the-look]
 

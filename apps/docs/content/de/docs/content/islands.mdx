@@ -31,28 +31,30 @@ Islands sind für **interaktive** UI gedacht. Für eine statische Komponente, di
 
 ## Islands in `components.ts` registrieren [#registering-islands-in-componentsts]
 
-Wenn du Islands lieber bei deinen übrigen Komponenten aufbewahren möchtest — oder ihnen einen anderen Namen als der Datei geben willst — registriere sie mit `defineComponents`. Die Gruppe `islands` verhält sich genau wie der `islands/`-Ordner: Jeder Eintrag steht in jeder MDX-Seite zur Verfügung und wird hydriert (standardmäßig mit `client: "visible"`).
+Wenn du Islands lieber bei deinen übrigen Komponenten aufbewahren möchtest — oder ihnen einen anderen Namen als der Datei geben willst — registriere sie mit `defineComponents` als `mdx`-Eintrag mit einem `client`-Modus. Mehr ist eine Island nicht: eine MDX-Komponente, die hydriert. Jeder Eintrag steht in jeder MDX-Seite zur Verfügung, und ein Eintrag mit demselben Namen wie eine Datei in `islands/` ersetzt diese.
 
 ```ts components.ts
 import { defineComponents } from "blume";
 import Counter from "./widgets/Counter.tsx";
 
 export default defineComponents({
-  islands: {
-    Counter, // <Counter /> in any MDX page, hydrated
+  mdx: {
+    Counter: { component: Counter, client: "visible" }, // <Counter /> in any MDX page, hydrated
   },
 });
 ```
 
-Referenziere die Komponente per Import oder über einen Pfad-String und lege mit der Deskriptor-Form einen Hydrierungsmodus pro Island fest:
+Referenziere die Komponente per Import oder über einen Pfad-String und lege den Hydrierungsmodus pro Island fest (`"media"` erwartet zusätzlich eine `media`-Query):
 
 ```ts components.ts
 export default defineComponents({
-  islands: {
+  mdx: {
     Chart: { component: "./widgets/Chart.tsx", client: "only" },
   },
 });
 ```
+
+Anders als beim Ordner gibt es hier keinen Standard: Ein `mdx`-Eintrag ohne `client` wird als statisches HTML gerendert, und Blume warnt, wenn dieser Eintrag eine React-, Vue- oder Svelte-Komponente ist. Blume liest `components.ts` statisch, daher muss ein Eintrag eine importierte Komponente, ein Pfad-String oder ein `{ component, client, media }`-Objektliteral sein — unter [Anpassung](/docs/configuration/customization#reference-form) findest du die akzeptierten Formen und den Fehler, den du andernfalls bekommst.
 
 ## Hydrierung [#hydration]
 
@@ -73,6 +75,9 @@ export default function Chart() {
 | `"load"` | Sofort beim Laden der Seite | UI oberhalb der Falz, die sofort da sein muss |
 | `"idle"` | Wenn der Haupt-Thread untätig ist | Nicht dringende Interaktivität |
 | `"only"` | Nur clientseitig, nie serverseitig gerendert | Bibliotheken, die `window`/`document` brauchen (Diagramme, Editoren) |
+| `"media"` _(nur `components.ts`)_ | Wenn eine CSS-Media-Query zutrifft | UI, die nur bei bestimmten Größen läuft, etwa ein reines Mobile-Menü |
+
+`"media"` braucht die Query direkt daneben, daher steht es nur einem [`components.ts`-Eintrag](#registering-islands-in-componentsts) zur Verfügung — `{ component: Menu, client: "media", media: "(max-width: 50em)" }`. Eine `islands/`-Datei, die es deklariert, fällt mit einer Warnung auf `"visible"` zurück.
 
 ## Frameworks
 

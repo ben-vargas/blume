@@ -1,10 +1,12 @@
 ---
 title: 変更履歴
+sidebar:
+  label: 変更履歴
 description: >-
   リリースノートを通常のコンテンツファイルとして書くか、GitHub Releases から取得すると、Blume がタイムラインページと RSS フィードを自動的に構築します。
 ---
 
-Blume には変更履歴が標準で用意されています。各リリースを通常のコンテンツファイルとして書き、`type: changelog` を指定するだけで、Blume がすべてのエントリを収集して生成されたタイムラインページと RSS フィードにまとめます — レイアウトを構築する必要も、リストを管理する必要もありません。あるいはファイルを一切用意せず、[GitHub Releases から変更履歴を取得](#from-github-releases)することもできます。
+Blume には変更履歴が標準で用意されています。各リリースを通常のコンテンツファイルとして書き、`type: changelog` を指定するだけで、Blume がすべてのエントリを収集して生成されたインデックスページと RSS フィードにまとめます — レイアウトを構築する必要も、リストを管理する必要もありません。あるいはファイルを一切用意せず、[GitHub Releases から変更履歴を取得](#from-github-releases)することもできます。
 
 ## エントリを書く [#write-an-entry]
 
@@ -26,11 +28,11 @@ A big batch of components landed this release — columns, frames, trees, and to
 - `CodeGroup` tabs with flush code blocks
 ```
 
-タイムラインとフィードが新しい順に並ぶよう、すべてのエントリに `date` を指定してください。クォートなしの YAML 日付でも問題ありません — Blume が正規化します。
+インデックスとフィードが新しい順に並ぶよう、すべてのエントリに `date` を指定してください。クォートなしの YAML 日付でも問題ありません — Blume が正規化します。
 
 ### `changelog` オブジェクト [#the-changelog-object]
 
-任意の `changelog` オブジェクトは、タイムラインとフィードにより豊富なメタデータを追加します:
+任意の `changelog` オブジェクトは、インデックスとフィードにより豊富なメタデータを追加します:
 
 <TypeTable
   type={{
@@ -47,53 +49,39 @@ A big batch of components landed this release — columns, frames, trees, and to
     "changelog.date": {
       type: "string",
       description:
-        "公開日。ここに置いてもトップレベルに置いても構いません — どちらもタイムラインと RSS フィードに反映されます。",
+        "公開日。ここに置いてもトップレベルに置いても構いません — どちらもインデックスと RSS フィードに反映されます。",
     },
   }}
 />
 
-## タイムラインページ [#the-timeline-page]
+## インデックスページ [#the-index-page]
 
-`type: changelog` のエントリが 1 つでもあれば、Blume は **`/changelog`** ページを自動的に生成します。サイドバーや目次のない、集中しやすい全幅のタイムラインとしてレンダリングされ、各エントリは新しい順に並び、コンテンツの横の左レールに日付、ラベル、`category` タグが表示されます:
+`type: changelog` のエントリが 1 つでもあれば、Blume は **`/changelog`** ページを自動的に生成します。サイドバーや目次のない、集中しやすい全幅のインデックスで、すべてのリリースを 1 行ずつ、新しい順かつ年ごとにグループ化して一覧表示します。そのため長い履歴も短いページに収まります（エージェントが 1 つのコンテキストウィンドウで読み取れるサイズを大きく下回ります）:
 
-- エントリの**タイトル**がそのラベルになります — タイトルがない場合は `v{version}` です。そのエントリ自身のページへリンクするため、リリースはタイムライン上の 1 行であると同時に共有可能なパーマリンクにもなります。
-- `category` は日付の隣にタグとしてレンダリングされます。
+- エントリの**タイトル**が行のラベルになります — タイトルがない場合は `v{version}` です。そのエントリ自身のページへリンクしており、リリースノートはそこで全文がレンダリングされます。
+- `category` はタイトルの隣にタグとしてレンダリングされるため、読者はリリースとプレリリース、あるいは機能追加と修正を一目で区別できます。
+- 日付は設定された [`dateFormat`](/docs/configuration#date-format) に従いますが、行のグループですでに表示されている年は省略されます。
 - 下書きと `sidebar.hidden` のエントリはスキップされます。
 
-このページは `/changelog` ルートが他に占有されていない場合にのみ表示されます。独自のデザインに置き換えるには、`pages/changelog.astro` に[カスタムページ](/docs/advanced/custom-pages)を追加してください — それが優先され、Blume はデフォルトのタイムラインの生成を停止します。
+このページは `/changelog` ルートが他に占有されていない場合にのみ表示されます。独自のデザインに置き換えるには、`pages/changelog.astro` に[カスタムページ](/docs/advanced/custom-pages)を追加してください — それが優先され、Blume はデフォルトのインデックスの生成を停止します。以前のタイムラインの構築に使われていた `<Update>` コンポーネントは引き続き利用できるため、リリースノートをインラインで表示したい手書きのページで使用できます。
 
-このページは執筆されたものではなく生成されたものであるため、コンテンツツリーの一部ではありません — したがって `/changelog` を指すヘッダーの[タブ](/docs/content/navigation#tabs)は、代わりに最新のエントリに解決されます。インデックス自体に遷移させるには、タブに `href` を指定してください:
-
-```ts blume.config.ts
-navigation: {
-  tabs: [
-    { label: "Changelog", path: "/changelog", href: "/changelog" },
-  ],
-}
-```
-
-### メジャーバージョンごとのグループ化 [#grouped-by-major-version]
-
-バージョンが [semver](https://semver.org) に従っていて複数のメジャーにまたがる場合、Blume はタイムラインをメジャーバージョンごとにページ分割します。最新のメジャー系列のみが表示され、下部の **Show N.x releases** ボタンで、1 クリックごとに次に古いメジャーが表示されます:
-
-- 検出は自動です — 設定は不要です。リストされたすべてのリリースが `major.minor.patch` としてパースでき、かつメジャーが複数ある場合にのみ有効になります。それ以外の場合、タイムラインはフラットのままです。
-- モノレポが公開するスコープ付きタグにも対応しているため、`pkg@2.0.0` は `2.x` に、`pkg@1.4.0` は `1.x` にグループ化されます。
-- これはプログレッシブエンハンスメントです: すべてのリリースはページの HTML(および RSS フィードと検索インデックス)に含まれたままなので、JavaScript のない読者 — およびクローラー — は完全な履歴を見ることができます。ボタンは、ページがハイドレートされた後にのみ古いメジャーを折りたたみます。
+`/changelog` を指すヘッダーの[タブ](/docs/content/navigation#tabs)はこのインデックスを開きます — `href` は不要です。
 
 ## GitHub Releases から [#from-github-releases]
 
-エントリを手作業で書く代わりに、組み込みの [`github-releases` ソース](/docs/content/sources#github-releases)をリポジトリに向ければ、すべてのリリースが `type: changelog` エントリになります — 同じタイムラインとフィードが、すでに公開しているリリースから直接供給されます。Blume 自身の[変更履歴](/changelog)もこの方法で構築されています:
+エントリを手作業で書く代わりに、組み込みの [`githubReleases()` ソース](/docs/content/sources#github-releases)をリポジトリに向ければ、すべてのリリースが `type: changelog` エントリになります — 同じタイムラインとフィードが、すでに公開しているリリースから直接供給されます。Blume 自身の[変更履歴](/changelog)もこの方法で構築されています:
 
 ```ts blume.config.ts
+import { filesystem, githubReleases } from "blume/sources";
+
 content: {
   sources: [
-    { type: "filesystem", root: "content" },
-    {
-      type: "github-releases",
+    filesystem({ root: "content" }),
+    githubReleases({
       prefix: "changelog",
       owner: "acme",
       repo: "sdk",
-    },
+    }),
   ],
 }
 ```
@@ -125,7 +113,7 @@ seo: {
 <CardGroup cols={2}>
   <Card
     title="フロントマター"
-    href="/docs/reference/frontmatter#changelog"
+    href="/docs/content/frontmatter#changelog"
     icon="file"
   >
     変更履歴のフロントマタースキーマの全体。

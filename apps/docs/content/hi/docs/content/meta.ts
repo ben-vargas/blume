@@ -5,6 +5,7 @@ export default {
   pages: [
     "navigation",
     "meta",
+    "frontmatter",
     "syntax",
     "includes",
     "components",

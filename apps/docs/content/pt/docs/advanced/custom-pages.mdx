@@ -35,6 +35,8 @@ O caminho de cada arquivo dentro da pasta pages se torna a sua rota. `index` cor
 
 Uma página personalizada **prevalece** sobre uma rota gerada no mesmo caminho. Adicionar `pages/changelog.astro`, por exemplo, substitui a [linha do tempo de changelog gerada](/docs/advanced/changelog) pelo Blume pela sua própria.
 
+O Blume não consegue enumerar os caminhos que uma rota dinâmica `[param]` atende, então essas páginas ficam de fora do [sitemap](/docs/discoverability/sitemap-and-robots), não recebem um [card Open Graph](/docs/discoverability/open-graph) gerado e são desconhecidas pelo [`blume validate`](/docs/cli/validate), que reporta um link para uma delas como quebrado. Passe `ogImage` para o `PageLayout` para definir a imagem de compartilhamento delas, ou dê a cada caminho seu próprio arquivo estático (`pages/compare/mintlify.astro` em vez de `pages/compare/[tool].astro`) para ter os três.
+
 ## Lendo dados do site [#reading-site-data]
 
 Importe `blume:data` para ler a mesma configuração resolvida, navegação, rotas e feeds que o restante do site usa:
@@ -127,15 +129,21 @@ O módulo expõe:
 ---
 import { getCollection } from "astro:content";
 import data from "blume:data";
+import { getBlumeCollection } from "blume/runtime";
 
-// Each route's id matches its collection entry id.
-const routeById = new Map(data.routes.map((route) => [route.id, route.path]));
+// Under i18n every locale serves a route for each entry (its translation, or
+// a copy of the untranslated page), all sharing the entry's id. Key the map on
+// the default locale's routes only, so each post links once, in one language.
+const routes = getBlumeCollection(data, {
+  locale: data.config.i18n?.defaultLocale,
+});
+const routeByEntry = new Map(routes.map((route) => [route.entryId, route.path]));
 
 const posts = (await getCollection("docs"))
-  .filter((entry) => entry.data.type === "blog" && !entry.data.draft)
+  .filter((entry) => entry.data.type === "blog" && routeByEntry.has(entry.id))
   .map((entry) => ({
     description: entry.data.description,
-    href: routeById.get(entry.id),
+    href: routeByEntry.get(entry.id),
     title: entry.data.title,
   }));
 ---
@@ -156,7 +164,7 @@ const posts = (await getCollection("docs"))
 
 O `blume/runtime` agrupa os padrões de dados mais comuns para que você não precise mexer nos detalhes internos do `blume:data`.
 
-**`getBlumeCollection(data, query?)`** seleciona rotas de conteúdo — filtradas por coleção, idioma ou prefixo de caminho, com rascunhos e páginas ocultas excluídos e o resultado ordenado por caminho — que é exatamente o que um índice personalizado precisa:
+**`getBlumeCollection(data, query?)`** seleciona rotas de conteúdo — filtradas por coleção, idioma ou prefixo de caminho, com rascunhos, páginas ocultas e cópias de fallback do i18n excluídos e o resultado ordenado por caminho — que é exatamente o que um índice personalizado precisa:
 
 ```astro pages/blog/index.astro lineNumbers
 ---
@@ -225,7 +233,11 @@ const { config } = data;
 
 O cabeçalho que uma página personalizada recebe é o mesmo das páginas de documentação, então tudo o que vive nele vem junto: busca, alternador de tema, seletor de idioma e — quando o [Ask AI](/docs/configuration/ask-ai) está configurado — o gatilho do Ask AI. Nada disso precisa ser conectado página por página. Passe `askEnabled={false}` para desativar o gatilho do Ask em uma página específica, mantendo-o em todas as outras.
 
-Passar `siteUrl` (e `ogEnabled`) deriva automaticamente o `canonical` da página e uma `og:image` gerada: o Blume renderiza um card Open Graph para cada página personalizada estática — incluindo a home, a URL mais compartilhada — servido em `/og/<route>.png` (`/og/index.png` para `/`). O card da home usa o título do site com a descrição como sobretítulo; uma página mais profunda é intitulada a partir do último segmento do seu caminho. Defina `ogImage` ou `canonical` explicitamente para substituir qualquer um deles. `ogImage` aceita um caminho relativo à raiz — um arquivo em `public/`, resolvido em relação a [`deployment.site`](/docs/deployment) para a URL absoluta de que os rastreadores precisam — ou uma URL externa, que passa intacta:
+Os [links de descoberta para agentes no head](/docs/discoverability/agent-discovery#discovery-link-header) também vêm junto: o layout lê a configuração resolvida, então uma página personalizada carrega os mesmos links `describedby`, `ai-catalog` e `ard` que as páginas de documentação, sem que você precise passar nenhuma prop. A página inicial também anuncia seu espelho em Markdown `/index.md` como alternativa `text/markdown`, já que esse espelho sempre existe; as outras páginas personalizadas não têm um, então nenhum é anunciado. Passe `discovery={null}` para remover os links de uma página específica.
+
+Passe `transparentHeader` para que o cabeçalho comece transparente, com seus elementos em branco, para que ele possa ficar sobre um hero escuro no topo da página; ele vira a barra fosca de sempre assim que a página rola, e o diálogo de busca mantém as cores da própria página o tempo todo. O hero precisa passar por baixo do cabeçalho para que isso apareça — puxe-o para cima pela altura do cabeçalho (`-mt-16`) e adicione um espaçamento no topo para compensar.
+
+Passar `siteUrl` (e `ogEnabled`) deriva automaticamente o `canonical` da página e uma `og:image` gerada: o Blume renderiza um card Open Graph para cada página personalizada estática (não para uma dinâmica `[param]`) — incluindo a home, a URL mais compartilhada — servido em `/og/<route>.png` (`/og/index.png` para `/`). O card da home usa o título do site com a descrição como sobretítulo; uma página mais profunda é intitulada a partir do último segmento do seu caminho. Defina `ogImage` ou `canonical` explicitamente para substituir qualquer um deles. `ogImage` aceita um caminho relativo à raiz — um arquivo em `public/`, resolvido em relação a [`deployment.site`](/docs/deployment) para a URL absoluta de que os rastreadores precisam — ou uma URL externa, que passa intacta:
 
 ```astro pages/index.astro lineNumbers
 <PageLayout
@@ -275,7 +287,7 @@ O `RootLayout` faz parte do runtime gerado, então suas props podem mudar entre 
 
 O Blume traz uma página **não encontrada** padrão de fábrica: uma mensagem "404" centralizada envolvida na estrutura do site (cabeçalho, busca, tema), servida para qualquer URL sem correspondência. O `blume build` a grava em `404.html`, que hospedagens estáticas servem automaticamente, e o `blume dev` a exibe para rotas desconhecidas. Abaixo da mensagem, uma lista **Onde procurar em seguida** aponta para cada seção de nível superior, além dos índices `sitemap.xml` e [`llms.txt`](/docs/discoverability/llms-txt) quando existirem, para que um leitor — ou um agente que seguiu uma URL desatualizada — tenha um caminho de volta.
 
-A página também tem uma gêmea em Markdown em `/404.md` e uma gêmea em JSON em `/404.json` (detalhes de problema conforme a [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457)) com os mesmos links de recuperação (URLs absolutas assim que [`deployment.site`](/docs/deployment) estiver definido), além da descrição [`openapi.json`](/docs/discoverability/json-api) quando a API JSON estiver ativa. Em um [build de servidor na Vercel](/docs/deployment#server-rendering), uma requisição para uma página inexistente que envie [`Accept: text/markdown`](/docs/discoverability/markdown#content-negotiation), ou que peça uma URL `.md` sem página correspondente, recebe esse corpo em Markdown com o status `404` em vez da estrutura HTML; uma que envie `Accept: application/json`, ou que peça uma URL `.json` sem arquivo correspondente, recebe o documento de problema — assim um agente nunca precisa analisar uma página cheia de interface para descobrir para onde ir em seguida.
+A página também tem uma gêmea em Markdown em `/404.md` e uma gêmea em JSON em `/404.json` (detalhes de problema conforme a [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457)) com os mesmos links de recuperação (URLs absolutas assim que [`deployment.site`](/docs/deployment) estiver definido), além da descrição [`openapi.json`](/docs/discoverability/json-api) quando a API JSON estiver ativa. Em um [build de servidor na Vercel ou na Cloudflare](/docs/deployment#server-rendering), uma requisição para uma página inexistente que envie [`Accept: text/markdown`](/docs/discoverability/markdown#content-negotiation) recebe o corpo em Markdown com o status `404` em vez da estrutura HTML, e uma que envie `Accept: application/json` recebe o documento de problema — assim um agente nunca precisa analisar uma página cheia de interface para descobrir para onde ir em seguida. Na Vercel, o mesmo vale para uma URL `.md` ou `.json` sem arquivo correspondente.
 
 Para substituí-la pela sua própria, adicione um `pages/404.astro`. Ela assume a rota `/404` da mesma forma que `pages/changelog.astro` assume o changelog — sua página prevalece e a padrão é descartada. Construa-a como qualquer outra página personalizada, em `PageLayout` ou `RootLayout`:
 

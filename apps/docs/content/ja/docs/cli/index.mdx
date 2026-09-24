@@ -1,0 +1,105 @@
+---
+title: 概要
+description: Blume のすべてのコマンドと各コマンドで使えるフラグ、開発サーバーを動かしたままサイトを検証する方法をまとめています。
+---
+
+```bash
+blume <command> [options]
+```
+
+## コマンド [#commands]
+
+| コマンド | 説明 |
+| --- | --- |
+| `blume init [dir]` | プロジェクトのひな形を作成します（デフォルトでは対話形式です）。 |
+| `blume dev` | ホットリロード付きの開発サーバーを起動します。 |
+| `blume build` | 静的サイト（またはサーバーサイト）をビルドします。 |
+| `blume preview` | 最後のビルドをプレビューします。 |
+| `blume add <item>` | レジストリからソースコンポーネントをインストールします。 |
+| `blume sync` | リモートのコンテンツソースを再取得し、再生成します。 |
+| `blume eject` | ランタイムを独立した Astro アプリとして切り出します。 |
+| `blume check` | `astro check` でサイトの型チェックを行います。 |
+| [`blume doctor`](/docs/cli/doctor) | 設定とコンテンツの問題を診断します。 |
+| [`blume validate`](/docs/cli/validate) | コンテンツ全体のリンクを検証します。 |
+| [`blume audit`](/docs/cli/audit) | ビルド済みサイトの SEO とサイトの健全性に関する問題を監査します。 |
+| [`blume eval`](/docs/cli/evals) | ドキュメントをテストします。エージェントがドキュメントだけを頼りに質問に答えます。 |
+| [`blume translate`](/docs/cli/translate) | ローカルのエージェント CLI を使い、設定済みのロケールにドキュメントを翻訳します。 |
+| [`blume version [id]`](/docs/cli/version) | 現在のドキュメントをアーカイブ版として固定します（id を指定しない場合は、設定済みのバージョンを一覧表示します）。 |
+| [`blume migrate [source]`](/docs/migrating) | Claude Code または Codex を使い、Mintlify、Fumadocs、Docusaurus、Starlight、Nextra のサイトを Blume に移行します。 |
+| [`blume upgrade`](/docs/upgrading) | 新しいメジャーバージョンに移行します。`blume` を更新したうえで、残りの設定変更を一覧表示するか、Claude Code または Codex に任せます。 |
+
+## よく使うフラグ [#common-flags]
+
+- `blume init` — ターミナルで実行すると、いくつかの質問（プロジェクトの作成場所、サイト名、テンプレート、コンテンツソース）に沿って案内します。以下の各フラグを指定すると、対応する質問に前もって回答できます。
+- `blume init --yes` — プロンプトを省略し、デフォルト設定でひな形を作成します（CI 環境や stdin がターミナルでない場合も同じ動作になります）。
+- `blume init --content-dir <dir>` — コンテンツフォルダを指定します（デフォルトは `docs`）。
+- `blume init --template docs|api|sdk|changelog` — スターターからひな形を作成します（標準のドキュメント用テンプレートの代わりに、API リファレンス、SDK、変更履歴のいずれかを使用します）。
+- `blume init --package-manager npm|pnpm|yarn|bun` — 指定したパッケージマネージャーでインストールし、そのパッケージマネージャー向けの次の手順を表示します（デフォルトは `blume init` を実行したパッケージマネージャーです）。
+- `blume init --no-install` — ファイルは書き込みますが、依存関係のインストールは省略します。CI や独自の依存関係管理フロー向けです。デフォルトでは、プロジェクトをすぐに実行できるよう、`blume init` がパッケージマネージャーのインストールを実行します。インストールに失敗した場合でも作成したひな形は残り、再実行用のコマンドが表示され、終了コードは 0 以外になります。
+- `blume init --eject` — ひな形を作成したあと、独立した Astro プロジェクトとしてイジェクトします（`--no-install` と併用した場合は、依存関係のインストール後に `blume eject` を実行するよう案内します）。
+- `blume dev --host --port <n> --open`
+- `blume dev --content-dir <dir>` — `blume.config.ts` を編集せずに、別のコンテンツフォルダを読み込みます。
+- `blume dev --debug` — トラブルシューティング用に、Astro/Vite の詳細なログを出力します。
+- `blume dev --preview` / `blume build --preview` — 下書きや未公開の CMS コンテンツも含めます。
+- `blume build --no-strict` — 診断エラーがあってもビルドします。フロントマターの検証に失敗したページは出力から除外されるため、デフォルトでは `blume build` はエラーの診断が 1 つでもあると失敗します（終了コード 1）。`--no-strict` を指定するとビルドは成功し、欠けているページの数が報告されます。`blume dev --strict` を指定すると、開発サーバーでも同じようにエラー時にすぐ失敗させられます。
+- `blume build --analyze` — ビルド後に、クライアント JavaScript のバンドルサイズを大きい順に表示します。
+- `blume build --budget-js <kb> --budget-css <kb>` — クライアント JavaScript/CSS の合計サイズが上限を超えた場合にビルドを失敗させます。これにより、パフォーマンス目標を CI のチェック項目にできます。
+- `blume build --isolated` — `.blume/` の代わりに使い捨ての `.blume-verify/` ランタイム（とその専用の `dist/`）にビルドするため、実行中の `blume dev` サーバーや本来の `dist/` には影響しません。詳しくは[開発サーバーの実行中に検証する](#verifying-while-the-dev-server-runs)をご覧ください。
+- `blume preview --host --port <n>` — プレビューサーバーのホストとポートを指定します。
+- `blume sync --force` — キャッシュされたスナップショットを先に破棄してから、リモートソースを再取得します。
+- `blume add <item> --force` — 既存のファイルを上書きします。
+- `blume check --preview` — チェックの際に、下書きや未公開の CMS コンテンツも含めます。
+- `blume check --strict` — 型エラーに加えて、コンテンツの診断でも失敗させます。
+- `blume check --isolated` — 使い捨ての `.blume-verify/` ランタイムで型チェックを行うため、実行中の `blume dev` サーバーには影響しません。詳しくは[開発サーバーの実行中に検証する](#verifying-while-the-dev-server-runs)をご覧ください。
+- `blume eject --yes` — 確認プロンプトを省略します。
+
+専用ページがあるコマンドのフラグは、それぞれのページにすべて記載しています：[`blume doctor`](/docs/cli/doctor)、[`blume validate`](/docs/cli/validate)、[`blume audit`](/docs/cli/audit)、[`blume eval`](/docs/cli/evals)、[`blume translate`](/docs/cli/translate)、[`blume version`](/docs/cli/version)。`blume validate`、`blume doctor`、`blume audit`、`blume eval`、`blume translate` は `--json` を指定すると、CI やエディタとの連携向けに機械可読な結果を stdout に出力します（診断結果の形式については [Validate](/docs/cli/validate#json-output) をご覧ください）。`build`、`check`、`dev` はターミナルにのみ出力します。どのコマンドも、対応していないフラグを受け取るとエラーになり、最も近い候補と使えるフラグの一覧を表示します。そのため、`--isolatd` のようなタイプミスも見過ごされずにエラーになります。
+
+## 開発サーバーの実行中に検証する [#verifying-while-the-dev-server-runs]
+
+`blume dev` は、生成された `.blume/` ランタイムをルートとして Astro サーバーを起動し、変更のたびにランタイムを再生成します。`blume build` と `blume check` も _同じ_ `.blume/` を再生成するため、開発サーバーの稼働中にどちらかを実行すると、ランタイムが壊れてしまいます。そのため、どちらのコマンドもエラーを表示して実行を中止し、0 以外の終了コードを返します。
+
+```
+A `blume dev` server is running at http://localhost:4321; building would
+corrupt its .blume runtime. Reuse that server, stop it first, or re-run with
+--isolated to build/verify against .blume-verify without touching it.
+```
+
+この制限を回避するには `--isolated` フラグを使います。生成されるランタイム全体（`build` の場合は出力先の `dist/` も）を、隣に作成する `.blume-verify/` ディレクトリに移すため、検証の際に開発サーバーや本来の `dist/` が使うファイルには一切書き込みません。
+
+```bash
+# In a second terminal, while `blume dev` is running:
+blume check --isolated   # fast: type-check the .astro/config changes
+blume build --isolated   # thorough: full production render into .blume-verify/dist
+```
+
+`check --isolated` は手早く確認する方法です（Astro の型とテンプレートの診断のみで、`dist/` は生成しません）。`build --isolated` はより時間がかかる方法ですが、ランタイムのレンダリングエラーも検出できます。分離ビルドでは、デプロイ用の後処理（検索インデックス、ホスティングプロバイダーとの同期、`llms.txt`、sitemap/robots、リダイレクト）を省略します。検証ではサイトがコンパイル・レンダリングできることを確認できればよく、公開する必要はないためです。`--analyze` と `--budget-js`/`--budget-css` によるチェックは引き続き実行され、分離された出力を対象に計測されます。Blume は `.blume-verify/` を自動的に `.gitignore` に追加します。
+
+これは、開発サーバーを開いたまま、コーディングエージェントに変更を検証させたい場合に特に便利です。フラグを付けずに通常の `blume build`/`blume check` を分離して実行させたい場合（エージェントのシェルなど）は、使用するランタイムディレクトリを `BLUME_RUNTIME_DIR` に設定します。
+
+```bash
+export BLUME_RUNTIME_DIR=.blume-verify
+```
+
+## 型チェック [#type-checking]
+
+`blume check` は、プロジェクトに対して [`astro check`](https://docs.astro.build/en/reference/cli-reference/#astro-check) を実行します。`.blume` ランタイムを再生成し、Astro のコンテンツの型を同期したうえで、`blume.config.ts`、独自の `.astro` ページ、それらがインポートするコンポーネントに含まれる TypeScript エラーを報告します。エラーがあると 0 以外の終了コードを返すため、CI の `typecheck` ステップとして使えます。
+
+```json title="package.json"
+{
+  "scripts": {
+    "typecheck": "blume check"
+  }
+}
+```
+
+自分で作成したページで `blume/*` のインポートや `blume:data` などの仮想モジュールを解決できるように、Astro の設定を継承する `tsconfig.json` をプロジェクトのルートに追加してください。
+
+```json title="tsconfig.json"
+{
+  "extends": "astro/tsconfigs/strict",
+  "include": [".blume/.astro/types.d.ts", "**/*"]
+}
+```
+
+プロジェクトに `tsconfig.json` がない場合は、生成されたランタイムだけがチェックされます。

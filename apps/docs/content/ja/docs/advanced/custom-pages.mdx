@@ -35,6 +35,8 @@ pages フォルダ配下の各ファイルのパスがそのルートになり�
 
 同じパスに生成されたルートがある場合、カスタムページが**優先されます**。たとえば `pages/changelog.astro` を追加すると、Blume の[生成されるチェンジログのタイムライン](/docs/advanced/changelog)が自作のものに置き換わります。
 
+Blume は動的な `[param]` ルートが配信するパスを列挙できません。そのため、そうしたページは[サイトマップ](/docs/discoverability/sitemap-and-robots)から除外され、[Open Graph カード](/docs/discoverability/open-graph)も生成されず、[`blume validate`](/docs/cli/validate) にも認識されないので、それらへのリンクは壊れたリンクとして報告されます。共有画像には `PageLayout` に `ogImage` を渡してください。あるいは、各パスに専用の静的ファイル（`pages/compare/[tool].astro` ではなく `pages/compare/mintlify.astro`）を用意すれば、3 つすべてが得られます。
+
 ## サイトデータの読み取り [#reading-site-data]
 
 `blume:data` をインポートすると、サイトの他の部分が使っているのと同じ解決済みの設定、ナビゲーション、ルート、フィードを読み取れます:
@@ -127,15 +129,21 @@ const indexable = (data: BlumeData): BlumeRoute[] =>
 ---
 import { getCollection } from "astro:content";
 import data from "blume:data";
+import { getBlumeCollection } from "blume/runtime";
 
-// Each route's id matches its collection entry id.
-const routeById = new Map(data.routes.map((route) => [route.id, route.path]));
+// Under i18n every locale serves a route for each entry (its translation, or
+// a copy of the untranslated page), all sharing the entry's id. Key the map on
+// the default locale's routes only, so each post links once, in one language.
+const routes = getBlumeCollection(data, {
+  locale: data.config.i18n?.defaultLocale,
+});
+const routeByEntry = new Map(routes.map((route) => [route.entryId, route.path]));
 
 const posts = (await getCollection("docs"))
-  .filter((entry) => entry.data.type === "blog" && !entry.data.draft)
+  .filter((entry) => entry.data.type === "blog" && routeByEntry.has(entry.id))
   .map((entry) => ({
     description: entry.data.description,
-    href: routeById.get(entry.id),
+    href: routeByEntry.get(entry.id),
     title: entry.data.title,
   }));
 ---
@@ -156,7 +164,7 @@ const posts = (await getCollection("docs"))
 
 `blume/runtime` は一般的なデータパターンをまとめて提供するため、`blume:data` の内部に手を伸ばす必要がありません。
 
-**`getBlumeCollection(data, query?)`** はコンテンツルートを選択します — コレクション、ロケール、パスのプレフィックスでフィルタリングし、下書きと非表示ページを除外し、結果をパス順にソートします — これはまさにカスタムインデックスに必要なものです:
+**`getBlumeCollection(data, query?)`** はコンテンツルートを選択します — コレクション、ロケール、パスのプレフィックスでフィルタリングし、下書き、非表示ページ、i18n のフォールバックコピーを除外し、結果をパス順にソートします — これはまさにカスタムインデックスに必要なものです:
 
 ```astro pages/blog/index.astro lineNumbers
 ---
@@ -225,7 +233,11 @@ const { config } = data;
 
 カスタムページが得るヘッダーはドキュメントページのものと同じなので、そこにあるクロームも一緒についてきます: 検索、テーマ切り替え、言語スイッチャー、そして [Ask AI](/docs/configuration/ask-ai) が設定されている場合は Ask AI のトリガーです。どれもページごとに配線する必要はありません。あるページだけ Ask トリガーを無効にし、他のすべてでは有効なままにするには `askEnabled={false}` を渡します。
 
-`siteUrl`（と `ogEnabled`）を渡すと、そのページの `canonical` と生成された `og:image` が自動的に導出されます: Blume はすべての静的カスタムページ — 最も共有されやすい URL であるホームを含む — に対して Open Graph カードをレンダリングし、`/og/<route>.png`（`/` の場合は `/og/index.png`）で配信します。ホームのカードはサイトタイトルを使い、description をアイブロウにします。より深い階層のページはパスの最後のセグメントからタイトルが付けられます。どちらも上書きするには `ogImage` または `canonical` を明示的に設定してください。`ogImage` はルート相対パス — `public/` 内のファイルで、[`deployment.site`](/docs/deployment) を基準にクローラーが必要とする絶対 URL へ解決されます — または外部 URL を受け取り、後者はそのまま通されます:
+[エージェント検出用の head リンク](/docs/discoverability/agent-discovery#discovery-link-header)も一緒についてきます: レイアウトが解決済みの設定を読み取るため、カスタムページは props を渡さなくても、ドキュメントページと同じ `describedby`、`ai-catalog`、`ard` リンクを持ちます。ホームページはさらに、`/index.md` の Markdown ミラーを `text/markdown` の代替として告知します。このミラーは常に存在するためです。他のカスタムページにはミラーがないため、何も告知されません。あるページからこれらのリンクを取り除くには `discovery={null}` を渡します。
+
+`transparentHeader` を渡すと、ヘッダーは透過した状態で、クロームを白で表示して始まるため、ページ上部の暗いヒーローの上に重ねられます。ページがスクロールされるとすぐに通常のすりガラス風のバーになり、検索ダイアログは終始ページ本来の配色を保ちます。これを見せるにはヒーローがヘッダーの下まで伸びている必要があります — ヘッダーの高さ分（`-mt-16`）だけ引き上げ、その分を上部のパディングで補ってください。
+
+`siteUrl`（と `ogEnabled`）を渡すと、そのページの `canonical` と生成された `og:image` が自動的に導出されます: Blume はすべての静的カスタムページ（動的な `[param]` ページは対象外） — 最も共有されやすい URL であるホームを含む — に対して Open Graph カードをレンダリングし、`/og/<route>.png`（`/` の場合は `/og/index.png`）で配信します。ホームのカードはサイトタイトルを使い、description をアイブロウにします。より深い階層のページはパスの最後のセグメントからタイトルが付けられます。どちらも上書きするには `ogImage` または `canonical` を明示的に設定してください。`ogImage` はルート相対パス — `public/` 内のファイルで、[`deployment.site`](/docs/deployment) を基準にクローラーが必要とする絶対 URL へ解決されます — または外部 URL を受け取り、後者はそのまま通されます:
 
 ```astro pages/index.astro lineNumbers
 <PageLayout
@@ -275,7 +287,7 @@ import data from "blume:data";
 
 Blume はデフォルトの **not found** ページを標準で同梱しています: サイトのクローム（ヘッダー、検索、テーマ）でラップされた中央揃えの「404」メッセージで、マッチしないあらゆる URL に対して配信されます。`blume build` はこれを `404.html` に書き出し、静的ホストが自動的に配信します。また `blume dev` は不明なルートに対してこれを表示します。メッセージの下には **Where to look next** のリストがあり、すべてのトップレベルセクションに加えて、存在する場合は `sitemap.xml` と [`llms.txt`](/docs/discoverability/llms-txt) のインデックスへのリンクが並ぶため、読者 — あるいは古い URL をたどったエージェント — が戻る道を持てます。
 
-このページには `/404.md` という Markdown の対応版と、`/404.json` という JSON の対応版（[RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) の problem details）もあり、同じ復帰用リンク（[`deployment.site`](/docs/deployment) が設定されていれば絶対 URL になります）に加えて、JSON API が有効な場合は [`openapi.json`](/docs/discoverability/json-api) の記述も備えています。[Vercel のサーバービルド](/docs/deployment#server-rendering)では、存在しないページへのリクエストが [`Accept: text/markdown`](/docs/discoverability/markdown#content-negotiation) を送る場合、あるいはどのページにも裏付けられていない `.md` URL を要求する場合、HTML のシェルではなく `404` ステータス付きでその Markdown の本文が返されます。`Accept: application/json` を送る場合、あるいはどのファイルにも裏付けられていない `.json` URL を要求する場合は problem ドキュメントが返されます — つまりエージェントは、次にどこへ行くべきかを知るためにクロームだらけのページを解析する必要がまったくありません。
+このページには `/404.md` という Markdown の対応版と、`/404.json` という JSON の対応版（[RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) の problem details）もあり、同じ復帰用リンク（[`deployment.site`](/docs/deployment) が設定されていれば絶対 URL になります）に加えて、JSON API が有効な場合は [`openapi.json`](/docs/discoverability/json-api) の記述も備えています。[Vercel または Cloudflare のサーバービルド](/docs/deployment#server-rendering)では、存在しないページへのリクエストが [`Accept: text/markdown`](/docs/discoverability/markdown#content-negotiation) を送る場合は HTML のシェルではなく `404` ステータス付きでその Markdown の本文が返され、`Accept: application/json` を送る場合は problem ドキュメントが返されます — つまりエージェントは、次にどこへ行くべきかを知るためにクロームだらけのページを解析する必要がまったくありません。Vercel では、どのファイルにも裏付けられていない `.md` や `.json` の URL についても同様です。
 
 これを自作のものに置き換えるには、`pages/404.astro` を追加します。`pages/changelog.astro` がチェンジログを引き継ぐのと同じように、このファイルが `/404` ルートを所有します — あなたのページが優先され、デフォルトは破棄されます。他のカスタムページと同様に、`PageLayout` または `RootLayout` で構築してください:
 

@@ -47,7 +47,7 @@ Sitemap: https://docs.example.com/sitemap.xml
 いずれかのシグナルを制限するには `false` を設定します。指定しなかったものは `yes` のままです:
 
 ```ts blume.config.ts lineNumbers
-seo: {
+agents: {
   contentSignals: {
     aiTrain: false, // opt out of training, keep search + grounding
   },
@@ -63,14 +63,14 @@ Allow: /
 宣言そのものを削除するには `contentSignals: false` を設定します:
 
 ```ts blume.config.ts lineNumbers
-seo: {
+agents: {
   contentSignals: false,
 }
 ```
 
 <TypeTable
   type={{
-    "seo.contentSignals": {
+    "agents.contentSignals": {
       type: "boolean | object",
       description:
         "Content-Signal 宣言。true または省略した場合はすべてのシグナルを yes として出力し、false の場合は行を削除、オブジェクトを指定するとシグナルを個別に設定します。",

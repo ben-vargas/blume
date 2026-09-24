@@ -11,7 +11,7 @@ description: >-
 Blume はサイトルートに **`/agent-readability.json`** マニフェストを書き出し、このセクション全体で説明されているエージェント向けサーフェスをインデックス化します — これにより、エージェントは規約を推測したり HTML をスクレイピングしたりせず、単一のフェッチで検出できます。`llms.txt` と同様に、デフォルトで有効です:
 
 ```ts blume.config.ts lineNumbers
-seo: {
+agents: {
   agentReadability: true,
 }
 ```
@@ -38,7 +38,7 @@ seo: {
     }
   },
   "description": "Docs for the Acme API.",
-  "generator": "blume@1.0.0",
+  "generator": "blume@2.0.0",
   "name": "Acme Docs",
   "site": "https://docs.example.com",
   "contentUsage": { "search": true, "ai-input": true, "ai-train": true },
@@ -48,7 +48,7 @@ seo: {
 
 `contentNegotiation` フィールドは、デプロイされたサイトが実際に `Accept: text/markdown` ヘッダーを尊重する場合にのみ現れます — [コンテンツネゴシエーション](/docs/discoverability/markdown#content-negotiation)を参照してください。それ以外のデプロイでは、マニフェストは `.md` ミラーパターンのみを告知します。
 
-`seo.agentReadability` を `false` に設定するとスキップされます。また、独自の `public/agent-readability.json` を配置すれば、それが使われます — Blume が `public/` に置いたファイルを上書きすることはありません。
+`agents.agentReadability` を `false` に設定するとスキップされます。また、独自の `public/agent-readability.json` を配置すれば、それが使われます — Blume が `public/` に置いたファイルを上書きすることはありません。
 
 ## 検出用の Link ヘッダー [#discovery-link-header]
 
@@ -186,11 +186,11 @@ API カタログは API を列挙します。**AI カタログ**は、エージ�
 
 ARD の現行リビジョンはマニフェストを `/.well-known/ard.json` から読み取り、`ai-catalog.json` を先行パスと呼んでいます。そのため Blume は同じドキュメントを両方に書き出し、すべてのページの head で両方のリンクリレーション（`ai-catalog` と `ard`）のもとに告知し、`llms.txt` と `agent-readability.json` にも列挙します。このカタログと、その `.well-known` の隣人たち（API カタログ、MCP 検出ファイル）は、すべてのビルドサーフェスで `Access-Control-Allow-Origin: *` とともに配信されるため、別オリジンからそれらを読み取るレジストリがブロックされることはありません。
 
-エントリ識別子はあなたのドメインをアンカーとするため、カタログには [`deployment.site`](/docs/deployment) が必要です — 設定されていない場合は何も出力されません。デフォルトで有効で、`ai.catalog: false` で無効にできます。生成されるクエリは、サイトタイトルと各エントリ自身の説明から導出されます。あるエントリに独自のクエリを書くには、識別子の末尾（`<namespace>:<name>`）をキーにしてください:
+エントリ識別子はあなたのドメインをアンカーとするため、カタログには [`deployment.site`](/docs/deployment) が必要です — 設定されていない場合は何も出力されません。デフォルトで有効で、`agents.catalog: false` で無効にできます。生成されるクエリは、サイトタイトルと各エントリ自身の説明から導出されます。あるエントリに独自のクエリを書くには、識別子の末尾（`<namespace>:<name>`）をキーにしてください:
 
 ```ts blume.config.ts
 export default defineConfig({
-  ai: {
+  agents: {
     catalog: {
       queries: {
         "mcp:acme": ["how do I install Acme", "search the Acme docs"],
@@ -210,17 +210,17 @@ export default defineConfig({
 デフォルトで有効です。オプトアウトするには `webmcp: false` を設定します:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   webmcp: false,
 }
 ```
 
 ## スキルの検出 [#skills-discovery]
 
-プロジェクトが[エージェントスキル](https://agentskills.io)を同梱している場合 — [Blume リポジトリ自体がそうです](/docs/advanced/skills) — `ai.skills` をそれらを含むディレクトリに向けると、ビルドは [Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) に従ってそれらを検出用に公開します:
+プロジェクトが[エージェントスキル](https://agentskills.io)を同梱している場合 — [Blume リポジトリ自体がそうです](/docs/advanced/skills) — `agents.skills` をそれらを含むディレクトリに向けると、ビルドは [Agent Skills Discovery RFC](https://github.com/cloudflare/agent-skills-discovery-rfc) に従ってそれらを検出用に公開します:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   skills: "./skills",
 }
 ```
@@ -246,7 +246,7 @@ _index._agents.docs.example.com. 3600 IN HTTPS 1 docs.example.com. alpn=h2
 [Web Bot Auth](https://datatracker.ietf.org/wg/webbotauth/about/) は逆方向に働きます: エージェントがあなたのドキュメントを読むことではなく、**あなたの組織のエージェントが**他所へリクエストを送る際に**自らを識別する**ことに関するものです。あなたのエージェントは [HTTP Message Signatures](https://www.rfc-editor.org/rfc/rfc9421) でリクエストに署名し、受け取る側のサイトはあなたのドメインで公開されている公開鍵ディレクトリに対してそれを検証します。組織がエージェントを運用しており、Blume サイトがそのエージェントが名乗るドメインにある場合は、その公開鍵を公開してください:
 
 ```ts blume.config.ts lineNumbers
-ai: {
+agents: {
   webBotAuth: {
     keys: [{ kty: "OKP", crv: "Ed25519", x: "JrQLj5P_89iXES9-vFgrIy29c…" }],
   },
@@ -267,7 +267,7 @@ node -e 'const { generateKeyPairSync } = require("node:crypto"); const { publicK
 const webBotAuthKey = process.env.WEB_BOT_AUTH_PUBLIC_JWK;
 
 export default defineConfig({
-  ai: {
+  agents: {
     webBotAuth: {
       keys: webBotAuthKey ? [JSON.parse(webBotAuthKey)] : [],
     },

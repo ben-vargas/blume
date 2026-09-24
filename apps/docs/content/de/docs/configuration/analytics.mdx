@@ -1,102 +1,393 @@
 ---
 title: Analytics
 description: >-
-  First-Party-Webanalyse — Vercel Web Analytics, Cloudflare Web Analytics, PostHog oder ein beliebiges eigenes Skript — eingerichtet über blume.config.ts.
+  First-Party-Webanalyse — PostHog, Google Analytics, Plausible, Mixpanel, Segment und ein Dutzend weitere — als Adapter in blume.config.ts.
 ---
 
-Blume bindet Analytics für dich über einen einzigen `analytics`-Block in `blume.config.ts` ein. Vercel Web Analytics, Cloudflare Web Analytics und PostHog werden erstklassig unterstützt, und eine `scripts`-Ausweichlösung deckt alle anderen Anbieter ab — Plausible, Fathom, Google Analytics, Umami und den Rest.
+Blume bindet Analytics für dich über eine `analytics`-Liste in `blume.config.ts` ein. Jeder Eintrag ist ein Adapter, den du aus `blume/analytics` importierst: einer pro Anbieter, plus `script()` für alles, wofür es keinen gibt.
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { googleAnalytics, plausible, posthog, vercel } from "blume/analytics";
+
+export default defineConfig({
+  analytics: [
+    posthog({ key: "phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" }),
+    vercel(),
+    googleAnalytics({ id: "G-XXXXXXXXXX" }),
+    plausible({ domain: "docs.example.com" }),
+  ],
+});
+```
+
+Adapter werden in der Reihenfolge, in der du sie auflistest, in den `<head>` ausgegeben, und du kannst beliebig viele kombinieren. Jeder Adapter besteht aus reinen Daten: Was er zurückgibt, wird zusammen mit dem Rest deiner Konfiguration validiert und direkt in die gebaute Website eingebettet. Er kann also jeden JSON-Wert enthalten, aber niemals eine Funktion. Eine durchgereichte Option, die sich nicht als JSON darstellen lässt (eine Funktion, `undefined`, ein Bigint), lässt die Validierung mit Angabe ihres Pfads fehlschlagen, statt aus dem Build zu verschwinden.
 
 Analytics wird **nur in Produktions-Builds** geladen. Die Skripte werden von `blume build` ausgegeben, niemals von `blume dev`, sodass lokaler Traffic nie in deinen Dashboards landet und du kein separates „Entwicklungs“-Projekt brauchst.
 
 :::note
-Analytics ist optional. Ohne `analytics`-Block bindet Blume nichts ein.
+Analytics ist optional. Ohne `analytics`-Liste (oder mit einer leeren) bindet Blume nichts ein.
 :::
+
+Jede der folgenden Kennungen — ein Projektschlüssel, eine Mess-ID, ein Site-Token — ist die öffentliche, browserseitige Kennung aus dem Installations-Snippet des jeweiligen Anbieters. Jeder Adapter rendert genau dieses Snippet, du kannst sie also gefahrlos in dein Docs-Repository committen; Blume fragt nie nach einem Geheimnis.
+
+## Adapter [#adapters]
+
+| Adapter | Anbieter | Erforderlich |
+| --- | --- | --- |
+| `adobe()` | [Adobe Analytics](#adobe-analytics) | `url` |
+| `amplitude()` | [Amplitude](#amplitude) | `key` |
+| `clarity()` | [Microsoft Clarity](#microsoft-clarity) | `id` |
+| `clearbit()` | [Clearbit](#clearbit) | `key` |
+| `cloudflare()` | [Cloudflare Web Analytics](#cloudflare-web-analytics) | `token` |
+| `fathom()` | [Fathom](#fathom) | `site` |
+| `googleAnalytics()` | [Google Analytics 4](#google-analytics-4) | `id` |
+| `googleTagManager()` | [Google Tag Manager](#google-tag-manager) | `id` |
+| `heap()` | [Heap](#heap) | `id` |
+| `hightouch()` | [Hightouch](#hightouch) | `key` |
+| `hotjar()` | [Hotjar](#hotjar) | `id` |
+| `logrocket()` | [LogRocket](#logrocket) | `id` |
+| `mixpanel()` | [Mixpanel](#mixpanel) | `token` |
+| `pirsch()` | [Pirsch](#pirsch) | `code` |
+| `plausible()` | [Plausible](#plausible) | `domain` |
+| `posthog()` | [PostHog](#posthog) | `key` |
+| `segment()` | [Segment](#segment) | `key` |
+| `vercel()` | [Vercel Web Analytics](#vercel-web-analytics) | — |
+| `script()` | [Alles andere](#custom-scripts) | `src` oder `content` |
+
+Blume-Dokumentationen verwenden einen clientseitigen Router, daher tauscht die meiste Navigation nur Inhalte innerhalb der Seite aus, statt die Seite vollständig neu zu laden. Jeder Adapter zählt diese Navigationen als Seitenaufrufe: Anbieter, deren Skript Änderungen am Verlauf selbstständig verfolgt, brauchen nichts weiter, und für diejenigen, die nur echte Seitenladevorgänge zählen (PostHog, Segment, Hightouch), sendet Blume den Seitenaufruf selbst. Die zwei Ausnahmen sind die Tag-Manager — [Google Tag Manager](#google-tag-manager) und [Adobe](#adobe-analytics) laden einen Container, dessen eigene Regeln entscheiden, was ausgelöst wird. Gib ihm also einen Trigger für Verlaufsänderungen.
+
+## PostHog
+
+Übergib deinen **Projekt-API-Schlüssel** an `posthog()`, um [PostHog](https://posthog.com) hinzuzufügen. Der Host ist standardmäßig PostHog Cloud US; setze `host` für EU Cloud (`https://eu.i.posthog.com`) oder eine selbst gehostete Instanz.
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  posthog({
+    key: "phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    host: "https://us.i.posthog.com", // optional, this is the default
+  }),
+],
+```
+
+`key` und `host` sind die beiden Optionen, die Blume selbst abbildet (`host` wird zu `api_host`). Alles andere, was du übergibst — `persistence`, `capture_pageview`, `autocapture`, `disable_session_recording` und jede andere `posthog.init`-Option —, wird unverändert an `posthog.init` weitergereicht.
 
 ## Vercel Web Analytics
 
-Setze `vercel: true`, um [Vercel Web Analytics](https://vercel.com/docs/analytics) hinzuzufügen. Blume bindet das First-Party-Skript von Vercel ein, das von deiner eigenen Domain ausgeliefert wird, sobald Web Analytics für das Projekt im Vercel-Dashboard aktiviert ist.
+Füge `vercel()` hinzu, um [Vercel Web Analytics](https://vercel.com/docs/analytics) einzubinden. Blume rendert die offizielle Astro-Komponente von Vercel. Sie bindet das First-Party-Skript ein, das von deiner eigenen Domain ausgeliefert wird, sobald Web Analytics für das Projekt im Vercel-Dashboard aktiviert ist.
 
 ```ts blume.config.ts lineNumbers
-analytics: {
-  vercel: true,
-}
+analytics: [vercel()],
 ```
 
-Es werden keine Schlüssel benötigt — das Skript meldet an das Projekt, unter dem es deployt ist. Daten werden nur bei Vercel-Deployments erfasst, wo der Endpunkt `/_vercel/insights` existiert.
+Es werden keine Schlüssel benötigt — das Skript meldet an das Projekt, unter dem es deployt ist. Daten werden nur bei Vercel-Deployments erfasst, wo der Endpunkt `/_vercel/insights` existiert. Jede Option, die du übergibst, wird als Prop an die Komponente weitergereicht (`mode`, `debug`, `endpoint`, `scriptSrc`, …). `beforeSend` ist eine Funktion und kann nicht über die Konfiguration übergeben werden, weise `window.webAnalyticsBeforeSend` also stattdessen in einem `script()`-Adapter zu.
 
 ## Cloudflare Web Analytics
 
-Für [Cloudflare Web Analytics](https://developers.cloudflare.com/web-analytics/) gibt es zwei Einrichtungsvarianten, und nur eine davon braucht Konfiguration.
+Für [Cloudflare Web Analytics](https://developers.cloudflare.com/web-analytics/) gibt es zwei Einrichtungsvarianten, und nur eine davon braucht einen Adapter.
 
-**Proxy-Zone (automatische Einrichtung).** Wenn Cloudflare deine Website ausliefert — ein Worker mit eigener Domain, Pages oder eine beliebige Zone mit aktivierter orangefarbener Wolke —, aktiviere Web Analytics für die Zone im Cloudflare-Dashboard, und das war’s. Cloudflare bindet den Beacon am Edge ein, also lass `analytics.cloudflare` ungesetzt; würdest du es zusätzlich konfigurieren, würde jeder Seitenaufruf doppelt gezählt.
+**Proxy-Zone (automatische Einrichtung).** Wenn Cloudflare deine Website ausliefert — ein Worker mit eigener Domain, Pages oder eine beliebige Zone mit aktivierter orangefarbener Wolke —, aktiviere Web Analytics für die Zone im Cloudflare-Dashboard, und das war’s. Cloudflare bindet den Beacon am Edge ein, also lass `cloudflare()` weg; würdest du es zusätzlich auflisten, würde jeder Seitenaufruf doppelt gezählt.
 
 **Jeder andere Host (manuelle Einrichtung).** Für eine Website, die Cloudflare nicht per Proxy ausliefert, füge die Website im Dashboard unter Web Analytics hinzu, kopiere den Token aus dem JS-Snippet, das du dort erhältst (den `token` innerhalb von `data-cf-beacon`), und übergib ihn hier. Blume rendert dasselbe Beacon-Tag wie das Snippet.
 
 ```ts blume.config.ts lineNumbers
-analytics: {
-  cloudflare: {
+analytics: [
+  cloudflare({
     token: "0123456789abcdef0123456789abcdef",
-  },
-}
+  }),
+],
 ```
 
-Der Token kann gefahrlos an den Browser ausgeliefert werden — er identifiziert nur die Website. Der Beacon verfolgt Änderungen am Verlauf selbstständig, sodass Navigationen über den Client-Router ohne zusätzliche Einrichtung gezählt werden.
+Das gesamte Optionsobjekt wird zum `data-cf-beacon`-JSON des Beacons, sodass jede weitere Beacon-Einstellung (`spa`, …) direkt durchgereicht wird.
 
-## PostHog
+## Google Analytics 4
 
-Gib deinen **Projekt-API-Schlüssel** an, um [PostHog](https://posthog.com) hinzuzufügen. Der Host ist standardmäßig PostHog Cloud US; setze `host` für EU Cloud (`https://eu.i.posthog.com`) oder eine selbst gehostete Instanz.
+Übergib die **Mess-ID** deines GA4-Web-Datenstreams (`G-…`, in den Details des Streams unter Admin → Data Streams der Property) an `googleAnalytics()`. Blume rendert das Google-Tag genau so, wie es die Installationsanleitung des Streams vorgibt: den asynchronen `gtag.js`-Loader plus den `dataLayer`-Bootstrap und den `config`-Aufruf.
 
 ```ts blume.config.ts lineNumbers
-analytics: {
-  posthog: {
-    key: "phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-    host: "https://us.i.posthog.com", // optional, this is the default
-  },
-}
+analytics: [
+  googleAnalytics({
+    id: "G-XXXXXXXXXX",
+    anonymize_ip: true, // optional: any other `config` parameter
+  }),
+],
 ```
 
-Der Projekt-API-Schlüssel kann gefahrlos an den Browser ausgeliefert werden — er ist ein öffentlicher, ausschließlich schreibender Schlüssel.
+`id` ist die einzige Option, die Blume selbst abbildet. Alles andere, was du übergibst, wird unverändert beim `gtag('config', …)`-Aufruf mitgegeben (`send_page_view`, `cookie_domain`, `debug_mode`, …). Die erweiterten Analysen von GA4 zählen Verlaufsänderungen standardmäßig als Seitenaufrufe, sodass clientseitige Navigationen ohne zusätzliche Einrichtung erfasst werden. Google Analytics braucht ein bis zwei Tage, bis neue Daten erscheinen; die Erweiterung [Google Analytics Debugger](https://chrome.google.com/webstore/detail/google-analytics-debugger/jnkmfdileelhofjcijamephohjechhna) zeigt Anfragen in Echtzeit an.
+
+## Google Tag Manager
+
+Übergib deine **Container-ID** (`GTM-…`, wird im Header des Arbeitsbereichs angezeigt) an `googleTagManager()`. Blume rendert den `<head>`-Teil des Container-Snippets; das `<noscript>`-iframe ist für Browser ohne JavaScript gedacht, die ohnehin nie Analytics ausführen.
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  googleTagManager({
+    id: "GTM-XXXXXXX",
+    dataLayer: "dataLayer", // optional, this is the default
+  }),
+],
+```
+
+Welche Tags wodurch ausgelöst werden, legt die Konfiguration des Containers fest. Clientseitige Navigationen erreichen den Container als Verlaufsänderungen, also löse Pageview-Tags über einen **History Change**-Trigger aus statt über den Trigger für das Laden der Seite. Cookie-Consent-Banner richtest du ebenfalls selbst im Container ein.
+
+## Plausible
+
+Übergib die **Domain**, die du in [Plausible](https://plausible.io) hinzugefügt hast, an `plausible()`. Für eine selbst gehostete Instanz oder eine hinter einem Proxy setzt du `host` auf deren Origin; standardmäßig wird Plausible Cloud verwendet.
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  plausible({
+    domain: "docs.example.com",
+    host: "https://plausible.example.com", // optional, defaults to https://plausible.io
+  }),
+],
+```
+
+`domain` wird zu `data-domain`, und `host` bestimmt, von wo `/js/script.js` geladen wird. Jede weitere Option wird zu einem eigenen `data-`-Attribut am Tag (`api: "/api/event"` → `data-api`). Skriptvarianten, deren Zusatzverhalten im Dateinamen steckt (`script.outbound-links.js`, …), sind ein anderes Tag; lade sie mit [`script()`](#custom-scripts).
+
+## Fathom
+
+Übergib deine **Site-ID** (aus den Skripteinstellungen der Website in [Fathom](https://usefathom.com)) an `fathom()`.
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  fathom({
+    site: "ABCDEFGH",
+    "honor-dnt": "true", // optional: any other `data-` setting
+  }),
+],
+```
+
+`site` wird zu `data-site`. Jede weitere Option wird zu einem eigenen `data-`-Attribut am Tag (`honor-dnt`, `excluded-domains`, `canonical`, …), jeweils als String. `spa` ist standardmäßig `"auto"`, damit Fathom die Navigationen des Client-Routers zählt; übergib einen eigenen `spa`-Wert, um das zu überschreiben.
+
+## Pirsch
+
+Übergib deinen **Identifikationscode** (Settings → Developer → Identification Code in [Pirsch](https://pirsch.io)) an `pirsch()`.
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  pirsch({
+    code: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+  }),
+],
+```
+
+`code` wird zu `data-code`, und Blume gibt dem Tag die ID `pianjs`, anhand derer das Skript von Pirsch sich selbst findet. Jede weitere Option wird zu einem eigenen `data-`-Attribut (`dev`, `exclude`, `include`, `domain`, `endpoint`, …).
+
+## Mixpanel
+
+Übergib deinen **Projekt-Token** (Projekteinstellungen → Access Keys in [Mixpanel](https://mixpanel.com)) an `mixpanel()`. Wenn das Projekt Datenresidenz in der EU oder in Indien nutzt, setze `region` entsprechend, sonst verwirft Mixpanel die Events.
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  mixpanel({
+    token: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    region: "eu", // optional: "us" (default), "eu", or "in"
+  }),
+],
+```
+
+`token` und `region` sind die Optionen, die Blume selbst abbildet (`region` wird zu `api_host`). Außerdem setzt Blume `track_pageview` auf `"url-with-path-and-query-string"`, sodass die Bibliothek jede Navigation selbst erfasst. Alles andere, was du übergibst — einschließlich `track_pageview` —, wird unverändert an `mixpanel.init` weitergereicht (`persistence`, `autocapture`, `record_sessions_percent`, …).
+
+## Amplitude
+
+Übergib deinen **Projekt-API-Schlüssel** (Projekteinstellungen in [Amplitude](https://amplitude.com)) an `amplitude()`. Blume rendert das Script-Loader-Snippet des Browser SDK: das mit deinem Schlüssel versehene SDK-Bundle plus den `init`-Aufruf.
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  amplitude({
+    key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    serverZone: "EU", // optional: any other `init` option
+  }),
+],
+```
+
+`key` ist die einzige Option, die Blume selbst abbildet. Die `init`-Optionen gehen von dem aus, was das Dashboard-Snippet mitbringt — `autocapture: true` und `fetchRemoteConfig: true` —, und alles andere, was du übergibst, wird unverändert darübergelegt. Autocapture deckt Seitenaufrufe und Verlaufsänderungen ab, sodass clientseitige Navigationen gezählt werden.
+
+## Segment
+
+Übergib den **Write Key** deiner JavaScript-Quelle in [Segment](https://segment.com) an `segment()`. Wenn du analytics.js über eine [eigene Domain](https://segment.com/docs/connections/sources/custom-domain/) auslieferst, um Werbeblocker zu umgehen, setze `cdn` auf diesen Origin.
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  segment({
+    key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    cdn: "https://cdn.example.com", // optional, defaults to https://cdn.segment.com
+  }),
+],
+```
+
+`key` und `cdn` sind die Optionen, die Blume selbst abbildet: Das Snippet lädt die Bibliothek von `cdn` und weist sie an, auch ihre Integrationen von dort abzurufen. Alles andere, was du übergibst, wird unverändert als `analytics.load`-Optionen weitergereicht (`integrations`, …).
+
+## Hightouch
+
+Übergib den **Write Key** deiner Event-Quelle in [Hightouch](https://hightouch.com) an `hightouch()`. Der Host der Events-API liegt standardmäßig in der Region US East; setze `host` (ohne Schema), wenn dein Workspace eine andere nutzt.
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  hightouch({
+    key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    host: "us-east-1.hightouch-events.com", // optional, this is the default
+  }),
+],
+```
+
+`key` und `host` sind die Optionen, die Blume selbst abbildet (`host` wird zu `apiHost`). Alles andere, was du übergibst, wird unverändert als `htevents.load`-Optionen weitergereicht.
+
+## Heap
+
+Übergib deine **App-ID** (die Umgebungs-ID in den Installationseinstellungen des Projekts in [Heap](https://heap.io)) an `heap()`.
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  heap({
+    id: "1234567890",
+    disableTextCapture: true, // optional: any other `heap.load` option
+  }),
+],
+```
+
+`id` ist die einzige Option, die Blume selbst abbildet. Alles andere, was du übergibst, wird unverändert zum Konfigurationsobjekt von `heap.load`.
+
+## Hotjar
+
+Übergib deine **Site-ID** (die Zahl im Tracking-Code der Website in [Hotjar](https://hotjar.com)) an `hotjar()`.
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  hotjar({
+    id: 1234567,
+    version: 6, // optional, this is the default
+  }),
+],
+```
+
+`id` entspricht `hjid` und `version` entspricht `hjsv` im Tracking-Code von Hotjar; weitere Optionen nimmt der Adapter nicht an.
+
+## Microsoft Clarity
+
+Übergib deine **Projekt-ID** (aus dem Tracking-Code des Projekts in [Clarity](https://clarity.microsoft.com)) an `clarity()`.
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  clarity({
+    id: "xxxxxxxxxx",
+  }),
+],
+```
+
+Weitere Optionen nimmt der Adapter nicht an; die Einstellungen von Clarity verwaltest du in dessen Dashboard.
+
+## LogRocket
+
+Übergib deine **App-ID** (`org/app`, aus den Projekteinstellungen in [LogRocket](https://logrocket.com)) an `logrocket()`. Blume rendert das Installations-Snippet: das SDK plus den abgesicherten `LogRocket.init`-Aufruf.
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  logrocket({
+    id: "your-org/your-app",
+    release: "1.2.0", // optional: any other `init` option
+  }),
+],
+```
+
+`id` ist die einzige Option, die Blume selbst abbildet. Alles andere, was du übergibst, wird unverändert an `LogRocket.init` weitergereicht (`release`, `console`, `network`, `dom`, …). Ein Sanitizer für Requests oder Responses ist eine Funktion und kann nicht über die Konfiguration übergeben werden; lass in diesem Fall den Adapter weg und rufe `LogRocket.init` selbst in einem [`script()`](#custom-scripts)-Adapter auf.
+
+## Clearbit
+
+Übergib deinen **öffentlichen API-Schlüssel** (`pk_…`) an `clearbit()`. Blume rendert das Clearbit-Tag, das alle Tags lädt, die du in Clearbit verwaltest — etwa Reveal oder Formulare.
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  clearbit({
+    key: "pk_xxxxxxxxxxxxxxxx",
+  }),
+],
+```
+
+Weitere Optionen nimmt der Adapter nicht an.
+
+## Adobe Analytics
+
+Übergib die **Embed-Skript-URL** deiner Launch-Umgebung (Adobe Experience Platform Tags) an `adobe()`. Kopiere sie aus der Installationsanleitung der Umgebung unter Environments in Data Collection; die URL der Produktionsumgebung sieht so aus: `https://assets.adobedtm.com/…/launch-….min.js`.
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  adobe({
+    url: "https://assets.adobedtm.com/xxxxxxxx/launch-xxxxxxxx.min.js",
+  }),
+],
+```
+
+Blume lädt das Skript asynchron; was es erfasst, bestimmen die Regeln der Property. Clientseitige Navigationen laden die Seite nicht neu, also gib der Property eine Regel für Verlaufsänderungen (oder rufe `_satellite.track` in einem [`script()`](#custom-scripts)-Adapter auf).
 
 ## Eigene Skripte [#custom-scripts]
 
-Verwende `scripts`, um einen beliebigen anderen Analytics-Anbieter zu laden. Jeder Eintrag rendert ein `<script>`-Tag und muss **genau eines** von `src` (extern) oder `content` (inline) setzen.
+Verwende `script()`, um einen beliebigen Anbieter ohne Adapter zu laden oder das Tag eines Anbieters in einer Form, die sein Adapter nicht rendert. Jeder Aufruf rendert ein `<script>`-Tag und muss **genau eines** von `src` (extern) oder `content` (inline) setzen.
 
 ```ts blume.config.ts lineNumbers
-analytics: {
-  scripts: [
-    // Plausible
-    {
-      src: "https://plausible.io/js/script.js",
-      strategy: "defer",
-      attributes: { "data-domain": "example.com" },
-    },
-    // Fathom
-    {
-      src: "https://cdn.usefathom.com/script.js",
-      strategy: "defer",
-      attributes: { "data-site": "ABCDEFG" },
-    },
-    // An inline snippet
-    {
-      content: "console.log('analytics ready')",
-    },
-  ],
-}
+analytics: [
+  // Umami
+  script({
+    src: "https://cloud.umami.is/script.js",
+    strategy: "defer",
+    attributes: { "data-website-id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" },
+  }),
+  // An inline snippet
+  script({
+    content: "console.log('analytics ready')",
+  }),
+],
 ```
 
 `attributes` ist eine Zuordnung zusätzlicher HTML-Attribute (`data-*`, `id`, …), die auf das Tag verteilt werden, und `strategy` fügt externen Skripten `async` oder `defer` hinzu.
 
 ## Optionen [#options]
 
-| Option | Standard | Beschreibung |
-| --- | --- | --- |
-| `vercel` | `false` | Vercel Web Analytics hinzufügen (nur bei Vercel-Deployments). |
-| `cloudflare.token` | — | Site-Token für Cloudflare Web Analytics (manuelle Einrichtung). Aktiviert den Beacon, wenn gesetzt. |
-| `posthog.key` | — | PostHog-Projekt-API-Schlüssel. Aktiviert PostHog, wenn gesetzt. |
-| `posthog.host` | `https://us.i.posthog.com` | PostHog-Ingestion-Host (EU Cloud oder selbst gehostet). |
-| `scripts[].src` | — | URL des externen Skripts. Schließt sich mit `content` gegenseitig aus. |
-| `scripts[].content` | — | Inline-Skriptinhalt. Schließt sich mit `src` gegenseitig aus. |
-| `scripts[].strategy` | — | `async` oder `defer` für ein externes Skript. |
-| `scripts[].attributes` | — | Zusätzliche HTML-Attribute, die auf das `<script>`-Tag verteilt werden. |
+| Adapter | Option | Standard | Beschreibung |
+| --- | --- | --- | --- |
+| `adobe()` | `url` | — | Embed-Skript-URL der Launch-Umgebung. Erforderlich. |
+| `amplitude()` | `key` | — | Amplitude-Projekt-API-Schlüssel. Erforderlich. |
+| `amplitude()` | alles andere | `autocapture: true`, `fetchRemoteConfig: true` | Wird unverändert in die `amplitude.init`-Optionen übernommen. |
+| `clarity()` | `id` | — | Clarity-Projekt-ID. Erforderlich. |
+| `clearbit()` | `key` | — | Öffentlicher Clearbit-API-Schlüssel. Erforderlich. |
+| `cloudflare()` | `token` | — | Site-Token für Cloudflare Web Analytics (manuelle Einrichtung). Erforderlich. |
+| `cloudflare()` | alles andere | — | Wird unverändert im `data-cf-beacon`-JSON des Beacons weitergereicht. |
+| `fathom()` | `site` | — | Fathom-Site-ID. Erforderlich. |
+| `fathom()` | `spa` | `"auto"` | Verfolgung von Verlaufsänderungen durch Fathom (`data-spa`). |
+| `fathom()` | alles andere | — | Wird als `data-`-Attribut am Tag gerendert. |
+| `googleAnalytics()` | `id` | — | GA4-Mess-ID. Erforderlich. |
+| `googleAnalytics()` | alles andere | — | Wird unverändert beim `gtag('config', …)`-Aufruf mitgegeben. |
+| `googleTagManager()` | `id` | — | Container-ID von Tag Manager. Erforderlich. |
+| `googleTagManager()` | `dataLayer` | `dataLayer` | Name der globalen Data-Layer-Variable, die der Container liest. |
+| `heap()` | `id` | — | Heap-App-ID. Erforderlich. |
+| `heap()` | alles andere | — | Wird unverändert als `heap.load`-Konfiguration weitergereicht. |
+| `hightouch()` | `key` | — | Write Key der Hightouch-Event-Quelle. Erforderlich. |
+| `hightouch()` | `host` | `us-east-1.hightouch-events.com` | Host der Events-API, ohne Schema. |
+| `hightouch()` | alles andere | — | Wird unverändert als `htevents.load`-Optionen weitergereicht. |
+| `hotjar()` | `id` | — | Hotjar-Site-ID (`hjid`). Erforderlich. |
+| `hotjar()` | `version` | `6` | Version des Tracking-Codes (`hjsv`). |
+| `logrocket()` | `id` | — | LogRocket-App-ID (`org/app`). Erforderlich. |
+| `logrocket()` | alles andere | — | Wird unverändert an `LogRocket.init` weitergereicht. |
+| `mixpanel()` | `token` | — | Mixpanel-Projekt-Token. Erforderlich. |
+| `mixpanel()` | `region` | `us` | Region der Datenresidenz: `us`, `eu` oder `in`. |
+| `mixpanel()` | alles andere | `track_pageview: "url-with-path-and-query-string"` | Wird unverändert in die `mixpanel.init`-Optionen übernommen. |
+| `pirsch()` | `code` | — | Pirsch-Identifikationscode. Erforderlich. |
+| `pirsch()` | alles andere | — | Wird als `data-`-Attribut am Tag gerendert. |
+| `plausible()` | `domain` | — | Die Domain der Website in Plausible. Erforderlich. |
+| `plausible()` | `host` | `https://plausible.io` | Origin einer selbst gehosteten Instanz oder einer hinter einem Proxy. |
+| `plausible()` | alles andere | — | Wird als `data-`-Attribut am Tag gerendert. |
+| `posthog()` | `key` | — | PostHog-Projekt-API-Schlüssel. Erforderlich. |
+| `posthog()` | `host` | `https://us.i.posthog.com` | PostHog-Ingestion-Host (EU Cloud oder selbst gehostet). |
+| `posthog()` | alles andere | — | Wird unverändert an `posthog.init` weitergereicht. |
+| `segment()` | `key` | — | Write Key der Segment-Quelle. Erforderlich. |
+| `segment()` | `cdn` | `https://cdn.segment.com` | Origin einer eigenen Domain, die das CDN von Segment per Proxy ausliefert. |
+| `segment()` | alles andere | — | Wird unverändert als `analytics.load`-Optionen weitergereicht. |
+| `vercel()` | `mode`, `debug`, … | — | Werden als Props an die offizielle Astro-Komponente weitergereicht. |
+| `script()` | `src` | — | URL des externen Skripts. Schließt sich mit `content` gegenseitig aus. |
+| `script()` | `content` | — | Inline-Skriptinhalt. Schließt sich mit `src` gegenseitig aus. |
+| `script()` | `strategy` | — | `async` oder `defer` für ein externes Skript. |
+| `script()` | `attributes` | — | Zusätzliche HTML-Attribute, die auf das `<script>`-Tag verteilt werden. |
 
-Alle drei lassen sich kombinieren — aktiviere Vercel, PostHog und eigene Skripte gemeinsam. Zum Deployen deiner gebauten Website siehe [Deployment](/docs/deployment).
+## Eigene Events [#custom-events]
+
+Das Seiten-Feedback von Blume sendet ein eigenes Event über jeden konfigurierten Adapter, der eine Client-API hat — PostHog, Mixpanel, Heap, Segment, Hightouch, Amplitude, LogRocket, Adobe, Google Analytics, Google Tag Manager (als `{ event }`-Push auf `window.dataLayer`), Plausible, Fathom, Pirsch, Clarity, Hotjar und Vercel. Cloudflare und Clearbit haben keine Event-API. Jedes Event wird außerdem als `blume:track`-CustomEvent auf `window` ausgelöst, mit `{ event, props }` in `detail`, sodass ein `script()`-Adapter es an jedes beliebige andere Ziel weiterleiten kann. Zum Deployen deiner gebauten Website siehe [Deployment](/docs/deployment).

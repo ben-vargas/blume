@@ -1,0 +1,108 @@
+---
+title: 評価
+description: >-
+  blume eval はドキュメントにテストスイートを提供します。AI エージェントがドキュメントだけを使ってユーザーの質問に回答し、ジャッジがその回答を採点し、ドキュメントで回答できない場合は CI が失敗します。
+---
+
+`blume audit` は、クローラーがドキュメントを見つけられるかどうかを確認します。`blume eval` は、ドキュメントを実際に*使える*かどうかを確認します。AI エージェントが初めて読む人と同じようにドキュメントを読み、実際のユーザーの質問に答えようとします。ドキュメントに答えが書かれていない場合、実行は失敗し、答えを記載すべきページを示します。
+
+```bash
+blume eval
+```
+
+```
+blume eval  4 question(s) · Claude Code
+
+  ✔ install-node-version         pass  1.00  14.2s  $0.14
+  ✔ custom-domain                pass  0.92  21.3s  $0.19
+  ✖ deploy-vercel                fail  0.40  38.9s  $0.31
+      missing: deployment: vercel() from blume/deploy
+  ⊘ search-providers             skipped
+
+  fix: content/docs/deployment.mdx  Docs could not answer: "How do I deploy to Vercel?" — missing: deployment: vercel() from blume/deploy
+
+  2 passed · 1 failed · 1 skipped · 1m 42s · $0.64
+```
+
+## 仕組み [#how-it-works]
+
+各質問は、インストール済みのエージェント CLI を使って 2 つのエージェントセッションで処理されます。デフォルトは [Claude Code](https://claude.com/claude-code) で、`--agent codex` を指定すると [Codex](https://developers.openai.com/codex/cli) を使います。Blume 自体は API キーを持たず、モデルを直接呼び出すこともありません。`--agent codex` の場合、両方のセッションで Codex のシェル・コマンド・画像ツールが無効になり、環境変数も一切引き継がれません。
+
+1. **リーダー**は、*ドキュメントだけ*を使って質問に回答します。リーダーはファイル・シェル・Web ツールが無効な状態で空のディレクトリで動き、ドキュメントを提供するプライベートな [MCP サーバー](/docs/discoverability/mcp) に接続されます。これは、実際のエージェントがデプロイ済みのサイトに対して使うのと同じ `search_docs`/`get_page` ツールです。リポジトリは読めないため、リーダーは初めてのユーザーとまったく同じ立場でドキュメントを読みます。書かれていないことは、存在しないのと同じです。
+2. **ジャッジ**は、ツールを一切使わずに、あなたが列挙した事実と照らし合わせて回答を採点します。言い換えは合格になり、事実が抜けていたり矛盾していたりすると不合格になります。「ドキュメントには記載されていません」という回答も不合格です。
+
+MCP スナップショットはコンテンツソースから直接構築されるため、事前に `blume build` を実行する必要はありません。また、どこかにデプロイやアップロードされることもありません。
+
+ドキュメントで裏付けられ*ない*回答は、エージェントの事前知識がたまたま正しくても不合格になります。それこそがこの機能の狙いです。ユーザーの手元に届くのは、ドキュメントだけだからです。
+
+## 評価の書き方 [#writing-evals]
+
+質問はプロジェクトルートの `evals.yaml` に記述します。既存のドキュメントをもとに、エージェントにスターターファイルの下書きを作らせるには、次のコマンドを実行します。
+
+```bash
+blume eval init
+```
+
+手動で書くこともできます。
+
+```yaml
+questions:
+  - id: install-node-version
+    question: What is the minimum Node.js version required?
+    expected:
+      - Node 22.12 or newer
+    routes: /docs/quickstart
+  - id: deploy-vercel
+    question: How do I deploy to Vercel?
+    expected:
+      - run blume build
+      - "server features need deployment: vercel() from blume/deploy"
+    routes:
+      - /docs/deployment
+  - id: search-providers
+    question: Which search providers are supported?
+    expected:
+      - Orama is the default, with no hosted service
+    severity: warning # a miss warns instead of failing CI
+    skip: true # temporarily excluded, reported as skipped
+```
+
+- `expected` には、正しい回答が述べるべき事実を列挙します。表現が同じである必要はありません。ジャッジは言い換えを認め、矛盾する内容は認めません。
+- `routes` には、その質問に回答すべきページを指定します。指定しておくと、失敗した場合にレポート上でそのページのソースファイルと紐付けられます。どのページにも一致しなくなったヒントは、黙って無視されず、警告が出ます。
+- `severity: warning` を指定すると、質問はレポートに表示されますが CI は失敗しません。`skip: true` を指定すると、その質問は完全に除外されます。
+
+質問には、ユーザーが実際に尋ねることを書きましょう。サポートスレッドや GitHub の issue、オンボーディングの通話で寄せられる質問が良い例です。特に効果的なのは、ドキュメントが掲げる約束（「設定不要でデプロイ」など）を質問にしたものです。PR がその約束を破れば、評価も失敗します。
+
+## CI を失敗させる [#failing-ci]
+
+判定の基準は終了コードです。質問が 1 つでも失敗すると、0 以外の終了コードで終了します。エージェントの実行そのものが失敗した場合（リーダーやジャッジが回答を採点する前にエラーになった場合）は、ドキュメントが採点されていないため、修正すべきドキュメントページは示されません。代わりにレポートに `run failed:` と表示され、evals ファイル内の該当する質問が示されます。未対応の失敗が溜まっている間は、`--threshold` を使って、合格率が一定以上なら通るように基準を緩められます。
+
+```bash
+blume eval                    # every question must pass
+blume eval --threshold 0.8    # at least 80% must pass
+blume eval --json             # machine-readable report on stdout
+```
+
+JSON レポートの `diagnostics` + `summary` の形式は、`blume validate --json` や `blume audit --json` と同じです。さらに、質問ごとの結果（回答、スコア、欠落した事実、コスト）も含まれます。
+
+1 つの質問につき 2 回のモデルセッションを使うため、評価の実行には実際に費用と時間がかかります。質問ごとの費用は実行中に表示されます。CI では、プッシュのたびに実行するのではなく、ドキュメントが変更されたときだけ `blume eval` を実行することをおすすめします。
+
+## 指摘事項の修正 [#fixing-the-findings]
+
+失敗ごとに、欠落している事実と、それを記載すべきページが示されます。レポート全体をエージェントに渡して修正させることもできます。
+
+```bash
+blume eval --fix
+```
+
+このコマンドは、JSON レポート全体をファイルに書き出し、エージェントを対話モードで起動します。エージェントには、失敗した質問を 1 つずつ処理するよう指示するプロンプトが渡されます。指定されたページを読み、そのページの文体に合わせて欠落している事実を追記し、すべて合格するまで `blume eval` を再実行する、という流れです。セッションはあえて対話型にしてあり、編集内容はエージェント自身の権限確認フローで確認できます。また、合格させるために質問を削除したり、期待される事実を緩めたりしてはいけないことも、エージェントに指示されています。
+
+## フラグ [#flags]
+
+- `--agent claude|codex` — リーダーとジャッジを実行するエージェント CLI です。デフォルトは `claude` です。
+- `--file <path>` — 評価ファイルのパスです。デフォルトは `evals.yaml` です。
+- `--threshold <0..1>` — 必要な最低合格率です。これを下回ると、0 以外の終了コードで終了します。デフォルトは `1` です。
+- `--timeout <seconds>` — 質問ごとのリーダーの制限時間です。デフォルトは `180` です。
+- `--json` — レポートを JSON 形式で標準出力に出力します。
+- `--fix` — 実行が失敗した後、レポートをエージェントに渡して、対話形式でドキュメントを修正させます。
+- `--verbose` — 失敗ごとに、リーダーの回答全文を表示します。

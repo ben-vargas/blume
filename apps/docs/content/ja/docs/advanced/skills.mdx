@@ -14,6 +14,14 @@ Blume は[エージェントスキル](https://docs.claude.com/en/docs/claude-co
 npx skills add haydenbleasel/blume
 ```
 
+## 移行 [#migration]
+
+`blume-migrate` は、既存のドキュメントサイトを Blume に移行します。対象は Mintlify、Fumadocs、Docusaurus、Starlight、Nextra、その他あらゆるフレームワークです。1 行ずつの移植ではなく Blume らしい構成を目指しており、上記の各フレームワーク向けのマッピングリファレンスを備え、移動するすべての URL にリダイレクトを設定し、移行しなかった内容をすべてレポートします。最も手軽な実行方法は [`blume migrate`](/docs/migrating) です。フレームワークを検出し、パッケージにバンドルされたスキルを使って Claude Code または Codex を起動します。他のエージェントから使うには、インストールしてください。
+
+```bash
+npx skills add haydenbleasel/blume --skill blume-migrate
+```
+
 ## 自己更新するドキュメント [#self-updating-docs]
 
 `blume-update-docs` は、ドキュメントを、それが説明している製品と同期した状態に保ちます。実行のたびに（通常はエージェントランナーで設定したスケジュールから）、最近マージされた PR、変更履歴、設定スキーマ、CLI ヘルプをドキュメントの内容と照合し、事実として古くなったページのみを更新し（フィーチャーフラグ配下の作業は無視されます）、`blume build` で検証したうえで、`blume/*` プルリクエストを作成または更新します。ずれが何もなければ、無用な PR を作成せず、変更なしとして報告します。

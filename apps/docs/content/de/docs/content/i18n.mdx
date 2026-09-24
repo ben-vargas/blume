@@ -84,7 +84,7 @@ i18n: {
 
 Jede Sprache erhält ihre eigene Seitenleiste, aufgebaut aus den Dateien dieser Locale – so können Übersetzungen in Struktur, Reihenfolge oder Beschriftungen abweichen. Auch [`meta.ts`](/docs/content/meta)-Dateien von Ordnern werden pro Locale aufgelöst: Lege unter dem Standard-Parser `dir` eine `meta.ts` in `fr/guides/` ab, um die französische Gruppe unabhängig zu sortieren. Unter dem `dot`-Parser liegen Übersetzungen neben den Originalen, sodass die `meta.ts` eines Ordners für jede Locale gilt. Alles andere zur [Navigation](/docs/content/navigation) funktioniert genauso, pro Sprache.
 
-Header-Tabs werden konfiguriert und nicht aus dem Inhalt abgeleitet, daher werden ihre Beschriftungen in `blume.config.ts` lokalisiert: Ein Tab-`label` akzeptiert neben der einfachen String-Form auch eine Zuordnung pro Locale (`{ en: "Docs", fr: "Documentation" }`) und greift für Locales, die du nicht ausgefüllt hast, auf den Eintrag der Standard-Locale zurück. Siehe [Tabs](/docs/content/navigation#tabs).
+Header-Tabs werden konfiguriert und nicht aus dem Inhalt abgeleitet, daher werden ihre Beschriftungen in `blume.config.ts` lokalisiert: Ein Tab-`label` akzeptiert neben der einfachen String-Form auch eine Zuordnung pro Locale (`{ en: "Docs", fr: "Documentation" }`) und greift für Locales, die du nicht ausgefüllt hast, auf den Eintrag der Standard-Locale zurück. Siehe [Tabs](/docs/content/navigation#tabs). Tab-Pfade, Header-Links und der Link des Header-Logos wechseln ebenfalls in die Locale der Leserin oder des Lesers, sofern diese Locale die Route bereitstellt, sodass der Header innerhalb einer Sprache bleibt. Eine Route, die nur die Standard-Locale bereitstellt – eine [benutzerdefinierte Seite](/docs/advanced/custom-pages) oder der generierte [Changelog](/docs/advanced/changelog)-Index –, behält ihren eigenen Pfad, statt auf eine lokalisierte URL zu zeigen, die einen 404 liefern würde.
 
 ## Fallbacks
 
@@ -97,7 +97,9 @@ i18n: {
 }
 ```
 
-Fallback-Seiten werden vom Suchindex ausgeschlossen und in `hreflang` nicht als echte Übersetzungen ausgewiesen, sodass unübersetzte Inhalte nicht um das Ranking konkurrieren. Sie erscheinen weiterhin in der Seitenleiste dieser Locale, sodass die Navigation vollständig bleibt – eine Leserin oder ein Leser erreicht jede Seite in jeder Sprache.
+Fallback-Seiten verweisen mit ihrem kanonischen Link auf die Seite, die sie kopieren, werden aus dem Suchindex, `llms.txt` und den Seitenlisten von MCP und JSON-API ausgeschlossen und in `hreflang` nicht als echte Übersetzungen ausgewiesen, sodass unübersetzte Inhalte nicht um das Ranking konkurrieren. Sie erscheinen weiterhin in der Seitenleiste dieser Locale, sodass die Navigation vollständig bleibt – eine Leserin oder ein Leser erreicht jede Seite in jeder Sprache.
+
+Release Notes aus einer [`githubReleases()`](/docs/content/sources#github-releases)-Quelle sind die Ausnahme: Sie werden in einer einzigen Sprache veröffentlicht, daher werden sie nie auf die URLs anderer Locales kopiert und zeigen keinen Sprachumschalter.
 
 :::tip
 Beginne damit, deine wichtigsten Seiten zu übersetzen – die Startseite, den Schnellstart und die wichtigsten Anleitungen – und lass den Rest auf den Fallback zurückgreifen. Du kannst Übersetzungen mit der Zeit ergänzen, ohne Links zu beschädigen.
@@ -121,7 +123,7 @@ Blume validiert die Struktur jedes Ergebnisses – Frontmatter, Code-Fences, Lin
 
 ## Der Sprachumschalter [#the-language-switcher]
 
-Wenn i18n aktiviert ist, erscheint automatisch ein Sprachumschalter im Header, generiert aus deinen `locales`. Für jede Seite verlinkt er die passende Übersetzung in jeder Sprache; wo eine Übersetzung fehlt, verlinkt er die Fallback-Seite und kennzeichnet sie als nicht übersetzt. Es gibt nichts zu konfigurieren.
+Wenn i18n aktiviert ist, erscheint automatisch ein Sprachumschalter im Header, generiert aus deinen `locales`. Für jede Seite verlinkt er die passende Übersetzung in jeder Sprache; wo eine Übersetzung fehlt, verlinkt er die Fallback-Seite und kennzeichnet sie als nicht übersetzt. Es gibt nichts zu konfigurieren. Seiten aus einer [GitHub Releases](/docs/content/sources#github-releases)-Quelle sind die Ausnahme: Release Notes gibt es nur in einer Sprache, daher werden diese Seiten ohne Umschalter gerendert.
 
 ## Übersetzte Benutzeroberfläche [#translated-ui]
 
