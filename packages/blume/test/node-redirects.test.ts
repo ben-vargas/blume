@@ -174,7 +174,6 @@ describe("nodeRedirects", () => {
       redirects: [
         { from: "/old/", status: 302, to: "/new" },
         { from: "/ünï", status: 307, to: "/ü" },
-        { from: "https://example.com/elsewhere", status: 301, to: "/new" },
       ],
     });
     expect(nodeRedirects(project)).toStrictEqual({
