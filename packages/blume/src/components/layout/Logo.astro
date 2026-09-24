@@ -47,9 +47,14 @@ const brandHref =
 // it's omitted. An explicit `""` hides it (an image-only logo whose mark already
 // carries the wordmark).
 const brandText = logo?.text ?? site.title;
+// Without a wordmark the link's only content is the mark, and an inline SVG
+// mark is decorative (`aria-hidden`), so the link would have no accessible
+// name. Name it after the image's `alt`, else the site title.
+const linkLabel = brandText ? undefined : logoAlt || site.title;
 ---
 
 <a
+  aria-label={linkLabel}
   class="inline-flex min-w-0 items-center gap-2 font-semibold text-base text-foreground"
   href={withBase(brandHref)}
 >

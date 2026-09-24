@@ -72,11 +72,32 @@ const uiStringsObject = z.object({
     .prefault({}),
   content: z
     .object({
+      // `<Component>`'s source tab.
+      code: z.string().default("Code"),
       // A `<Color.Item>` swatch's accessible name; `{name}` and `{value}` are
       // replaced with the color's name and the value it shows.
       copyColor: z.string().default("Copy {name} color {value}"),
       copyPrompt: z.string().default("Copy prompt"),
+      // `<TypeTable>`: a row's default-value label.
+      default: z.string().default("Default"),
       diagramError: z.string().default("Could not render this diagram."),
+      // `<GithubInfo>`: the screen-reader labels of the fork and star counts.
+      forks: z.string().default("Forks"),
+      // `<Component>`'s live-preview tab, also its frame's title.
+      preview: z.string().default("Preview"),
+      // `<TypeTable>`: the property-name column.
+      prop: z.string().default("Prop"),
+      // `<Tabs dropdown>`: the accessible name of the tab picker.
+      selectTab: z.string().default("Select tab"),
+      // `<Expandable>`'s toggle when it sets no `title`.
+      showMore: z.string().default("Show more"),
+      stars: z.string().default("Stars"),
+      // An untitled tab's label; `{n}` is replaced with its position.
+      tab: z.string().default("Tab {n}"),
+      // `<TypeTable>`: the type column and a row's type label.
+      type: z.string().default("Type"),
+      // `<Update>`'s heading when it sets no `label` or `title`.
+      update: z.string().default("Update"),
     })
     .prefault({}),
   feedback: z
@@ -149,6 +170,9 @@ const uiStringsObject = z.object({
         .default("Search is available in the production build."),
       error: z.string().default("Something went wrong. Please try again."),
       label: z.string().default("Search docs"),
+      // The version tag on a result from the current docs in an all-versions
+      // search (a result from an archived version shows its version id).
+      latest: z.string().default("latest"),
       navigate: z.string().default("navigate"),
       noResults: z.string().default("No results found."),
       open: z.string().default("open"),

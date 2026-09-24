@@ -14,6 +14,7 @@ import { CODE_PADDING_BLOCK_REM } from "../../theme/code-block-padding.ts";
 
 import { highlightCode } from "../../markdown/index.ts";
 import { withBase } from "../islands/base-path.ts";
+import { contentStrings } from "./content-strings.ts";
 import { EXAMPLE_PANE_MIN_PX } from "./example-pane.ts";
 import Tab from "./Tab.astro";
 import Tabs from "./Tabs.astro";
@@ -26,6 +27,7 @@ interface Props {
 
 const { path } = Astro.props;
 const entry = examples[path];
+const { content: strings } = contentStrings(data, Astro.currentLocale);
 
 // The live preview renders in its own generated route, embedded as an iframe:
 // the frame boundary is what keeps the docs CSS (prose typography, component
@@ -103,17 +105,21 @@ const paneClass =
       <Tab
         class={`overflow-hidden p-0! ${paneClass}`}
         style={paneStyle}
-        title="Preview"
+        title={strings.preview}
       >
         <iframe
           class="h-full w-full"
           data-blume-example-frame
           loading="lazy"
           src={previewSrc}
-          title={`Preview of ${path}`}
+          title={`${strings.preview}: ${path}`}
         />
       </Tab>
-      <Tab class={`overflow-hidden ${paneClass}`} style={paneStyle} title="Code">
+      <Tab
+        class={`overflow-hidden ${paneClass}`}
+        style={paneStyle}
+        title={strings.code}
+      >
         <Fragment set:html={codeHtml} />
       </Tab>
     </Tabs>

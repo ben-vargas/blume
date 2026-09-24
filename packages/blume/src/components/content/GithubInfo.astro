@@ -9,6 +9,7 @@ import { NEW_TAB_ATTRS } from "../../core/new-tab.ts";
 import { resolveIcon } from "../../theme/icons.ts";
 import data from "blume:data";
 import { GITHUB_MARK } from "../github-mark.ts";
+import { contentStrings } from "./content-strings.ts";
 import { fetchRepositoryInfo } from "./github-info.ts";
 
 // Star/fork glyphs resolve from Lucide at build time; the `<svg>` wrappers below
@@ -63,6 +64,9 @@ const numbers = new Intl.NumberFormat("en", {
 
 const statIcon =
   "size-3.5 shrink-0 text-muted-foreground"; /* shared classes for stat icons */
+// The glyphs are decorative, so each count carries a text label for screen
+// readers ("Stars: 1.2K"), in the page's language.
+const { content: strings } = contentStrings(data, Astro.currentLocale);
 ---
 
 {
@@ -108,7 +112,10 @@ const statIcon =
               width="14"
               set:html={starIcon}
             />
-            <span>{numbers.format(info.stars)}</span>
+            <span>
+              <span class="sr-only">{strings.stars}: </span>
+              {numbers.format(info.stars)}
+            </span>
           </span>
           <span class="flex items-center gap-1.5">
             <svg
@@ -124,7 +131,10 @@ const statIcon =
               width="14"
               set:html={forkIcon}
             />
-            <span>{numbers.format(info.forks)}</span>
+            <span>
+              <span class="sr-only">{strings.forks}: </span>
+              {numbers.format(info.forks)}
+            </span>
           </span>
         </span>
       )}

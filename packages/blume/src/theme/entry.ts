@@ -268,7 +268,7 @@ ${THEME_MAPPING}
   @apply block rounded-[0.65rem] px-2.5 py-1.5 text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground aria-[current=page]:bg-muted aria-[current=page]:font-medium aria-[current=page]:text-foreground;
 }
 @utility blume-nav-drill {
-  @apply flex w-full items-center gap-2 rounded-[0.65rem] px-2.5 py-1.5 text-left font-medium text-foreground text-sm transition-colors hover:bg-muted;
+  @apply flex w-full items-center gap-2 rounded-[0.65rem] px-2.5 py-1.5 text-start font-medium text-foreground text-sm transition-colors hover:bg-muted;
 }
 @utility blume-nav-summary {
   @apply flex cursor-pointer list-none items-center gap-1.5 rounded-[0.65rem] px-2.5 py-1.5 text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground [&::-webkit-details-marker]:hidden;
@@ -884,11 +884,18 @@ pre:has(.line.focused):hover .line:not(.focused) {
 }
 
 /* Print / "Save as PDF" (the page-actions Export → PDF runs window.print()).
-   Strip the surrounding chrome so the printout is just the article. */
+   Strip the surrounding chrome so the printout is just the article. Scoped to
+   the chrome itself, never bare \`header\`/\`aside\`: content renders those too
+   (every Callout and Panel is an <aside>, every changelog Update has a
+   <header>), and they belong in the printout. \`body > header\` keeps a
+   \`layout.Header\` override out as well. */
 @media print {
   [data-blume-banner],
-  header,
-  aside,
+  [data-blume-header],
+  body > header,
+  [data-blume-nav-drawer],
+  [data-blume-toc],
+  [data-blume-assistant-panel],
   [data-blume-page-actions],
   #blume-content > nav,
   #blume-content > details {

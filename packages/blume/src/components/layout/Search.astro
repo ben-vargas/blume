@@ -67,6 +67,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
   data-i18n-dev={s.devOnly}
   data-i18n-empty={s.noResults}
   data-i18n-error={s.error}
+  data-i18n-latest={s.latest}
   data-i18n-popular={s.popular}
   data-i18n-results={s.results}
   data-locale={locale || undefined}
@@ -328,6 +329,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
       allMsg = "All";
       popularMsg = "Popular";
       resultsMsg = "Results";
+      latestMsg = "latest";
       // The active locale to filter to (null when i18n is off), and whether the
       // reader has opted to search across every language instead.
       locale: string | null = null;
@@ -382,6 +384,8 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
           this.getAttribute("data-i18n-popular") || this.popularMsg;
         this.resultsMsg =
           this.getAttribute("data-i18n-results") || this.resultsMsg;
+        this.latestMsg =
+          this.getAttribute("data-i18n-latest") || this.latestMsg;
         this.locale = this.getAttribute("data-locale");
         // "" (the current docs) is a real version value, so a presence flag —
         // not the attribute's truthiness — decides whether filtering is on.
@@ -765,7 +769,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
         // reader knows they're about to leave the docs they're viewing.
         const versionTag =
           this.versioned && hit.version !== undefined && hit.version !== this.version
-            ? `<span class="ms-2 inline-block rounded-full bg-muted px-1.5 py-0.5 align-middle text-[0.65rem] text-muted-foreground">${escapeHtml(hit.version || "latest")}</span>`
+            ? `<span class="ms-2 inline-block rounded-full bg-muted px-1.5 py-0.5 align-middle text-[0.65rem] text-muted-foreground">${escapeHtml(hit.version || this.latestMsg)}</span>`
             : "";
         el.innerHTML = `
           <span class="mt-0.5 shrink-0 text-muted-foreground">${svg("file")}</span>

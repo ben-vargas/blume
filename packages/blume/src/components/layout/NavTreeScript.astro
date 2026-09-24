@@ -40,7 +40,12 @@
     return pending;
   };
 
-  /** Fill a deferred element from its fragment; a no-op once filled. */
+  /**
+   * Fill a deferred element from its fragment; a no-op once filled. The rows
+   * are appended, not swapped in: a drill-in panel keeps its own back row
+   * (the Back button and the section's title) above the deferred rows, and a
+   * collapsed group's slot is empty anyway.
+   */
   const fillDeferred = async (slot: HTMLElement): Promise<void> => {
     const src = slot.dataset.navSrc;
     if (!src) {
@@ -48,8 +53,12 @@
     }
     slot.setAttribute("aria-busy", "true");
     try {
-      slot.innerHTML = await loadFragment(src);
-      delete slot.dataset.navSrc;
+      const html = await loadFragment(src);
+      // Two opens racing on the same fetch fill it once.
+      if (slot.dataset.navSrc) {
+        slot.insertAdjacentHTML("beforeend", html);
+        delete slot.dataset.navSrc;
+      }
     } finally {
       slot.removeAttribute("aria-busy");
     }
@@ -179,21 +188,52 @@
       if (prev === next) {
         return;
       }
+      // The pressed drill or back button sits in the panel about to hide, so
+      // its focus has to move into the panel replacing it — left behind, the
+      // next Tab would leave the sidebar.
+      const hadFocus = prev?.contains(document.activeElement) ?? false;
       // Settle any in-flight slide before starting the next one.
       if (this.finishSlide) {
         this.finishSlide();
       }
       this.active = next;
       this.dataset.active = next.dataset.navPanel;
+      this.syncExpanded(next);
 
       if (!(animate && prev) || this.reduced()) {
         for (const panel of this.querySelectorAll<HTMLElement>("[data-nav-panel]")) {
           panel.hidden = panel !== next;
         }
-        return;
+      } else {
+        this.slide(prev, next, this.depth(next) > this.depth(prev));
       }
+      if (hadFocus && prev) {
+        this.focusInto(next, prev);
+      }
+    }
 
-      this.slide(prev, next, this.depth(next) > this.depth(prev));
+    /** Each drill button is expanded exactly while the panel it opens shows. */
+    syncExpanded(shown: HTMLElement): void {
+      for (const drill of this.querySelectorAll("[data-nav-to]")) {
+        drill.setAttribute(
+          "aria-expanded",
+          String(drill.getAttribute("data-nav-to") === shown.dataset.navPanel)
+        );
+      }
+    }
+
+    /**
+     * Focus `next` after leaving `prev`: going back, the drill button that
+     * opened `prev`; drilling in, the new panel's back button (its first
+     * control). `preventScroll` keeps the focus from scrolling the clipped
+     * container mid-slide.
+     */
+    focusInto(next: HTMLElement, prev: HTMLElement): void {
+      const target =
+        next.querySelector<HTMLElement>(
+          `[data-nav-to="${prev.dataset.navPanel}"]`
+        ) ?? next.querySelector<HTMLElement>("button, a[href]");
+      target?.focus({ preventScroll: true });
     }
 
     slide(out: HTMLElement, into: HTMLElement, forward: boolean): void {

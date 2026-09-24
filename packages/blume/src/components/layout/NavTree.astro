@@ -79,6 +79,9 @@ const fragmentFor = (node: NavNode, id: string): string | undefined =>
 // blank — the PageActions pattern.
 const n = { ...EN_UI.nav, ...strings };
 
+/** The DOM id of a drill-in panel, which its drill button controls. */
+const navPanelId = (id: string): string => `blume-nav-panel-${id}`;
+
 const badgeBase =
   "shrink-0 rounded-full px-1.5 py-0.5 font-medium text-[0.65rem] leading-none";
 // HTTP-method, AsyncAPI-action, and GraphQL operation-kind badges (from a
@@ -165,6 +168,7 @@ const initialId =
             data-nav-panel={panel.id}
             data-nav-src={src}
             hidden={panel.id !== initialId}
+            id={navPanelId(panel.id)}
           >
             {/* The title is the only sidebar link to the section's own page, so
                 a routed panel keeps it as a link; without a route the whole row
@@ -174,7 +178,7 @@ const initialId =
               <div class="mb-3 flex items-center gap-0.5">
                 <button
                   aria-label={n.back}
-                  class="-ml-1 flex shrink-0 items-center justify-center self-stretch rounded-[0.65rem] px-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  class="-ms-1 flex shrink-0 items-center justify-center self-stretch rounded-[0.65rem] px-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   data-nav-back={panel.parentId}
                   type="button"
                 >
@@ -195,7 +199,7 @@ const initialId =
             ) : (
               <button
                 aria-label={`${n.back}: ${panel.label}`}
-                class="-ml-1 mb-3 flex w-full items-center gap-1.5 rounded-[0.65rem] p-1 text-left font-semibold text-foreground text-sm transition-colors hover:bg-muted"
+                class="-ms-1 mb-3 flex w-full items-center gap-1.5 rounded-[0.65rem] p-1 text-start font-semibold text-foreground text-sm transition-colors hover:bg-muted"
                 data-nav-back={panel.parentId}
                 type="button"
               >
@@ -293,11 +297,16 @@ const initialId =
         const spacing =
           index === 0 ? "mt-0" : display === "flat" ? "mt-6" : "mt-0.5";
 
-        // `page`: a single row that drills into this group's panel.
+        // `page`: a single row that drills into this group's panel. It
+        // controls that panel; NavTreeScript keeps `aria-expanded` in step
+        // with the panel shown (static markup, since cached subtrees and
+        // fragments can't carry per-page state).
         if (display === "page") {
           return (
             <li class={spacing}>
               <button
+                aria-controls={navPanelId(id)}
+                aria-expanded="false"
                 class="blume-nav-drill"
                 data-nav-to={id}
                 type="button"
@@ -377,7 +386,7 @@ const initialId =
                   </span>
                 </summary>
                 <div
-                  class="space-y-0.5 border-border border-l pl-3"
+                  class="space-y-0.5 border-border border-s ps-3"
                   data-nav-src={open ? undefined : fragmentFor(item, id)}
                 >
                   {/* A closed group's children are deferred (fetched into this
@@ -434,7 +443,7 @@ const initialId =
                   )}
                   <span class="truncate">{item.label}</span>
                   {item.badge && (
-                    <span class={`ml-auto ${badgeClassFor(item.badge)}`}>{item.badge}</span>
+                    <span class={`ms-auto ${badgeClassFor(item.badge)}`}>{item.badge}</span>
                   )}
                 </a>
               ) : (
@@ -448,7 +457,7 @@ const initialId =
                   )}
                   <span class="truncate">{item.label}</span>
                   {item.badge && (
-                    <span class={`ml-auto ${badgeClassFor(item.badge)}`}>{item.badge}</span>
+                    <span class={`ms-auto ${badgeClassFor(item.badge)}`}>{item.badge}</span>
                   )}
                 </>
               )}

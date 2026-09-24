@@ -17,6 +17,7 @@ import LanguageSwitcher from "./LanguageSwitcher.astro";
 import Logo from "./Logo.astro";
 import { currentTabForRoute } from "./nav-utils.ts";
 import NavSelector from "./NavSelector.astro";
+import NavTabMenu from "./NavTabMenu.astro";
 import { resolveSlot } from "./overrides.ts";
 import Search from "./Search.astro";
 
@@ -216,15 +217,24 @@ const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-b
   {
     navigation.tabs.length > 0 && (
       <nav aria-label={n.sections} class={tabsNavClass}>
-        {navigation.tabs.map((tab) => (
-          <a
-            aria-current={tab === activeTab ? "page" : undefined}
-            class="rounded-full px-3 py-1.5 font-medium text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground aria-[current=page]:text-foreground"
-            href={withBase(tab.href ?? tab.path)}
-          >
-            {tab.label}
-          </a>
-        ))}
+        {navigation.tabs.map((tab) =>
+          tab.items && tab.items.length > 0 ? (
+            <NavTabMenu
+              active={tab === activeTab}
+              route={route}
+              tab={tab}
+              variant="bar"
+            />
+          ) : (
+            <a
+              aria-current={tab === activeTab ? "page" : undefined}
+              class="rounded-full px-3 py-1.5 font-medium text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground aria-[current=page]:text-foreground"
+              href={withBase(tab.href ?? tab.path)}
+            >
+              {tab.label}
+            </a>
+          )
+        )}
       </nav>
     )
   }

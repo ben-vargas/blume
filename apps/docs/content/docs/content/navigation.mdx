@@ -174,6 +174,24 @@ navigation: {
 
 Tabs that don't set `href` keep the resolution above.
 
+Give a tab `items` to make it a dropdown. The tab no longer links anywhere itself: it opens a menu of its items in the header, and expands them in place in the mobile navigation drawer. Its `path` still scopes the sidebar and marks the tab as current, and `href` doesn't apply. Each item takes a `label` and a `path`, plus an optional `icon`, `description`, and `tag`, like a [selector](#selectors) item:
+
+```ts blume.config.ts lineNumbers
+navigation: {
+  tabs: [
+    { label: "Guides", path: "/guides" },
+    {
+      label: "SDKs",
+      path: "/sdks",
+      items: [
+        { label: "JavaScript", path: "/sdks/javascript", description: "Node and the browser" },
+        { label: "Python", path: "/sdks/python", tag: "Beta" },
+      ],
+    },
+  ],
+}
+```
+
 On an [i18n](/docs/content/i18n) site, a tab's `label` (and a dropdown item's) can be a per-locale map instead of a string — the active locale's entry wins, then the default locale's:
 
 ```ts blume.config.ts
@@ -184,6 +202,8 @@ navigation: {
   ],
 }
 ```
+
+A [selector](#selectors)'s labels don't take a map: its `label` and each of its items' labels are plain strings.
 
 Tabs also **scope the sidebar**: when the current route falls under a tab's `path`, the sidebar shows only that section's pages — so `/adapters/*` lists the adapters and nothing else. The folder at a tab's `path` becomes the section, so this needs no extra config beyond the tabs themselves; structure your content into a folder per tab and point each tab at it.
 

@@ -16,23 +16,50 @@
 /** How long the copied confirmation holds before reverting. */
 const HOLD_MS = 1500;
 
+/**
+ * How long a just-inserted live region waits before its first message. Screen
+ * readers start watching a region once it is in the document, so text written
+ * in the same task as the insertion is often never announced.
+ */
+const REGISTER_MS = 100;
+
 /** The shared visually-hidden live region, created on first announcement. */
 let region: HTMLElement | null = null;
+/** Pending while a fresh region registers; its first message waits for it. */
+let registering: ReturnType<typeof setTimeout> | undefined;
+/** The newest message asked for while the region was registering. */
+let queued = "";
+
+const write = (target: HTMLElement, message: string): void => {
+  // Clear first so repeating the same message is re-announced.
+  target.textContent = "";
+  target.textContent = message;
+};
 
 /**
  * Announce `message` to screen readers. The region is re-created if a swap
- * (view transition, client router) disconnected it.
+ * (view transition, client router) disconnected it — the router replaces
+ * `<body>` on every navigation — and a fresh region gets its first message
+ * only after it has had time to register.
  */
 export const announceCopied = (message: string): void => {
   if (!region?.isConnected) {
-    region = document.createElement("div");
-    region.setAttribute("role", "status");
-    region.className = "sr-only";
-    document.body.append(region);
+    const fresh = document.createElement("div");
+    fresh.setAttribute("role", "status");
+    fresh.className = "sr-only";
+    document.body.append(fresh);
+    region = fresh;
+    clearTimeout(registering);
+    registering = setTimeout(() => {
+      registering = undefined;
+      write(fresh, queued);
+    }, REGISTER_MS);
   }
-  // Clear first so repeating the same message is re-announced.
-  region.textContent = "";
-  region.textContent = message;
+  if (registering === undefined) {
+    write(region, message);
+  } else {
+    queued = message;
+  }
 };
 
 /**

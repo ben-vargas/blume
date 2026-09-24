@@ -216,6 +216,19 @@ const isLogoShorthand = (
 const logoHref = (logo: ResolvedConfig["logo"]): string =>
   logo === undefined || isLogoShorthand(logo) ? "/" : (logo.href ?? "/");
 
+/** Narrows the banner config's text shorthand from its object form. */
+const isBannerShorthand = (
+  banner: NonNullable<ResolvedConfig["banner"]>
+): banner is string => typeof banner === "string";
+
+/** The configured banner link target, when the banner has a link. */
+const bannerLinkHref = (
+  banner: ResolvedConfig["banner"]
+): string | undefined =>
+  banner === undefined || isBannerShorthand(banner)
+    ? undefined
+    : banner.link?.href;
+
 export const scanProject = async (
   root: string,
   options: {
@@ -390,6 +403,7 @@ export const scanProject = async (
     ? await discoverPages(context.pagesRoot)
     : [];
   const graph = buildContentGraph(pages, {
+    bannerHref: bannerLinkHref(config.banner),
     basePath: config.basePath,
     brandHref: logoHref(config.logo),
     extraRoutes: new Set([

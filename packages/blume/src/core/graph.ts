@@ -28,6 +28,8 @@ import type {
 import { versionizeRoute } from "./versions.ts";
 
 interface BuildContentGraphOptions {
+  /** The banner's link target as configured (`banner.link.href`), if any. */
+  bannerHref?: string;
   /** Site-wide route mount point (`""` or `/seg`); invisible to the nav tree. */
   basePath?: string;
   /** The header brand link as configured (`logo.href`, default `/`). */
@@ -156,6 +158,18 @@ const resolveTabLabels = (
     })),
     label: resolveLabel(tab.label, locale, defaultLocale),
   }));
+
+/**
+ * Mount a configured link authored as if the site were served at root (the
+ * banner's): under `basePath`, except a route served outside the content tree
+ * — a custom page, the generated changelog index — which answers only at its
+ * own path.
+ */
+const mountConfiguredLink = (
+  path: string,
+  basePath: string,
+  extraRoutes: ReadonlySet<string>
+): string => (extraRoutes.has(path) ? path : withBasePath(basePath, path));
 
 /**
  * Build one locale's navigation tree from its own pages and folder meta.
@@ -291,20 +305,30 @@ const buildLocaleNavigation = (
     tabRoot: localizeRoute("/", code, i18n),
     tabs,
   });
-  if (options.brandHref === undefined) {
-    return navigation;
-  }
   // `serves` checked the localized brand link against based routes, and
   // unlike tab and header links it isn't rebased later, so a localized one
   // takes the base here (`/fr` is served at `/docs/fr`).
-  const brandHref = localizeServed(options.brandHref, false);
-  return {
-    ...navigation,
-    brandHref:
-      brandHref === options.brandHref
-        ? brandHref
-        : withBasePath(basePath, brandHref),
+  const localizedBrand = (href: string): string => {
+    const localized = localizeServed(href, false);
+    return localized === href ? localized : withBasePath(basePath, localized);
   };
+  const branded =
+    options.brandHref === undefined
+      ? navigation
+      : { ...navigation, brandHref: localizedBrand(options.brandHref) };
+  // The banner link is authored like a featured href — in the default
+  // locale's path space, as if mounted at root — so it is localized the same
+  // way before it is mounted.
+  return options.bannerHref === undefined
+    ? branded
+    : {
+        ...branded,
+        bannerHref: mountConfiguredLink(
+          localizeServed(options.bannerHref, false),
+          basePath,
+          extraRoutes
+        ),
+      };
 };
 
 /**
@@ -448,6 +472,16 @@ export const buildContentGraph = (
       // entry on a single-locale site.
       tabs: resolveTabLabels(options.navigation.tabs, ""),
     });
+    if (options.bannerHref !== undefined) {
+      navigation = {
+        ...navigation,
+        bannerHref: mountConfiguredLink(
+          options.bannerHref,
+          options.basePath ?? "",
+          options.extraRoutes ?? new Set<string>()
+        ),
+      };
+    }
   }
 
   const navigationByVersion: Record<string, Record<string, Navigation>> = {};

@@ -4,7 +4,11 @@
 // the accent-colored prop name (with a `?` suffix when optional) and its type;
 // expanded, the row lifts into a card showing the description and a Type/Default
 // detail grid. Uses native <details>/<summary> so the core stays React-free.
+import data from "blume:data";
+
 import { resolveIcon } from "../../theme/icons.ts";
+import { contentHref } from "./base-href.ts";
+import { contentStrings } from "./content-strings.ts";
 
 // The row disclosure caret; resolved from Lucide at build time and injected into
 // the summary's `<svg>` (which supplies size and the rotate-on-open transition).
@@ -25,6 +29,7 @@ interface Props {
 
 const { type = {} } = Astro.props;
 const entries = Object.entries(type);
+const { content: strings } = contentStrings(data, Astro.currentLocale);
 
 // Shared column track so the header, every summary, and the detail grid align.
 const columns = "grid grid-cols-[1fr_2fr_auto] items-center gap-4";
@@ -34,8 +39,8 @@ const columns = "grid grid-cols-[1fr_2fr_auto] items-center gap-4";
   entries.length > 0 && (
     <div class="not-prose my-6 rounded-blume border border-border bg-muted/30 p-1.5">
       <div class={`${columns} px-3 py-2 font-medium text-muted-foreground text-xs`}>
-        <span>Prop</span>
-        <span>Type</span>
+        <span>{strings.prop}</span>
+        <span>{strings.type}</span>
         <span aria-hidden="true" class="size-3.5" />
       </div>
 
@@ -50,7 +55,7 @@ const columns = "grid grid-cols-[1fr_2fr_auto] items-center gap-4";
             {info.typeDescriptionLink ? (
               <a
                 class="break-words font-mono text-foreground text-xs underline-offset-2 hover:underline"
-                href={info.typeDescriptionLink}
+                href={contentHref(info.typeDescriptionLink)}
               >
                 {info.type}
               </a>
@@ -85,7 +90,7 @@ const columns = "grid grid-cols-[1fr_2fr_auto] items-center gap-4";
             )}
             <div class="space-y-1.5">
               <div class={columns}>
-                <span class="text-muted-foreground">Type</span>
+                <span class="text-muted-foreground">{strings.type}</span>
                 <code class="break-words font-mono text-foreground">
                   {info.type}
                 </code>
@@ -93,7 +98,7 @@ const columns = "grid grid-cols-[1fr_2fr_auto] items-center gap-4";
               </div>
               {info.default && (
                 <div class={columns}>
-                  <span class="text-muted-foreground">Default</span>
+                  <span class="text-muted-foreground">{strings.default}</span>
                   <code class="break-words font-mono text-foreground">
                     {info.default}
                   </code>

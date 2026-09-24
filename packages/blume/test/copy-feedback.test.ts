@@ -261,28 +261,40 @@ describe("copyText", () => {
 });
 
 describe("announceCopied", () => {
-  it("creates a polite status region once and reuses it", () => {
+  // Longer than the pause a fresh region takes to register.
+  const REGISTERED_MS = 150;
+
+  it("creates a polite status region once and reuses it", async () => {
     announceCopied("Copied!");
     const region = liveRegion();
     expect(region?.attributes.get("role")).toBe("status");
     expect(region?.className).toBe("sr-only");
+    // A region filled in the tick it's inserted is often never announced, so
+    // the first message waits until the region has registered.
+    expect(region?.textContent).toBe("");
+    await Bun.sleep(REGISTERED_MS);
     expect(region?.textContent).toBe("Copied!");
 
     const count = body.children.length;
     announceCopied("Copied again");
     expect(body.children.length).toBe(count);
+    // A registered region takes each later message at once.
     expect(liveRegion()?.textContent).toBe("Copied again");
   });
 
-  it("re-creates the region after a swap disconnects it", () => {
+  it("re-creates the region after a swap disconnects it", async () => {
     const region = liveRegion();
     if (!region) {
       throw new Error("expected a live region");
     }
     region.isConnected = false;
     announceCopied("Fresh");
+    // A second message while the new region registers replaces the first.
+    announceCopied("Fresher");
     expect(liveRegion()).not.toBe(region);
-    expect(liveRegion()?.textContent).toBe("Fresh");
+    expect(liveRegion()?.textContent).toBe("");
+    await Bun.sleep(REGISTERED_MS);
+    expect(liveRegion()?.textContent).toBe("Fresher");
   });
 });
 

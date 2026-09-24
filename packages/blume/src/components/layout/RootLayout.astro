@@ -66,6 +66,7 @@ import {
   navGroupIds,
   sidebarForRoute,
 } from "./nav-utils.ts";
+import NavTabMenu from "./NavTabMenu.astro";
 import NavTree from "./NavTree.astro";
 import { resolveSlot } from "./overrides.ts";
 import { pageDirection, pageLocale } from "./page-locale.ts";
@@ -579,7 +580,7 @@ createIconSprite(Astro.locals);
     >
     {/* Every new-tab link's aria-describedby target (see core/new-tab.ts). */}
     <span hidden id={NEW_TAB_HINT_ID}>{navStrings.opensInNewTab}</span>
-    <Banner banner={banner} strings={strings.banner} />
+    <Banner banner={banner} locale={locale} strings={strings.banner} />
     <VersionBanner notice={versionNotice ?? null} />
     <HeaderSlot
       assistantEnabled={assistantEnabled}
@@ -677,13 +678,22 @@ createIconSprite(Astro.locals);
               <ul class="m-0 list-none p-0">
                 {navigation.tabs.map((tab) => (
                   <li>
-                    <a
-                      aria-current={tab === activeTab ? "page" : undefined}
-                      class="block rounded-[0.65rem] px-2.5 py-1.5 font-medium text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground aria-[current=page]:bg-muted aria-[current=page]:text-foreground"
-                      href={withBase(tab.href ?? tab.path)}
-                    >
-                      {tab.label}
-                    </a>
+                    {tab.items && tab.items.length > 0 ? (
+                      <NavTabMenu
+                        active={tab === activeTab}
+                        route={page.route}
+                        tab={tab}
+                        variant="drawer"
+                      />
+                    ) : (
+                      <a
+                        aria-current={tab === activeTab ? "page" : undefined}
+                        class="block rounded-[0.65rem] px-2.5 py-1.5 font-medium text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground aria-[current=page]:bg-muted aria-[current=page]:text-foreground"
+                        href={withBase(tab.href ?? tab.path)}
+                      >
+                        {tab.label}
+                      </a>
+                    )}
                   </li>
                 ))}
               </ul>

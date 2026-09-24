@@ -77,9 +77,18 @@ const markdown = new Marked({
 const renderMarkdown = (content: string): string =>
   DOMPurify.sanitize(markdown.parse(content, { async: false }));
 
-const Glyph = ({ path, size = 16 }: { path: string; size?: number }) => (
+const Glyph = ({
+  className,
+  path,
+  size = 16,
+}: {
+  className?: string;
+  path: string;
+  size?: number;
+}) => (
   <svg
     aria-hidden="true"
+    className={className}
     // `path` is a trusted, server-resolved Lucide glyph body (inline SVG),
     // not user content; it must be injected as markup to render the icon.
     // oxlint-disable-next-line react/no-danger -- trusted server-resolved inline SVG glyph
@@ -383,6 +392,9 @@ const Assistant = ({
     <aside
       aria-hidden={open ? undefined : "true"}
       aria-label={t.title}
+      // Print hides the chrome by this marker, not by tag: content renders
+      // <aside> too (Callout, Panel), and that must print.
+      data-blume-assistant-panel=""
       ref={panelRef}
       // The closed panel is only translated off-screen; `inert` drops its
       // buttons/textarea from the tab order and the accessibility tree.
@@ -418,7 +430,9 @@ const Assistant = ({
             onClick={() => setOpen(false)}
             type="button"
           >
-            <Glyph path={icons.close} size={18} />
+            {/* Chevrons toward the inline end, where the panel docks: they
+                mirror with the panel in a right-to-left locale. */}
+            <Glyph className="rtl:-scale-x-100" path={icons.close} size={18} />
           </button>
         </div>
       </header>

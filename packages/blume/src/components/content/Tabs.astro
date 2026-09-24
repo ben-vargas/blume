@@ -1,4 +1,8 @@
 ---
+import data from "blume:data";
+
+import { contentStrings } from "./content-strings.ts";
+
 interface Props {
   borderBottom?: boolean;
   defaultTabIndex?: number;
@@ -45,6 +49,8 @@ const hashEnabled = String(hash) !== "false";
 // The dropdown (select) affordance belongs to the boxed layout; inline always
 // renders a tab strip.
 const useDropdown = dropdown && !inline;
+// The labels the client script builds the strip with, in the page's locale.
+const { content: strings } = contentStrings(data, Astro.currentLocale);
 ---
 
 <blume-tabs
@@ -58,6 +64,8 @@ const useDropdown = dropdown && !inline;
   data-default-tab-index={defaultTabIndex}
   data-dropdown={useDropdown ? "true" : "false"}
   data-hash={hashEnabled ? "true" : "false"}
+  data-i18n-select-tab={strings.selectTab}
+  data-i18n-tab={strings.tab}
   data-param={param}
   data-sync={sync ? "true" : "false"}
   data-sync-key={syncKey}
@@ -112,8 +120,12 @@ const useDropdown = dropdown && !inline;
   // in several <Tabs> instances on one page.
   let instanceCount = 0;
 
+  // An untitled panel is numbered with its group's localized `Tab {n}`.
   const panelTitle = (panel: HTMLElement, index: number) =>
-    panel.dataset.title ?? `Tab ${index + 1}`;
+    panel.dataset.title ??
+    (
+      panel.closest<HTMLElement>("blume-tabs")?.dataset.i18nTab ?? "Tab {n}"
+    ).replace("{n}", String(index + 1));
   const panelId = (panel: HTMLElement) => panel.dataset.tabId ?? panel.id;
   const boundedIndex = (value: number, length: number) =>
     Math.min(Math.max(value, 0), Math.max(length - 1, 0));
@@ -194,7 +206,10 @@ const useDropdown = dropdown && !inline;
         this.#select = document.createElement("select");
         this.#select.className = SELECT_CLASS;
         // Neutral default: tab sets aren't necessarily code examples.
-        this.#select.setAttribute("aria-label", "Select tab");
+        this.#select.setAttribute(
+          "aria-label",
+          this.dataset.i18nSelectTab ?? "Select tab"
+        );
         panels.forEach((panel, index) => {
           const option = document.createElement("option");
           option.value = String(index);

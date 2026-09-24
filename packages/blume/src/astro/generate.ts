@@ -954,6 +954,8 @@ const resolveBanner = (config: ResolvedConfig): BlumeBanner | null => {
   if (isStringShorthand(banner)) {
     return { content: banner, dismissible: false, key: banner };
   }
+  // `link.href` stays as authored; the link the banner renders is the
+  // navigation's `bannerHref`, localized and mounted under `basePath`.
   return {
     content: banner.content,
     dismissible: banner.dismissible,

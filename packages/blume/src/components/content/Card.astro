@@ -80,7 +80,7 @@ const variantClass = {
       <p class="mt-0! mb-1.5! flex items-center gap-1.5 font-medium text-foreground">
         {title}
         {showArrow && (
-          <Icon class="text-muted-foreground" name="arrow-right" size={14} />
+          <Icon class="text-muted-foreground rtl:-scale-x-100" name="arrow-right" size={14} />
         )}
       </p>
     )
@@ -92,7 +92,7 @@ const variantClass = {
     cta && (
       <p class="mt-4! mb-0! flex items-center gap-1.5 font-medium text-accent text-sm">
         {cta}
-        {showArrow && <Icon name="arrow-right" size={14} />}
+        {showArrow && <Icon class="rtl:-scale-x-100" name="arrow-right" size={14} />}
       </p>
     )
   }

@@ -560,7 +560,7 @@ export interface ButtonProps {
 
 ## GitHub info
 
-A card linking to a GitHub repository with its live star and fork counts. Counts are fetched at build time — no client JavaScript — and the card still renders if the API is unreachable. Pass `owner` and `repo`, or omit them to use the repository from your `blume.config`. Set a `GITHUB_TOKEN` environment variable to lift the API rate limit; a `token` prop overrides it for one card, but the environment variable keeps the token out of your content.
+A card linking to a GitHub repository with its star and fork counts. The counts are fetched at build time — no client JavaScript — so they show the numbers as of your last build, not live ones; the card still renders without them if the API is unreachable. Pass `owner` and `repo`, or omit them to use the repository from your `blume.config`. Set a `GITHUB_TOKEN` environment variable to lift the API rate limit; a `token` prop overrides it for one card, but the environment variable keeps the token out of your content.
 
 The card reads the instance from [`github.host`](/docs/configuration#github-enterprise), so on an Enterprise-hosted site explicit `owner`/`repo` address that instance too. Pass `host` to point one card somewhere else — a public project from an Enterprise site, say; the REST base is derived from it the same way it is from `github.host`.
 

@@ -1,4 +1,5 @@
 ---
+import data from "blume:data";
 import { EN_UI } from "../../core/i18n-ui.ts";
 import type { UIStrings } from "../../core/i18n-ui.ts";
 import { withBase } from "../islands/base-path.ts";
@@ -18,13 +19,31 @@ interface Props {
     | null;
   /** Localized banner labels. */
   strings?: UIStrings["banner"];
+  /**
+   * Active locale of the page. The link follows it the way the sidebar's
+   * featured links do (`/guide` -> `/fr/guide` when French serves it).
+   * Absent, the link resolves for the default locale.
+   */
+  locale?: string;
 }
 
-const { banner, strings } = Astro.props;
+const { banner, strings, locale } = Astro.props;
 // Merge over the English baseline per key (rather than `strings ?? …`) so a
 // partial — or missing — strings object still resolves every label to a
 // default, matching the pattern PageFeedback and Search use.
 const b = { ...EN_UI.banner, ...strings };
+// The configured `banner.link.href` is authored as if the site were mounted at
+// root, in the default locale's path space; the locale's navigation carries it
+// localized and mounted under `basePath` (the default navigation on a
+// single-locale site). A banner a custom page passes with a link of its own
+// renders that link as given.
+const navigation =
+  (locale === undefined ? undefined : data.navigationByLocale[locale]) ??
+  data.navigation;
+const linkHref =
+  banner?.link && banner.link.href === data.config.banner?.link?.href
+    ? (navigation.bannerHref ?? banner.link.href)
+    : banner?.link?.href;
 ---
 
 {
@@ -37,13 +56,13 @@ const b = { ...EN_UI.banner, ...strings };
       {/* The message is authored in one language, whatever the page's
           direction: `dir="auto"` keeps its punctuation where it was typed. */}
       <span dir="auto">{banner.content}</span>
-      {banner.link && (
+      {banner.link && linkHref && (
         <a
           class="inline-flex items-center gap-1 font-medium underline underline-offset-2"
-          href={withBase(banner.link.href)}
+          href={withBase(linkHref)}
         >
           {banner.link.text}
-          <Icon name="arrow-right" size={14} />
+          <Icon class="rtl:-scale-x-100" name="arrow-right" size={14} />
         </a>
       )}
       {banner.dismissible && (

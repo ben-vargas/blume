@@ -1,6 +1,9 @@
 ---
+import data from "blume:data";
+
 import { componentSlug } from "../slug.ts";
 import { contentHref } from "./base-href.ts";
+import { contentStrings } from "./content-strings.ts";
 
 interface RssMetadata {
   description?: string;
@@ -32,8 +35,11 @@ const {
   tags,
   title,
 } = Astro.props;
-const updateLabel = label ?? title ?? "Update";
-const id = providedId ?? (componentSlug(updateLabel) || "update");
+const { content: strings } = contentStrings(data, Astro.currentLocale);
+const updateLabel = label ?? title ?? strings.update;
+// The anchor comes from the authored label only: the localized fallback
+// heading would give an unlabeled update a different anchor per locale.
+const id = providedId ?? (componentSlug(label ?? title ?? "") || "update");
 const tagList = Array.isArray(tags) ? tags : tags ? [tags] : [];
 ---
 

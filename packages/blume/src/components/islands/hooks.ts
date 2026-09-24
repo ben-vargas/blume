@@ -308,12 +308,17 @@ export const useAssistant = (
           }
         }
         if (live()) {
-          // A 200 with nothing in it (no body, an empty stream) leaves the
-          // reader a blank bubble — that is not an answer.
+          // A 200 with nothing in it (no body, an empty stream) is not an
+          // answer. It is also how a provider failure after the 200 arrives
+          // (a bad key, a rate limit, an unknown model): the route's text
+          // stream carries only text, so the error ends it empty. Show the
+          // error notice instead of leaving a pulsing blank bubble.
           if (assistant.content) {
             outcome("ask_answer", { chars: assistant.content.length });
           } else {
             outcome("ask_error", { status });
+            assistant.content = errorMessage;
+            setMessages([...history, { ...assistant }]);
           }
         }
       } catch {

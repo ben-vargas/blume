@@ -325,6 +325,13 @@ export interface Navigation {
    * locale trees.
    */
   brandHref?: string;
+  /**
+   * Where the banner's link points in this locale: `banner.link.href`
+   * localized like a featured link, then mounted under `basePath` (a route
+   * served outside the content tree keeps its own path). Set when the banner
+   * has a link.
+   */
+  bannerHref?: string;
 }
 
 /** The full content graph: the source of truth for generated modules. */

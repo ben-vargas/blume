@@ -405,8 +405,9 @@ describe("useAssistant", () => {
   });
 
   it("reports an empty 200 as an error, not an answer", async () => {
-    // No body at all, and a stream that closes without a byte: either way
-    // the reader sees a blank bubble, so neither counts as an answer.
+    // No body at all, and a stream that closes without a byte (how a
+    // provider failure after the 200 arrives): neither counts as an answer,
+    // and the reader gets the error notice instead of a blank bubble.
     setFetch(() => Promise.resolve(new Response(null, { status: 200 })));
     const first = freshRender(useAssistant);
     await first.ask("nothing?");
@@ -415,6 +416,10 @@ describe("useAssistant", () => {
       "ask_error",
     ]);
     expect(tracked[1]?.props).toMatchObject({ status: 200 });
+    expect(render(useAssistant).messages).toStrictEqual([
+      { content: "nothing?", role: "user" },
+      { content: ERROR_MESSAGE, role: "assistant" },
+    ]);
 
     tracked.length = 0;
     setFetch(() => Promise.resolve(streamResponse([])));
@@ -425,6 +430,10 @@ describe("useAssistant", () => {
       "ask_error",
     ]);
     expect(tracked[1]?.props).toMatchObject({ status: 200 });
+    expect(render(useAssistant).messages).toStrictEqual([
+      { content: "still nothing?", role: "user" },
+      { content: ERROR_MESSAGE, role: "assistant" },
+    ]);
   });
 
   it("keys analytics on the raw pathname under a deployment base", async () => {
