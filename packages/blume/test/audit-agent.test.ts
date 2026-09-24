@@ -136,13 +136,13 @@ describe("launchAgent", () => {
   });
 
   it("rethrows a launch failure that isn't a missing executable", async () => {
-    // A directory is found but can't be executed (EACCES), which must not be
-    // reported as "not installed".
-    const dir = await mkdtemp(join(tmpdir(), "blume-agent-"));
-    dirs.push(dir);
+    // A path Node refuses to spawn (ERR_INVALID_ARG_VALUE) must not be
+    // reported as "not installed". A null byte fails on every platform; a
+    // directory would only fail on POSIX, since Windows runs it through
+    // cmd.exe and gets an exit code instead.
     await expect(
-      launchInstalledAgent(dir, "prompt", "linux")
-    ).rejects.toThrow();
+      launchInstalledAgent("blume\0agent", "prompt", "linux")
+    ).rejects.toThrow("null bytes");
   });
 
   it("hands the prompt over as a file on Windows", async () => {

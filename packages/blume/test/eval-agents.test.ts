@@ -35,15 +35,18 @@ const scratch = async (): Promise<string> => {
   return dir;
 };
 
+/** Fake agent scripts that work without a platform shell. */
+const BEHAVIORS = {
+  echo: 'let input = ""; process.stdin.setEncoding("utf8"); process.stdin.on("data", (chunk) => { input += chunk; }); process.stdin.on("end", () => { process.stdout.write(input); process.stderr.write("warned\\n"); process.exit(3); });',
+  sleep:
+    'process.chdir(require("node:os").tmpdir()); setTimeout(() => process.exit(0), 300);',
+};
+
 /** A fake agent executable that works without a platform shell. */
-const fakeBin = (dir: string, behavior: "echo" | "sleep"): Promise<string> =>
-  writeExecutable(
-    dir,
-    "fake-agent",
-    behavior === "echo"
-      ? 'let input = ""; process.stdin.setEncoding("utf8"); process.stdin.on("data", (chunk) => { input += chunk; }); process.stdin.on("end", () => { process.stdout.write(input); process.stderr.write("warned\\n"); process.exit(3); });'
-      : 'process.chdir(require("node:os").tmpdir()); setTimeout(() => process.exit(0), 300);'
-  );
+const fakeBin = (
+  dir: string,
+  behavior: keyof typeof BEHAVIORS
+): Promise<string> => writeExecutable(dir, "fake-agent", BEHAVIORS[behavior]);
 
 const QUESTION: EvalQuestion = {
   expected: ["Node 22.12 or newer"],
@@ -79,6 +82,27 @@ describe("runAgentHeadless", () => {
     });
     expect(result.timedOut).toBe(true);
   });
+
+  // POSIX only: Windows has no SIGTERM to shrug off (kill terminates
+  // outright). The shell ignores TERM before anything else runs and `exec`
+  // hands that to sleep, so no startup race lets the SIGTERM kill it first.
+  it.skipIf(process.platform === "win32")(
+    "follows a SIGTERM the agent ignores with SIGKILL",
+    async () => {
+      const dir = await scratch();
+      const bin = join(dir, "stubborn-agent");
+      await writeFile(bin, "#!/bin/sh\ntrap '' TERM\nexec sleep 5\n", {
+        mode: 0o755,
+      });
+      const result = await runAgentHeadless(bin, [], {
+        cwd: dir,
+        killGraceMs: 100,
+        prompt: "",
+        timeoutMs: 500,
+      });
+      expect(result.timedOut).toBe(true);
+    }
+  );
 
   it("rejects when the executable does not exist", async () => {
     const dir = await scratch();

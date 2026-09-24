@@ -48,6 +48,8 @@ export interface HeadlessResult {
 
 export interface HeadlessOptions {
   cwd: string;
+  /** How long the SIGTERM gets before SIGKILL follows (default 5s). */
+  killGraceMs?: number;
   prompt: string;
   timeoutMs: number;
 }
@@ -89,10 +91,14 @@ export const runAgentHeadless = (
       stderr += chunk.toString("utf-8");
     });
 
+    let hardKill: ReturnType<typeof setTimeout> | undefined;
     const deadline = setTimeout(() => {
       timedOut = true;
       child.kill("SIGTERM");
-      const hardKill = setTimeout(() => child.kill("SIGKILL"), KILL_GRACE_MS);
+      hardKill = setTimeout(
+        () => child.kill("SIGKILL"),
+        options.killGraceMs ?? KILL_GRACE_MS
+      );
       hardKill.unref();
     }, options.timeoutMs);
     deadline.unref();
@@ -109,6 +115,9 @@ export const runAgentHeadless = (
     // (an MCP server, a shell) can hold open past the SIGTERM. A timed-out
     // run's output is discarded anyway, so the process dying is enough.
     child.once("exit", (code) => {
+      // Once the process is gone the SIGKILL follow-up has nothing to do, and
+      // firing it later could signal an unrelated process that reused the pid.
+      clearTimeout(hardKill);
       if (timedOut) {
         clearTimeout(deadline);
         resolve({ code: code ?? 1, stderr, stdout, timedOut });
