@@ -19,12 +19,21 @@ import type {
 
 /** What every REST-backed CMS source needs to be a staged, cached source. */
 export interface RemoteSourceOptions {
+  /**
+   * Throw a `BlumeError` when the source cannot load as configured. Runs
+   * before the cache is consulted: thrown from `fetchEntries` instead, a
+   * misconfiguration would be served over by a stale snapshot with only an
+   * offline warning.
+   */
+  assertConfigured?: () => void;
   /** Pull every entry from the API; called on refresh and on each poll. */
   fetchEntries: () => Promise<SourceEntry[]>;
   name: string;
   /** Opt-in dev polling interval (seconds); omit to freeze for the session. */
   pollInterval?: number;
   prefix?: string;
+  /** The adapter rebuilt on another context (`ContentSource.withContext`). */
+  withContext?: (ctx: SourceContext) => ContentSource;
 }
 
 /**
@@ -45,6 +54,7 @@ export const remoteSource = (
   const load = async (
     refresh = ctx?.refresh ?? true
   ): Promise<SourceLoadResult> => {
+    options.assertConfigured?.();
     const result = await loadWithCache(
       options.name,
       cache,
@@ -77,6 +87,7 @@ export const remoteSource = (
           () => load()
         )
       : undefined,
+    withContext: options.withContext,
   };
 };
 

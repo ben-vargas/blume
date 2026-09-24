@@ -184,6 +184,7 @@ const normalizeLoadedEntries = (
         source: {
           monolingual: source.monolingual,
           name: source.name,
+          orderedNames: source.orderedNames,
           prefix: source.prefix,
           staged: source.staged,
         },

@@ -15,6 +15,7 @@ import { entriesDigest } from "../src/core/sources/cache.ts";
 import { filesystemSource } from "../src/core/sources/filesystem.ts";
 import { mdxRemoteSource } from "../src/core/sources/mdx-remote.ts";
 import { normalizeEntry, slugifyPath } from "../src/core/sources/normalize.ts";
+import { snapshotKey } from "../src/core/sources/resolve.ts";
 import type {
   NormalizeContext,
   SourceContext,
@@ -22,6 +23,7 @@ import type {
 } from "../src/core/sources/types.ts";
 import type { NavNode, ProjectContext } from "../src/core/types.ts";
 import { eject } from "../src/registry/eject.ts";
+import { mdxRemoteAdapterSchema } from "../src/sources/mdx-remote.ts";
 
 /** Recursively find the first sidebar group with a given label. */
 const findGroup = (nodes: NavNode[], label: string): NavNode | null => {
@@ -1211,6 +1213,28 @@ describe("contentConfigTemplate", () => {
   });
 });
 
+// Where a published scan keeps the staging tests' `sdk` source snapshot: the
+// directory is keyed by the adapter's options as the config schema resolves
+// them.
+const sdkSnapshotDir = (root: string): string =>
+  join(
+    root,
+    ".blume/cache/sdk",
+    snapshotKey(
+      mdxRemoteAdapterSchema.parse({
+        kind: "mdx-remote",
+        options: {
+          files: ["intro.mdx"],
+          prefix: "sdk",
+          url: "http://127.0.0.1:1",
+        },
+        requiredSecrets: [],
+        runtimeDeps: [],
+      }),
+      { mode: "build" }
+    )
+  );
+
 describe("staging end to end", () => {
   it("materializes a remote source into .blume/content and wires the collection", async () => {
     const root = await makeProject({ "docs/index.md": "# Home\n" });
@@ -1234,7 +1258,7 @@ describe("staging end to end", () => {
         ref: "intro.mdx",
       },
     ];
-    const cacheDir = join(root, ".blume/cache/sdk");
+    const cacheDir = sdkSnapshotDir(root);
     await mkdir(cacheDir, { recursive: true });
     await writeFile(join(cacheDir, "entries.json"), JSON.stringify(seed));
 
@@ -1277,7 +1301,7 @@ describe("staging end to end", () => {
         ref: "intro.mdx",
       },
     ];
-    const cacheDir = join(root, ".blume/cache/sdk");
+    const cacheDir = sdkSnapshotDir(root);
     await mkdir(cacheDir, { recursive: true });
     await writeFile(join(cacheDir, "entries.json"), JSON.stringify(seed));
 

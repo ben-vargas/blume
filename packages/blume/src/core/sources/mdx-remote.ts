@@ -253,5 +253,6 @@ export const mdxRemoteSource = (
           () => load()
         )
       : undefined,
+    withContext: (next) => mdxRemoteSource(options, next),
   };
 };

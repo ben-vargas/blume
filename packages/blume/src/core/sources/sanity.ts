@@ -247,5 +247,6 @@ export const sanitySource = (
           () => load()
         )
       : undefined,
+    withContext: (next) => sanitySource(options, next),
   };
 };

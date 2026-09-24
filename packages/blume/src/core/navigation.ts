@@ -1,6 +1,7 @@
 import { extname } from "pathe";
 
 import { stripBasePath, withBasePath } from "./base-path.ts";
+import { orderingPrefix, stripOrderingPrefix } from "./ordering-prefix.ts";
 import type {
   FolderMeta,
   SidebarDisplay,
@@ -17,7 +18,6 @@ import type {
   PageRecord,
 } from "./types.ts";
 
-const NUMERIC_PREFIX = /^(?<order>\d+)[-_.]/u;
 const GROUP_FOLDER = /^\((?<label>.+)\)$/u;
 const WORD_SPLIT = /[-_]/u;
 
@@ -95,8 +95,7 @@ const WORD_FORMS = new Map([
 ]);
 
 const humanize = (segment: string): string =>
-  segment
-    .replace(NUMERIC_PREFIX, "")
+  stripOrderingPrefix(segment)
     .split(WORD_SPLIT)
     .filter(Boolean)
     .map(
@@ -106,14 +105,14 @@ const humanize = (segment: string): string =>
     .join(" ");
 
 const numericOrder = (segment: string): number => {
-  const value = segment.match(NUMERIC_PREFIX)?.groups?.order;
+  const value = orderingPrefix(segment);
   return value ? Math.trunc(Number(value)) : Number.POSITIVE_INFINITY;
 };
 
 /** The nav key of a raw path segment: group label or numeric-stripped name. */
 const segmentKey = (raw: string): string => {
   const group = raw.match(GROUP_FOLDER)?.groups?.label;
-  return (group ?? raw).replace(NUMERIC_PREFIX, "");
+  return stripOrderingPrefix(group ?? raw);
 };
 
 /**
@@ -122,7 +121,7 @@ const segmentKey = (raw: string): string => {
  * exactly like `index` and must be treated as one here too.
  */
 const isIndexStem = (stem: string): boolean =>
-  stem.replace(NUMERIC_PREFIX, "") === "index";
+  stripOrderingPrefix(stem) === "index";
 
 /** A filename's stem: the name with its extension stripped. */
 const stemOf = (filename: string): string =>
@@ -240,7 +239,8 @@ const pageOrder = (page: PageRecord, filename: string): PageOrder => {
     }
   }
   // An undated changelog entry's numeric filename prefix is usually a date
-  // (`2024-01-05-release.md`) rather than a rank, so it is derived too.
+  // (`20240105-release.md`) rather than a rank, so it is derived too. An ISO
+  // date (`2024-01-05-release.md`) is no ordering prefix at all.
   const order = numericOrder(filename);
   return {
     order,

@@ -14,6 +14,7 @@ import { blumeConfigSchema } from "../src/core/schema.ts";
 import {
   resolveDocsCollection,
   resolveSources,
+  snapshotKey,
   sourcesOfKind,
 } from "../src/core/sources/resolve.ts";
 import type { ContentSource } from "../src/core/sources/types.ts";
@@ -31,6 +32,7 @@ import {
   strapi,
 } from "../src/sources/index.ts";
 import type { AnySourceAdapter } from "../src/sources/index.ts";
+import { mdxRemoteAdapterSchema } from "../src/sources/mdx-remote.ts";
 
 const CLI = join(import.meta.dir, "..", "src", "cli", "index.ts");
 
@@ -650,11 +652,23 @@ describe("blume sync", () => {
     return { exitCode, output: stdout + stderr };
   };
 
+  const sdk = mdxRemote({
+    files: ["intro.mdx"],
+    prefix: "sdk",
+    url: "http://127.0.0.1:1",
+  });
+  // A published scan's snapshot, keyed by the options the config resolves.
+  const snapshot = join(
+    ".blume/cache/sdk",
+    snapshotKey(mdxRemoteAdapterSchema.parse(sdk), { mode: "dev" }),
+    "entries.json"
+  );
+
   const fixture = async () =>
     await makeProject({
       // The remote source's URL is unreachable, so the refresh falls back to
       // the seeded snapshot — which is what `blume sync` re-materializes.
-      ".blume/cache/sdk/entries.json": JSON.stringify([
+      [snapshot]: JSON.stringify([
         {
           body: { format: "mdx", text: "# Intro\n" },
           data: { title: "Intro" },
@@ -666,7 +680,7 @@ describe("blume sync", () => {
   content: {
     sources: [
       ${JSON.stringify(filesystem({ root: "docs" }))},
-      ${JSON.stringify(mdxRemote({ files: ["intro.mdx"], prefix: "sdk", url: "http://127.0.0.1:1" }))},
+      ${JSON.stringify(sdk)},
     ],
   },
 };
@@ -686,7 +700,7 @@ describe("blume sync", () => {
     const root = await fixture();
     const { exitCode, output } = await run(root, "--force");
     expect(output).toContain("Cleared source cache.");
-    expect(existsSync(join(root, ".blume/cache/sdk/entries.json"))).toBe(false);
+    expect(existsSync(join(root, snapshot))).toBe(false);
     // With no snapshot left to fall back on, the failed fetch surfaces
     // instead of a stale page.
     expect(output).toContain("BLUME_SOURCE_FETCH_FAILED");

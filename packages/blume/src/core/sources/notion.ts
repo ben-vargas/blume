@@ -680,5 +680,6 @@ export const notionSource = (
           () => load()
         )
       : undefined,
+    withContext: (next) => notionSource(options, next),
   };
 };

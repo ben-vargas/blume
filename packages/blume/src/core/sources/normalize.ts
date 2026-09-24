@@ -9,6 +9,7 @@ import type { FenceState } from "../code-fences.ts";
 import { diagnosticsFromIssues, diagnosticsFromZod } from "../diagnostics.ts";
 import { occupySlug, parseHeadingMarkers } from "../heading-markers.ts";
 import { localePlacement, localizeRoute } from "../i18n.ts";
+import { stripOrderingPrefix } from "../ordering-prefix.ts";
 import { pageMetaSchema } from "../schema.ts";
 import type {
   FrontmatterExtend,
@@ -20,13 +21,12 @@ import type { Diagnostic, Heading, PageLink, PageRecord } from "../types.ts";
 import { detectVersionRef, versionizeRoute } from "../versions.ts";
 import type { NormalizeContext, SourceEntry } from "./types.ts";
 
-const NUMERIC_PREFIX = /^\d+[-_.]/u;
 const GROUP_FOLDER = /^\((?<label>.+)\)$/u;
 const WORD_SPLIT = /[-_]/u;
 
 /** Strip a leading numeric ordering prefix (`01-intro` -> `intro`). */
 const stripNumericPrefix = (segment: string): string =>
-  segment.replace(NUMERIC_PREFIX, "");
+  stripOrderingPrefix(segment);
 
 /** Detect a group folder `(name)` and return its label, else null. */
 const groupLabel = (segment: string): string | null =>
@@ -83,11 +83,15 @@ const titleCase = (value: string): string =>
 const sanitizeSegment = (segment: string): string =>
   segment.replaceAll(/[:\p{Cc}]/gu, "");
 
-/** Fold one raw path part into the accumulating route segments/groups. */
+/**
+ * Fold one raw path part into the accumulating route segments/groups.
+ * `ordered` parts are file or folder names, whose ordering prefix is dropped.
+ */
 const addRouteSegment = (
   part: string,
   segments: string[],
-  groups: string[]
+  groups: string[],
+  ordered: boolean
 ): void => {
   // A leading/trailing/double slash yields an empty part; keeping it would
   // produce a malformed route (`//foo`, `/foo/`) that nothing can link to.
@@ -99,7 +103,7 @@ const addRouteSegment = (
     groups.push(group);
     return;
   }
-  const clean = stripNumericPrefix(part);
+  const clean = ordered ? stripNumericPrefix(part) : part;
   if (clean === "index") {
     return;
   }
@@ -119,22 +123,31 @@ interface MappedRoute {
 }
 
 /**
- * Convert a content-root-relative path into URL + nav metadata. Not exported:
- * a source that needs to predict a route goes through
+ * Convert a source's route prefix and a content-root-relative path into URL +
+ * nav metadata. Only the path's parts lose an ordering prefix, and only when
+ * `ordered` says they are file and folder names: the route prefix, a slug,
+ * a release tag, or a CMS slug is a route spelled out, kept as written. Not
+ * exported: a source that needs to predict a route goes through
  * {@link resolveEntryRoute}, so there is exactly one derivation.
  */
-const mapRoute = (relativePath: string): MappedRoute => {
+const mapRoute = (
+  prefix: string | undefined,
+  relativePath: string,
+  ordered: boolean
+): MappedRoute => {
   const withoutExt = relativePath.slice(
     0,
     relativePath.length - extname(relativePath).length
   );
-  const rawParts = withoutExt.split("/");
 
   const segments: string[] = [];
   const groups: string[] = [];
 
-  for (const part of rawParts) {
-    addRouteSegment(part, segments, groups);
+  for (const part of prefix ? prefix.split("/") : []) {
+    addRouteSegment(part, segments, groups, false);
+  }
+  for (const part of withoutExt.split("/")) {
+    addRouteSegment(part, segments, groups, ordered);
   }
 
   const route = segments.length === 0 ? "/" : `/${segments.join("/")}`;
@@ -793,6 +806,14 @@ export const strippedLineOffset = (
   raw ? Math.max(0, raw.split("\n").length - body.split("\n").length) : 0;
 
 /**
+ * How many lines of the entry's source file sit above its body: what the
+ * source reported (`bodyLineOffset`, when `raw` is a rewrite of the file), or
+ * else the height of `raw`'s stripped front matter.
+ */
+const entryLineOffset = (entry: SourceEntry): number =>
+  entry.bodyLineOffset ?? strippedLineOffset(entry.raw, entry.body.text);
+
+/**
  * Map links extracted from include-expanded text back to the file and raw
  * line each expanded line came from, so a broken link inside a partial is
  * reported against the partial. Links whose origin is the page's own source
@@ -834,10 +855,7 @@ const entryLinks = (entry: SourceEntry): PageLink[] =>
         entry.expanded.origins,
         entry.sourcePath
       )
-    : extractLinks(
-        entry.body.text,
-        strippedLineOffset(entry.raw, entry.body.text)
-      );
+    : extractLinks(entry.body.text, entryLineOffset(entry));
 
 /**
  * Diagnostics for `{#id}` heading markers in an `.mdx` page. The MDX parser
@@ -860,8 +878,7 @@ const curlyMarkerDiagnostics = (
     return {
       code: "BLUME_MDX_CURLY_ANCHOR",
       file: origin?.file ?? page,
-      line:
-        origin?.line ?? line + strippedLineOffset(entry.raw, entry.body.text),
+      line: origin?.line ?? line + entryLineOffset(entry),
       message: inPartial
         ? `\`{#${id}}\` is a JSX expression once this partial is included in ${page} (.mdx), so that page fails to compile.`
         : `\`{#${id}}\` is a JSX expression in .mdx, so this page fails to compile.`,
@@ -902,6 +919,13 @@ const withPrefix = (prefix: string | undefined, path: string): string => {
 
 /** What a route resolution needs from the owning source and the config. */
 export type RouteContext = Pick<NormalizeContext, "i18n" | "versions"> & {
+  /**
+   * Whether the entry's ref is a path of file and folder names whose ordering
+   * prefixes (`01-intro`) sort the sidebar and drop from the route: true for
+   * filesystem sources. A staged source's ref is a slug, a release tag, or a
+   * note name, and keeps its leading numbers.
+   */
+  orderingPrefixes?: boolean;
   /** The source's route prefix (`NormalizeContext["source"]["prefix"]`). */
   prefix?: string;
 };
@@ -970,7 +994,9 @@ export interface EntryRoute extends Pick<
  * A frontmatter `slug` wins, then the adapter-supplied `entry.slug` (the typed
  * SPI's "logical route input; defaults to ref if omitted"), then the ref. The
  * extension is re-appended so `mapRoute`'s extname strip can't eat a dotted
- * slug segment (`v1.2`). A slug that trims to nothing falls back. The version
+ * slug segment (`v1.2`). A slug that trims to nothing falls back. Only a
+ * filesystem ref (`ctx.orderingPrefixes`) loses its ordering prefixes; a slug
+ * is a route spelled out, so `2024-year-in-review` stays whole. The version
  * prefixes the mapped route *after* `mapRoute` runs: the mapped route is the
  * version-agnostic key, the config id is prepended verbatim (never
  * numeric-prefix-stripped), a frontmatter `slug` gets versionized so snapshots
@@ -987,8 +1013,18 @@ export const resolveEntryRoute = (
   const { locales, navPath, version } = placeEntryRef(entry.ref, ext, ctx);
   const slugInput = frontmatterSlug ?? entry.slug;
   const slug = slugInput ? trimSlashes(slugInput) : "";
-  const routeInput = withPrefix(ctx.prefix, slug ? `${slug}${ext}` : navPath);
-  const { segments, groups, route: versionKey } = mapRoute(routeInput);
+  // A frontmatter slug is a route spelled out; an adapter's `entry.slug` is
+  // one too unless the source's names are ordered file names (a vault note's
+  // path), which lose their prefixes like the ref does.
+  const ordered =
+    ctx.orderingPrefixes === true && frontmatterSlug === undefined;
+  const {
+    segments,
+    groups,
+    route: versionKey,
+  } = slug
+    ? mapRoute(ctx.prefix, `${slug}${ext}`, ordered)
+    : mapRoute(ctx.prefix, navPath, ctx.orderingPrefixes === true);
   return {
     groups,
     locales,
@@ -1192,6 +1228,7 @@ export const normalizeEntry = (
     versionKey,
   } = resolveEntryRoute(entry, ext, meta.slug, {
     i18n: ctx.i18n,
+    orderingPrefixes: !ctx.source.staged || ctx.source.orderedNames === true,
     prefix: ctx.source.prefix,
     versions: ctx.versions,
   });

@@ -109,9 +109,9 @@ Remote pages are rendered with full MDX-plus-component fidelity: their bodies ar
 
 ### Caching and offline builds
 
-Each remote source keeps a snapshot under `.blume/cache/<source>/`. If a fetch fails — a network blip or a CMS outage — Blume serves the last-known-good snapshot with a warning rather than failing the build. The cache lives inside `.blume/` and is regenerated, never committed.
+Each remote source keeps a snapshot under `.blume/cache/<source>/`. If a fetch fails — a network blip or a CMS outage — Blume serves the last-known-good snapshot with a warning rather than failing the build. Preview and published content get separate snapshots, and so does each set of source options, so a build never falls back to drafts fetched under `--preview`, and editing a source's `query` or `fields` fetches afresh. The cache lives inside `.blume/` and is regenerated, never committed.
 
-In dev, remote content is fetched once and frozen for the session; restart the dev server to refresh it. Local filesystem sources hot-reload as usual. To poll a remote source for changes instead, set the shared `pollInterval` option (seconds) on it — the dev server re-fetches on that interval and reloads only when the content actually changes. Leave it unset to avoid hitting the API while you work.
+In dev, a remote source is served from its snapshot when it has one, so restarting the dev server doesn't refetch it. Run `blume sync` to pull the latest content (a running dev server hot-reloads), or `blume sync --force` to drop the snapshots first. Local filesystem sources hot-reload as usual. To poll a remote source for changes instead, set the shared `pollInterval` option (seconds) on it — the dev server re-fetches on that interval and reloads only when the content actually changes. Leave it unset to avoid hitting the API while you work.
 
 ## GitHub Releases
 
@@ -326,6 +326,8 @@ export default defineConfig({
   },
 });
 ```
+
+A source built with one of Blume's engine factories, like `sanitySource` above, is rebuilt on the running command's context, so it reads drafts under `--preview` and keeps its snapshot in `.blume/cache` the way the built-in adapter does. A source of your own can do the same by implementing `withContext(ctx)` and returning itself rebuilt on that context.
 
 A source normalizes its native shape (Portable Text, Notion blocks, remote HTML) to Markdown/MDX text, so the same components and markdown features apply no matter where a page comes from. The built-in adapters escape rich text as they lower it, so what an author typed in the CMS — a `{`, a `<b>`, a paragraph starting with `import`, or `&copy;` — renders as written. Links keep only `http(s)`, `mailto:`, `tel:`, and relative targets; any other scheme (`javascript:`, `data:`) renders as the link's text, and SVG images a source downloads are served sandboxed. Release notes from `githubReleases()` and files from `mdxRemote()` are treated as your own content: their raw HTML renders as written, so point them only at repositories you trust. Unlike the built-in adapters, `custom()` carries a live instance rather than plain data, so it declares no runtime dependency or secret of its own — the instance manages those itself.
 

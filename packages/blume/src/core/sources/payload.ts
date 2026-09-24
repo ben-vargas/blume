@@ -129,6 +129,7 @@ export const payloadSource = (
       name: options.name,
       pollInterval: options.pollInterval,
       prefix: options.prefix,
+      withContext: (next) => payloadSource(options, next),
     },
     ctx
   );

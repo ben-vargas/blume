@@ -20,6 +20,7 @@ import {
   placeEntryRef,
   resolveEntryRoute,
   slugifyPath,
+  strippedLineOffset,
 } from "./normalize.ts";
 import type {
   ContentSource,
@@ -84,6 +85,8 @@ interface ParsedNote {
   /** The note body, frontmatter stripped and otherwise untouched. */
   content: string;
   data: SourceEntry["data"];
+  /** How many lines of the file the frontmatter block (if any) spans. */
+  frontmatterLines: number;
   placement: EntryPlacement;
   /** Vault-relative path, e.g. `guides/Getting Started.md`. */
   rel: string;
@@ -638,7 +641,7 @@ const buildLinkIndex = (
       { ref: note.rel, slug: entrySlugFor(note.placement.navPath) },
       ".md",
       isStringValue(note.data.slug) ? note.data.slug : undefined,
-      options
+      { ...options, orderingPrefixes: true }
     );
     const built: IndexedNote = {
       anchors: new Map(),
@@ -756,10 +759,17 @@ const noteToEntry = (
     )
   );
   const merged = title === undefined ? data : { ...data, title };
-  const text = transformBody(note.content.trim(), index, pair.self, unresolved);
+  const body = note.content.trim();
+  const text = transformBody(body, index, pair.self, unresolved);
   const raw = matter.stringify(`${text}\n`, merged);
+  // `raw` re-serializes the frontmatter without the dropped properties, so
+  // its height is not the file's: count the file's own frontmatter and the
+  // blank lines the trim dropped, so a link diagnostic names the line the
+  // author sees in the note.
+  const leading = note.content.slice(0, note.content.indexOf(body));
   return {
     body: { format: "md", text },
+    bodyLineOffset: note.frontmatterLines + leading.split("\n").length - 1,
     data: merged,
     hash: hashText(raw),
     raw,
@@ -782,11 +792,13 @@ const readNote = async (
 ): Promise<ParsedNote | null> => {
   const absPath = join(vaultDir, rel);
   try {
-    const { content, data } = matter(await readFile(absPath, "utf-8"));
+    const file = await readFile(absPath, "utf-8");
+    const { content, data } = matter(file);
     return {
       absPath,
       content,
       data,
+      frontmatterLines: strippedLineOffset(file, content),
       // Version outermost, then locale, the way `normalizeEntry` reads the
       // ref — the slug is built from what remains, so the pipeline's own
       // re-prefixing does not stack a second `fr/` or `v1.0/` onto the route.
@@ -1030,6 +1042,8 @@ export const obsidianSource = (
     contentRoot: vaultDir,
     load,
     name: options.name,
+    // Notes are named like files: `01 Intro` sorts first and routes `/intro`.
+    orderedNames: true,
     prefix: options.prefix,
     read,
     staged: true,

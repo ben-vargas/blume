@@ -347,5 +347,6 @@ export const githubReleasesSource = (
           () => load()
         )
       : undefined,
+    withContext: (next) => githubReleasesSource(options, next),
   };
 };

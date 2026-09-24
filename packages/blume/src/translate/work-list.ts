@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 
 import { dirname, extname, join, relative } from "pathe";
@@ -83,6 +83,24 @@ export interface TranslateWorkList {
 }
 
 const PAGE_EXTENSIONS = new Set([".md", ".mdx"]);
+
+/**
+ * The names in each content root, read once per root: a locale folder authored
+ * in another casing (`pt-br/` for `pt-BR`) is where `localeTargetPath` puts
+ * that locale's translations.
+ */
+const rootFolders = (): ((contentRoot: string) => string[]) => {
+  const read = new Map<string, string[]>();
+  return (contentRoot) => {
+    const cached = read.get(contentRoot);
+    if (cached) {
+      return cached;
+    }
+    const names = readdirSync(contentRoot);
+    read.set(contentRoot, names);
+    return names;
+  };
+};
 
 /**
  * The translatable page universe: filesystem-backed default-locale pages.
@@ -201,6 +219,7 @@ const partialWorkItems = async (
       page.sourcePath ? [page.sourcePath] : []
     )
   );
+  const folders = rootFolders();
   const partials = new Map<string, string>();
   for (const { page, contentRoot } of universe) {
     for (const partial of page.includes ?? []) {
@@ -220,7 +239,7 @@ const partialWorkItems = async (
     for (const locale of targetLocales) {
       const targetPath = join(
         contentRoot,
-        localeTargetPath(contentRel, ext, locale, i18n)
+        localeTargetPath(contentRel, ext, locale, i18n, folders(contentRoot))
       );
       const item = (status: WorkStatus): PageWorkItem => {
         const partialItem: PageWorkItem = {
@@ -291,6 +310,7 @@ export const computeWorkList = async (
   let upToDate = 0;
 
   const universe = translatablePages(project, i18n);
+  const folders = rootFolders();
 
   for (const { page, contentRoot, ext, sourcePath } of universe) {
     const sourceRel = relative(root, sourcePath);
@@ -302,7 +322,7 @@ export const computeWorkList = async (
     for (const locale of targetLocales) {
       const targetPath = join(
         contentRoot,
-        localeTargetPath(contentRel, ext, locale, i18n)
+        localeTargetPath(contentRel, ext, locale, i18n, folders(contentRoot))
       );
       const item = (status: WorkStatus): PageWorkItem => ({
         kind: "page",

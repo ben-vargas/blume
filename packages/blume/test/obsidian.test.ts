@@ -428,6 +428,18 @@ describe("obsidianSource", () => {
     expect(links?.body.text).toContain("(/intro)");
   });
 
+  it("keeps a dated note name whole, so daily notes from different years don't collide", async () => {
+    const root = await makeVault({
+      "Daily/2023-01-15.md": "# One\n",
+      "Daily/2024-01-15.md": "# Two\n",
+      "Links.md": "See [[2023-01-15]] and [[2024-01-15]].\n",
+    });
+    const { entries } = await sourceFor(root).load();
+    const links = entries.find((entry) => entry.ref === "Links.md");
+    expect(links?.body.text).toContain("(/daily/2023-01-15)");
+    expect(links?.body.text).toContain("(/daily/2024-01-15)");
+  });
+
   it("normalizes a prefix written with stray slashes", async () => {
     const root = await makeVault({
       "Links.md": "See [[Notes]].\n",

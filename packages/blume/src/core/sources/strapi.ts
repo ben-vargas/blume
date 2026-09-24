@@ -185,6 +185,7 @@ export const strapiSource = (
       name: options.name,
       pollInterval: options.pollInterval,
       prefix: options.prefix,
+      withContext: (next) => strapiSource(options, next),
     },
     ctx
   );

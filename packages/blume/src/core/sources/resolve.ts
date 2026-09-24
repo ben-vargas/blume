@@ -4,7 +4,9 @@ import { blumeReferences } from "../../openapi/references.ts";
 import { openApiSource } from "../../openapi/source.ts";
 import type { ContentSourceAdapter } from "../../sources/registry.ts";
 import type { ResolvedConfig } from "../schema.ts";
+import { trimChar } from "../trim.ts";
 import type { ProjectContext } from "../types.ts";
+import { hashText } from "./cache.ts";
 import { contentfulSource } from "./contentful.ts";
 import { filesystemSource } from "./filesystem.ts";
 import { githubReleasesSource } from "./github-releases.ts";
@@ -45,14 +47,40 @@ export interface SourceRuntime {
   refresh?: boolean;
 }
 
+/**
+ * The directory under `.blume/cache/<source>/` a source keeps its snapshot in:
+ * one per preview mode and set of adapter options. A preview snapshot holds
+ * drafts, so a published load must never read it, neither as dev's cache-first
+ * snapshot nor as a build's offline fallback; and a snapshot fetched with
+ * another `query` or `fields` is another result, not a cached copy of this
+ * one. `pollInterval` only paces dev re-fetches, so it is left out. A
+ * `custom()` source is a live instance rather than options, so its snapshot
+ * is keyed by preview mode alone.
+ */
+export const snapshotKey = (
+  adapter: ContentSourceAdapter,
+  runtime: SourceRuntime
+): string => {
+  const mode = runtime.preview ? "preview" : "published";
+  if (adapter.kind === "custom") {
+    return mode;
+  }
+  const { pollInterval: _paced, ...fetched } = adapter.options;
+  return `${mode}-${hashText(JSON.stringify(fetched))}`;
+};
+
 const sourceContext = (
   context: ProjectContext,
   name: string,
-  runtime: SourceRuntime
+  runtime: SourceRuntime,
+  snapshot?: string
 ): SourceContext => ({
   assetsBaseUrl: `/blume-assets/${name}`,
   assetsDir: join(context.outDir, "public", "blume-assets", name),
-  cacheDir: join(context.outDir, "cache", name),
+  cacheDir:
+    snapshot === undefined
+      ? join(context.outDir, "cache", name)
+      : join(context.outDir, "cache", name, snapshot),
   mode: runtime.mode,
   preview: runtime.preview,
   projectRoot: context.root,
@@ -86,46 +114,37 @@ const buildSource = (
   context: ProjectContext,
   runtime: SourceRuntime
 ): ContentSource => {
+  const ctx = (): SourceContext =>
+    sourceContext(context, name, runtime, snapshotKey(adapter, runtime));
   switch (adapter.kind) {
     case "filesystem": {
       const { pollInterval: _ignored, ...options } = adapter.options;
       return filesystemSource({ ...options, name, projectRoot: context.root });
     }
     case "custom": {
-      // A user-provided instance manages its own context/caching; we only ensure
-      // its name is unique across the project for id namespacing.
-      const source = adapter.options;
+      // An instance built by one of Blume's engine factories rebuilds itself
+      // on this scan's context, so `custom(sanitySource({…}))` reads drafts
+      // under `--preview` and caches in the runtime directory like the
+      // built-in adapter. Any other instance manages its own context and
+      // caching. Either way its name is made unique across the project for
+      // id namespacing.
+      const source = adapter.options.withContext?.(ctx()) ?? adapter.options;
       return source.name === name ? source : { ...source, name };
     }
     case "sanity": {
-      return sanitySource(
-        { ...adapter.options, name },
-        sourceContext(context, name, runtime)
-      );
+      return sanitySource({ ...adapter.options, name }, ctx());
     }
     case "notion": {
-      return notionSource(
-        { ...adapter.options, name },
-        sourceContext(context, name, runtime)
-      );
+      return notionSource({ ...adapter.options, name }, ctx());
     }
     case "contentful": {
-      return contentfulSource(
-        { ...adapter.options, name },
-        sourceContext(context, name, runtime)
-      );
+      return contentfulSource({ ...adapter.options, name }, ctx());
     }
     case "payload": {
-      return payloadSource(
-        { ...adapter.options, name },
-        sourceContext(context, name, runtime)
-      );
+      return payloadSource({ ...adapter.options, name }, ctx());
     }
     case "strapi": {
-      return strapiSource(
-        { ...adapter.options, name },
-        sourceContext(context, name, runtime)
-      );
+      return strapiSource({ ...adapter.options, name }, ctx());
     }
     case "obsidian": {
       const { pollInterval: _ignored, ...options } = adapter.options;
@@ -139,14 +158,11 @@ const buildSource = (
           typeFrontmatterKeys: typeFrontmatterKeys(config),
           versions: config.versions,
         },
-        sourceContext(context, name, runtime)
+        ctx()
       );
     }
     case "github-releases": {
-      return githubReleasesSource(
-        { ...adapter.options, name },
-        sourceContext(context, name, runtime)
-      );
+      return githubReleasesSource({ ...adapter.options, name }, ctx());
     }
     default: {
       // Only `mdx-remote` is left, and TypeScript has narrowed `adapter` to it.
@@ -156,10 +172,7 @@ const buildSource = (
       break;
     }
   }
-  return mdxRemoteSource(
-    { ...adapter.options, name },
-    sourceContext(context, name, runtime)
-  );
+  return mdxRemoteSource({ ...adapter.options, name }, ctx());
 };
 
 /** The base name to allocate for a descriptor (before deduplication). */
@@ -167,7 +180,10 @@ const baseName = (adapter: ContentSourceAdapter): string => {
   if (adapter.kind === "custom") {
     return adapter.options.name;
   }
-  return adapter.options.prefix ?? adapter.kind;
+  // The name is the prefix as a route spells it: `/guides` and `guides/`
+  // route under `guides`, so the source's staged entry ids, cache directory,
+  // and asset URLs must use `guides` too.
+  return trimChar(adapter.options.prefix ?? "", "/") || adapter.kind;
 };
 
 /**

@@ -39,6 +39,13 @@ export interface SourceEntry {
    * the owning source to expose a `contentRoot` to bound the log's pathspec.
    */
   sourcePath?: string;
+  /**
+   * How many lines of the file at `sourcePath` sit above `body.text`, when
+   * `raw` is not that file's text: a source that rewrites a local file's
+   * front matter (an Obsidian note) sets it, so a diagnostic points at the
+   * line the author wrote. Otherwise the height of `raw`'s front matter.
+   */
+  bodyLineOffset?: number;
   /** Optional provenance for "edit this page". */
   editUrl?: string;
   /** Optional last-modified ISO date supplied by the adapter (non-filesystem). */
@@ -124,6 +131,14 @@ export interface ContentSource {
    */
   readonly monolingual?: boolean;
   /**
+   * True for a staged source whose entry refs are file and folder names (an
+   * Obsidian vault), so their ordering prefixes (`01 Intro`) sort the sidebar
+   * and drop from the route the way a filesystem source's do. Filesystem
+   * sources always do; other staged refs are slugs and release tags, kept
+   * whole.
+   */
+  readonly orderedNames?: boolean;
+  /**
    * Resolved on-disk root, set by sources whose entries live on disk. For
    * filesystem sources it drives folder-meta discovery (scan under this root)
    * and the docs-collection base; for staged local sources (an Obsidian
@@ -143,6 +158,14 @@ export interface ContentSource {
    * remote/static sources omit it (content is frozen for the session).
    */
   watch?: (onChange: () => void) => () => void;
+  /**
+   * This source rebuilt on another runtime context. A source passed to
+   * `custom()` is constructed before Blume knows the scan's preview flag,
+   * refresh policy, or runtime directory; Blume rebuilds it on them through
+   * this, so it previews and caches the way the built-in adapter does. The
+   * engine factories (`sanitySource`, `contentfulSource`, …) all set it.
+   */
+  withContext?: (ctx: SourceContext) => ContentSource;
 }
 
 /** Context passed to `normalizeEntry`, describing the owning source. */
@@ -150,6 +173,7 @@ export interface NormalizeContext {
   source: {
     monolingual?: boolean;
     name: string;
+    orderedNames?: boolean;
     prefix?: string;
     staged: boolean;
   };

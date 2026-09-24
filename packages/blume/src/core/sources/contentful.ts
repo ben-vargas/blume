@@ -1,3 +1,4 @@
+import { BlumeError } from "../diagnostics.ts";
 import {
   assetFromEntry,
   contentfulRichTextToMarkdown,
@@ -111,19 +112,29 @@ export const contentfulSource = (
     );
   };
 
-  const fetchEntries = async (): Promise<SourceEntry[]> => {
-    const preview = ctx?.preview ?? false;
-    const deliveryToken = options.token ?? process.env.CONTENTFUL_ACCESS_TOKEN;
-    const previewToken =
-      options.previewToken ?? process.env.CONTENTFUL_PREVIEW_TOKEN;
-    // The Preview API rejects delivery tokens, so falling back to one would
-    // only trade a clear config error for a 401.
-    if (preview && !previewToken) {
-      throw new Error(
-        "Contentful --preview needs a Preview API token: set previewToken or CONTENTFUL_PREVIEW_TOKEN."
-      );
+  const preview = ctx?.preview ?? false;
+  const previewToken = (): string | undefined =>
+    options.previewToken ?? process.env.CONTENTFUL_PREVIEW_TOKEN;
+
+  // The Preview API rejects delivery tokens, so falling back to one would
+  // only trade a clear config error for a 401. Checked before the cache, so
+  // a warm snapshot can't stand in for the drafts `--preview` asked for.
+  const assertConfigured = (): void => {
+    if (preview && !previewToken()) {
+      throw new BlumeError({
+        code: "BLUME_SOURCE_MISCONFIGURED",
+        message: `Source "${options.name}": Contentful --preview needs a Preview API token.`,
+        severity: "error",
+        suggestion:
+          "Set previewToken on contentfulSource, or the CONTENTFUL_PREVIEW_TOKEN environment variable.",
+      });
     }
-    const token = preview ? previewToken : deliveryToken;
+  };
+
+  const fetchEntries = async (): Promise<SourceEntry[]> => {
+    const token = preview
+      ? previewToken()
+      : (options.token ?? process.env.CONTENTFUL_ACCESS_TOKEN);
     const client: RestClient = {
       fetchImpl: options.fetchImpl,
       headers: token ? { authorization: `Bearer ${token}` } : {},
@@ -163,10 +174,12 @@ export const contentfulSource = (
 
   return remoteSource(
     {
+      assertConfigured,
       fetchEntries,
       name: options.name,
       pollInterval: options.pollInterval,
       prefix: options.prefix,
+      withContext: (next) => contentfulSource(options, next),
     },
     ctx
   );

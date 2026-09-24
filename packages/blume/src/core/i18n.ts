@@ -187,12 +187,19 @@ export const localePlacement = (
  * (`x.en.mdx`) swaps it for the target's (`x.fr.mdx`) — same case-insensitive
  * last-dot-inside-filename logic as `localePlacement`, so both spellings of a
  * default-locale file resolve to one canonical target.
+ *
+ * Under `dir`, `folders` are the content root's existing top-level folders: one
+ * that names the locale in another casing (`pt-br/` for a configured `pt-BR`)
+ * is the locale's folder already, since {@link detectLocale} matches it case-
+ * insensitively. Writing beside it into a second `pt-BR/` would, on a case-
+ * sensitive filesystem, publish the page twice.
  */
 export const localeTargetPath = (
   rel: string,
   ext: string,
   locale: string,
-  i18n: ResolvedI18nConfig
+  i18n: ResolvedI18nConfig,
+  folders: readonly string[] = []
 ): string => {
   if (i18n.parser === "dot") {
     let base = rel.slice(0, rel.length - ext.length);
@@ -205,7 +212,11 @@ export const localeTargetPath = (
     }
     return `${base}.${locale}${ext}`;
   }
-  return `${locale}/${rel}`;
+  const folder = folders.includes(locale)
+    ? locale
+    : (folders.find((name) => name.toLowerCase() === locale.toLowerCase()) ??
+      locale);
+  return `${folder}/${rel}`;
 };
 
 /**
