@@ -1,6 +1,6 @@
 ---
 title: Migrate to Blume
-description: Move a Mintlify, Fumadocs, Docusaurus, Starlight, or Nextra site to Blume with one command that hands the migration to Claude Code or Codex.
+description: Move a Mintlify, Fumadocs, Docusaurus, Starlight, or Nextra site to Blume with one command that hands the migration to Codex or Claude Code.
 sidebar:
   label: Migrate to Blume
   order: 2.4
@@ -13,10 +13,10 @@ Moving a docs site to idiomatic Blume takes judgment a codemod can't make: which
 Run it from the root of the docs project you're migrating:
 
 ```package-install
-npx blume migrate fumadocs --claude
+npx blume migrate fumadocs --codex
 ```
 
-Swap `fumadocs` for your framework, and `--claude` for `--codex` to use Codex. With pnpm 12, add `--allow-build=esbuild` after `pnpm dlx`, since pnpm 12 won't run esbuild's install script unapproved. The agent opens interactively in your terminal, so every edit goes through its own permission flow. It works in place, so start from a clean working tree and review the whole migration as one diff.
+Swap `fumadocs` for your framework, and `--codex` for `--claude` to use Claude Code. With pnpm 12, add `--allow-build=esbuild` after `pnpm dlx`, since pnpm 12 won't run esbuild's install script unapproved. The agent opens interactively in your terminal, so every edit goes through its own permission flow. It works in place, so start from a clean working tree and review the whole migration as one diff.
 
 ## Sources
 
@@ -47,7 +47,7 @@ It finishes with a summary of what it migrated, dropped, or approximated, such a
 
 ## Other agents
 
-Without `--claude` or `--codex`, the command reports the source it detected, prints the path to the playbook — the `blume-migrate` [skill](/docs/advanced/skills) bundled in the package — and exits without changing anything. Point any other agent at that `SKILL.md`, or install the skill where your agent looks for skills, with the command it prints:
+Without `--codex` or `--claude`, the command reports the source it detected, prints the path to the playbook — the `blume-migrate` [skill](/docs/advanced/skills) bundled in the package — and exits without changing anything. Point any other agent at that `SKILL.md`, or install the skill where your agent looks for skills, with the command it prints:
 
 ```bash
 npx skills add haydenbleasel/blume --skill blume-migrate

@@ -82,7 +82,7 @@ interface EvalFlags {
 /** Validate the flag surface, exiting with a message on the first offense. */
 const parseFlags = (args: EvalFlags) => {
   if (!isAgentKind(args.agent)) {
-    logger.error(`Invalid --agent "${args.agent}" (use claude | codex).`);
+    logger.error(`Invalid --agent "${args.agent}" (use codex | claude).`);
     process.exit(1);
   }
   if (args.action !== undefined && args.action !== "init") {
@@ -152,8 +152,8 @@ export const evalCommand = defineCommand({
       type: "positional",
     },
     agent: {
-      default: "claude",
-      description: "Agent CLI that reads and grades the docs: claude | codex.",
+      default: "codex",
+      description: "Agent CLI that reads and grades the docs: codex | claude.",
       type: "string",
     },
     file: {

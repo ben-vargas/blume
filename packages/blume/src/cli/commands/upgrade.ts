@@ -56,7 +56,7 @@ export const upgradeCommand = defineCommand({
       (kind) => args[kind]
     );
     if (agents.length > 1) {
-      logger.error("Pass at most one of --claude or --codex.");
+      logger.error("Pass at most one of --codex or --claude.");
       process.exit(1);
     }
     const [agent] = agents;
@@ -109,7 +109,7 @@ export const upgradeCommand = defineCommand({
 
       if (!agent) {
         process.stderr.write(
-          `  Each change is covered in the upgrade guide: ${UPGRADE_GUIDE_URL}\n  Rerun with --claude or --codex to hand them to a coding agent.\n`
+          `  Each change is covered in the upgrade guide: ${UPGRADE_GUIDE_URL}\n  Rerun with --codex or --claude to hand them to a coding agent.\n`
         );
         process.exit(1);
       }

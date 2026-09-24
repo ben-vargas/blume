@@ -55,11 +55,11 @@ Blume 2 changes configuration, not content: search, deployment, content sources,
 npx blume@latest upgrade
 ```
 
-It bumps `blume` in `package.json`, installs, and lists every config change still needed with its file, line, and replacement (plus `package.json` scripts that pass removed `blume build` flags, and pages whose frontmatter sets a removed field), exiting non-zero until none are left — rerun it after each round of fixes. (`--claude` or `--codex` hands that list to an agent CLI from a terminal.) When you are the agent doing the upgrade, work from that list and the upgrade guide, `docs/03-upgrading.mdx` in the installed package, which has before-and-after examples for every change. Keep the site's behavior the same, and verify with `blume doctor` and `blume build`.
+It bumps `blume` in `package.json`, installs, and lists every config change still needed with its file, line, and replacement (plus `package.json` scripts that pass removed `blume build` flags, and pages whose frontmatter sets a removed field), exiting non-zero until none are left — rerun it after each round of fixes. (`--codex` or `--claude` hands that list to an agent CLI from a terminal.) When you are the agent doing the upgrade, work from that list and the upgrade guide, `docs/03-upgrading.mdx` in the installed package, which has before-and-after examples for every change. Keep the site's behavior the same, and verify with `blume doctor` and `blume build`.
 
 ## Migrating from another framework
 
-To move a Mintlify, Fumadocs, Docusaurus, Starlight, or Nextra site to Blume, the user runs `npx blume migrate [source] --claude` (or `--codex`) from that project, which opens an agent on the `blume-migrate` skill. When you are that agent, or the user asks you to migrate directly, follow `skills/blume-migrate/SKILL.md` in the installed package instead of this file.
+To move a Mintlify, Fumadocs, Docusaurus, Starlight, or Nextra site to Blume, the user runs `npx blume migrate [source] --codex` (or `--claude`) from that project, which opens an agent on the `blume-migrate` skill. When you are that agent, or the user asks you to migrate directly, follow `skills/blume-migrate/SKILL.md` in the installed package instead of this file.
 
 ## What's included
 

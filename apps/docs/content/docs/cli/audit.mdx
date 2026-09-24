@@ -31,7 +31,7 @@ Findings are grouped by check rather than listed per page, so the report reads a
 - `--list-checks` — print every check the audit can report, then exit.
 - `--verbose` — list every affected page with each finding's full detail, instead of the first few.
 - `--json` — emit the report as JSON on stdout.
-- `--claude` / `--codex` — hand the findings to Claude Code or Codex to fix interactively.
+- `--codex` / `--claude` — hand the findings to Codex or Claude Code to fix interactively.
 
 ## Failing CI
 
@@ -55,10 +55,10 @@ Outbound links are graded rather than flatly failed: a 404 is a broken link you 
 
 ## Fixing the findings with an agent
 
-If you use [Claude Code](https://claude.com/claude-code) or [Codex](https://developers.openai.com/codex/cli), the audit can hand its findings straight to it:
+If you use [Codex](https://developers.openai.com/codex/cli) or [Claude Code](https://claude.com/claude-code), the audit can hand its findings straight to it:
 
 ```bash
-blume audit --claude   # or --codex
+blume audit --codex   # or --claude
 ```
 
 This writes the complete JSON report — every affected page, not the terminal's three-page preview — to a file and opens the agent interactively with a prompt that walks it through the findings: edit the source file each finding names, apply its suggested fix, then run `blume build` and `blume audit` again until the report is clean. The session is interactive by design: you review the edits through the agent's own permission flow, and the agent is told never to fix a finding by deleting content.

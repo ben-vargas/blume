@@ -109,7 +109,7 @@ describe("blume upgrade", () => {
     expect(stderr).toContain("BLUME_CONFIG_INVALID");
     expect(stderr).toContain("ai.mcp moved to agents.mcp");
     expect(stderr).toContain("https://useblume.dev/docs/upgrading");
-    expect(stderr).toContain("--claude or --codex");
+    expect(stderr).toContain("--codex or --claude");
     const pkg = JSON.parse(await readFile(join(root, "package.json"), "utf-8"));
     expect(pkg.dependencies.blume).toBe(`^${CLI_VERSION}`);
   });
@@ -219,6 +219,6 @@ describe("blume upgrade", () => {
     const root = await fixture({ "blume.config.ts": V1_CONFIG });
     const { exitCode, stderr } = await upgrade(root, {}, "--claude", "--codex");
     expect(exitCode).toBe(1);
-    expect(stderr).toContain("Pass at most one of --claude or --codex.");
+    expect(stderr).toContain("Pass at most one of --codex or --claude.");
   });
 });

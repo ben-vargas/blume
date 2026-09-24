@@ -10,22 +10,22 @@ blume eval
 ```
 
 ```
-blume eval  4 question(s) · Claude Code
+blume eval  4 question(s) · Codex
 
-  ✔ install-node-version         pass  1.00  14.2s  $0.14
-  ✔ custom-domain                pass  0.92  21.3s  $0.19
-  ✖ deploy-vercel                fail  0.40  38.9s  $0.31
+  ✔ install-node-version         pass  1.00  14.2s
+  ✔ custom-domain                pass  0.92  21.3s
+  ✖ deploy-vercel                fail  0.40  38.9s
       missing: deployment: vercel() from blume/deploy
   ⊘ search-providers             skipped
 
   fix: content/docs/deployment.mdx  Docs could not answer: "How do I deploy to Vercel?" — missing: deployment: vercel() from blume/deploy
 
-  2 passed · 1 failed · 1 skipped · 1m 42s · $0.64
+  2 passed · 1 failed · 1 skipped · 1m 42s
 ```
 
 ## How it works
 
-Each question runs through two agent sessions, using an agent CLI you already have installed — [Claude Code](https://claude.com/claude-code) by default, or [Codex](https://developers.openai.com/codex/cli) with `--agent codex`. Blume holds no API keys and calls no model itself. With `--agent codex`, both sessions also run without Codex's shell, command, and image tools, and inherit none of your environment variables.
+Each question runs through two agent sessions, using an agent CLI you already have installed — [Codex](https://developers.openai.com/codex/cli) by default, or [Claude Code](https://claude.com/claude-code) with `--agent claude`. Blume holds no API keys and calls no model itself. With Codex, both sessions also run without Codex's shell, command, and image tools, and inherit none of your environment variables.
 
 1. **The reader** answers the question using _only_ your documentation. It runs in an empty directory with its file, shell, and web tools disabled, connected to a private [MCP server](/docs/discoverability/mcp) that serves your docs — the same `search_docs`/`get_page` tools a real agent uses against your deployed site. It cannot read your repo, so it experiences the docs exactly like a fresh user: what isn't written doesn't exist.
 2. **The judge** grades the answer against the facts you listed, with no tools at all. Paraphrase passes; a missing or contradicted fact fails — and so does "the documentation doesn't say."
@@ -98,7 +98,7 @@ This writes the full JSON report to a file and opens the agent interactively wit
 
 ## Flags
 
-- `--agent claude|codex` — which agent CLI runs the reader and judge. Defaults to `claude`.
+- `--agent codex|claude` — which agent CLI runs the reader and judge. Defaults to `codex`.
 - `--file <path>` — the evals file. Defaults to `evals.yaml`.
 - `--threshold <0..1>` — minimum passing fraction before the run exits non-zero. Defaults to `1`.
 - `--timeout <seconds>` — reader time limit per question. Defaults to `180`.

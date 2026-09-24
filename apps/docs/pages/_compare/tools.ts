@@ -72,7 +72,7 @@ const mintlify: CompareTool = {
     },
     {
       answer:
-        "Yes. Pages stay MDX. `npx blume migrate mintlify --claude` converts callouts to directives, maps Mintlify's components to Blume's, and turns docs.json navigation into folders and tabs.",
+        "Yes. Pages stay MDX. `npx blume migrate mintlify --codex` converts callouts to directives, maps Mintlify's components to Blume's, and turns docs.json navigation into folders and tabs.",
       question: "Can I keep my Mintlify MDX?",
     },
     {

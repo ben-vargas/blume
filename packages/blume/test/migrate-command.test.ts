@@ -149,7 +149,7 @@ describe("blume migrate", () => {
     const root = await fixture(FUMADOCS);
     const { exitCode, stderr } = await migrate(root, {});
     expect(exitCode).toBe(0);
-    expect(stderr).toContain("rerun with --claude or --codex");
+    expect(stderr).toContain("rerun with --codex or --claude");
     expect(stderr).toContain("Point it at");
     expect(stderr).toContain(join("skills", "blume-migrate", "SKILL.md"));
     expect(stderr).toContain(
@@ -185,7 +185,7 @@ describe("blume migrate", () => {
     const root = await fixture(FUMADOCS);
     const { exitCode, stderr } = await migrate(root, {}, "--claude", "--codex");
     expect(exitCode).toBe(1);
-    expect(stderr).toContain("Pass at most one of --claude or --codex.");
+    expect(stderr).toContain("Pass at most one of --codex or --claude.");
   });
 
   it("explains how to install a missing agent CLI", async () => {

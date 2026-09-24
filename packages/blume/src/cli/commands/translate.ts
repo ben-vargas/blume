@@ -63,18 +63,18 @@ const parseFlags = (args: TranslateFlags): ParsedTranslateFlags => {
     (kind) => args[kind]
   );
   if (agents.length > 1) {
-    logger.error("Pass exactly one of --claude or --codex.");
+    logger.error("Pass exactly one of --codex or --claude.");
     process.exit(1);
   }
   if (args.check && agents.length > 0) {
     logger.error(
-      "--check is read-only and never runs an agent; drop --claude/--codex."
+      "--check is read-only and never runs an agent; drop --codex/--claude."
     );
     process.exit(1);
   }
   if (!args.check && agents.length === 0) {
     logger.error(
-      "Pass --claude or --codex to choose the agent CLI that translates."
+      "Pass --codex or --claude to choose the agent CLI that translates."
     );
     process.exit(1);
   }

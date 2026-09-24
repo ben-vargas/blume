@@ -244,7 +244,7 @@ describe("blume translate", () => {
 
     const none = await run(root, bin);
     expect(none.exitCode).toBe(1);
-    expect(none.stderr).toContain("--claude or --codex");
+    expect(none.stderr).toContain("--codex or --claude");
 
     const checkAgent = await run(root, bin, "--check", "--claude");
     expect(checkAgent.exitCode).toBe(1);

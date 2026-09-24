@@ -185,7 +185,7 @@ const driftDiagnostics = (workList: TranslateWorkList): Diagnostic[] =>
         : `The "${row.locale}" translation of ${row.sourceRel} is stale: its source changed since it was translated.`,
     severity: "error",
     suggestion:
-      "Run `blume translate --claude` (or `--codex`) to bring the translations up to date.",
+      "Run `blume translate --codex` (or `--claude`) to bring the translations up to date.",
   }));
 
 /** One line per missing/stale pair, plus dim lines for untracked adoptions. */

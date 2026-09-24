@@ -53,7 +53,7 @@ export const migrateCommand = defineCommand({
       (kind) => args[kind]
     );
     if (agents.length > 1) {
-      logger.error("Pass at most one of --claude or --codex.");
+      logger.error("Pass at most one of --codex or --claude.");
       process.exit(1);
     }
     const [agent] = agents;
@@ -88,7 +88,7 @@ export const migrateCommand = defineCommand({
       // plus the install line that puts the skill where agents look for it.
       if (!agent) {
         process.stderr.write(
-          `  blume migrate runs the migration with a coding agent: rerun with --claude or --codex.\n  Using another agent? Point it at ${join(skillDir, "SKILL.md")},\n  or install the skill where your agent looks for skills: npx skills add haydenbleasel/blume --skill blume-migrate\n`
+          `  blume migrate runs the migration with a coding agent: rerun with --codex or --claude.\n  Using another agent? Point it at ${join(skillDir, "SKILL.md")},\n  or install the skill where your agent looks for skills: npx skills add haydenbleasel/blume --skill blume-migrate\n`
         );
         return;
       }

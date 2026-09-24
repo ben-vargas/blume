@@ -4,11 +4,11 @@
 
 /**
  * The one-liner that migrates a site from `source`: the CLI names the source
- * and opens Claude Code on the `blume-migrate` skill bundled in the package
- * (`--codex` for Codex, shown beside the command).
+ * and opens Codex on the `blume-migrate` skill bundled in the package
+ * (`--claude` for Claude Code, shown beside the command).
  */
 export const migrateCommand = (source: string): string =>
-  `npx blume migrate ${source} --claude`;
+  `npx blume migrate ${source} --codex`;
 
 // Brand marks, each a full <svg> so it can be injected via set:html (and copied
 // into the trigger by the client script). Monochrome marks use currentColor so

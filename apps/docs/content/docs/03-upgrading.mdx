@@ -1,6 +1,6 @@
 ---
 title: Upgrade to Blume 2
-description: Move a Blume 1 site to Blume 2 with one command, then use this guide for each config change — or hand the whole upgrade to Claude Code or Codex.
+description: Move a Blume 1 site to Blume 2 with one command, then use this guide for each config change — or hand the whole upgrade to Codex or Claude Code.
 sidebar:
   label: Upgrade to Blume 2
   order: 2.5
@@ -18,10 +18,10 @@ npx blume@latest upgrade
 
 It bumps `blume` in your `package.json` to 2, installs it with the package manager your project uses, then checks your config and `components.ts` against Blume 2. Every change that's still needed is listed with its file, line, and replacement — including `package.json` scripts that still pass the removed `blume build` flags — and the command exits non-zero until none are left. Run from a folder with neither a config nor a `blume` dependency, it stops with an error instead. Run it through `npx blume@latest` rather than `blume`: the command ships in Blume 2, so a project still on 1 doesn't have it yet. On pnpm 12, add `--allow-build=esbuild` after `pnpm dlx`, since pnpm 12 won't run esbuild's install script unapproved.
 
-To hand the changes to a coding agent instead, add `--claude` or `--codex`:
+To hand the changes to a coding agent instead, add `--codex` or `--claude`:
 
 ```package-install
-npx blume@latest upgrade --claude
+npx blume@latest upgrade --codex
 ```
 
 The agent opens interactively with the findings and this guide, applies each change, and runs `blume doctor` and `blume build` until both pass, so you review every edit through its own permission flow. Pass `--no-install` to bump `package.json` without installing.

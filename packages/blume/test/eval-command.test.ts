@@ -125,11 +125,20 @@ const run = async (
   return { exitCode, stderr, stdout };
 };
 
+/** `run` against the fake `claude`, which the default agent (Codex) isn't. */
+const runClaude = (
+  cwd: string,
+  binDir: string,
+  env: Record<string, string>,
+  ...args: string[]
+): ReturnType<typeof run> =>
+  run(cwd, binDir, env, "--agent", "claude", ...args);
+
 describe("blume eval", () => {
   it("passes a healthy run and prints per-question progress", async () => {
     const root = await fixture();
     const bin = await fakeClaude(root);
-    const { exitCode, stderr } = await run(root, bin, {});
+    const { exitCode, stderr } = await runClaude(root, bin, {});
     expect(exitCode).toBe(0);
     expect(stderr).toContain("blume eval");
     expect(stderr).toContain("install-node-version");
@@ -139,7 +148,7 @@ describe("blume eval", () => {
   it("fails the gate and names the page to fix when the docs can't answer", async () => {
     const root = await fixture();
     const bin = await fakeClaude(root);
-    const { exitCode, stderr } = await run(root, bin, {
+    const { exitCode, stderr } = await runClaude(root, bin, {
       FAKE_VERDICT: FAIL_VERDICT,
     });
     expect(exitCode).toBe(1);
@@ -151,7 +160,7 @@ describe("blume eval", () => {
   it("respects --threshold", async () => {
     const root = await fixture();
     const bin = await fakeClaude(root);
-    const { exitCode } = await run(
+    const { exitCode } = await runClaude(
       root,
       bin,
       { FAKE_VERDICT: FAIL_VERDICT },
@@ -164,7 +173,7 @@ describe("blume eval", () => {
   it("emits machine-readable JSON on stdout and still gates", async () => {
     const root = await fixture();
     const bin = await fakeClaude(root);
-    const { exitCode, stdout } = await run(
+    const { exitCode, stdout } = await runClaude(
       root,
       bin,
       { FAKE_VERDICT: FAIL_VERDICT },
@@ -182,7 +191,7 @@ describe("blume eval", () => {
   it("hands a failing run to the agent with --fix", async () => {
     const root = await fixture();
     const bin = await fakeClaude(root);
-    const { exitCode, stderr } = await run(
+    const { exitCode, stderr } = await runClaude(
       root,
       bin,
       { FAKE_VERDICT: FAIL_VERDICT },
@@ -204,7 +213,7 @@ describe("blume eval", () => {
       "docs/index.md": PROJECT_FILES["docs/index.md"] ?? "",
     });
     const bin = await fakeClaude(root);
-    const { exitCode, stderr } = await run(root, bin, {});
+    const { exitCode, stderr } = await runClaude(root, bin, {});
     expect(exitCode).toBe(1);
     expect(stderr).toContain("No evals file found");
     expect(stderr).toContain("blume eval init");
@@ -218,27 +227,27 @@ describe("blume eval", () => {
     expect(agent.exitCode).toBe(1);
     expect(agent.stderr).toContain('Invalid --agent "copilot"');
 
-    const exclusive = await run(root, bin, {}, "--json", "--fix");
+    const exclusive = await runClaude(root, bin, {}, "--json", "--fix");
     expect(exclusive.exitCode).toBe(1);
     expect(exclusive.stderr).toContain("mutually exclusive");
 
-    const threshold = await run(root, bin, {}, "--threshold", "2");
+    const threshold = await runClaude(root, bin, {}, "--threshold", "2");
     expect(threshold.exitCode).toBe(1);
     expect(threshold.stderr).toContain("Invalid --threshold");
 
-    const timeout = await run(root, bin, {}, "--timeout", "0");
+    const timeout = await runClaude(root, bin, {}, "--timeout", "0");
     expect(timeout.exitCode).toBe(1);
     expect(timeout.stderr).toContain("Invalid --timeout");
     // Four sequential CLI subprocesses: a slow single-CPU runner can exceed
     // Bun's 5 s default (this was the flake that motivated lazy commands).
   }, 30_000);
 
-  it("suggests the install command when the agent CLI is missing", async () => {
+  it("defaults to Codex and suggests installing it when it's missing", async () => {
     const root = await fixture();
     const { exitCode, stderr } = await run(root, undefined, {});
     expect(exitCode).toBe(1);
     expect(stderr).toContain("was not found on PATH");
-    expect(stderr).toContain("npm install -g @anthropic-ai/claude-code");
+    expect(stderr).toContain("npm install -g @openai/codex");
   });
 });
 
@@ -246,7 +255,7 @@ describe("blume eval init", () => {
   it("refuses to overwrite an existing evals file", async () => {
     const root = await fixture();
     const bin = await fakeClaude(root);
-    const { exitCode, stderr } = await run(root, bin, {}, "init");
+    const { exitCode, stderr } = await runClaude(root, bin, {}, "init");
     expect(exitCode).toBe(1);
     expect(stderr).toContain("already exists");
   });
@@ -257,7 +266,7 @@ describe("blume eval init", () => {
       "docs/index.md": PROJECT_FILES["docs/index.md"] ?? "",
     });
     const bin = await fakeClaude(root);
-    const { exitCode } = await run(root, bin, {}, "init");
+    const { exitCode } = await runClaude(root, bin, {}, "init");
     expect(exitCode).toBe(0);
     const prompt = await readFile(
       join(root, "interactive-prompt.txt"),
@@ -272,7 +281,7 @@ describe("blume eval init", () => {
       "docs/index.md": PROJECT_FILES["docs/index.md"] ?? "",
     });
     const bin = await fakeClaude(root);
-    const { exitCode } = await run(
+    const { exitCode } = await runClaude(
       root,
       bin,
       { FAKE_INTERACTIVE_EXIT: "3" },

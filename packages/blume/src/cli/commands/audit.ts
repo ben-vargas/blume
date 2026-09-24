@@ -154,7 +154,7 @@ export const auditCommand = defineCommand({
       (kind) => args[kind]
     );
     if (agents.length > 1) {
-      logger.error("Pass at most one of --claude or --codex.");
+      logger.error("Pass at most one of --codex or --claude.");
       process.exit(1);
     }
     const [agent] = agents;

@@ -4,7 +4,7 @@
 // homepage's tray. From `lg` up the rows run 2+1 / 1+1+1: the self-updating
 // docs skill (a pull request) and `blume eval` (a graded report), then
 // `blume translate` (a pages-by-locales grid whose stale cells turn fresh),
-// `blume audit --claude` (findings checked off), and `blume migrate` (every
+// `blume audit --codex` (findings checked off), and `blume migrate` (every
 // source it moves, into Blume). A footer strip says what they share: your own
 // agent CLI, no keys held by Blume. The art is decorative, like the homepage
 // bento's, and a few rows follow the pointer.
@@ -249,13 +249,13 @@ const sparkles = glyph("sparkles");
 
       <!-- Audit: findings the agent checks off -->
       <BentoCard
-        body="`blume audit --claude` hands every finding to Claude Code, or Codex with `--codex`, which fixes the pages and reruns the audit until it's clean."
+        body="`blume audit --codex` hands every finding to Codex, or Claude Code with `--claude`, which fixes the pages and reruns the audit until it's clean."
         title="Audits your agent fixes."
       >
         <div class:list={[window, "w-64 max-w-[calc(100%-2rem)] overflow-hidden"]}>
           <p class={windowTitle}>
-            <span class="inline-flex size-3.5 shrink-0 [&>svg]:size-full" set:html={agentMarks.claude} />
-            blume audit --claude
+            <span class="inline-flex size-3.5 shrink-0 [&>svg]:size-full" set:html={agentMarks.codex} />
+            blume audit --codex
           </p>
           <ul class="group/rows flex flex-col gap-0.5 p-1.5 text-xs" role="list">
             {
@@ -294,7 +294,7 @@ const sparkles = glyph("sparkles");
 
       <!-- Migrate: every source the skill moves, into Blume -->
       <BentoCard
-        body="`blume migrate` hands a Mintlify, Fumadocs, Docusaurus, Starlight, or Nextra site to Claude Code or Codex with Blume's migration playbook, and reports anything it can't carry across."
+        body="`blume migrate` hands a Mintlify, Fumadocs, Docusaurus, Starlight, or Nextra site to Codex or Claude Code with Blume's migration playbook, and reports anything it can't carry across."
         class="sm:col-span-2 lg:col-span-1"
         title="Moved in by an agent."
       >
