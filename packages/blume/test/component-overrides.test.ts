@@ -1,14 +1,16 @@
 import { afterAll, describe, expect, it } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 
-import { dirname, join } from "pathe";
+import { dirname, join, resolve } from "pathe";
 
 import { planComponentSlots } from "../src/astro/component-slots.ts";
 import type { IslandSpec } from "../src/astro/islands.ts";
 import {
   ACCEPTED_OVERRIDE_FORMS,
   analyzeComponentOverrides,
+  ComponentOverridesError,
   emptyComponentOverrides,
 } from "../src/core/component-overrides.ts";
 import type {
@@ -17,9 +19,26 @@ import type {
 } from "../src/core/component-overrides.ts";
 import { BlumeError } from "../src/core/diagnostics.ts";
 
-const FILE = "/project/components.ts";
+// A real project directory: the planner rejects an override whose file
+// doesn't exist, so `analyze` writes every file a source's relative paths name
+// before analyzing it.
+const PROJECT = resolve(mkdtempSync(join(tmpdir(), "blume-plan-")));
+const FILE = join(PROJECT, "components.ts");
 
-const analyze = (source: string) => analyzeComponentOverrides(source, FILE);
+afterAll(() => {
+  rmSync(PROJECT, { force: true, recursive: true });
+});
+
+const RELATIVE_FILE = /["'](?<path>\.{1,2}\/[^"'\s]+\.[a-z]+)["']/gu;
+
+const analyze = (source: string) => {
+  for (const match of source.matchAll(RELATIVE_FILE)) {
+    const file = join(PROJECT, match.groups?.path ?? "");
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, "");
+  }
+  return analyzeComponentOverrides(source, FILE);
+};
 
 /** The diagnostic a rejected `components.ts` raises. */
 const rejection = (source: string): BlumeError => {
@@ -44,7 +63,7 @@ const mdxAnalysis = (
       source: {
         framework: "react",
         name: "default",
-        path: "/project/Widget.tsx",
+        path: join(PROJECT, "Widget.tsx"),
       },
       ...override,
     },
@@ -54,7 +73,7 @@ const mdxAnalysis = (
 
 const island = (over: Partial<IslandSpec> = {}): IslandSpec => ({
   client: "visible",
-  file: "/project/islands/Counter.tsx",
+  file: join(PROJECT, "islands/Counter.tsx"),
   framework: "react",
   name: "Counter",
   ...over,
@@ -69,7 +88,7 @@ describe("analyzeComponentOverrides accepted forms", () => {
     const [footer] = result.layout;
     expect(footer?.key).toBe("Footer");
     expect(footer?.client).toBeUndefined();
-    expect(footer?.source.path).toBe("/project/Footer.astro");
+    expect(footer?.source.path).toBe(join(PROJECT, "Footer.astro"));
     expect(footer?.source.framework).toBeNull();
     expect(result.warnings).toEqual([]);
   });
@@ -81,7 +100,7 @@ describe("analyzeComponentOverrides accepted forms", () => {
     `);
     const [chart] = result.mdx;
     expect(chart?.key).toBe("Chart");
-    expect(chart?.source.path).toBe("/project/Chart.tsx");
+    expect(chart?.source.path).toBe(join(PROJECT, "Chart.tsx"));
     expect(result.warnings.join(" ")).toContain("no hydration mode");
   });
 
@@ -90,7 +109,7 @@ describe("analyzeComponentOverrides accepted forms", () => {
       export default { layout: { Footer: "./components/footer.astro" } };
     `);
     const [footer] = result.layout;
-    expect(footer?.source.path).toBe("/project/components/footer.astro");
+    expect(footer?.source.path).toBe(join(PROJECT, "components/footer.astro"));
     expect(footer?.source.framework).toBeNull();
     expect(footer?.client).toBeUndefined();
     expect(result.warnings).toEqual([]);
@@ -118,7 +137,7 @@ describe("analyzeComponentOverrides accepted forms", () => {
     const [footer] = result.layout;
     expect(footer?.key).toBe("Footer");
     expect(footer?.client).toBe("load");
-    expect(footer?.source.path).toBe("/project/Footer.tsx");
+    expect(footer?.source.path).toBe(join(PROJECT, "Footer.tsx"));
     expect(footer?.source.framework).toBe("react");
   });
 
@@ -129,7 +148,7 @@ describe("analyzeComponentOverrides accepted forms", () => {
     `);
     const [header] = result.layout;
     expect(header?.source.name).toBe("Fancy");
-    expect(header?.source.path).toBe("/project/Header.tsx");
+    expect(header?.source.path).toBe(join(PROJECT, "Header.tsx"));
     expect(header?.client).toBe("idle");
   });
 
@@ -139,7 +158,7 @@ describe("analyzeComponentOverrides accepted forms", () => {
       export default { mdx: { Widget: { component, client: "visible" } } };
     `);
     const [widget] = result.mdx;
-    expect(widget?.source.path).toBe("/project/Widget.tsx");
+    expect(widget?.source.path).toBe(join(PROJECT, "Widget.tsx"));
     expect(widget?.client).toBe("visible");
   });
 
@@ -158,7 +177,7 @@ describe("analyzeComponentOverrides accepted forms", () => {
     `);
     const [note] = result.mdx;
     expect(note?.client).toBeUndefined();
-    expect(note?.source.path).toBe("/project/Note.astro");
+    expect(note?.source.path).toBe(join(PROJECT, "Note.astro"));
     expect(result.warnings).toEqual([]);
   });
 
@@ -208,7 +227,7 @@ describe("analyzeComponentOverrides accepted forms", () => {
       import Counter from "./Counter.tsx";
       export default { mdx: { Counter: { component: Counter, client: "load" } } };
     `);
-    expect(result.mdx[0]?.source.path).toBe("/project/Counter.tsx");
+    expect(result.mdx[0]?.source.path).toBe(join(PROJECT, "Counter.tsx"));
   });
 
   it("accepts string-literal keys", () => {
@@ -488,15 +507,100 @@ describe("analyzeComponentOverrides with real files", () => {
     expect(widget?.source.framework).toBe("react");
   });
 
-  it("keeps an extensionless path unresolved when no file is found", async () => {
-    const dir = await makeProject({ "keep.txt": "noop" });
+  /** The rejection analyzing `source` in a fresh project with `files` raises. */
+  const rejectionIn = async (
+    files: Record<string, string>,
+    source: string
+  ): Promise<ComponentOverridesError> => {
+    const dir = await makeProject(files);
+    try {
+      analyzeComponentOverrides(source, join(dir, "components.ts"));
+    } catch (error) {
+      if (error instanceof ComponentOverridesError) {
+        return error;
+      }
+      throw error;
+    }
+    throw new Error("expected analysis to reject the file");
+  };
+
+  it("rejects an imported component whose file doesn't exist, at the import", async () => {
+    const error = await rejectionIn(
+      { "keep.txt": "noop" },
+      [
+        'import { defineComponents } from "blume";',
+        'import Callout from "./components/blume/Callout.astro";',
+        "",
+        "export default defineComponents({ mdx: { Callout } });",
+      ].join("\n")
+    );
+    expect(error.diagnostic.code).toBe("BLUME_COMPONENTS_INVALID");
+    expect(error.diagnostic.line).toBe(2);
+    expect(error.diagnostic.message).toContain(
+      'mdx.Callout points at "./components/blume/Callout.astro", but no file exists there'
+    );
+    expect(error.issues).toHaveLength(1);
+    expect(error.issues[0]?.line).toBe(2);
+    expect(error.issues[0]?.column).toBe(1);
+    // The fix is the path, not the entry's form.
+    expect(error.diagnostic.suggestion).toBeUndefined();
+    expect(error.issues[0]?.suggestion).toBeUndefined();
+  });
+
+  it("rejects a path-string override whose file doesn't exist", async () => {
+    const error = await rejectionIn(
+      { "keep.txt": "noop" },
+      'export default { mdx: { Missing: "./DoesNotExist" } };'
+    );
+    expect(error.diagnostic.message).toContain(
+      'mdx.Missing points at "./DoesNotExist", but no file exists there'
+    );
+  });
+
+  it("rejects a descriptor whose `component` path doesn't exist", async () => {
+    const error = await rejectionIn(
+      { "keep.txt": "noop" },
+      'export default { mdx: { W: { component: "./W.tsx", client: "load" } } };'
+    );
+    expect(error.diagnostic.message).toContain(
+      'mdx.W\'s `component` points at "./W.tsx"'
+    );
+  });
+
+  it("accepts a folder's index file and a .js specifier for a TypeScript source", async () => {
+    const dir = await makeProject({
+      "Button.tsx": "export default () => null;",
+      "widgets/index.astro": "<div />",
+    });
     const result = analyzeComponentOverrides(
-      'export default { mdx: { Missing: "./DoesNotExist" } };',
+      [
+        'import Button from "./Button.js";',
+        "export default {",
+        '  mdx: { Button: { component: Button, client: "load" }, Widgets: "./widgets" },',
+        "};",
+      ].join("\n"),
       join(dir, "components.ts")
     );
-    const [missing] = result.mdx;
-    expect(missing?.source.path).toBe(join(dir, "DoesNotExist"));
-    expect(missing?.source.framework).toBeNull();
+    expect(result.mdx.map((entry) => entry.key)).toEqual(["Button", "Widgets"]);
+  });
+
+  it("reports each rejected entry on its own line", async () => {
+    const error = await rejectionIn(
+      { "keep.txt": "noop" },
+      [
+        "export default {",
+        "  islands: {},",
+        "  mdx: { A: () => null },",
+        "};",
+      ].join("\n")
+    );
+    expect(error.issues.map((issue) => issue.line)).toEqual([2, 3]);
+    expect(error.issues.map((issue) => issue.message)).toEqual([
+      expect.stringContaining("The `islands` group was folded into `mdx`"),
+      "mdx.A is an inline expression, which Blume can't analyze statically.",
+    ]);
+    expect(error.diagnostic.line).toBe(2);
+    expect(error.diagnostic.suggestion).toBe(ACCEPTED_OVERRIDE_FORMS);
   });
 });
 
@@ -533,7 +637,7 @@ describe("planComponentSlots", () => {
     const plan = planComponentSlots([], analysis);
     expect(plan.wrappers).toEqual([]);
     expect(plan.module).toContain(
-      'import { Fancy as __blumeSlot0 } from "/project/Footer.astro";'
+      `import { Fancy as __blumeSlot0 } from "${PROJECT}/Footer.astro";`
     );
     expect(plan.module).toContain(
       'export const layoutOverrides: Record<string, ComponentOverride> = { "Footer": __blumeSlot0 };'
@@ -547,7 +651,7 @@ describe("planComponentSlots", () => {
     const plan = planComponentSlots([], analysis);
     expect(plan.wrappers).toEqual([]);
     expect(plan.module).toContain(
-      'import __blumeSlot0 from "/project/footer.astro"'
+      `import __blumeSlot0 from "${PROJECT}/footer.astro"`
     );
     expect(plan.module).toContain('"Footer": __blumeSlot0');
   });
@@ -562,7 +666,7 @@ describe("planComponentSlots", () => {
     expect(plan.wrappers).toHaveLength(1);
     expect(plan.wrappers[0]?.name).toBe("mdx-Counter");
     expect(plan.wrappers[0]?.content).toContain(
-      'import Component from "/project/Counter.tsx";'
+      `import Component from "${PROJECT}/Counter.tsx";`
     );
     expect(plan.wrappers[0]?.content).toContain(
       "<Component client:visible {...Astro.props}><slot /></Component>"
@@ -581,7 +685,7 @@ describe("planComponentSlots", () => {
     const plan = planComponentSlots([], analysis);
     expect(plan.wrappers[0]?.name).toBe("layout-Header");
     expect(plan.wrappers[0]?.content).toContain(
-      'import { Fancy as Component } from "/project/Header.tsx";'
+      `import { Fancy as Component } from "${PROJECT}/Header.tsx";`
     );
   });
 
@@ -600,7 +704,7 @@ describe("planComponentSlots", () => {
     expect(plan.wrappers).toHaveLength(1);
     expect(plan.wrappers[0]?.name).toBe("mdx-Counter");
     expect(plan.wrappers[0]?.content).toContain(
-      'import Component from "/project/islands/Counter.tsx";'
+      `import Component from "${PROJECT}/islands/Counter.tsx";`
     );
     expect(plan.wrappers[0]?.content).toContain("client:visible");
     expect(plan.module).toContain('"Counter": __blumeSlot0');
@@ -634,7 +738,10 @@ describe("planComponentSlots", () => {
 
   it("lets a components.ts mdx entry replace a convention island of the same name", () => {
     const plan = planComponentSlots(
-      [island(), island({ file: "/project/islands/Chart.tsx", name: "Chart" })],
+      [
+        island(),
+        island({ file: join(PROJECT, "islands/Chart.tsx"), name: "Chart" }),
+      ],
       analyze(`
         export default { mdx: { Counter: "./Counter.astro" } };
       `)
@@ -642,7 +749,7 @@ describe("planComponentSlots", () => {
     expect(plan.wrappers.map((wrapper) => wrapper.name)).toEqual(["mdx-Chart"]);
     expect(plan.module).toContain('"Counter": __blumeSlot');
     expect(plan.module).toContain(
-      'import __blumeSlot0 from "/project/Counter.astro"'
+      `import __blumeSlot0 from "${PROJECT}/Counter.astro"`
     );
     expect(plan.module).not.toContain("islands/Counter.tsx");
     expect(plan.module.match(/"Counter":/gu)).toHaveLength(1);
@@ -683,7 +790,7 @@ describe("planComponentSlots", () => {
         source: {
           framework: null,
           name: "default",
-          path: "/project/Solo.astro",
+          path: join(PROJECT, "Solo.astro"),
         },
       })
     );

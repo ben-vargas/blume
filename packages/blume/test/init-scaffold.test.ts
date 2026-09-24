@@ -589,20 +589,37 @@ describe("readExistingPackage", () => {
       })
     );
     expect(await readExistingPackage(root)).toEqual({
+      blumeInstalled: false,
       dependencies: ["react", "blume"],
       devRunsBlume: true,
     });
+  });
+
+  it("finds an installed blume in the project or a workspace above it", async () => {
+    const workspace = await makeTempDir();
+    const root = join(workspace, "apps", "docs");
+    await mkdir(join(workspace, "node_modules", "blume"), { recursive: true });
+    await writeFile(
+      join(workspace, "node_modules", "blume", "package.json"),
+      '{ "name": "blume" }\n'
+    );
+    await mkdir(root, { recursive: true });
+    await writeFile(join(root, "package.json"), "{ not json");
+    const existing = await readExistingPackage(root);
+    expect(existing.blumeInstalled).toBe(true);
   });
 
   it("reads a package with no dependencies or scripts as wiring nothing up", async () => {
     const root = await makeTempDir();
     await writeFile(join(root, "package.json"), '{ "name": "site" }\n');
     expect(await readExistingPackage(root)).toEqual({
+      blumeInstalled: false,
       dependencies: [],
       devRunsBlume: false,
     });
     await writeFile(join(root, "package.json"), "{ not json");
     expect(await readExistingPackage(root)).toEqual({
+      blumeInstalled: false,
       dependencies: [],
       devRunsBlume: false,
     });
@@ -630,7 +647,7 @@ describe("nextSteps", () => {
           sources: ["filesystem", "notion"],
         }),
         false,
-        { dependencies: ["react"], devRunsBlume: false }
+        { blumeInstalled: false, dependencies: ["react"], devRunsBlume: false }
       )
     ).toBe(
       "Next steps:\n\n  pnpm add blume @notionhq/client\n  pnpm exec blume dev\n\nSet NOTION_TOKEN in .env.local so your sources can authenticate.\n"
@@ -640,10 +657,21 @@ describe("nextSteps", () => {
   it("uses an existing dev script that already runs Blume", () => {
     expect(
       nextSteps(answersWith(), false, {
+        blumeInstalled: true,
         dependencies: ["blume"],
         devRunsBlume: true,
       })
     ).toBe("Next steps:\n\n  npm run dev\n");
+  });
+
+  it("installs first when blume is listed but was never installed", () => {
+    expect(
+      nextSteps(answersWith(), false, {
+        blumeInstalled: false,
+        dependencies: ["blume"],
+        devRunsBlume: true,
+      })
+    ).toBe("Next steps:\n\n  npm install\n  npm run dev\n");
   });
 
   it("adds a cd hint for non-cwd targets and honors the package manager", () => {

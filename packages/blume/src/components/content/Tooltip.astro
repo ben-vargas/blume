@@ -1,9 +1,8 @@
 ---
-import { randomUUID } from "node:crypto";
-
 import { newTabAttrs } from "../../core/new-tab.ts";
 import { contentHref } from "./base-href.ts";
 import { unwrapParagraph } from "./inline-markdown.ts";
+import { tooltipId as tooltipIdFor } from "./tooltip-id.ts";
 
 interface Props {
   cta?: string;
@@ -13,14 +12,24 @@ interface Props {
 }
 
 const { cta, headline, href, tip } = Astro.props;
-const tooltipId = `blume-tooltip-${randomUUID()}`;
 
 const labelHtml = Astro.slots.has("default")
   ? unwrapParagraph(await Astro.slots.render("default"))
   : "";
+// Derived from the content, so an unchanged page rebuilds byte-identical.
+const tooltipId = tooltipIdFor(Astro.locals, [
+  labelHtml,
+  headline,
+  tip,
+  cta,
+  href,
+]);
 ---
 
-<span class="not-prose group relative inline-flex cursor-help items-baseline">
+<span
+  class="not-prose relative inline-flex cursor-help items-baseline"
+  data-blume-tooltip
+>
   <span
     aria-describedby={tooltipId}
     class="underline decoration-dotted underline-offset-4"
@@ -56,9 +65,49 @@ const labelHtml = Astro.slots.has("default")
     visibility: hidden;
   }
 
-  [data-blume-tooltip-trigger]:focus + [data-blume-tooltip-panel],
-  .group:hover [data-blume-tooltip-panel] {
+  /* Focus anywhere inside keeps it open, so a keyboard reader can Tab from
+     the trigger to the call-to-action link without the panel vanishing. */
+  [data-blume-tooltip]:hover [data-blume-tooltip-panel],
+  [data-blume-tooltip]:focus-within [data-blume-tooltip-panel] {
     pointer-events: auto;
     visibility: visible;
   }
+
+  /* Escape hides it until the pointer or focus leaves (WCAG 1.4.13). */
+  [data-blume-tooltip][data-dismissed] [data-blume-tooltip-panel] {
+    pointer-events: none;
+    visibility: hidden;
+  }
 </style>
+
+<script>
+  // Delegated from the document, so tooltips a client-router swap brings in
+  // are covered without re-binding; the module runs once per real load.
+  const TOOLTIP = "[data-blume-tooltip]";
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") {
+      return;
+    }
+    for (const tooltip of document.querySelectorAll(TOOLTIP)) {
+      if (tooltip.matches(":hover, :focus-within")) {
+        tooltip.setAttribute("data-dismissed", "");
+      }
+    }
+  });
+
+  // Leaving the tooltip re-arms it for the next hover or focus.
+  const rearm = (event: FocusEvent | PointerEvent) => {
+    const tooltip =
+      event.target instanceof Element ? event.target.closest(TOOLTIP) : null;
+    const { relatedTarget } = event;
+    if (
+      tooltip &&
+      !(relatedTarget instanceof Node && tooltip.contains(relatedTarget))
+    ) {
+      tooltip.removeAttribute("data-dismissed");
+    }
+  };
+  document.addEventListener("focusout", rearm);
+  document.addEventListener("pointerout", rearm);
+</script>

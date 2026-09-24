@@ -25,15 +25,14 @@ describe("resolveHref", () => {
     });
   });
 
-  it("resolves a relative path against the page as a directory", () => {
-    // Astro's directory build serves /docs/a at /docs/a/, so in a browser
-    // `./b` there means /docs/a/b. Resolving against the slashless form would
-    // mis-target every relative link on the site by one directory level.
+  it("resolves a relative path the way a browser does from the slashless URL", () => {
+    // Pages are served at their slashless canonical URL (`trailingSlash:
+    // "never"`), so `./b` on /docs/a means /docs/b — where the click lands.
     expect(resolveHref("/docs/a", "./b", SITE)).toMatchObject({
-      path: "/docs/a/b",
-    });
-    expect(resolveHref("/docs/a", "../b", SITE)).toMatchObject({
       path: "/docs/b",
+    });
+    expect(resolveHref("/docs/a", "../guides/b", SITE)).toMatchObject({
+      path: "/guides/b",
     });
     expect(resolveHref("/", "b", SITE)).toMatchObject({ path: "/b" });
   });

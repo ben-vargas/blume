@@ -44,7 +44,11 @@ export const ro: UIStringsOverride = {
     description: "Actualizări ale produsului și note de lansare.",
     title: "Jurnal de modificări",
   },
-  content: { diagramError: "Nu s-a putut reda această diagramă." },
+  content: {
+    copyColor: "Copiază culoarea {name} {value}",
+    copyPrompt: "Copiază promptul",
+    diagramError: "Nu s-a putut reda această diagramă.",
+  },
   feedback: {
     no: "Nu",
     question: "Ți-a fost utilă această pagină?",

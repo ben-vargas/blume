@@ -43,7 +43,11 @@ export const hi: UIStringsOverride = {
     description: "उत्पाद अपडेट और रिलीज़ नोट्स।",
     title: "परिवर्तन लॉग",
   },
-  content: { diagramError: "यह डायग्राम रेंडर नहीं हो सका।" },
+  content: {
+    copyColor: "{name} रंग {value} कॉपी करें",
+    copyPrompt: "प्रॉम्प्ट कॉपी करें",
+    diagramError: "यह डायग्राम रेंडर नहीं हो सका।",
+  },
   feedback: {
     no: "नहीं",
     question: "क्या यह पेज सहायक था?",

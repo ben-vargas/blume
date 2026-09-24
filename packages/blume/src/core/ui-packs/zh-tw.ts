@@ -44,6 +44,8 @@ export const zhTW: UIStringsOverride = {
     title: "更新日誌",
   },
   content: {
+    copyColor: "複製顏色 {name} {value}",
+    copyPrompt: "複製提示詞",
     diagramError: "無法顯示此圖表。",
   },
   feedback: {

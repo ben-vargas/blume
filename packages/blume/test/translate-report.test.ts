@@ -257,6 +257,37 @@ describe("check reporting", () => {
       },
       upToDate: 14,
     });
+    // Every drifted pair is an error there, so the summary agrees with the
+    // non-zero exit the drift causes.
+    expect(parsed.summary).toEqual({ error: 3, info: 0, warning: 0 });
+    expect(
+      parsed.diagnostics.map(
+        (diagnostic: { code: string; message: string }) => [
+          diagnostic.code,
+          diagnostic.message,
+        ]
+      )
+    ).toEqual([
+      [
+        "BLUME_TRANSLATE_MISSING",
+        'docs/guides/install.mdx has no "fr" translation.',
+      ],
+      [
+        "BLUME_TRANSLATE_STALE",
+        'The "de" translation of docs/index.mdx is stale: its source changed since it was translated.',
+      ],
+      [
+        "BLUME_TRANSLATE_MISSING",
+        'docs/guides/meta.ts has no "de" translation.',
+      ],
+    ]);
+    // Each points at its default-locale source: the page, or the meta file.
+    expect(parsed.diagnostics[0].file).toBe("/repo/docs/guides/install.mdx");
+    expect(parsed.diagnostics[2].file).toBe("/repo/docs/guides/meta.ts");
+  });
+
+  it("reports a clean summary when nothing drifted", () => {
+    const parsed = JSON.parse(checkReportJson(workListOf({ upToDate: 3 })));
     expect(parsed.summary).toEqual({ error: 0, info: 0, warning: 0 });
     expect(parsed.diagnostics).toEqual([]);
   });

@@ -868,7 +868,7 @@ describe(extractHeadings, () => {
     ]);
   });
 
-  it("skips headings inside <Prompt> — its children render into a hidden node", () => {
+  it("skips headings inside <Prompt> — its children only feed the copied Markdown", () => {
     const body = [
       "# Title",
       "<Prompt",

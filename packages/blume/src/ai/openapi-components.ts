@@ -1,5 +1,6 @@
 import type { ApiOperationRef, OpenApiData } from "../openapi/model.ts";
 import { operationOf, specAddresses, specOf } from "../openapi/model.ts";
+import { asSentence } from "../openapi/sentence.ts";
 import { operationSignature } from "../openapi/signature.ts";
 import type {
   ComponentMarkdown,
@@ -25,7 +26,9 @@ const listItem = (
   operation: Pick<ApiOperationRef, "deprecated" | "route" | "summary">
 ): string => {
   const tail = [
-    inlineText(operation.summary),
+    // Title-like summaries ("Get a flag") need their own period before the
+    // "Deprecated." that may follow.
+    inlineText(asSentence(operation.summary.trim())),
     operation.deprecated ? "Deprecated." : "",
   ]
     .filter(Boolean)

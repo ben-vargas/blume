@@ -44,7 +44,11 @@ export const de: UIStringsOverride = {
     description: "Produkt-Updates und Versionshinweise.",
     title: "Änderungsprotokoll",
   },
-  content: { diagramError: "Dieses Diagramm konnte nicht dargestellt werden." },
+  content: {
+    copyColor: "Farbe {name} {value} kopieren",
+    copyPrompt: "Prompt kopieren",
+    diagramError: "Dieses Diagramm konnte nicht dargestellt werden.",
+  },
   feedback: {
     no: "Nein",
     question: "War diese Seite hilfreich?",

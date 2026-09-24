@@ -89,6 +89,50 @@ describe("blume version", () => {
     expect(`${result.stdout}${result.stderr}`).toContain("Snapshot");
   });
 
+  it("turns versioning on with the first cut", async () => {
+    const root = await makeProject({
+      "blume.config.ts": 'export default {\n  title: "Docs",\n};\n',
+      "docs/index.mdx": "---\ntitle: Home\n---\n# Home\n",
+    });
+    const result = await run(root, ["version", "v1.0"]);
+    expect(result.exitCode).toBe(0);
+    expect(`${result.stdout}${result.stderr}`).toContain(
+      'Turned on versioning in blume.config.ts with "v1.0" archived'
+    );
+    const listed = await run(root, ["version"]);
+    expect(listed.stdout).toContain("Latest (current)");
+    expect(listed.stdout).toContain("v1.0 — v1.0/");
+  });
+
+  it("warns, with the snippet, when the config can't be edited", async () => {
+    const root = await makeProject({
+      "blume.config.ts": "const config = {};\nexport default config;\n",
+      "docs/index.mdx": "---\ntitle: Home\n---\n# Home\n",
+    });
+    const result = await run(root, ["version", "v1.0"]);
+    expect(result.exitCode).toBe(0);
+    const output = `${result.stdout}${result.stderr}`;
+    expect(output).toContain(
+      "blume.config.ts couldn't be updated automatically, so \"v1.0\" isn't registered yet"
+    );
+    expect(output).toContain('archived: [{ id: "v1.0" }]');
+  });
+
+  it("reports an invalid config as its diagnostic, not a stack", async () => {
+    const root = await makeProject({
+      "blume.config.ts": "export default {\n  title: 42,\n};\n",
+      "docs/index.mdx": "---\ntitle: Home\n---\n# Home\n",
+    });
+    for (const args of [["version"], ["version", "v1.0"]]) {
+      // oxlint-disable-next-line no-await-in-loop -- two short CLI runs
+      const result = await run(root, args);
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain("BLUME_CONFIG_INVALID");
+      expect(result.stderr).toContain("blume.config.ts:2");
+      expect(result.stderr).not.toContain("ConfigValidationError");
+    }
+  });
+
   it("reports a CutError as a user error with exit code 1", async () => {
     const root = await makeProject({
       "blume.config.ts": `export default {

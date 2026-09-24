@@ -327,6 +327,6 @@ export default defineConfig({
 });
 ```
 
-A source normalizes its native shape (Portable Text, Notion blocks, remote HTML) to Markdown/MDX text, so the same components and markdown features apply no matter where a page comes from. Unlike the built-in adapters, `custom()` carries a live instance rather than plain data, so it declares no runtime dependency or secret of its own — the instance manages those itself.
+A source normalizes its native shape (Portable Text, Notion blocks, remote HTML) to Markdown/MDX text, so the same components and markdown features apply no matter where a page comes from. The built-in adapters escape rich text as they lower it, so what an author typed in the CMS — a `{`, a `<b>`, a paragraph starting with `import`, or `&copy;` — renders as written. Unlike the built-in adapters, `custom()` carries a live instance rather than plain data, so it declares no runtime dependency or secret of its own — the instance manages those itself.
 
 A custom source that reads local files should set `sourcePath` on each entry and `contentRoot` on the source itself. `sourcePath` names the file in diagnostics and resolves relative images beside it; `contentRoot` bounds the git `log` that dates pages, so without it the source's pages get no git-derived ["Last updated" date](/docs/configuration#last-modified).

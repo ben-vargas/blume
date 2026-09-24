@@ -117,7 +117,7 @@ Naming an adapter switches the build to server output. To keep a static build on
 deployment: netlify({ output: "static" }),
 ```
 
-A server build includes everything a static build does, plus any Astro endpoints or middleware you add. The `node()` adapter produces a standalone server you can run directly.
+A server build includes everything a static build does, plus any Astro endpoints or middleware you add. The `node()` adapter produces a standalone server you can run directly with `node dist/server/entry.mjs`. Blume puts a small wrapper in front of Astro's entry (moved to `astro-entry.mjs` beside it) so the `.well-known` discovery files go out with their media types and CORS headers, which the standalone server's static handler can't set on its own.
 
 On Vercel and Cloudflare, a server build also turns on [`Accept: text/markdown` content negotiation](/docs/discoverability/markdown#content-negotiation), so an agent requesting any content page with that header receives its raw-Markdown mirror at the same URL. On Vercel, Blume splices header-conditional rewrites into the deploy's routing config; on Cloudflare, it generates a small Worker in front of the Astro one and points `assets.run_worker_first` at every path except the fingerprinted build assets and the raw `.md`, `.txt`, `.json`, and `.well-known` files, since the platform would otherwise serve the prerendered pages — and its `404.html` for a URL no page backs — before any server code runs; those exempted files keep their zero-Worker fast path. That Worker also answers the prerendered per-page JSON documents (`/api/docs/pages/{route}.json`) from the asset binding when a request for one reaches it, because Astro would otherwise route it to the `/api/` catch-all.
 

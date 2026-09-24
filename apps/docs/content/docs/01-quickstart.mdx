@@ -23,6 +23,8 @@ Go from an empty folder to a running docs site in a few commands. Blume needs **
     npx blume init
     ```
 
+    On pnpm 12, add `--allow-build=esbuild` after `pnpm dlx` (`pnpm dlx --allow-build=esbuild blume init`): pnpm 12 refuses to run the install script of esbuild, which Astro depends on, unless you approve it.
+
     ```txt
     docs/
       index.mdx

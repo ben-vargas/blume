@@ -53,7 +53,7 @@ blume <command> [options]
 - `blume check --isolated` — type-check in a throwaway `.blume-verify/` runtime so a running `blume dev` server is left untouched. See [Verifying while the dev server runs](#verifying-while-the-dev-server-runs).
 - `blume eject --yes` — skip the confirmation prompt.
 
-The commands with a page of their own list every flag there: [`blume doctor`](/docs/cli/doctor), [`blume validate`](/docs/cli/validate), [`blume audit`](/docs/cli/audit), [`blume eval`](/docs/cli/evals), [`blume translate`](/docs/cli/translate), and [`blume version`](/docs/cli/version). `blume validate`, `blume doctor`, `blume audit`, `blume eval`, and `blume translate` take `--json` to print machine-readable results on stdout for CI and editor integrations (see [Validate](/docs/cli/validate#json-output) for the diagnostics shape); `build`, `check`, and `dev` report to the terminal only.
+The commands with a page of their own list every flag there: [`blume doctor`](/docs/cli/doctor), [`blume validate`](/docs/cli/validate), [`blume audit`](/docs/cli/audit), [`blume eval`](/docs/cli/evals), [`blume translate`](/docs/cli/translate), and [`blume version`](/docs/cli/version). `blume validate`, `blume doctor`, `blume audit`, `blume eval`, and `blume translate` take `--json` to print machine-readable results on stdout for CI and editor integrations (see [Validate](/docs/cli/validate#json-output) for the diagnostics shape); `build`, `check`, and `dev` report to the terminal only. Every command rejects a flag it doesn't take, suggesting the closest match and listing the flags it accepts, so a typo like `--isolatd` fails instead of being ignored.
 
 ## Verifying while the dev server runs
 

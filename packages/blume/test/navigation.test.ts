@@ -381,6 +381,23 @@ describe("buildNavigation — filesystem sidebar", () => {
     expect(labels(group.children)).toStrictEqual(["Beta", "Alpha"]);
   });
 
+  it("spells acronyms in a folder's inferred label", () => {
+    const nav = buildNavigation(
+      [
+        page("api-reference/auth.md", "/api-reference/auth", "Auth"),
+        page("02-faq/billing.md", "/faq/billing", "Billing"),
+        page("guides_and-tips/intro.md", "/guides_and-tips/intro", "Intro"),
+      ],
+      { folderMeta: new Map<string, FolderMeta>() }
+    );
+    // The numeric prefix orders "FAQ" first and drops out of the label.
+    expect(nav.sidebar.map((node) => asGroup(node).label)).toStrictEqual([
+      "FAQ",
+      "API Reference",
+      "Guides And Tips",
+    ]);
+  });
+
   it("orders changelog entries newest-first by publish date", () => {
     // Dates deliberately disagree with label order to prove the sort keys on
     // the publish date, not the version string.
@@ -415,7 +432,7 @@ describe("buildNavigation — per-group display", () => {
         ]),
       }
     );
-    // Groups sort alphabetically: "Api" first, then "Guide".
+    // Groups sort alphabetically: "API" first, then "Guide".
     expect(asGroup(nav.sidebar[1]).display).toBe("page");
     // The sibling group keeps the global mode (default `flat`).
     expect(asGroup(nav.sidebar[0]).display).toBe("flat");

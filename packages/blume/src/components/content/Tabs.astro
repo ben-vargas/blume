@@ -272,7 +272,9 @@ const useDropdown = dropdown && !inline;
           url.searchParams.set(param, id);
           history.replaceState(history.state, "", url);
         } else if (this.#hashEnabled()) {
-          history.replaceState(null, "", `#${encodeURIComponent(id)}`);
+          // Keep the entry's state here too: the client router ignores a
+          // popstate whose state is null, so Back would change only the URL.
+          history.replaceState(history.state, "", `#${encodeURIComponent(id)}`);
         }
       }
       if (sync && this.#syncEnabled()) {

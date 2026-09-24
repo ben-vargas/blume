@@ -70,6 +70,15 @@ export const isString = <Value>(value: Value): value is Value & string =>
 const isNumber = <Value>(value: Value): value is Value & number =>
   typeof value === "number";
 
+/** A nested map of evaluated values — an object literal prop, not a date or a list. */
+const isValueMap = (
+  value: EvaluatedValue
+): value is { [key: string]: EvaluatedValue } =>
+  typeof value === "object" &&
+  value !== null &&
+  !Array.isArray(value) &&
+  !(value instanceof Date);
+
 /** Evaluated props plus whether any attribute resisted static evaluation. */
 interface EvaluatedProps {
   lossy: boolean;
@@ -216,17 +225,22 @@ const applySplices = (text: string, splices: Splice[]): string => {
 /**
  * Strip the common indentation JSX children carry in source (`<Step>` bodies
  * are typically indented two spaces under their tag). The first line starts
- * mid-line at the slice boundary, so the common prefix is measured on the
- * following lines only.
+ * mid-line at the slice boundary, already past its own indent, so that indent
+ * is passed in as `firstIndent` when it is known — the whitespace before the
+ * slice — and counts toward the common prefix. Without it a nested list
+ * (`- a` then `  - b`) would lose its nesting: the deeper following lines
+ * alone would set the prefix. When the slice starts after other text on its
+ * line (`<Step>Body…`), only the following lines are measured.
  */
-const dedent = (text: string): string => {
+const dedent = (text: string, firstIndent?: number): string => {
   const lines = text.split("\n");
   const rest = lines.slice(1).filter((line) => line.trim() !== "");
   if (rest.length === 0) {
     return text;
   }
   const indent = Math.min(
-    ...rest.map((line) => line.length - line.trimStart().length)
+    ...rest.map((line) => line.length - line.trimStart().length),
+    ...(firstIndent === undefined ? [] : [firstIndent])
   );
   if (indent === 0) {
     return text;
@@ -237,6 +251,16 @@ const dedent = (text: string): string => {
       .slice(1)
       .map((line) => (line.trim() === "" ? "" : line.slice(indent))),
   ].join("\n");
+};
+
+/**
+ * The indent of the line `offset` sits on, when everything before `offset` on
+ * that line is whitespace; `undefined` when the offset follows other text.
+ */
+const indentAt = (source: string, offset: number): number | undefined => {
+  const lineStart = source.lastIndexOf("\n", offset - 1) + 1;
+  const prefix = source.slice(lineStart, offset);
+  return /^[\t ]*$/u.test(prefix) ? prefix.length : undefined;
 };
 
 const isJsxElement = (node: MdastNode): boolean =>
@@ -442,11 +466,15 @@ const card: ComponentMarkdown = ({ children, lossy, props }) => {
  * JSX as a block of its own instead of vanishing beside a rendered sibling.
  * Passing the body slice through instead would leave each card's source
  * indentation in the output and run one card's title straight on from the
- * previous card's body as the same paragraph.
+ * previous card's body as the same paragraph. The other containers that are
+ * only layout — `Accordion`, `Columns`, `CodeGroup`, the `Color` palette —
+ * serialize the same way; a child that renders to nothing (an unlabeled
+ * `Icon`) leaves no gap.
  */
 const cardGroup: ComponentMarkdown = ({ childBlocks }) =>
   childBlocks()
     .map((block) => block.markdown)
+    .filter(Boolean)
     .join("\n\n");
 
 const youtube: ComponentMarkdown = ({ props }) => {
@@ -512,20 +540,307 @@ export const exampleComponentSerializers = (examples: ExampleLookup) =>
     },
   }) satisfies Record<string, ComponentMarkdown>;
 
+/** A bold label over a body — the shape {@link tabs} and {@link card} use. */
+const labeled = (label: string, ...parts: string[]): string =>
+  [label === "" ? "" : `**${label}**`, ...parts]
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join("\n\n");
+
+/**
+ * A disclosure — `AccordionItem`, and `Expandable` with its "Show more"
+ * default — is its title over its body, open: an agent reads what a reader
+ * would have to click for. A title that wouldn't evaluate declines.
+ */
+const disclosure = (
+  { children, lossy, props }: ComponentMarkdownContext,
+  fallbackTitle: string
+): string | null =>
+  lossy
+    ? null
+    : labeled(
+        textProp(props.title) || fallbackTitle,
+        textProp(props.description),
+        children
+      );
+
+const accordionItem: ComponentMarkdown = (context) => disclosure(context, "");
+
+const expandable: ComponentMarkdown = (context) =>
+  disclosure(context, "Show more");
+
+/** `Frame` is its slot, with the hint above and the caption below as text. */
+const frame: ComponentMarkdown = ({ children, props }) =>
+  [textProp(props.hint), children, textProp(props.caption)]
+    .filter(Boolean)
+    .join("\n\n");
+
+/** A layout wrapper whose body is the whole of its meaning. */
+const body: ComponentMarkdown = ({ children }) => children;
+
+/** `Panel` is a titled aside: its title over its body. */
+const panel: ComponentMarkdown = ({ children, props }) =>
+  labeled(textProp(props.title), children);
+
+/**
+ * `Tile` is a card with a preview, so it takes {@link card}'s shape: the
+ * title as the link, then the description and the slot.
+ */
+const tile: ComponentMarkdown = ({ children, lossy, props }) => {
+  if (lossy) {
+    return null;
+  }
+  const title = textProp(props.title);
+  const href = isString(props.href) ? props.href.trim() : "";
+  const label = title || href;
+  const head =
+    href === ""
+      ? labeled(label)
+      : `**[${linkText(label)}](${linkDestination(href)})**`;
+  const text = [head, textProp(props.description), children]
+    .filter(Boolean)
+    .join("\n\n");
+  return text === "" ? null : text;
+};
+
+/**
+ * `Update` is one changelog entry: its label (or title) as the head, linked
+ * when it has its own page, then the description, tags, and notes.
+ */
+const update: ComponentMarkdown = ({ children, lossy, props }) => {
+  if (lossy) {
+    return null;
+  }
+  const label = textProp(props.label) || textProp(props.title) || "Update";
+  const href = isString(props.href) ? props.href.trim() : "";
+  const head =
+    href === ""
+      ? `**${label}**`
+      : `**[${linkText(label)}](${linkDestination(href)})**`;
+  const tags = (Array.isArray(props.tags) ? props.tags : [props.tags])
+    .map(textProp)
+    .filter(Boolean);
+  return [
+    head,
+    textProp(props.description),
+    tags.length > 0 ? `Tags: ${tags.join(", ")}` : "",
+    children,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+};
+
+/**
+ * `Prompt` is a prompt to copy: its description as the label, and the prompt
+ * itself quoted, the way a {@link callout} quotes its body.
+ */
+const prompt: ComponentMarkdown = ({ children, props }) => {
+  const quoted = children
+    .split("\n")
+    .map((line) => (line.trim() === "" ? ">" : `> ${line}`))
+    .join("\n");
+  return labeled(
+    textProp(props.description) || "Prompt",
+    children ? quoted : ""
+  );
+};
+
+/**
+ * `GithubInfo` is a card for one repository, so it becomes a link to it. The
+ * site-wide repo the component falls back to isn't in reach here, so a card
+ * without `owner` and `repo` declines.
+ */
+const githubInfo: ComponentMarkdown = ({ lossy, props }) => {
+  const owner = textProp(props.owner);
+  const repo = textProp(props.repo);
+  if (lossy || owner === "" || repo === "") {
+    return null;
+  }
+  const host = (textProp(props.host) || "https://github.com").replace(
+    /\/+$/u,
+    ""
+  );
+  return `[${linkText(`${owner}/${repo}`)}](${linkDestination(`${host}/${owner}/${repo}`)})`;
+};
+
+/** `CodeBlock` is a fenced block, its title kept in the fence's meta. */
+const codeBlock: ComponentMarkdown = ({ lossy, props }) => {
+  if (lossy || !isString(props.code)) {
+    return null;
+  }
+  const lang = textProp(props.lang) || "txt";
+  const title = textProp(props.title);
+  return fencedBlock(
+    title === "" ? lang : `${lang} title=${JSON.stringify(title)}`,
+    props.code
+  );
+};
+
+/**
+ * `Diff` from an inline patch is that patch, fenced as `diff`; from `old` and
+ * `new` strings, both sides fenced in turn. A diff read from files (`src`,
+ * `before`/`after`) needs the file system, so it declines.
+ */
+const diff: ComponentMarkdown = ({ lossy, props }) => {
+  if (lossy) {
+    return null;
+  }
+  if (isString(props.patch)) {
+    return fencedBlock("diff", props.patch);
+  }
+  if (isString(props.old) && isString(props.new)) {
+    const lang = textProp(props.lang);
+    return [
+      labeled("Before", fencedBlock(lang, props.old)),
+      labeled("After", fencedBlock(lang, props.new)),
+    ].join("\n\n");
+  }
+  return null;
+};
+
+/** `Math` is its TeX source, as a display block or inline span. */
+const math: ComponentMarkdown = ({ lossy, props }) => {
+  if (lossy || !isString(props.code)) {
+    return null;
+  }
+  return props.display === true ? `$$\n${props.code}\n$$` : `$${props.code}$`;
+};
+
+/** An `Icon` is decoration; one with an accessible label keeps the label. */
+const icon: ComponentMarkdown = ({ props }) => textProp(props.label);
+
+/** A `Badge` is its text. */
+const badge: ComponentMarkdown = ({ children }) => children;
+
+/**
+ * A `Tooltip` is its trigger text followed by the tip, which is otherwise
+ * only on hover: `term (tip)`, with the headline leading the tip.
+ */
+const tooltip: ComponentMarkdown = ({ children, lossy, props }) => {
+  const tip = [textProp(props.headline), textProp(props.tip)]
+    .filter(Boolean)
+    .join(": ");
+  if (lossy || tip === "") {
+    return null;
+  }
+  return children ? `${children} (${tip})` : tip;
+};
+
+/** Indent a list block's lines under its parent item. */
+const nested = (block: string): string =>
+  block
+    .split("\n")
+    .map((line) => (line === "" ? line : `  ${line}`))
+    .join("\n");
+
+/**
+ * `Tree` is the nested list it draws: each folder an item with a trailing
+ * slash and its entries indented under it, each file an item.
+ */
+const treeList: ComponentMarkdown = ({ childBlocks }) =>
+  childBlocks()
+    .map((block) => block.markdown)
+    .join("\n");
+
+const treeFolder: ComponentMarkdown = ({ childBlocks, lossy, props }) => {
+  const name = textProp(props.name);
+  if (lossy || name === "") {
+    return null;
+  }
+  const entries = childBlocks()
+    .map((block) => nested(block.markdown))
+    .join("\n");
+  return entries === "" ? `- ${name}/` : `- ${name}/\n${entries}`;
+};
+
+const treeFile: ComponentMarkdown = ({ lossy, props }) => {
+  const name = textProp(props.name);
+  return lossy || name === "" ? null : `- ${name}`;
+};
+
+/**
+ * A `Color.Item` is its name and value — both values when the light and dark
+ * themes differ — and a `Color.Row` its title over its items.
+ */
+const colorItem: ComponentMarkdown = ({ lossy, props }) => {
+  const name = textProp(props.name);
+  const { value } = props;
+  if (lossy || name === "") {
+    return null;
+  }
+  if (isString(value)) {
+    return `- **${name}**: ${inlineCode(value)}`;
+  }
+  if (!isValueMap(value)) {
+    return null;
+  }
+  const light = textProp(value.light);
+  const dark = textProp(value.dark);
+  if (light === "" && dark === "") {
+    return null;
+  }
+  const shown =
+    light && dark && light !== dark
+      ? `${inlineCode(light)} (light), ${inlineCode(dark)} (dark)`
+      : inlineCode(light || dark);
+  return `- **${name}**: ${shown}`;
+};
+
+const colorRow: ComponentMarkdown = ({ childBlocks, props }) =>
+  labeled(
+    textProp(props.title),
+    childBlocks()
+      .map((block) => block.markdown)
+      .join("\n")
+  );
+
 /**
  * The built-in serializer registry, keyed by JSX name. `Step` and `Tab` are
  * intentionally absent: they only carry meaning inside their containers,
  * which extract them via `childComponents`; a stray one stays verbatim.
+ * `AutoTypeTable` is absent too: its table comes from type-checking a source
+ * file, which a serializer can't do synchronously, so it stays as JSX.
  */
 const SERIALIZERS = {
+  Accordion: cardGroup,
+  AccordionItem: accordionItem,
+  Badge: badge,
   Callout: callout,
   Card: card,
   CardGroup: cardGroup,
+  CodeBlock: codeBlock,
+  CodeGroup: cardGroup,
+  Color: cardGroup,
+  "Color.Item": colorItem,
+  "Color.Row": colorRow,
+  Column: body,
+  Columns: cardGroup,
+  Diff: diff,
+  Expandable: expandable,
+  FileTree: body,
+  Frame: frame,
+  GithubInfo: githubInfo,
+  Icon: icon,
+  Math: math,
+  Panel: panel,
+  Prompt: prompt,
   Steps: steps,
   Tabs: tabs,
+  Tile: tile,
+  Tooltip: tooltip,
+  Tree: treeList,
+  "Tree.File": treeFile,
+  "Tree.Folder": treeFolder,
   TypeTable: typeTable,
+  Update: update,
   YouTube: youtube,
 } satisfies Record<string, ComponentMarkdown>;
+
+/**
+ * The built-ins that sit inside a line of prose, and so are downleveled as
+ * text elements too: each renders to a single line.
+ */
+const INLINE_COMPONENTS = new Set(["Badge", "Icon", "Math", "Tooltip"]);
 
 const escapeRegExp = (value: string): string =>
   value.replaceAll(/[$()*+.?[\\\]^{|}]/gu, String.raw`\$&`);
@@ -581,7 +896,7 @@ const renderSlice = (
       start: splice.start - start,
     }))
   );
-  return dedent(spliced).trim();
+  return dedent(spliced, indentAt(walk.source, start)).trim();
 };
 
 /** The element's body as Markdown: the slice covering all of its children. */
@@ -662,10 +977,11 @@ export const downlevelComponentNode = (
   node: MdastNode,
   walk: DownlevelWalk
 ): string | null => {
-  const serializer =
-    node.type === "mdxJsxFlowElement" && node.name
-      ? walk.registry[node.name]
-      : undefined;
+  const block =
+    node.type === "mdxJsxFlowElement" ||
+    (node.type === "mdxJsxTextElement" &&
+      INLINE_COMPONENTS.has(node.name ?? ""));
+  const serializer = block && node.name ? walk.registry[node.name] : undefined;
   return serializer && hasOffsets(node)
     ? serializeElement(serializer, walk, node)
     : null;

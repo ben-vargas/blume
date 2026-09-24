@@ -61,7 +61,7 @@ blume translate --check --json    # machine-readable drift report on stdout
 - run: npx blume translate --check
 ```
 
-The JSON report carries the same `diagnostics` + `summary` shape as `blume validate --json`, `blume audit --json`, and `blume eval --json`, with the drift grouped per locale. Hand-authored (untracked) translations never fail the gate.
+The JSON report carries the same `diagnostics` + `summary` shape as `blume validate --json`, `blume audit --json`, and `blume eval --json`, with the drift grouped per locale. Each missing or stale translation is an error diagnostic (`BLUME_TRANSLATE_MISSING`, `BLUME_TRANSLATE_STALE`), so `summary.error` matches the exit code. Hand-authored (untracked) translations never fail the gate.
 
 ## Limitations
 

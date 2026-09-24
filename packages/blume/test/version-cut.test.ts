@@ -5,11 +5,14 @@ import { tmpdir } from "node:os";
 
 import { dirname, join } from "pathe";
 
+import { scanProject } from "../src/core/project-graph.ts";
 import {
   CutError,
   cutVersion,
   insertArchivedVersion,
+  insertVersionsBlock,
   rewriteSnapshotLinks,
+  unregisteredSnapshotDiagnostics,
 } from "../src/core/version-cut.ts";
 
 const dirs: string[] = [];
@@ -178,6 +181,95 @@ describe("insertArchivedVersion", () => {
   });
 });
 
+describe("insertVersionsBlock", () => {
+  const insert = async (config: string): Promise<string | false> => {
+    const root = await makeProject({ "blume.config.ts": config });
+    const path = join(root, "blume.config.ts");
+    return (
+      (await insertVersionsBlock(path, "v1.0")) &&
+      (await readFile(path, "utf-8"))
+    );
+  };
+
+  it("adds the block as the first property of a defineConfig call", async () => {
+    expect(
+      await insert(
+        'import { defineConfig } from "blume";\n\nexport default defineConfig({\n\ttitle: "Docs",\n});\n'
+      )
+    ).toBe(
+      'import { defineConfig } from "blume";\n\nexport default defineConfig({\n\tversions: {\n\t  archived: [{ id: "v1.0" }],\n\t  current: { label: "Latest" },\n\t},\n\ttitle: "Docs",\n});\n'
+    );
+  });
+
+  it("opens up an empty or inline object", async () => {
+    expect(await insert("export default defineConfig({});\n")).toBe(
+      'export default defineConfig({\n  versions: {\n    archived: [{ id: "v1.0" }],\n    current: { label: "Latest" },\n  },\n});\n'
+    );
+    expect(await insert('export default { title: "Docs" };\n')).toBe(
+      'export default {\n  versions: {\n    archived: [{ id: "v1.0" }],\n    current: { label: "Latest" },\n  },\n  title: "Docs" };\n'
+    );
+  });
+
+  it("keeps a CRLF config's line endings", async () => {
+    const result = await insert(
+      'export default {\r\n  title: "Docs",\r\n};\r\n'
+    );
+    expect(result).toContain(
+      'versions: {\r\n    archived: [{ id: "v1.0" }],\r\n'
+    );
+    expect(String(result).replaceAll("\r\n", "")).not.toContain("\n");
+  });
+
+  it("leaves a config it can't safely edit alone", async () => {
+    expect(await insert("const config = {};\nexport default config;\n")).toBe(
+      false
+    );
+    expect(
+      await insert(
+        'export default {\n  versions: undefined,\n  title: "Docs",\n};\n'
+      )
+    ).toBe(false);
+    expect(
+      await insert("export default defineConfig({});\nexport default {};\n")
+    ).toBe(false);
+    const root = await makeProject({});
+    expect(
+      await insertVersionsBlock(join(root, "blume.config.ts"), "v1.0")
+    ).toBe(false);
+  });
+});
+
+describe("unregisteredSnapshotDiagnostics", () => {
+  it("warns about a version-shaped folder when versioning isn't configured", async () => {
+    const root = await makeProject({
+      "blume.config.ts": "const config = {};\nexport default config;\n",
+      "docs/index.mdx": "---\ntitle: Home\n---\n# Home\n",
+      "docs/v1.0/guide.mdx": "---\ntitle: Old guide\n---\n# Old\n",
+      "docs/v1.0/index.mdx": "---\ntitle: Old\n---\n# Old\n",
+      "docs/versions.mdx": "---\ntitle: Versions\n---\n# Versions\n",
+    });
+    const diagnostics = unregisteredSnapshotDiagnostics(
+      await scanProject(root)
+    );
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.code).toBe("BLUME_VERSIONS_UNCONFIGURED_VERSION");
+    expect(diagnostics[0]?.file).toBe(join(root, "docs", "v1.0"));
+    expect(diagnostics[0]?.message).toContain('Folder "v1.0/"');
+    expect(diagnostics[0]?.suggestion).toContain('archived: [{ id: "v1.0" }]');
+  });
+
+  it("leaves a versioned project to the scan's own check", async () => {
+    const root = await makeProject({
+      "blume.config.ts": VERSIONED_CONFIG,
+      "docs/index.mdx": "---\ntitle: Home\n---\n# Home\n",
+      "docs/v2.0/index.mdx": "---\ntitle: Stray\n---\n# Stray\n",
+    });
+    expect(unregisteredSnapshotDiagnostics(await scanProject(root))).toEqual(
+      []
+    );
+  });
+});
+
 describe("cutVersion", () => {
   it("snapshots the tree, excludes prior snapshots, and rewrites links", async () => {
     const root = await makeProject({
@@ -282,15 +374,37 @@ export default {
     expect(result.configSnippet).toContain('{ id: "v2.0" },');
   });
 
-  it("prints a full snippet when versioning is not configured yet", async () => {
+  it("turns versioning on with the first cut", async () => {
     const root = await makeProject({
-      "blume.config.ts": "export default {};\n",
+      "blume.config.ts": 'export default {\n  title: "Docs",\n};\n',
+      "docs/index.mdx": "---\ntitle: Home\n---\n# Home\n",
+    });
+    const result = await cutVersion(root, "v1.0");
+    expect(result.configUpdated).toBe(true);
+    expect(result.versionsAdded).toBe(true);
+    expect(result.configSnippet).toBeNull();
+    expect(await readFile(join(root, "blume.config.ts"), "utf-8")).toBe(
+      'export default {\n  versions: {\n    archived: [{ id: "v1.0" }],\n    current: { label: "Latest" },\n  },\n  title: "Docs",\n};\n'
+    );
+    // The registered snapshot routes as v1.0, so a scan no longer serves it as
+    // current content.
+    const project = await scanProject(root);
+    expect(project.config.versions?.archived.map((v) => v.id)).toEqual([
+      "v1.0",
+    ]);
+  });
+
+  it("prints a full snippet when the config resists a first-cut edit", async () => {
+    const root = await makeProject({
+      "blume.config.ts": "const config = {};\nexport default config;\n",
       "docs/index.mdx": "---\ntitle: Home\n---\n# Home\n",
     });
     const result = await cutVersion(root, "v1.0");
     expect(result.configUpdated).toBe(false);
+    expect(result.versionsAdded).toBe(false);
     expect(result.configSnippet).toContain("versions: {");
     expect(result.configSnippet).toContain('{ id: "v1.0" }');
+    expect(result.configSnippet).toContain('current: { label: "Latest" }');
   });
 
   it("leaves links to pages outside the copied tree untouched", async () => {
@@ -328,9 +442,9 @@ paths:
 
   it("never nests an unregistered version-shaped snapshot in a new cut", async () => {
     const root = await makeProject({
-      // No `versions` config: the first cut leaves v1.0 unregistered (the CLI
+      // A config the first cut can't edit leaves v1.0 unregistered (the CLI
       // prints the snippet), so only the shape check can keep it out of v2.0.
-      "blume.config.ts": "export default {};\n",
+      "blume.config.ts": "const config = {};\nexport default config;\n",
       "docs/guides/x.mdx": "---\ntitle: X\n---\n# X\n",
       "docs/index.mdx": "---\ntitle: Home\n---\n# Home\n",
     });

@@ -16,7 +16,7 @@ import {
 } from "../../upgrade/upgrade.ts";
 import { commandMeta } from "../command-meta.ts";
 import { installDependencies } from "../init/install.ts";
-import { detectProjectPackageManager } from "../init/scaffold.ts";
+import { commandsFor, detectProjectPackageManager } from "../init/scaffold.ts";
 import { reportInternalError } from "../internal-error.ts";
 import { logger } from "../log.ts";
 
@@ -24,8 +24,9 @@ import { logger } from "../log.ts";
  * `blume upgrade` — move a project to this version of Blume. Run it through the
  * package runner (`npx blume@latest upgrade`), since a project on the previous
  * major doesn't have the command yet: it bumps `blume` in `package.json`,
- * installs, then checks the config and `components.ts` against this version
- * and lists what's left, or hands the list to Claude Code or Codex the way
+ * installs, then checks the config, `components.ts`, and each page's front
+ * matter against this version and lists what's left, or hands the list to
+ * Claude Code or Codex the way
  * `blume audit --claude` does. Status lines go straight to stderr, like the
  * audit's: consola drops info-level lines in test and CI environments.
  */
@@ -71,12 +72,15 @@ export const upgradeCommand = defineCommand({
         );
         process.exit(1);
       }
+      const pm = await detectProjectPackageManager(root);
+      // A local install puts no `blume` on PATH, so every command this
+      // prints (or hands the agent) runs through the project's runner.
+      const runner = commandsFor(pm).exec;
       if (bump.status === "bumped") {
         process.stderr.write(
           `  Bumped blume ${bump.from} → ${bump.to} in package.json.\n`
         );
         if (args.install) {
-          const pm = await detectProjectPackageManager(root);
           const outcome = await installDependencies(root, pm, {
             quiet: false,
           });
@@ -95,7 +99,7 @@ export const upgradeCommand = defineCommand({
       const findings = await collectUpgradeFindings(root);
       if (findings.length === 0) {
         process.stderr.write(
-          `  Ready for Blume ${version}: the config and components.ts check out. Run \`blume build\` to confirm.\n`
+          `  Ready for Blume ${version}: the config, components.ts, and pages check out. Run \`${runner} blume build\` to confirm.\n`
         );
         return;
       }
@@ -116,6 +120,7 @@ export const upgradeCommand = defineCommand({
         findings,
         guidePath: join(packageRoot(), UPGRADE_GUIDE_FILE),
         root,
+        runner,
         version,
       });
       const code = await launchInstalledAgent(cli.bin, prompt);

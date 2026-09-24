@@ -58,9 +58,12 @@ export interface QuestionOutcome {
 }
 
 /**
- * The diagnostic for a failed or errored question, anchored to the page that
- * should have answered it (via the first matching route hint) or, failing
- * that, to the question's line in the evals file.
+ * The diagnostic for a failed or errored question. A failure is anchored to
+ * the page that should have answered it (via the first matching route hint)
+ * or, failing that, to the question's line in the evals file. An errored run —
+ * the agent crashed, timed out, or answered in a shape Blume couldn't read —
+ * says nothing about the docs, so it always points at the question instead of
+ * a page there's nothing to fix in.
  */
 export const questionFinding = (
   question: EvalQuestion,
@@ -68,24 +71,29 @@ export const questionFinding = (
   project: BlumeProject,
   anchor: EvalsAnchor
 ): Diagnostic => {
-  const route = hintedRoute(question, project);
-  const site = route
-    ? { file: route.sourcePath, url: route.path }
-    : { file: anchor.path, line: locateQuestion(anchor.raw, question.id) };
+  const questionSite = {
+    file: anchor.path,
+    line: locateQuestion(anchor.raw, question.id),
+  };
 
   if (outcome.status === "error") {
     return {
       code: "BLUME_EVAL_QUESTION_ERROR",
       docsUrl: DOCS_URL,
-      message: `Eval run failed for "${question.question}"${
+      message: `The agent run failed for "${question.question}"${
         outcome.detail ? ` — ${outcome.detail}` : ""
-      }.`,
+      }, so the docs weren't graded.`,
       severity: question.severity,
       suggestion:
         "Rerun `blume eval`; if it persists, check the agent CLI installation and the failure detail.",
-      ...site,
+      ...questionSite,
     };
   }
+
+  const route = hintedRoute(question, project);
+  const site = route
+    ? { file: route.sourcePath, url: route.path }
+    : questionSite;
 
   const missing =
     outcome.missing.length > 0

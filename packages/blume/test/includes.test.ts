@@ -14,6 +14,7 @@ import {
   expandIncludes,
   expandIncludeTarget,
   hasIncludeStatements,
+  matchIncludeStatement,
   parseIncludeLine,
   parseIncludeStatement,
 } from "../src/core/includes.ts";
@@ -105,6 +106,140 @@ describe("parseIncludeStatement", () => {
     expect(
       parseIncludeStatement(`<include>!${" ".repeat(100_000)}`)
     ).toBeNull();
+  });
+});
+
+describe("matchIncludeStatement", () => {
+  it("reads a one-line statement, and nothing that isn't one", () => {
+    expect(
+      matchIncludeStatement(["<include>./a.md</include>"], 0, "md")
+    ).toMatchObject({ end: 0, kind: "statement" });
+    expect(matchIncludeStatement(["Prose."], 0, "md")).toEqual({
+      kind: "none",
+    });
+    expect(matchIncludeStatement(["<includes>"], 0, "md")).toEqual({
+      kind: "none",
+    });
+  });
+
+  it("reads a statement wrapped by a formatter", () => {
+    const lines = [
+      "<include",
+      '  lang="ts"',
+      "  meta='title=\"a.ts\"'",
+      ">",
+      "  ./a.ts",
+      "</include>",
+    ];
+    expect(matchIncludeStatement(lines, 0, "mdx")).toEqual({
+      end: 5,
+      kind: "statement",
+      statement: {
+        attributes: { lang: "ts", meta: 'title="a.ts"' },
+        target: "./a.ts",
+      },
+    });
+  });
+
+  it("calls an unclosed, broken-up, or unreadable statement malformed", () => {
+    expect(matchIncludeStatement(["<include>", "./a.md"], 0, "md")).toEqual({
+      kind: "malformed",
+    });
+    expect(
+      matchIncludeStatement(["<include>", "", "./a.md", "</include>"], 0, "md")
+    ).toEqual({ kind: "malformed" });
+    expect(
+      matchIncludeStatement(
+        ["<include Lang=x>", "./a.md", "</include>"],
+        0,
+        "md"
+      )
+    ).toEqual({ kind: "malformed" });
+    const long = [
+      "<include>",
+      ...Array.from({ length: 10 }, () => "x"),
+      "</include>",
+    ];
+    expect(matchIncludeStatement(long, 0, "md")).toEqual({ kind: "malformed" });
+  });
+
+  it("treats a .md line indented like code as code, never a statement", () => {
+    expect(
+      matchIncludeStatement(["    <include>./a.md</include>"], 0, "md")
+    ).toEqual({ kind: "none" });
+    expect(
+      matchIncludeStatement(["    <include>./a.md</include>"], 0, "mdx")
+    ).toMatchObject({ kind: "statement" });
+  });
+});
+
+describe("expandIncludes — wrapped and malformed statements", () => {
+  it("splices a wrapped statement whole", async () => {
+    const root = await fixture({ "code.ts": "const a = 1;\n", "p.mdx": "u" });
+    const body = [
+      "Intro.",
+      "",
+      '<include lang="ts" meta=\'title="code.ts"\'>',
+      "  ./code.ts",
+      "</include>",
+      "After.",
+    ].join("\n");
+    const result = await expandIncludes(body, {
+      contentRoot: root,
+      sourcePath: join(root, "p.mdx"),
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.text).toContain('```ts title="code.ts"');
+    expect(result.text).toContain("const a = 1;");
+    expect(result.text).not.toContain("<include");
+    expect(result.text).not.toContain("./code.ts");
+    expect(result.text).toContain("After.");
+  });
+
+  it("keeps every line of a wrapped statement whose target fails", async () => {
+    const root = await fixture({ "p.md": "u" });
+    const result = await expandIncludes(
+      "<include>\n  ./gone.md\n</include>\n",
+      {
+        contentRoot: root,
+        sourcePath: join(root, "p.md"),
+      }
+    );
+    expect(result.errors[0]).toMatchObject({
+      code: "BLUME_INCLUDE_NOT_FOUND",
+      line: 1,
+    });
+    expect(result.text).toBe("<include>\n  ./gone.md\n</include>\n");
+  });
+
+  it("warns on a statement it can't read, at the line that opens it", async () => {
+    const root = await fixture({ "p.md": "u" });
+    const result = await expandIncludes("Intro.\n\n<include>\n./a.md\n", {
+      contentRoot: root,
+      sourcePath: join(root, "p.md"),
+    });
+    expect(result.errors).toEqual([
+      expect.objectContaining({
+        code: "BLUME_INCLUDE_MALFORMED",
+        file: join(root, "p.md"),
+        line: 3,
+        severity: "warning",
+      }),
+    ]);
+    expect(result.text).toContain("<include>");
+  });
+
+  it("leaves a wrapped statement folded into a setext heading alone", async () => {
+    const root = await fixture({ "p.md": "u", "s.md": "Spliced.\n" });
+    const result = await expandIncludes(
+      "<include>\n./s.md\n</include>\n===\n",
+      {
+        contentRoot: root,
+        sourcePath: join(root, "p.md"),
+      }
+    );
+    expect(result.errors).toEqual([]);
+    expect(result.text).not.toContain("Spliced.");
   });
 });
 
@@ -827,22 +962,60 @@ describe("includePlugin", () => {
     expect(replaced).toEqual([]);
   });
 
-  it("rejects a statement wrapped across lines in .mdx", async () => {
+  it("rejects a wrapped .mdx element the scanner can't read as one statement", async () => {
+    // A blank line inside: JSX still parses one element, but the string-level
+    // surfaces wouldn't splice it, so it must not render spliced either.
     const root = await fixture({ "s.mdx": "Spliced.\n" });
     const { ctx, replaced, reports } = fakeCtx({
       fileURL: pathToFileURL(join(root, "p.mdx")),
+      source: "<include>\n\n./s.mdx\n</include>",
       text: "./s.mdx",
     });
     await includePlugin({ contentRoot: root }).mdxJsxFlowElement(
       {
         name: "include",
-        position: { end: { line: 3 }, start: { line: 1 } },
+        position: { end: { line: 4 }, start: { line: 1 } },
         type: "mdxJsxFlowElement",
       },
       ctx
     );
-    expect(replaced[0]?.raw).toContain("single line");
+    expect(replaced[0]?.raw).toContain("line of its own");
     expect(reports).toHaveLength(1);
+  });
+
+  it("splices a wrapped .mdx element the scanner reads as one statement", async () => {
+    const root = await fixture({ "code.ts": "const a = 1;\n" });
+    const { ctx, replaced, reports } = fakeCtx({
+      fileURL: pathToFileURL(join(root, "p.mdx")),
+      source: `Intro.\n\n<include lang="ts" meta='title="code.ts"'>\n  ./code.ts\n</include>\n`,
+      text: "./code.ts",
+    });
+    await includePlugin({ contentRoot: root }).mdxJsxFlowElement(
+      {
+        name: "include",
+        position: { end: { line: 5 }, start: { line: 3 } },
+        type: "mdxJsxFlowElement",
+      },
+      ctx
+    );
+    expect(reports).toEqual([]);
+    expect(replaced[0]?.raw).toContain('```ts title="code.ts"');
+    expect(replaced[0]?.raw).toContain("const a = 1;");
+  });
+
+  it("splices a wrapped statement in a .md html block", async () => {
+    const root = await fixture({ "p.md": "u", "s.md": "Spliced.\n" });
+    const { ctx, replaced } = fakeCtx({
+      fileURL: pathToFileURL(join(root, "p.md")),
+    });
+    await includePlugin({ contentRoot: root }).html(
+      {
+        type: "html",
+        value: '<include\n  meta="x"\n>\n  ./s.md\n</include>\nAfter.',
+      },
+      ctx
+    );
+    expect(replaced[0]?.raw).toBe("Spliced.\nAfter.");
   });
 
   it("splices a single-line statement whose position is present", async () => {

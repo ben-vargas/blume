@@ -592,11 +592,30 @@ const envVarsFor = (sources: SourceKind[]): string[] => [
 
 /** What an existing package.json — one `init` left alone — already wires up. */
 export interface ExistingPackage {
+  /**
+   * Whether `blume` is installed where the project resolves it: its own
+   * `node_modules`, or an ancestor's in a hoisted workspace. Listing it isn't
+   * enough — a rerun of `init --no-install` lists it without installing it.
+   */
+  blumeInstalled: boolean;
   /** Every package it lists in `dependencies` or `devDependencies`. */
   dependencies: string[];
   /** Whether its `dev` script runs Blume. */
   devRunsBlume: boolean;
 }
+
+/** Whether a `node_modules/blume` sits in `root` or any directory above it. */
+const blumeResolves = (root: string): boolean => {
+  let dir = root;
+  while (!existsSync(join(dir, "node_modules", "blume", "package.json"))) {
+    const parent = dirname(dir);
+    if (parent === dir) {
+      return false;
+    }
+    dir = parent;
+  }
+  return true;
+};
 
 /**
  * Read the package.json `init` didn't write. An unreadable or malformed one
@@ -616,6 +635,7 @@ export const readExistingPackage = async (
       scripts?: Record<string, string>;
     };
     return {
+      blumeInstalled: blumeResolves(root),
       dependencies: Object.keys({
         ...pkg.dependencies,
         ...pkg.devDependencies,
@@ -623,7 +643,11 @@ export const readExistingPackage = async (
       devRunsBlume: String(pkg.scripts?.dev ?? "").includes("blume"),
     };
   } catch {
-    return { dependencies: [], devRunsBlume: false };
+    return {
+      blumeInstalled: blumeResolves(root),
+      dependencies: [],
+      devRunsBlume: false,
+    };
   }
 };
 
@@ -631,7 +655,8 @@ export const readExistingPackage = async (
  * The next-steps message: `cd` hint, the install command when `init` did not
  * run it itself, the dev command, and token setup. With an `existing`
  * package.json — which `init` never edits — it first adds whatever of `blume`
- * and the sources' SDKs isn't listed yet, then starts the dev server through
+ * and the sources' SDKs isn't listed yet (or installs, when everything is
+ * listed but `blume` was never installed), then starts the dev server through
  * the package runner unless its `dev` script already runs Blume.
  */
 export const nextSteps = (
@@ -654,6 +679,8 @@ export const nextSteps = (
     ].filter((dep) => !existing.dependencies.includes(dep));
     if (missing.length > 0) {
       lines.push(`${commands.add} ${missing.join(" ")}`);
+    } else if (!(needsInstall || existing.blumeInstalled)) {
+      lines.push(commands.install);
     }
   }
   lines.push(

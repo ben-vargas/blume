@@ -43,7 +43,11 @@ export const fa: UIStringsOverride = {
     description: "به‌روزرسانی‌های محصول و یادداشت‌های انتشار.",
     title: "گزارش تغییرات",
   },
-  content: { diagramError: "نمایش این نمودار ممکن نشد." },
+  content: {
+    copyColor: "کپی رنگ {name} {value}",
+    copyPrompt: "کپی پرامپت",
+    diagramError: "نمایش این نمودار ممکن نشد.",
+  },
   feedback: {
     no: "خیر",
     question: "آیا این صفحه مفید بود؟",

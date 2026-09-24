@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
 
 import { parseArgs } from "citty";
 import type { CommandContext, CommandDef } from "citty";
@@ -6,6 +6,7 @@ import { join } from "pathe";
 
 import { commandMeta } from "../src/cli/command-meta.ts";
 import { lazyCommand } from "../src/cli/lazy-command.ts";
+import { BlumeError } from "../src/core/diagnostics.ts";
 
 const CLI_DIR = join(import.meta.dir, "..", "src", "cli");
 const META = join(CLI_DIR, "command-meta.ts");
@@ -75,6 +76,99 @@ describe("lazyCommand", () => {
     await expect(command.setup?.(context)).resolves.toBeUndefined();
     await expect(command.run?.(context)).resolves.toBeUndefined();
     await expect(command.cleanup?.(context)).resolves.toBeUndefined();
+  });
+});
+
+/** Capture stderr and turn `process.exit` into a throw for one call. */
+const capture = async (
+  call: () => Promise<void> | undefined
+): Promise<{ code: number | undefined; stderr: string }> => {
+  let stderr = "";
+  const write = spyOn(process.stderr, "write").mockImplementation((chunk) => {
+    stderr += String(chunk);
+    return true;
+  });
+  const exit = spyOn(process, "exit").mockImplementation(() => {
+    throw new Error("exit");
+  });
+  try {
+    await call();
+    return { code: undefined, stderr };
+  } catch {
+    const [first] = exit.mock.calls;
+    return { code: Number(first?.[0]), stderr };
+  } finally {
+    exit.mockRestore();
+    write.mockRestore();
+  }
+};
+
+describe("lazyCommand flag and error handling", () => {
+  it("rejects a flag the command doesn't declare before running its setup", async () => {
+    const seen: string[] = [];
+    const { load } = loader({
+      args: { isolated: { type: "boolean" } },
+      setup: () => {
+        seen.push("setup");
+      },
+    });
+    const command = lazyCommand(meta, load, "fixture");
+    const { code, stderr } = await capture(() =>
+      command.setup?.({ ...context, rawArgs: ["--isolatd"] })
+    );
+    expect(code).toBe(1);
+    expect(seen).toEqual([]);
+    expect(stderr).toContain("BLUME_UNKNOWN_OPTION");
+    expect(stderr).toContain(
+      "blume fixture doesn't know the option --isolatd (did you mean --isolated?)."
+    );
+  });
+
+  it("names the command by its key when its meta has no name", async () => {
+    const { load } = loader({});
+    const command = lazyCommand({}, load, "fixture");
+    const { stderr } = await capture(() =>
+      command.setup?.({ ...context, rawArgs: ["--nope"] })
+    );
+    expect(stderr).toContain("blume fixture doesn't know the option --nope.");
+  });
+
+  it("keeps the flags `blume build` answers itself", async () => {
+    const { load } = loader({ args: {} });
+    const command = lazyCommand({ name: "build" }, load, "fixture");
+    await expect(
+      command.setup?.({ ...context, rawArgs: ["--adapter", "vercel"] })
+    ).resolves.toBeUndefined();
+  });
+
+  it("reports a BlumeError that escapes run as its diagnostic", async () => {
+    const { load } = loader({
+      run: () => {
+        throw new BlumeError({
+          code: "BLUME_CONFIG_INVALID",
+          message: "title: expected string",
+          severity: "error",
+        });
+      },
+    });
+    const command = lazyCommand(meta, load, "fixture");
+    const { code, stderr } = await capture(() => command.run?.(context));
+    expect(code).toBe(1);
+    expect(stderr).toContain("BLUME_CONFIG_INVALID");
+    expect(stderr).toContain("title: expected string");
+  });
+
+  it("reports any other escaping error as an internal error", async () => {
+    const { load } = loader({
+      run: () => {
+        throw new Error("boom");
+      },
+    });
+    const command = lazyCommand(meta, load, "fixture");
+    const { code, stderr } = await capture(() => command.run?.(context));
+    expect(code).toBe(1);
+    expect(stderr).toContain("BLUME_INTERNAL");
+    expect(stderr).toContain("boom");
   });
 });
 

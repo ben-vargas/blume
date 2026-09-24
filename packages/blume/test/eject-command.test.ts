@@ -34,10 +34,10 @@ const fixture = async (files: Record<string, string>): Promise<string> => {
   return root;
 };
 
-const runEject = async (
+const runCli = async (
   cwd: string,
-  userAgent?: string,
-  ...args: string[]
+  userAgent: string | undefined,
+  args: string[]
 ): Promise<{ exitCode: number; output: string }> => {
   const env = { ...process.env };
   delete env.npm_config_user_agent;
@@ -47,7 +47,7 @@ const runEject = async (
   // `bun test` sets NODE_ENV=test, which lowers consola's default log level
   // and silences the success box this suite asserts on.
   delete env.NODE_ENV;
-  const proc = Bun.spawn(["bun", CLI, "eject", ...args], {
+  const proc = Bun.spawn(["bun", CLI, ...args], {
     cwd,
     env,
     stderr: "pipe",
@@ -61,7 +61,71 @@ const runEject = async (
   return { exitCode, output: `${stdout}${stderr}` };
 };
 
+const runEject = (
+  cwd: string,
+  userAgent?: string,
+  ...args: string[]
+): Promise<{ exitCode: number; output: string }> =>
+  runCli(cwd, userAgent, ["eject", ...args]);
+
 describe("blume eject", () => {
+  it("refuses to eject an ejected app again unless forced", async () => {
+    const root = await fixture({
+      "docs/index.md": "---\ntitle: Home\n---\n# Home\n",
+    });
+    const first = await runEject(root, undefined, "--yes");
+    expect(first.exitCode).toBe(0);
+    const config = join(root, "astro.config.mjs");
+    const edited = `${await readFile(config, "utf-8")}// my edit\n`;
+    await writeFile(config, edited);
+
+    // A second eject would rewrite the app and drop the edit.
+    const again = await runEject(root, undefined, "--yes");
+    expect(again.exitCode).toBe(1);
+    expect(again.output).toContain("already ejected");
+    expect(again.output).toContain("--force");
+    expect(await readFile(config, "utf-8")).toBe(edited);
+
+    // --force is the explicit way through.
+    const forced = await runEject(root, undefined, "--yes", "--force");
+    expect(forced.exitCode).toBe(0);
+    expect(await readFile(config, "utf-8")).not.toContain("// my edit");
+  });
+
+  it("reports a Blume 1 config as diagnostics, not a stack trace", async () => {
+    const root = await fixture({
+      "blume.config.ts":
+        'export default { lastModified: true, theme: { layout: "sidebar" } };\n',
+      "docs/index.md": "---\ntitle: Home\n---\n# Home\n",
+    });
+    const { exitCode, output } = await runEject(root, undefined, "--yes");
+    expect(exitCode).toBe(1);
+    expect(output).toContain("BLUME_CONFIG_INVALID");
+    expect(output).toContain("theme.layout was removed");
+    expect(output).not.toContain("ConfigValidationError");
+    expect(output).not.toContain("    at ");
+    expect(existsSync(join(root, "astro.config.mjs"))).toBe(false);
+  });
+
+  it("stops blume dev and blume build in an ejected app", async () => {
+    const root = await fixture({
+      "docs/index.md": "---\ntitle: Home\n---\n# Home\n",
+      "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
+    });
+    const ejected = await runEject(root, undefined, "--yes");
+    expect(ejected.exitCode).toBe(0);
+
+    const dev = await runCli(root, undefined, ["dev"]);
+    expect(dev.exitCode).toBe(1);
+    expect(dev.output).toContain("ejected to a standalone Astro app");
+    expect(dev.output).toContain("Run pnpm dev instead.");
+    const build = await runCli(root, undefined, ["build"]);
+    expect(build.exitCode).toBe(1);
+    expect(build.output).toContain("Run pnpm build instead.");
+    // Neither regenerated the hidden runtime eject removed.
+    expect(existsSync(join(root, ".blume"))).toBe(false);
+  });
+
   it("refuses without --yes and writes nothing", async () => {
     const root = await fixture({
       "docs/index.md": "---\ntitle: Home\n---\n# Home\n",

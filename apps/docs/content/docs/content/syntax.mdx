@@ -148,6 +148,8 @@ For a table without a header row — key–value pairs, for example — leave th
 
 Link to other pages or external sites. Images accept a relative path to a file next to your content, any path under `public/` (served at the site root), or a remote URL.
 
+A relative page link (`./install`, `../guides/setup`) resolves from the page's own folder — on an index page, the folder it introduces — and a link to a Markdown file (`./setup.md`, `../intro.mdx`) lands on the page that file publishes, its `slug` included. Blume writes each one as the root-relative route in the built page, so links authored for GitHub or Docusaurus keep working, and [`blume validate`](/docs/cli/validate) checks them the same way.
+
 Read the [quickstart](/docs/quickstart) to get started.
 
 ```md

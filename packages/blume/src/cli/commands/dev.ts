@@ -19,6 +19,7 @@ import {
   DevLockHeldError,
   updateDevLockPort,
 } from "../dev-lock.ts";
+import { refuseIfEjected } from "../eject-scripts.ts";
 import { normalizeHost } from "../host-args.ts";
 import { logger, reportDiagnostics } from "../log.ts";
 import { prepareProject } from "../prepare.ts";
@@ -59,6 +60,7 @@ export const devCommand = defineCommand({
   meta: commandMeta.dev,
   async run({ args }) {
     const root = process.cwd();
+    await refuseIfEjected(root, "dev");
     const preview = args.preview ?? false;
     const overrides = args["content-dir"]
       ? { contentRoot: args["content-dir"] }

@@ -31,9 +31,11 @@ Cards link to a destination with an icon, title, and short blurb. Group them wit
 
 `Card` takes `title`, an optional `href` (omit it for a non-clickable card), and an `icon` from Blume's built-in icon set. `CardGroup` takes `cols` (default `2`).
 
+A card also takes `img`, an image across its top (or beside the text from the `sm` breakpoint up, with `horizontal`); `cta`, a call-to-action line in the accent color beneath the text; `arrow`, an arrow after the title and the CTA (shown by default only for external links); `type`, which tints the card and picks a matching icon the way a callout does (`note`, `info`, `tip`, `check`, `warning`, or `danger`); and `color`, any CSS color for the icon.
+
 ## Steps
 
-A numbered vertical sequence for ordered instructions — installs, setup flows, and tutorials where the order matters. Each `Step` takes a `title`.
+A numbered vertical sequence for ordered instructions — installs, setup flows, and tutorials where the order matters. Each `Step` takes a `title` and an optional `icon`, shown in its marker in place of the number. `titleSize` on `Steps` sizes the step titles like body text (`p`, the default) or an `h4`, `h3`, or `h2` heading.
 
 <Steps>
   <Step title="Install Blume">Add the package to your project.</Step>
@@ -71,7 +73,9 @@ Switch between equivalent content in place — language variants, OS-specific co
 
 Add `inline` to render borderless — a tab strip on a full-width rule with the content flowing beneath as prose — instead of the bordered box. Add `param` to sync the active tab to a URL query param instead of the hash, which makes the selection shareable: a link ending in `?install=windows` opens on the Windows tab. Each group syncs to its own `param`, so you can use several independent, deep-linkable groups on one page.
 
-Groups with same-titled tabs switch together — pick "macOS" in one and every group with a macOS tab follows. Add `syncKey` to scope that syncing: only groups sharing the same key switch together, so unrelated groups that happen to share a tab title stay independent.
+Groups with same-titled tabs switch together — pick "macOS" in one and every group with a macOS tab follows. Add `syncKey` to scope that syncing: only groups sharing the same key switch together, so unrelated groups that happen to share a tab title stay independent, or `sync={false}` to keep a group out of it entirely.
+
+The active tab is written to the URL hash, so a link opens on it; pass `hash={false}` to leave the URL alone. `defaultTabIndex` picks the tab that opens first (zero-based, default `0`) when no link or synced selection chooses one. `dropdown` swaps the tab strip for a select menu (in the boxed layout only), `borderBottom={false}` drops the rule under the strip, and each `Tab` takes an `icon` shown before its title.
 
 <Tabs inline param="install">
   <Tab title="macOS">Use Homebrew to install the toolchain.</Tab>
@@ -137,6 +141,16 @@ A negative or breaking state, such as a deprecation.
 
 ```astro
 <Badge variant="danger">Deprecated</Badge>
+```
+
+### Color, shape, and size
+
+Beyond `variant`, a badge takes `color` — a named hue (`blue`, `green`, `orange`, `purple`, `red`, `teal`, `violet`, `yellow`), a neutral (`gray`, `surface`, `white`, or their `-destructive` forms), or a hex value — plus `shape` (`rounded`, the default, or `pill`), `size` (`xs`, `sm`, `md` by default, or `lg`), `stroke` for an outline instead of a fill, `icon` for an icon before the label, `tooltip` for hover text, and `disabled` to dim it.
+
+An outlined purple pill with an icon: <Badge color="purple" icon="sparkles" shape="pill" stroke>Preview</Badge>
+
+```astro
+<Badge color="purple" icon="sparkles" shape="pill" stroke>Preview</Badge>
 ```
 
 ## Icon
@@ -334,7 +348,7 @@ Embed a YouTube video in a responsive, privacy-friendly (`youtube-nocookie.com`)
 
 ## Color
 
-Show color swatches with copyable hex values — useful for documenting a palette or brand colors. Use `variant="compact"` for a swatch list, or `variant="table"` with `Color.Row` to group them. Each `Color.Item` takes a `name` and a `value` (a hex string, or `{ light, dark }` for theme-aware colors).
+Show color swatches with copyable hex values — useful for documenting a palette or brand colors. Use `variant="compact"` for a swatch list, or `variant="table"` with `Color.Row` to group them. Each `Color.Item` takes a `name` and a `value` (a hex string, or `{ light, dark }` for theme-aware colors); a theme-aware swatch copies the value for the theme the reader is viewing.
 
 <Color variant="compact">
   <Color.Item name="blue-500" value="#3B82F6" />
@@ -424,7 +438,7 @@ A clickable preview that leads with a visual — an icon or image — above a ti
 
 ## Prompt
 
-A single row with a label and a copy button. The `description` (Markdown) is the visible label; the body is the prompt itself — hidden, and copied to the clipboard when the **Copy prompt** button is pressed. `actions` controls the buttons (e.g. `["copy", "cursor"]`).
+A single row with a label and a copy button. The `description` (Markdown) is the visible label; the body is the prompt itself — hidden, and copied to the clipboard as Markdown, with its links, lists, and code intact, when the **Copy prompt** button is pressed. `actions` controls the buttons (e.g. `["copy", "cursor"]`).
 
 <Prompt
   description="Ask the model to **document** an endpoint."
@@ -546,7 +560,7 @@ export interface ButtonProps {
 
 ## GitHub info
 
-A card linking to a GitHub repository with its live star and fork counts. Counts are fetched at build time — no client JavaScript — and the card still renders if the API is unreachable. Pass `owner` and `repo`, or omit them to use the repository from your `blume.config`. Set a `GITHUB_TOKEN` environment variable to lift the API rate limit.
+A card linking to a GitHub repository with its live star and fork counts. Counts are fetched at build time — no client JavaScript — and the card still renders if the API is unreachable. Pass `owner` and `repo`, or omit them to use the repository from your `blume.config`. Set a `GITHUB_TOKEN` environment variable to lift the API rate limit; a `token` prop overrides it for one card, but the environment variable keeps the token out of your content.
 
 The card reads the instance from [`github.host`](/docs/configuration#github-enterprise), so on an Enterprise-hosted site explicit `owner`/`repo` address that instance too. Pass `host` to point one card somewhere else — a public project from an Enterprise site, say; the REST base is derived from it the same way it is from `github.host`.
 
@@ -658,6 +672,8 @@ import CodeBlock from "blume/components/content/CodeBlock.astro";
 
 <CodeBlock lang="ts" code={source} />
 ```
+
+`title` sets the header label — a filename, say — which otherwise shows the language, and `icons={false}` hides the language's brand icon, as [`markdown.code.icons`](/docs/content/syntax#code-blocks) does for fences.
 
 To highlight to an HTML string yourself (e.g. inside your own component), import the underlying helper from `blume/markdown`:
 

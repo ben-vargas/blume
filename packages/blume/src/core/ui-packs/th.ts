@@ -44,6 +44,8 @@ export const th: UIStringsOverride = {
     title: "บันทึกการเปลี่ยนแปลง",
   },
   content: {
+    copyColor: "คัดลอกสี {name} {value}",
+    copyPrompt: "คัดลอกพรอมต์",
     diagramError: "ไม่สามารถแสดงไดอะแกรมนี้ได้",
   },
   feedback: {

@@ -64,10 +64,12 @@ const emit = async (
   const project = {
     config: blumeConfigSchema.parse({ deployment }),
     context: { root },
+    graph: { pages: [] },
     manifest: { routes: [{ path: "/docs/intro" }] },
   };
-  // SAFETY: the writer reads only the config, the project root, and the
-  // manifest routes, all of which the fixture provides.
+  // SAFETY: the writer reads only the config, the project root, the graph's
+  // pages (to tell whether a changelog index is generated), and the manifest
+  // routes, all of which the fixture provides.
   await emitHeaderFiles(project as never, staticDir, {
     info: () => {},
     warn: () => {},

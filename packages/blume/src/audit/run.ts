@@ -29,6 +29,7 @@ import {
 import { crawlStaticDir } from "./crawl.ts";
 import { buildGraph } from "./graph.ts";
 import { resolveRedirects } from "./redirects.ts";
+import { shortId } from "./terms.ts";
 import { DEFAULT_THRESHOLDS } from "./types.ts";
 import type {
   AuditContext,
@@ -119,7 +120,7 @@ const readSources = async (
 /** Does a check id or its category match one of the user's `--only`/`--skip` terms? */
 const matches = (id: CheckId, terms: string[]): boolean => {
   const meta = CHECKS.find((check) => check.id === id);
-  const short = id.replace("BLUME_AUDIT_", "").toLowerCase();
+  const short = shortId(id);
   return terms.some((raw) => {
     const term = raw.trim().toLowerCase();
     return (

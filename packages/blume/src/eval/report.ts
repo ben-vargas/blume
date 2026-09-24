@@ -94,7 +94,11 @@ export const headerLine = (total: number, agent: EvalResult["agent"]): string =>
 export const startLine = (id: string, index: number, total: number): string =>
   `  ${colors.dim(`▸ ${id} (${index + 1}/${total})`)}`;
 
-/** `fix:` pointers for failed questions, naming the file that resolves each. */
+/**
+ * `fix:` pointers for failed questions, naming the file that resolves each. A
+ * question whose agent run errored gets a `run failed:` line pointing at the
+ * question instead: the run never graded the docs, so there's no page to fix.
+ */
 export const fixLines = (result: EvalResult, root: string): string[] =>
   result.diagnostics
     .filter((diagnostic) => diagnostic.code !== "BLUME_EVAL_ROUTE_UNKNOWN")
@@ -102,7 +106,11 @@ export const fixLines = (result: EvalResult, root: string): string[] =>
       const site = finding.file
         ? `${relative(root, finding.file)}${finding.line ? `:${finding.line}` : ""}`
         : "";
-      return `  ${colors.cyan("fix:")} ${site} ${colors.dim(finding.message)}`;
+      const label =
+        finding.code === "BLUME_EVAL_QUESTION_ERROR"
+          ? colors.red("run failed:")
+          : colors.cyan("fix:");
+      return `  ${label} ${site} ${colors.dim(finding.message)}`;
     });
 
 /** Dim warnings for route hints that no longer match a page. */

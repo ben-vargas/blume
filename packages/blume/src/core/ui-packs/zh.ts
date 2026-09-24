@@ -44,6 +44,8 @@ export const zh: UIStringsOverride = {
     title: "更新日志",
   },
   content: {
+    copyColor: "复制颜色 {name} {value}",
+    copyPrompt: "复制提示词",
     diagramError: "无法渲染此图表。",
   },
   feedback: {

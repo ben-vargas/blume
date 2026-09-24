@@ -44,7 +44,11 @@ export const bg: UIStringsOverride = {
     description: "Актуализации на продукта и бележки към изданията.",
     title: "Дневник на промените",
   },
-  content: { diagramError: "Тази диаграма не можа да бъде показана." },
+  content: {
+    copyColor: "Копирай цвета {name} {value}",
+    copyPrompt: "Копирай подканата",
+    diagramError: "Тази диаграма не можа да бъде показана.",
+  },
   feedback: {
     no: "Не",
     question: "Беше ли полезна тази страница?",

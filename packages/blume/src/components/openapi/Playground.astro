@@ -1,5 +1,5 @@
 ---
-import { randomUUID } from "node:crypto";
+import { stableId } from "../content/tooltip-id.ts";
 
 import { paramKey, type PlaygroundModel } from "./request.ts";
 
@@ -30,7 +30,7 @@ const modelJson = JSON.stringify(model).replaceAll("<", "\\u003c");
 
 // Unique per rendered panel (a page can hold several), so the textarea's
 // aria-describedby can point at ITS error container and no other.
-const bodyErrorsId = `blume-body-errors-${randomUUID()}`;
+const bodyErrorsId = stableId(Astro.locals, "blume-body-errors", [slug, operation]);
 
 const LABEL_ROW =
   "mb-1 flex flex-wrap items-baseline gap-x-1.5 font-medium text-foreground text-xs";

@@ -7,7 +7,7 @@ Every Blume site also serves its docs as a small read-only **JSON API** — the 
 
 | Endpoint | Returns |
 | --- | --- |
-| `/api/docs/pages.json` | Every page with its route, title, description, content type, locale, facets, and the URLs of its rendered, Markdown, and JSON forms. |
+| `/api/docs/pages.json` | Every page with its route, title, description, content type, locale, facets, and the URLs of its rendered, Markdown, and JSON forms. i18n fallback copies of untranslated pages are left out; a missing page's JSON answers `404` with `PAGE_NOT_FOUND`. |
 | `/api/docs/pages/{route}.json` | One page: its index entry plus the agent Markdown (the same body `get_page` returns). `{route}` is the page route without the leading slash, `index` for home. |
 | `/api/docs/navigation.json` | The navigation tree — header tabs and the sidebar hierarchy. |
 | `/api/docs/search?q=` | Full-text search, with the same `limit`, `contentTypes`, `locale`, `version`, and `filters[key]` scoping as `search_docs`. Server output only. |

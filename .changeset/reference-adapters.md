@@ -30,5 +30,3 @@ To migrate, move each block onto its factory and drop `enabled`:
 - `graphql: { enabled: true, spec, endpoint, sources, route, codeSamples, playground }` → `graphql({ spec, endpoint, sources, route, codeSamples, playground })`.
 - `renderer: "scalar"` with `theme: "purple"` and `scalar: { localization }` → a separate `scalar({ spec, theme: "purple", localization })` entry in the list, keeping the block's `route`, `sources`, and `noindex`; the native display options don't apply to the embed.
 - `enabled: false` → leave the adapter out of the list.
-
-A leftover block is reported beside every other config issue in the same run.

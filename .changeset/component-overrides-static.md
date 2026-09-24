@@ -7,3 +7,5 @@ Component overrides in `components.ts` are planned statically, with no runtime f
 The `islands` group is gone: an `mdx` entry with a `client` mode is an island, and `defineComponents` no longer accepts an `islands` key. Replace `islands: { Counter }` with `mdx: { Counter: { component: Counter, client: "visible" } }`. The `islands/` folder convention is unchanged and now plans through the same wrappers as `components.ts`, so a `components.ts` `mdx` entry replaces a folder island of the same name. The generated runtime no longer writes `src/generated/islands.ts` or `src/generated/islands/*.astro`; convention islands and hydrated overrides both live under `src/generated/component-slots/`, in `blume eject` output too.
 
 In `blume eject` output, every override import, and each hydration wrapper's, is relative to the generated file, so the ejected app builds from any checkout.
+
+An entry whose relative path names no file is reported at its line in `components.ts`, instead of failing inside the generated runtime, and `blume doctor` plans `components.ts` too, reporting each override Blume can't plan with its line.

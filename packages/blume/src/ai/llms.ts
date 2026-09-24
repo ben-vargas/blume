@@ -10,6 +10,7 @@ import { AI_CATALOG_PATH, hasAiCatalog } from "./ai-catalog.ts";
 import { API_CATALOG_PATH, hasApiCatalog } from "./api-catalog.ts";
 import { API_PAGES_PATH, OPENAPI_PATH } from "./api/paths.ts";
 import { downlevelComponents } from "./component-markdown.ts";
+import { relativeLinkRewriter } from "./relative-links.ts";
 import { projectComponentSerializers } from "./serializers.ts";
 import { AGENT_SKILLS_DIR, AGENT_SKILLS_INDEX_PATH } from "./skills.ts";
 import type { SkillArtifact } from "./skills.ts";
@@ -297,6 +298,7 @@ const buildFull = async (project: BlumeProject): Promise<string> => {
     (a, b) => a.route.localeCompare(b.route)
   );
   const components = projectComponentSerializers(project);
+  const rewriteLinks = relativeLinkRewriter(project);
 
   const sections = await Promise.all(
     pages.map(async (page) => {
@@ -310,6 +312,9 @@ const buildFull = async (project: BlumeProject): Promise<string> => {
           source: raw,
           sourcePath: page.sourcePath,
         });
+        // Relative page links too: a reader of one flat file has no page URL
+        // to resolve `./install` against.
+        raw = rewriteLinks(raw, page);
       }
       // Resolve `<Visibility>` audiences (web-only content omitted from the
       // agent-facing output, agents-only unwrapped), then downlevel supported

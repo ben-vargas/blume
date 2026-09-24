@@ -141,6 +141,100 @@ export const parseIncludeStatement = (
 export const parseIncludeLine = (line: string): IncludeStatement | null =>
   INDENTED_CODE.test(line) ? null : parseIncludeStatement(line.trim());
 
+/** A line that opens an include statement: `<include`, then a space, `>`, or its end. */
+const INCLUDE_OPEN = /^<include(?:[\s>]|$)/u;
+
+/** A line that closes one. */
+const INCLUDE_CLOSE = /<\/include\s*>$/u;
+
+/**
+ * How many lines a wrapped statement may span: room for a formatter that puts
+ * every attribute on its own line, short enough that an unclosed `<include`
+ * can't reach across a page.
+ */
+const MAX_STATEMENT_LINES = 8;
+
+/** What a line that may open an include statement turned out to be. */
+export type IncludeMatch =
+  /** A statement, ending on line `end` (the same line when it isn't wrapped). */
+  | { kind: "statement"; end: number; statement: IncludeStatement }
+  /** A line that opens `<include` but no statement Blume can read. */
+  | { kind: "malformed" }
+  /** Not an include statement at all. */
+  | { kind: "none" };
+
+/**
+ * Read the include statement opening at `lines[index]`, if any. A statement
+ * sits on a line of its own, or — as a formatter wraps a long one — runs from a
+ * line opening `<include` to the next line closing `</include>`, with no blank
+ * line between (the path on its own line, attributes on one line or several):
+ *
+ * ```mdx
+ * <include lang="ts" meta='title="config.ts"'>
+ *   ./examples/config.ts
+ * </include>
+ * ```
+ *
+ * The lines' trimmed text joins into the one-line form, so both parse by the
+ * same rules. In `.md` a first line indented like code is a code block, never
+ * a statement. A line that opens `<include` but doesn't close into a
+ * statement is `malformed`, so the author hears about it instead of the page
+ * rendering the raw tag. Shared by the string-level scanner and the render
+ * plugin so they splice exactly the same statements.
+ */
+export const matchIncludeStatement = (
+  lines: readonly string[],
+  index: number,
+  format: "md" | "mdx"
+): IncludeMatch => {
+  const first = lines[index] ?? "";
+  if (format === "md" && INDENTED_CODE.test(first)) {
+    return { kind: "none" };
+  }
+  const opening = first.trim();
+  if (!INCLUDE_OPEN.test(opening)) {
+    return { kind: "none" };
+  }
+  const single = parseIncludeStatement(opening);
+  if (single) {
+    return { end: index, kind: "statement", statement: single };
+  }
+  const parts = [opening];
+  const last = Math.min(lines.length, index + MAX_STATEMENT_LINES) - 1;
+  for (let end = index + 1; end <= last; end += 1) {
+    const part = (lines[end] ?? "").trim();
+    if (part === "") {
+      break;
+    }
+    parts.push(part);
+    if (INCLUDE_CLOSE.test(part)) {
+      const statement = parseIncludeStatement(parts.join(" "));
+      return statement
+        ? { end, kind: "statement", statement }
+        : { kind: "malformed" };
+    }
+  }
+  return { kind: "malformed" };
+};
+
+/**
+ * The warning for a line that opens `<include` but isn't a statement Blume can
+ * read — it renders as written, so a silent miss would ship a raw tag.
+ */
+export const malformedIncludeDiagnostic = (
+  file: string,
+  line: number
+): Diagnostic => ({
+  code: "BLUME_INCLUDE_MALFORMED",
+  file,
+  line,
+  message:
+    "This <include> isn't a statement Blume can read, so the page shows it as written.",
+  severity: "warning",
+  suggestion:
+    "Write <include>./path.mdx</include> on a line of its own, or wrap it with the path on its own line and no blank lines; only lang and meta attributes are read.",
+});
+
 /**
  * Advance the HTML comment state across one `.md` line — the render plugin's
  * half of the comment rule (a statement inside `<!-- -->` never splices),
@@ -432,6 +526,58 @@ const expandStatement = async (
 };
 
 /**
+ * Pass 1 of {@link expandLines}: find each include statement (outside fenced
+ * code, comments, and — in `.md` — indented code blocks), indexed by the line
+ * it opens on. A commented-out statement never renders, so expanding it would
+ * leak the partial into search/mirror surfaces the page doesn't show.
+ * Indented code and setext underlines only exist in `.md` (MDX has neither,
+ * and an indented `<include>` there is still JSX flow the renderer splices).
+ */
+const scanStatements = (
+  sourceLines: string[],
+  isMdx: boolean
+): (IncludeMatch | null)[] => {
+  const delimiters = COMMENT_DELIMITERS[isMdx ? "mdx" : "md"];
+  const format = isMdx ? "mdx" : "md";
+  const matches: (IncludeMatch | null)[] = sourceLines.map(() => null);
+  let fence: FenceState = null;
+  let inComment = false;
+  for (let index = 0; index < sourceLines.length; index += 1) {
+    const line = sourceLines[index] ?? "";
+    if (inComment) {
+      inComment = advanceCommentState(line, delimiters, true);
+      continue;
+    }
+    const next = nextFenceState(line, fence);
+    const inFence = fence !== null || next !== null;
+    fence = next;
+    if (inFence) {
+      continue;
+    }
+    inComment = advanceCommentState(line, delimiters, false);
+    if (inComment || !hasIncludeStatements(line)) {
+      continue;
+    }
+    const match = matchIncludeStatement(sourceLines, index, format);
+    // A setext underline directly below folds the statement into a heading —
+    // the renderer shows a heading, not a splice, so skip it.
+    if (
+      match.kind === "statement" &&
+      !isMdx &&
+      SETEXT_UNDERLINE.test(sourceLines[match.end + 1] ?? "")
+    ) {
+      continue;
+    }
+    matches[index] = match;
+    if (match.kind === "statement") {
+      // A wrapped statement's remaining lines belong to it.
+      index = match.end;
+    }
+  }
+  return matches;
+};
+
+/**
  * Walk a document's lines, replacing each include statement (outside fenced
  * code, comments, and — in `.md` — indented code blocks) with the target's
  * expanded lines. Statements that error stay verbatim so downstream surfaces
@@ -447,52 +593,15 @@ const expandLines = async (
 ): Promise<ExpandedLines> => {
   const sourceLines = body.split("\n");
   const isMdx = extname(filePath).toLowerCase() === ".mdx";
-  const delimiters = COMMENT_DELIMITERS[isMdx ? "mdx" : "md"];
-
-  // Pass 1: statement detection per line, tracking fenced code and comments —
-  // a commented-out statement never renders, so expanding it would leak the
-  // partial into search/mirror surfaces the page doesn't show. Indented code
-  // and setext underlines only exist in `.md` (MDX has neither, and an
-  // indented `<include>` there is still JSX flow the renderer splices).
-  let fence: FenceState = null;
-  let inComment = false;
-  const statements = sourceLines.map((line, index) => {
-    if (inComment) {
-      inComment = advanceCommentState(line, delimiters, true);
-      return null;
-    }
-    const next = nextFenceState(line, fence);
-    const inFence = fence !== null || next !== null;
-    fence = next;
-    if (inFence) {
-      return null;
-    }
-    inComment = advanceCommentState(line, delimiters, false);
-    if (inComment || !hasIncludeStatements(line)) {
-      return null;
-    }
-    const statement = isMdx
-      ? parseIncludeStatement(line.trim())
-      : parseIncludeLine(line);
-    // A setext underline directly below folds the statement line into a
-    // heading — the renderer shows a heading, not a splice, so skip it.
-    if (
-      statement &&
-      !isMdx &&
-      SETEXT_UNDERLINE.test(sourceLines[index + 1] ?? "")
-    ) {
-      return null;
-    }
-    return statement;
-  });
+  const matches = scanStatements(sourceLines, isMdx);
 
   // Pass 2: expand every statement concurrently — reads are independent, and
   // each branch carries its own cycle stack.
   const expansions = await Promise.all(
-    statements.map((statement, index) =>
-      statement
+    matches.map((match, index) =>
+      match?.kind === "statement"
         ? expandStatement(
-            statement,
+            match.statement,
             filePath,
             lineOffset + index + 1,
             ctx,
@@ -506,9 +615,14 @@ const expandLines = async (
   // accumulated output, and error order should follow document order.
   const lines: string[] = [];
   const origins: LineOrigin[] = [];
-  for (const [index, line] of sourceLines.entries()) {
+  for (let index = 0; index < sourceLines.length; index += 1) {
+    const line = sourceLines[index] ?? "";
     const rawLine = lineOffset + index + 1;
+    const match = matches[index];
     const expanded = expansions[index];
+    if (match?.kind === "malformed") {
+      ctx.errors.push(malformedIncludeDiagnostic(filePath, rawLine));
+    }
     if (!expanded || "error" in expanded) {
       if (expanded) {
         ctx.errors.push(expanded.error);
@@ -526,6 +640,10 @@ const expandLines = async (
     }
     lines.push(...expanded.lines);
     origins.push(...expanded.origins);
+    // A wrapped statement's remaining lines were spliced with it.
+    if (match?.kind === "statement") {
+      index = match.end;
+    }
     if (sourceLines[index + 1]?.trim()) {
       pad();
     }

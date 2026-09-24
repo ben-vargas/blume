@@ -43,7 +43,11 @@ export const bn: UIStringsOverride = {
     description: "পণ্য আপডেট এবং রিলিজ নোট।",
     title: "পরিবর্তন লগ",
   },
-  content: { diagramError: "এই ডায়াগ্রামটি রেন্ডার করা যায়নি।" },
+  content: {
+    copyColor: "{name} রং {value} অনুলিপি করুন",
+    copyPrompt: "প্রম্পট অনুলিপি করুন",
+    diagramError: "এই ডায়াগ্রামটি রেন্ডার করা যায়নি।",
+  },
   feedback: {
     no: "না",
     question: "এই পৃষ্ঠাটি কি সহায়ক ছিল?",

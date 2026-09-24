@@ -74,7 +74,7 @@ Write questions your users actually ask — the ones from support threads, GitHu
 
 ## Failing CI
 
-The exit code is the contract: any failed question exits non-zero. `--threshold` relaxes the gate to a passing fraction when you're digging out of a backlog:
+The exit code is the contract: any failed question exits non-zero. When the agent run itself fails — the reader or judge errors out rather than grading an answer — the report says `run failed:` and points at the question in your evals file instead of naming a docs page to fix, since the docs weren't graded. `--threshold` relaxes the gate to a passing fraction when you're digging out of a backlog:
 
 ```bash
 blume eval                    # every question must pass

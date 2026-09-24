@@ -43,7 +43,11 @@ export const da: UIStringsOverride = {
     description: "Produktopdateringer og udgivelsesnoter.",
     title: "Ændringslog",
   },
-  content: { diagramError: "Dette diagram kunne ikke vises." },
+  content: {
+    copyColor: "Kopiér farven {name} {value}",
+    copyPrompt: "Kopiér prompt",
+    diagramError: "Dette diagram kunne ikke vises.",
+  },
   feedback: {
     no: "Nej",
     question: "Var denne side nyttig?",

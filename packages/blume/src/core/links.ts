@@ -85,6 +85,8 @@ interface LinkContext {
   publicDir: string | null;
   /** Normalized `redirect.from` paths — valid targets that resolve at runtime. */
   redirects: Set<string>;
+  /** Absolute source path → the route that file publishes at, for file links. */
+  routeBySource: Map<string, string>;
   routes: Set<string>;
 }
 
@@ -154,6 +156,75 @@ const toRoute = (path: string): string => {
     route = route.slice(0, -1);
   }
   return route === "" ? "/" : route;
+};
+
+/** The page a relative link is written on, as the resolver sees it. */
+export interface RelativeLinkBase {
+  /** Whether the page is its folder's index (its route is its directory). */
+  isIndex: boolean;
+  /** The page's own route, base path included. */
+  route: string;
+}
+
+/** A root-relative path, a bare `#fragment` or `?query`, or any scheme. */
+const NOT_RELATIVE = /^(?:[#?/]|[a-z][a-z0-9+.-]*:)/iu;
+
+/**
+ * Where a relative page link written on `from` lands: a root-relative route
+ * with the authored `?query#hash` kept — or `undefined` when `href` isn't a
+ * relative page link (a root-relative path, a bare `#fragment` or `?query`,
+ * an external URL or other scheme, or a relative asset like `./diagram.png`).
+ *
+ * The one reading `blume validate` checks links against and the Markdown
+ * pipeline rewrites them to, so the built `href`, the link check, and the
+ * browser agree. Relative paths resolve file-style: a leaf page's links
+ * resolve against its parent directory, while an index page's route already is
+ * its directory — `./install` on `guides/index.mdx` (`/guides`) lands on
+ * `/guides/install`, where a browser reading the slashless URL would go to
+ * `/install`. A `.md`/`.mdx` target is a file link: `resolveFile` maps its
+ * decoded path, relative to the linking file, to the route that file
+ * publishes at, so a target with its own `slug` or an ordering prefix still
+ * lands on its page instead of on its raw Markdown source. Without
+ * `resolveFile`, or for a file it doesn't know, the target resolves
+ * route-relative with the extension dropped.
+ */
+export const resolveRelativeHref = (
+  href: string,
+  from: RelativeLinkBase,
+  resolveFile?: (path: string) => string | undefined
+): string | undefined => {
+  if (href === "" || NOT_RELATIVE.test(href)) {
+    return undefined;
+  }
+  const suffixAt = href.search(/[?#]/u);
+  const path = suffixAt === -1 ? href : href.slice(0, suffixAt);
+  const suffix = suffixAt === -1 ? "" : href.slice(suffixAt);
+  if (FILE_EXT.test(path) && !DOC_EXT.test(path)) {
+    return undefined;
+  }
+  const fileRoute = DOC_EXT.test(path)
+    ? resolveFile?.(decodePercent(path))
+    : undefined;
+  return `${fileRoute ?? toRoute(resolveRelative(from.route, path, from.isIndex))}${suffix}`;
+};
+
+/**
+ * Whether a content file is its folder's index, from its name as written on
+ * disk: `index.md(x)` after an ordering prefix, optionally carrying one of
+ * `localeTokens` before the extension (`index.fr.mdx` under the `dot` locale
+ * parser, `index.$.mdx` for a file shared by every locale).
+ */
+export const isIndexFileName = (
+  name: string,
+  localeTokens: readonly string[] = []
+): boolean => {
+  const stem = basename(name).replace(NUMERIC_PREFIX, "");
+  const match = /^index(?:\.(?<token>[^./]+))?\.(?:md|mdx)$/iu.exec(stem);
+  if (!match) {
+    return false;
+  }
+  const token = match.groups?.token;
+  return token === undefined || localeTokens.includes(token);
 };
 
 /** Build a map of route -> set of heading anchor slugs. */
@@ -329,6 +400,54 @@ const checkExternalLinks = async (
   return diagnostics;
 };
 
+/**
+ * The path a relative link on `page` resolves to — the same reading the
+ * Markdown pipeline rewrites the rendered `href` to (see
+ * {@link resolveRelativeHref}), so what's checked is what ships. A relative
+ * asset (`./diagram.png`) isn't a page link; it resolves against the route's
+ * directory for the public-dir probe.
+ */
+const relativeTarget = (
+  page: PageRecord,
+  rawPath: string,
+  ctx: LinkContext
+): string => {
+  const base = { isIndex: isIndexPage(page), route: page.route };
+  const { sourcePath } = page;
+  const resolveFile = sourcePath
+    ? (path: string) =>
+        ctx.routeBySource.get(resolve(dirname(sourcePath), path))
+    : undefined;
+  return (
+    resolveRelativeHref(rawPath, base, resolveFile) ??
+    resolveRelative(page.route, rawPath, base.isIndex)
+  );
+};
+
+/**
+ * Absolute source path → the route that file publishes at, for resolving file
+ * links. A file shared by every locale publishes once per locale; the default
+ * locale's route stands for it (a link from a localized page moves into that
+ * locale afterwards, exactly as the rendered link does). Fallback copies
+ * render another locale's file, so they never stand for it.
+ */
+const buildRouteBySource = (
+  pages: PageRecord[],
+  i18n: LocaleRouting | null
+): Map<string, string> => {
+  const bySource = new Map<string, string>();
+  for (const page of pages) {
+    const { sourcePath } = page;
+    if (!sourcePath || page.fallback) {
+      continue;
+    }
+    if (!bySource.has(sourcePath) || page.locale === i18n?.defaultLocale) {
+      bySource.set(sourcePath, page.route);
+    }
+  }
+  return bySource;
+};
+
 /** Classify a single link, queueing external refs via `onExternal`. */
 const classifyLink = (
   page: PageRecord,
@@ -382,7 +501,7 @@ const classifyLink = (
 
   const resolved = rawPath.startsWith("/")
     ? rawPath
-    : resolveRelative(page.route, rawPath, isIndexPage(page));
+    : relativeTarget(page, rawPath, ctx);
   return checkPathLink(resolved, fragment, page, link, site, ctx, via);
 };
 
@@ -423,6 +542,7 @@ export const validateLinks = async (
         toRoute(withBasePath(basePath, redirect.from))
       )
     ),
+    routeBySource: buildRouteBySource(graph.pages, options.i18n ?? null),
     routes: new Set(graph.routes.keys()),
   };
   const diagnostics: Diagnostic[] = [];

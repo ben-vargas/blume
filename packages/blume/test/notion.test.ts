@@ -269,6 +269,13 @@ describe("notionSource", () => {
             type: "paragraph",
           },
           {
+            id: "esm",
+            paragraph: {
+              rich_text: [rich("import the CSV, then read &copy; notes")],
+            },
+            type: "paragraph",
+          },
+          {
             code: { language: "ts", rich_text: [rich("const s = `x`;\n{y}")] },
             id: "code",
             type: "code",
@@ -305,6 +312,11 @@ describe("notionSource", () => {
     const body = entry?.body.text ?? "";
     expect(body).toContain(
       "Set \\{x\\} or \\<b>tags\\</b> [*the docs*](<https://x.dev/a b>) and ``a`b``"
+    );
+    // MDX would read a paragraph opening with `import ` as ESM and fail the
+    // page; a character reference is decoded unless escaped.
+    expect(body).toContain(
+      String.raw`&#105;mport the CSV, then read \&copy; notes`
     );
     // Code keeps its text verbatim, fenced past its own backticks.
     expect(body).toContain("```ts\nconst s = `x`;\n{y}\n```");

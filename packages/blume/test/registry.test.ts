@@ -16,6 +16,37 @@ import { mixedbread } from "../src/search/adapters/index.ts";
 
 const BLUME_SPEC = /["']blume\/(?<path>[^"']+)["']/gu;
 
+// Module specifiers in ejected code: `from "x"`, `import "x"`, and a runtime
+// `import("x")` — not a type-only `typeof import("x")`, which never loads.
+const IMPORT_SPECIFIER =
+  /(?:\bfrom\s+|(?<!typeof\s)\bimport\s*\(\s*|\bimport\s+)["'](?<specifier>[^"']+)["']/gu;
+// Specifiers that name no package: relative and absolute paths, Node
+// builtins, and Astro's and Blume's virtual modules.
+const NON_PACKAGE = /^(?:\.|\/|node:|astro:|blume:|virtual:)/u;
+const MODULE_FILE = /\.(?:astro|js|mjs|ts|tsx)$/u;
+
+/** The package a bare specifier names: `@scope/pkg/sub` → `@scope/pkg`. */
+const packageOf = (specifier: string): string => {
+  const [first = "", second = ""] = specifier.split("/");
+  return first.startsWith("@") ? `${first}/${second}` : first;
+};
+
+/** Every package the given module files import by bare name, sorted. */
+const bareImports = (files: string[]): string[] => {
+  const packages = new Set<string>();
+  for (const file of files.filter((path) => MODULE_FILE.test(path))) {
+    for (const match of readFileSync(file, "utf-8").matchAll(
+      IMPORT_SPECIFIER
+    )) {
+      const specifier = match.groups?.specifier ?? "";
+      if (!NON_PACKAGE.test(specifier)) {
+        packages.add(packageOf(specifier));
+      }
+    }
+  }
+  return [...packages].toSorted();
+};
+
 const ejectDirs: string[] = [];
 
 afterAll(async () => {
@@ -38,6 +69,29 @@ const writeFiles = async (
 };
 
 describe("eject", () => {
+  it("declares the EPUB bundle, and no AI SDK for an external Ask endpoint", async () => {
+    const root = await mkdtemp(join(tmpdir(), "blume-eject-"));
+    ejectDirs.push(root);
+    await writeFiles(root, {
+      "blume.config.ts": `export default {
+        ai: { ask: { enabled: true, endpoint: "https://ask.example.com/api" } },
+        export: { epub: true },
+      };\n`,
+      "docs/index.md": "---\ntitle: Home\n---\n# Home\n",
+    });
+
+    const { dependencies, files } = await eject(root);
+
+    // `features.ts` loads the EPUB generator's browser bundle by bare name.
+    expect(dependencies).toContain("epub-gen-memory");
+    // An external endpoint answers Ask AI, so no route imports the AI SDK.
+    expect(existsSync(join(root, "src/pages/api/ask.ts"))).toBe(false);
+    expect(dependencies).not.toContain("ai");
+    expect(
+      bareImports(files).filter((name) => !dependencies.includes(name))
+    ).toEqual([]);
+  });
+
   it("keeps configured integrations through a portable config bridge", async () => {
     const root = await mkdtemp(join(tmpdir(), "blume-eject-"));
     ejectDirs.push(root);
@@ -199,8 +253,16 @@ export default defineComponents({
         // React renders the islands and Ask AI, so the app depends on it.
         "react",
         "react-dom",
+        // The Ask AI route streams through the AI SDK by bare name.
+        "ai",
       ])
     );
+    // Every package an ejected file imports by bare name is one the app now
+    // depends on: under a strict linker such as pnpm nothing else makes it
+    // resolvable, so a gap here is an `astro build` that fails after eject.
+    expect(
+      bareImports(files).filter((name) => !dependencies.includes(name))
+    ).toEqual([]);
 
     // Feature-gated endpoints: Ask AI, OG images, mixedbread search, the RSS
     // feed, and the OpenAPI reference page.

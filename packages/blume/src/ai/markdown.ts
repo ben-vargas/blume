@@ -1,12 +1,17 @@
 import { readFile } from "node:fs/promises";
 
+import { hasGeneratedChangelog } from "../astro/pages.ts";
+import { CHANGELOG_INDEX_ROUTE } from "../core/changelog-index.ts";
 import { rewriteRelativeImages } from "../core/content-assets.ts";
+import { discoverPages, discoverPagesSync } from "../core/custom-pages.ts";
 import matter from "../core/frontmatter.ts";
 import type { BlumeProject } from "../core/project-graph.ts";
 import { readExpandedEntryText } from "../core/sources/read.ts";
 import type { RouteManifestEntry } from "../core/types.ts";
+import { buildChangelogIndexMarkdown } from "./changelog-markdown.ts";
 import { downlevelComponents } from "./component-markdown.ts";
 import { buildLlmsIndex } from "./llms.ts";
+import { relativeLinkRewriter } from "./relative-links.ts";
 import { projectComponentSerializers } from "./serializers.ts";
 import { applyAgentVisibility } from "./visibility.ts";
 
@@ -46,7 +51,8 @@ export const markdownTokenCount = (text: string): number =>
  * removed, agents-only unwrapped. Relative image references are rewritten to
  * their served `/blume-assets/content/…` URLs in both variants too — an agent
  * fetches these endpoints by URL, where a colocated `./diagram.png` resolves
- * to nothing.
+ * to nothing — and relative page links to the routes they mean, as the
+ * rendered page's are (see `relative-links.ts`).
  */
 export const buildRawMarkdown = async (
   project: BlumeProject
@@ -54,6 +60,7 @@ export const buildRawMarkdown = async (
   const pageById = new Map(project.graph.pages.map((page) => [page.id, page]));
 
   const components = projectComponentSerializers(project);
+  const rewriteLinks = relativeLinkRewriter(project);
 
   const readRoute = async (route: RouteManifestEntry): Promise<string> => {
     const page = pageById.get(route.id);
@@ -71,6 +78,12 @@ export const buildRawMarkdown = async (
           deployBase: project.config.deployment.options.base,
           projectRoot: project.context.root,
           source: text,
+          sourcePath: route.sourcePath,
+        });
+        // `./install` means the page's sibling, not whatever the `.md` URL
+        // an agent fetched resolves it to.
+        text = rewriteLinks(text, {
+          route: route.path,
           sourcePath: route.sourcePath,
         });
       }
@@ -92,18 +105,35 @@ export const buildRawMarkdown = async (
   if (!map["/"]) {
     map["/"] = { mdx: buildLlmsIndex(project) };
   }
+  // The generated changelog index has no source either; its release list is
+  // its mirror, so `/changelog.md` and `get_page` answer as the page does.
+  const userPages = project.context.pagesRoot
+    ? await discoverPages(project.context.pagesRoot)
+    : [];
+  if (hasGeneratedChangelog(project, userPages)) {
+    map[CHANGELOG_INDEX_ROUTE] = { mdx: buildChangelogIndexMarkdown(project) };
+  }
   return map;
 };
 
 /**
  * Every route path with a raw-Markdown mirror: the manifest routes, plus the
- * homepage when its mirror is the synthesized llms.txt fallback (see
- * `buildRawMarkdown`). This is the route list the negotiation surfaces (dev
+ * homepage when its mirror is the synthesized llms.txt fallback and the
+ * generated changelog index (see `buildRawMarkdown`). This is the route list the negotiation surfaces (dev
  * middleware, Vercel routing config) and the homepage `Link` header build
  * from, so `Accept: text/markdown` on `/` resolves even when the homepage is
  * a landing page.
  */
 export const markdownRoutePaths = (project: BlumeProject): string[] => {
   const paths = project.manifest.routes.map((route) => route.path);
-  return paths.includes("/") ? paths : [...paths, "/"];
+  if (!paths.includes("/")) {
+    paths.push("/");
+  }
+  const userPages = project.context.pagesRoot
+    ? discoverPagesSync(project.context.pagesRoot)
+    : [];
+  if (hasGeneratedChangelog(project, userPages)) {
+    paths.push(CHANGELOG_INDEX_ROUTE);
+  }
+  return paths;
 };

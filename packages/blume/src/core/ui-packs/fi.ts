@@ -43,7 +43,11 @@ export const fi: UIStringsOverride = {
     description: "Tuotepäivitykset ja julkaisutiedot.",
     title: "Muutosloki",
   },
-  content: { diagramError: "Tätä kaaviota ei voitu näyttää." },
+  content: {
+    copyColor: "Kopioi väri {name} {value}",
+    copyPrompt: "Kopioi kehote",
+    diagramError: "Tätä kaaviota ei voitu näyttää.",
+  },
   feedback: {
     no: "Ei",
     question: "Oliko tästä sivusta apua?",

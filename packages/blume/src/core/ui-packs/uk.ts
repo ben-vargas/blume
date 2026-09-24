@@ -44,7 +44,11 @@ export const uk: UIStringsOverride = {
     description: "Оновлення продукту та примітки до випусків.",
     title: "Журнал змін",
   },
-  content: { diagramError: "Не вдалося відобразити цю діаграму." },
+  content: {
+    copyColor: "Скопіювати колір {name} {value}",
+    copyPrompt: "Скопіювати промпт",
+    diagramError: "Не вдалося відобразити цю діаграму.",
+  },
   feedback: {
     no: "Ні",
     question: "Чи була ця сторінка корисною?",

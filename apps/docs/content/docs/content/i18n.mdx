@@ -96,7 +96,7 @@ i18n: {
 }
 ```
 
-Fallback pages are excluded from the search index and aren't advertised as real translations in `hreflang`, so untranslated content doesn't compete for ranking. They still appear in that locale's sidebar, so navigation stays complete — a reader can reach every page in any language.
+Fallback pages point their canonical link at the page they copy, are left out of the search index, `llms.txt`, and the MCP and JSON API page lists, and aren't advertised as real translations in `hreflang`, so untranslated content doesn't compete for ranking. They still appear in that locale's sidebar, so navigation stays complete — a reader can reach every page in any language.
 
 Release notes from a [`githubReleases()`](/docs/content/sources#github-releases) source are the exception: they're published in one language, so they're never copied to other locales' URLs and show no language switcher.
 

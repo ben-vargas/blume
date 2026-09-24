@@ -24,6 +24,7 @@ import type { BlumeProject } from "../../core/project-graph.ts";
 import type { ProjectContext } from "../../core/types.ts";
 import { VERCEL_ADAPTER_PACKAGE } from "../adapters/vercel.ts";
 import {
+  addDevDependencyCommand,
   auditVercelFunctions,
   blumeDependencyNames,
   functionBundleVerdict,
@@ -63,9 +64,11 @@ export const checkVercelFunctionBundles = async (
 ): Promise<boolean> => {
   const audits = await auditVercelFunctions(outputDir);
   const own = blumeDependencyNames();
+  // The remedy names the project's own package manager (`pnpm add -D`, …).
+  const addDevCommand = await addDevDependencyCommand(root);
   let fatal = false;
   for (const audit of audits) {
-    const verdict = functionBundleVerdict(audit, root, own);
+    const verdict = functionBundleVerdict(audit, root, own, addDevCommand);
     if (verdict.fatal) {
       fatal = true;
       log.error(verdict.message);

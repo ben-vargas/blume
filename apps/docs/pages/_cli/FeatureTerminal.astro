@@ -1,6 +1,6 @@
 ---
-// A terminal window used by the CLI page — the counterpart to the homepage's
-// <FeatureBrowser>. The same component renders in the sticky desktop graphic
+// A terminal window used by the CLI page and the homepage's CLI teaser — the
+// counterpart to the homepage's <FeatureBrowser>. The same component renders in the sticky desktop graphic
 // (crossfaded per feature) and inline on mobile, so each `kind` lives in one
 // place. Unlike the theme-aware browser mock it is always dark, like a real
 // terminal, so its colors are fixed rather than design tokens. Transcripts are
@@ -79,23 +79,6 @@ const terminals: Record<
       blank,
       cmd("blume audit"),
       ok("No issues found."),
-    ],
-  },
-  // The homepage CLI teaser (in _home/Cli.astro): the later-lifecycle
-  // commands with their one-line success summaries.
-  home: {
-    lines: [
-      cmd("blume validate"),
-      ok("128 link(s) checked — no broken links"),
-      blank,
-      cmd("blume audit"),
-      ok("No issues found."),
-      blank,
-      cmd("blume eval"),
-      ok("12 passed · 0 failed · 0 skipped"),
-      blank,
-      cmd("blume translate --check"),
-      ok("132 translation(s) up to date"),
     ],
   },
   init: {
@@ -184,143 +167,6 @@ const terminals: Record<
       ok("Built to dist"),
     ],
   },
-  checkup: {
-    lines: [
-      cmd("blume validate"),
-      [
-        { c: "err", t: "✖ " },
-        { c: "out", t: "content/docs/guides/intro.mdx:12" },
-      ],
-      [{ c: "dim", t: "    Broken link: /guides/setup resolves to nothing" }],
-      [
-        { c: "warn", t: "⚠ " },
-        { c: "out", t: "content/docs/faq.mdx:31" },
-      ],
-      [{ c: "dim", t: "    Anchor #pricing not found on /overview" }],
-      blank,
-      dim("1 error(s), 1 warning(s)"),
-      blank,
-      cmd("blume check"),
-      ok("No type errors."),
-      blank,
-      cmd("blume doctor"),
-      ok("No problems found."),
-    ],
-  },
-  eject: {
-    lines: [
-      cmd("blume add accordion"),
-      ok("Added components/blume/Accordion.astro"),
-      blank,
-      cmd("blume eject"),
-      [
-        { c: "out", t: "This promotes .blume/ into a standalone Astro app you own. Continue? " },
-        { c: "ask", t: "yes" },
-      ],
-      ok("Ejected 42 file(s)"),
-      ok("Ejected to a standalone Astro project."),
-      blank,
-      dim("Next steps:"),
-      out("  npm install"),
-      out("  npm run dev"),
-    ],
-  },
-  // A real eval session: the per-question report lines (pass/fail/skip), the
-  // fix pointer anchoring the failure to a source page, and the totals.
-  eval: {
-    lines: [
-      cmd("blume eval"),
-      blank,
-      [
-        { c: "bold", t: "  blume eval  " },
-        { c: "dim", t: "4 question(s) · Claude Code" },
-      ],
-      blank,
-      [
-        { c: "ok", t: "  ✔ " },
-        { c: "out", t: "install-node-version    " },
-        { c: "ok", t: "pass" },
-        { c: "dim", t: "  1.00  14.2s  $0.14" },
-      ],
-      [
-        { c: "ok", t: "  ✔ " },
-        { c: "out", t: "custom-domain           " },
-        { c: "ok", t: "pass" },
-        { c: "dim", t: "  0.92  21.6s  $0.19" },
-      ],
-      [
-        { c: "err", t: "  ✖ " },
-        { c: "out", t: "deploy-vercel           " },
-        { c: "err", t: "fail" },
-        { c: "dim", t: "  0.40  38.9s  $0.31" },
-      ],
-      [{ c: "dim", t: "        missing: deployment: vercel() from blume/deploy" }],
-      [
-        { c: "dim", t: "  ⊘ " },
-        { c: "out", t: "search-providers        " },
-        { c: "dim", t: "skipped" },
-      ],
-      blank,
-      [
-        { c: "fix", t: "  fix: " },
-        { c: "out", t: "content/docs/deployment.mdx " },
-        {
-          c: "dim",
-          t: 'Docs could not answer: "How do I deploy to Vercel?"',
-        },
-      ],
-      blank,
-      [{ c: "out", t: "  2 passed · 1 failed · 1 skipped · 1m 42s · $0.64" }],
-    ],
-  },
-  // The ledger story in one session: an edited page fails `--check`, the
-  // translate run retranslates exactly that page per locale, nothing else.
-  translate: {
-    lines: [
-      cmd("blume translate --check"),
-      blank,
-      [
-        { c: "err", t: "  ✖ " },
-        { c: "out", t: "content/docs/quickstart.mdx → fr " },
-        { c: "dim", t: "stale" },
-      ],
-      [
-        { c: "err", t: "  ✖ " },
-        { c: "out", t: "content/docs/quickstart.mdx → ja " },
-        { c: "dim", t: "stale" },
-      ],
-      blank,
-      [{ c: "out", t: "  2 stale · 130 up to date" }],
-      blank,
-      cmd("blume translate --claude"),
-      blank,
-      [
-        { c: "bold", t: "  blume translate  " },
-        { c: "dim", t: "2 item(s) · 2 locale(s) · Claude Code" },
-      ],
-      blank,
-      [
-        { c: "ok", t: "  ✔ " },
-        { c: "out", t: "content/docs/quickstart.mdx → fr " },
-        { c: "dim", t: "24.2s $0.09" },
-      ],
-      [
-        { c: "ok", t: "  ✔ " },
-        { c: "out", t: "content/docs/quickstart.mdx → ja " },
-        { c: "dim", t: "26.8s $0.08" },
-      ],
-      blank,
-      [
-        {
-          c: "out",
-          t: "  Translated 2 files into 2 locales · 130 already up to date · 51.3s · $0.17",
-        },
-      ],
-    ],
-  },
-  // The `--codex` handoff: the report header + summary, the handoff line, then
-  // the Codex session it opens — the banner box, and the real `fixPrompt` text
-  // echoed on Codex's prompt panel (via `prompt`, so it wraps naturally).
   // The audit report itself, in the reporter's real format: the header and
   // totals, then findings grouped by check under their category (worst
   // category first), each with up to three affected pages beside the source
@@ -390,6 +236,9 @@ const terminals: Record<
       ],
     ],
   },
+  // The `--codex` handoff: the report header + summary, the handoff line, then
+  // the Codex session it opens — the banner box, and the real `fixPrompt` text
+  // echoed on Codex's prompt panel (via `prompt`, so it wraps naturally).
   audit: {
     banner: {
       rows: [

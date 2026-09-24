@@ -45,6 +45,8 @@ export const ca: UIStringsOverride = {
     title: "Registre de canvis",
   },
   content: {
+    copyColor: "Copia el color {name} {value}",
+    copyPrompt: "Copia la indicació",
     diagramError: "No s'ha pogut mostrar aquest diagrama.",
   },
   feedback: {

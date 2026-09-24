@@ -44,6 +44,8 @@ export const vi: UIStringsOverride = {
     title: "Nhật ký thay đổi",
   },
   content: {
+    copyColor: "Sao chép màu {name} {value}",
+    copyPrompt: "Sao chép prompt",
     diagramError: "Không thể hiển thị sơ đồ này.",
   },
   feedback: {

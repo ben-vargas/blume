@@ -271,6 +271,26 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
       }
     };
 
+    // The generated client and the index it fetches are the same on every
+    // page (locale and version filters apply per query), but each client-router
+    // swap rebuilds the header, and this element with it. Loading once in
+    // module scope — bundled modules survive swaps — keeps the first search
+    // after a navigation from refetching the index and rebuilding it. A failed
+    // load clears the cache, so the next open retries.
+    let searchClient: Promise<SearchFn> | undefined;
+    const loadSearchClient = (): Promise<SearchFn> => {
+      searchClient ??= (async () => {
+        try {
+          const { createSearch } = await import("blume:search-client");
+          return await createSearch();
+        } catch (error) {
+          searchClient = undefined;
+          throw error;
+        }
+      })();
+      return searchClient;
+    };
+
     class BlumeSearch extends HTMLElement {
       dialog!: HTMLDialogElement;
       input!: HTMLInputElement;
@@ -481,8 +501,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
         if (!this.loaded) {
           this.loading = true;
           try {
-            const { createSearch } = await import("blume:search-client");
-            this.searchFn = await createSearch();
+            this.searchFn = await loadSearchClient();
             // Only latch on success — a transient failure (flaky network
             // fetching the index) must retry on the next open, not disable
             // search until a full page reload.

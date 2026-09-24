@@ -7,7 +7,7 @@ import {
   advanceHtmlCommentState,
   expandIncludeTarget,
   hasIncludeStatements,
-  parseIncludeLine,
+  matchIncludeStatement,
 } from "../core/includes.ts";
 import type { MdastNode, MdastValue } from "./mdast.ts";
 
@@ -151,32 +151,42 @@ export const includePlugin = (options: IncludePluginOptions = {}) => {
   };
 
   /**
-   * Splice every statement line in a text block; `null` when none matched.
-   * Statement detection mirrors the string-level scanner's `.md` line rules
-   * (`parseIncludeLine`, HTML comment tracking) so the rendered page and the
-   * indexed/mirrored surfaces agree on which lines splice: a statement inside
-   * `<!-- -->` or indented like code stays verbatim on both sides.
+   * Splice every statement in a text block; `null` when none matched.
+   * Statement detection is the string-level scanner's (`matchIncludeStatement`
+   * with its `.md` rules, plus HTML comment tracking), so the rendered page and
+   * the indexed/mirrored surfaces agree on what splices: a statement inside
+   * `<!-- -->` or indented like code stays verbatim on both sides, and a
+   * wrapped statement splices whole on both.
    */
   const spliceLines = async (
     node: MdastNode,
     text: string,
     ctx: IncludeVisitorContext
   ): Promise<string | null> => {
+    const source = text.split("\n");
+    const pieces: (string | Promise<string>)[] = [];
     let matched = false;
     let inComment = false;
-    const lines = await Promise.all(
-      text.split("\n").map((line) => {
-        const wasInComment = inComment;
-        inComment = advanceHtmlCommentState(line, inComment);
-        const statement = wasInComment ? null : parseIncludeLine(line);
-        if (!statement) {
-          return line;
-        }
-        matched = true;
-        return splice(node, statement, ctx);
-      })
-    );
-    return matched ? lines.join("\n") : null;
+    for (let index = 0; index < source.length; index += 1) {
+      const line = source[index] ?? "";
+      const wasInComment = inComment;
+      inComment = advanceHtmlCommentState(line, inComment);
+      const match = wasInComment
+        ? null
+        : matchIncludeStatement(source, index, "md");
+      if (match?.kind !== "statement") {
+        pieces.push(line);
+        continue;
+      }
+      matched = true;
+      pieces.push(splice(node, match.statement, ctx));
+      index = match.end;
+    }
+    if (!matched) {
+      return null;
+    }
+    const spliced = await Promise.all(pieces);
+    return spliced.join("\n");
   };
 
   return {
@@ -195,17 +205,25 @@ export const includePlugin = (options: IncludePluginOptions = {}) => {
       if (node.name !== "include") {
         return;
       }
-      // The string-level scanner (search, mirrors, llms-full.txt, the HMR
-      // graph) only recognizes single-line statements; a wrapped element
-      // would render content those surfaces never see, so reject it loudly
-      // instead of splicing it invisibly.
+      // A wrapped element splices only when the string-level scanner (search,
+      // mirrors, llms-full.txt, the HMR graph) reads the same lines as one
+      // statement; anything it can't read would render content those surfaces
+      // never see, so it's rejected loudly instead of spliced invisibly.
       const start = node.position?.start?.line;
       const end = node.position?.end?.line;
       if (start !== undefined && end !== undefined && start !== end) {
-        const message =
-          "<include> must be written on a single line: <include>./path.mdx</include>.";
-        ctx.report({ message, node, severity: "warning" });
-        ctx.replaceNode(node, { raw: errorBlock(message) });
+        const lines = ctx.source.split("\n").slice(start - 1, end);
+        const match = matchIncludeStatement(lines, 0, "mdx");
+        if (match.kind !== "statement" || match.end !== lines.length - 1) {
+          const message =
+            "<include> must sit on a line of its own, or wrap with the path on its own line and no blank lines: <include>./path.mdx</include>.";
+          ctx.report({ message, node, severity: "warning" });
+          ctx.replaceNode(node, { raw: errorBlock(message) });
+          return;
+        }
+        ctx.replaceNode(node, {
+          raw: await splice(node, match.statement, ctx),
+        });
         return;
       }
       ctx.replaceNode(node, {

@@ -1,3 +1,4 @@
+import { apiNamePhrase } from "../core/api-name.ts";
 import { normalizeBasePath, withBasePath } from "../core/base-path.ts";
 import type { ResolvedConfig } from "../core/schema.ts";
 import { absoluteUrl } from "../core/site-url.ts";
@@ -104,12 +105,26 @@ export const crossOriginDiscoveryPaths = (config: ResolvedConfig): string[] => {
   return paths;
 };
 
+/** A site title that already names its docs: "Acme Docs", "Acme Documentation". */
+const NAMES_DOCS = /\b(?:docs|documentation)$/iu;
+
+/**
+ * The docs as "the ___" in generated prose: the title followed by `noun`,
+ * unless the title already ends in "Docs" or "Documentation" — so "Acme"
+ * reads "the Acme documentation" and "Acme Docs" reads "the Acme Docs", not
+ * "the Acme Docs docs".
+ */
+const docsPhrase = (title: string, noun: "docs" | "documentation"): string =>
+  NAMES_DOCS.test(title.trim()) ? `the ${title}` : `the ${title} ${noun}`;
+
 const entrySeeds = (
   config: ResolvedConfig,
   skills: readonly SkillArtifact[],
   abs: (path: string) => string
 ): EntrySeed[] => {
   const { title } = config;
+  const documentation = docsPhrase(title, "documentation");
+  const docs = docsPhrase(title, "docs");
   const seeds: EntrySeed[] = [];
 
   if (config.agents.mcp.enabled) {
@@ -118,13 +133,13 @@ const entrySeeds = (
       capabilities: ["search_docs", "get_page", "list_pages", "get_navigation"],
       description:
         config.agents.mcp.instructions ??
-        `Model Context Protocol server over the ${title} documentation: full-text search, page Markdown, the page index, and the navigation tree.`,
+        `Model Context Protocol server over ${documentation}: full-text search, page Markdown, the page index, and the navigation tree.`,
       displayName: name,
       key: `mcp:${asciiSlugify(name) || "docs"}`,
       queries: [
-        `search the ${title} documentation`,
-        `get a ${title} docs page as Markdown`,
-        `list every page in the ${title} docs`,
+        `search ${documentation}`,
+        `get a page of ${docs} as Markdown`,
+        `list every page in ${docs}`,
       ],
       type: "application/mcp-server-card+json",
       url: abs("/.well-known/mcp/server-card.json"),
@@ -150,13 +165,15 @@ const entrySeeds = (
 
   if (config.agents.api) {
     seeds.push({
-      description: `REST API over the ${title} documentation: the page index, each page as JSON or Markdown, and the navigation tree, described by this OpenAPI document.`,
-      displayName: `${title} docs API`,
+      description: `REST API over ${documentation}: the page index, each page as JSON or Markdown, and the navigation tree, described by this OpenAPI document.`,
+      displayName: NAMES_DOCS.test(title.trim())
+        ? `${title} API`
+        : `${title} docs API`,
       key: "api:docs",
       queries: [
-        `fetch a ${title} docs page as JSON`,
-        `list the pages in the ${title} docs`,
-        `get the ${title} docs navigation tree`,
+        `fetch a page of ${docs} as JSON`,
+        `list the pages in ${docs}`,
+        `get the navigation tree of ${docs}`,
       ],
       type: "application/vnd.oai.openapi+json",
       url: abs(OPENAPI_PATH),
@@ -173,12 +190,12 @@ const entrySeeds = (
         ? reference.route
         : withBasePath(reference.basePath, reference.route);
     seeds.push({
-      description: `${reference.label}: rendered ${REFERENCE_KIND_LABEL[reference.kind]} reference in the ${title} documentation.`,
+      description: `${reference.label}: rendered ${REFERENCE_KIND_LABEL[reference.kind]} reference in ${documentation}.`,
       displayName: reference.label,
       key: `reference:${reference.slug}`,
       queries: [
-        `what operations does the ${reference.label} API expose`,
-        `how do I call the ${reference.label} API`,
+        `what operations does the ${apiNamePhrase(reference.label)} expose`,
+        `how do I call the ${apiNamePhrase(reference.label)}`,
       ],
       type: "text/html",
       url: abs(docRoute),
@@ -187,10 +204,10 @@ const entrySeeds = (
 
   if (config.agents.llmsTxt.enabled) {
     seeds.push({
-      description: `llms.txt index of the ${title} documentation: every page with a one-line summary, plus the agent-facing resources on this site.`,
+      description: `llms.txt index of ${documentation}: every page with a one-line summary, plus the agent-facing resources on this site.`,
       displayName: `${title} llms.txt`,
       key: "docs:llms-txt",
-      queries: [`what is ${title}`, `overview of the ${title} documentation`],
+      queries: [`what is ${title}`, `overview of ${documentation}`],
       type: "text/plain",
       url: abs("/llms.txt"),
     });

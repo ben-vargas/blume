@@ -56,6 +56,7 @@ const BUILT_IN: {
     deps: [],
     secrets: ["GITHUB_TOKEN"],
   },
+
   {
     adapter: githubReleases({ owner: "acme", repo: "sdk" }),
     deps: [],
@@ -146,7 +147,22 @@ const makeProject = async (files: Record<string, string>): Promise<string> => {
   return root;
 };
 
+/** The secrets `mdxRemote()` declares for a `url` base. */
+const secretsFor = (url: string) =>
+  mdxRemote({ files: ["intro.mdx"], url }).requiredSecrets;
+
 describe("blume/sources factories", () => {
+  it("declare GITHUB_TOKEN for an mdxRemote url base only on a GitHub host", () => {
+    expect(
+      secretsFor("https://raw.githubusercontent.com/acme/sdk/main/docs")
+    ).toStrictEqual(["GITHUB_TOKEN"]);
+    expect(secretsFor("https://cdn.example.com/docs")).toStrictEqual([]);
+    expect(secretsFor("not a url")).toStrictEqual([]);
+    expect(mdxRemote({ files: ["intro.mdx"] }).requiredSecrets).toStrictEqual(
+      []
+    );
+  });
+
   it("return a plain descriptor with the options verbatim", () => {
     for (const { adapter, deps, secrets } of BUILT_IN) {
       expect(adapter.requiredSecrets).toStrictEqual(secrets);

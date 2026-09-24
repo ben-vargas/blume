@@ -77,7 +77,12 @@
         }
         const slot = deferredIn(details.querySelector(":scope > [data-nav-src]"));
         if (slot) {
-          void fillDeferred(slot);
+          // A fragment that can't load (offline, a deploy that dropped it)
+          // closes the group again instead of leaving it open and empty; the
+          // slot keeps its `data-nav-src`, so the next open retries.
+          fillDeferred(slot).catch(() => {
+            details.open = false;
+          });
         }
       },
       true
@@ -159,8 +164,17 @@
       if (!next) {
         return;
       }
-      // A deferred panel loads its contents before it slides in.
-      await fillDeferred(next);
+      // A deferred panel loads its contents before it slides in. When its
+      // fragment can't load (offline, a deploy that dropped it), the drill-in
+      // follows the section's own page link — the panel's title — instead of
+      // leaving the click dead. A section with no page stays put, and the next
+      // drill-in retries the fetch.
+      try {
+        await fillDeferred(next);
+      } catch {
+        next.querySelector<HTMLAnchorElement>("a[href]")?.click();
+        return;
+      }
       const prev = this.active;
       if (prev === next) {
         return;

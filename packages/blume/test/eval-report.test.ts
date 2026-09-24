@@ -5,6 +5,7 @@ import { dirname } from "pathe";
 
 import {
   evalReportJson,
+  fixLines,
   formatEvalReport,
   headerLine,
   questionLine,
@@ -156,6 +157,32 @@ describe("progress lines", () => {
     expect(warnings).toHaveLength(1);
     expect(warnings[0]).toContain("⚠ evals.yaml:12");
     expect(warnings[0]).toContain("matches no page");
+  });
+});
+
+describe("fixLines", () => {
+  it("points a failed question at its page and an errored run at its question", () => {
+    const lines = fixLines(
+      {
+        ...result,
+        diagnostics: [
+          ...result.diagnostics,
+          {
+            code: "BLUME_EVAL_QUESTION_ERROR",
+            file: "/root/evals.yaml",
+            line: 20,
+            message:
+              'The agent run failed for "Where are the logs?" — reader timed out, so the docs weren\'t graded.',
+            severity: "error",
+          },
+        ],
+      },
+      "/root"
+    ).map(strip);
+    expect(lines).toEqual([
+      '  fix: docs/deploy.mdx Docs could not answer: "How do I deploy to Vercel?"',
+      '  run failed: evals.yaml:20 The agent run failed for "Where are the logs?" — reader timed out, so the docs weren\'t graded.',
+    ]);
   });
 });
 

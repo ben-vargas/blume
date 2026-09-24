@@ -45,6 +45,8 @@ export const ja: UIStringsOverride = {
     title: "変更履歴",
   },
   content: {
+    copyColor: "カラー {name}（{value}）をコピー",
+    copyPrompt: "プロンプトをコピー",
     diagramError: "この図を表示できませんでした。",
   },
   feedback: {

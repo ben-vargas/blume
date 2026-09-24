@@ -1,22 +1,35 @@
 import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 
-import { join, relative } from "pathe";
+import { join, relative, resolve } from "pathe";
+import { glob } from "tinyglobby";
 import { z } from "zod";
 
-import { analyzeComponentOverrides } from "../core/component-overrides.ts";
+import {
+  analyzeComponentOverrides,
+  ComponentOverridesError,
+} from "../core/component-overrides.ts";
 import { ConfigValidationError, loadConfig } from "../core/config.ts";
-import { BlumeError } from "../core/diagnostics.ts";
+import { BlumeError, locateFrontmatterKey } from "../core/diagnostics.ts";
+import matter from "../core/frontmatter.ts";
+import { createModuleLoader } from "../core/load-module.ts";
 import { findComponentsFile, findConfigFile } from "../core/project.ts";
+import { pageMetaSchema } from "../core/schema.ts";
+import { baselineScanIgnore } from "../core/sources/watch.ts";
 import type { Diagnostic } from "../core/types.ts";
+import {
+  DEFAULT_CONTENT_EXCLUDE,
+  DEFAULT_CONTENT_INCLUDE,
+} from "../sources/filesystem.ts";
 
 /**
  * `blume upgrade`'s logic, kept out of the command module so it runs (and is
  * covered) in-process: bump the `blume` dependency to the running CLI's major,
  * then check the project against it — the config through the same loader
  * every command uses, which names each removed or renamed field and its
- * replacement, and `components.ts` through the same static planner the build
- * runs. The command prints the findings or hands them to a coding agent.
+ * replacement, `components.ts` through the same static planner the build
+ * runs, and each page's front matter for fields the schema removed. The
+ * command prints the findings or hands them to a coding agent.
  */
 
 /** The upgrade guide's route on the Blume docs site. */
@@ -235,9 +248,167 @@ const scriptFindings = async (root: string): Promise<Diagnostic[]> => {
   });
 };
 
+// ---------------------------------------------------------------------------
+// Removed front matter fields
+// ---------------------------------------------------------------------------
+
+/** Where a project's local content lives, as its config names it. */
+interface ContentGlobs {
+  exclude: string[];
+  include: string[];
+  root: string;
+}
+
+const globFields = {
+  exclude: z.array(z.string()).optional(),
+  include: z.array(z.string()).optional(),
+  root: z.string().optional(),
+};
+
+/**
+ * A filesystem source in either form a config being upgraded may hold: the
+ * `filesystem()` descriptor, or Blume 1's `{ type: "filesystem" }` object.
+ */
+const rawFilesystemSourceSchema = z.union([
+  z
+    .looseObject({
+      kind: z.literal("filesystem"),
+      options: z.looseObject(globFields).default({}),
+    })
+    .transform((source) => source.options),
+  z.looseObject({ type: z.literal("filesystem"), ...globFields }),
+]);
+
+/** The `content` slice of a config as written, before validation. */
+const rawContentSchema = z.looseObject({
+  content: z
+    .looseObject({ ...globFields, sources: z.array(z.unknown()).optional() })
+    .optional(),
+});
+
+/**
+ * The content roots to scan, read from the config as written rather than the
+ * validated config: the upgrade runs on configs that don't validate yet. Its
+ * filesystem sources when it lists any, else the `content.root` shorthand,
+ * else the zero-config `docs` folder.
+ */
+export const contentGlobs = ({
+  content,
+}: z.infer<typeof rawContentSchema>): ContentGlobs[] => {
+  const sources = (content?.sources ?? []).flatMap((source) => {
+    const filesystem = rawFilesystemSourceSchema.safeParse(source);
+    return filesystem.success ? [filesystem.data] : [];
+  });
+  return (sources.length > 0 ? sources : [content ?? {}]).map((globs) => ({
+    exclude: globs.exclude ?? DEFAULT_CONTENT_EXCLUDE,
+    include: globs.include ?? DEFAULT_CONTENT_INCLUDE,
+    root: globs.root ?? "docs",
+  }));
+};
+
+/** The content roots the project's config names, loaded as written. */
+const configContentGlobs = async (root: string): Promise<ContentGlobs[]> => {
+  const file = findConfigFile(root);
+  let raw: z.infer<typeof rawContentSchema> = {};
+  if (file) {
+    try {
+      const parsed = rawContentSchema.safeParse(
+        await createModuleLoader()(file)
+      );
+      raw = parsed.success ? parsed.data : {};
+    } catch {
+      // A config that won't load is already reported by the config check;
+      // its content still gets the zero-config scan.
+    }
+  }
+  return contentGlobs(raw);
+};
+
+const isPathKey = (segment: PropertyKey): segment is number | string =>
+  typeof segment !== "symbol";
+
+// Zod's own wording for an unknown key; a removed field's hint replaces it.
+const PLAIN_UNKNOWN_KEY = "Unrecognized key";
+
+/**
+ * The removed fields among one page's front matter issues, each at its own
+ * line. Only issues the page schema words as a removed-field hint count: a
+ * key a project declares through `frontmatter.extend` is unknown to the bare
+ * schema, and any other invalid value was already an error on Blume 1.
+ */
+const removedFieldFindings = (
+  file: string,
+  text: string,
+  issues: readonly z.core.$ZodIssue[]
+): Diagnostic[] =>
+  issues.flatMap((issue) => {
+    if (
+      issue.code !== "unrecognized_keys" ||
+      issue.message.startsWith(PLAIN_UNKNOWN_KEY)
+    ) {
+      return [];
+    }
+    const path = issue.path.filter(isPathKey);
+    const position =
+      locateFrontmatterKey(text, [...path, ...issue.keys.slice(0, 1)]) ??
+      locateFrontmatterKey(text, path);
+    return [
+      {
+        code: "BLUME_FRONTMATTER_INVALID",
+        column: position?.column,
+        file,
+        line: position?.line,
+        message: issue.message,
+        severity: "error",
+      } satisfies Diagnostic,
+    ];
+  });
+
+/** The removed front matter fields in one page, or none it can't parse. */
+const pageFindings = async (file: string): Promise<Diagnostic[]> => {
+  const text = await readFile(file, "utf-8");
+  let parsed: ReturnType<typeof pageMetaSchema.safeParse>;
+  try {
+    parsed = pageMetaSchema.safeParse(matter(text).data);
+  } catch {
+    // Unparseable front matter fails the build with its own diagnostic.
+    return [];
+  }
+  return parsed.success
+    ? []
+    : removedFieldFindings(file, text, parsed.error.issues);
+};
+
+/**
+ * A finding for each front matter field Blume 2 removed, across the project's
+ * local content. A page with one fails validation and drops out of the build,
+ * which the config and components checks alone would report as ready.
+ */
+const frontmatterFindings = async (root: string): Promise<Diagnostic[]> => {
+  const roots = await configContentGlobs(root);
+  const matches = await Promise.all(
+    roots.map((globs) => {
+      const cwd = resolve(root, globs.root);
+      return existsSync(cwd)
+        ? glob(globs.include, {
+            absolute: true,
+            cwd,
+            ignore: [...globs.exclude, ...baselineScanIgnore()],
+            onlyFiles: true,
+          })
+        : [];
+    })
+  );
+  // Two sources can share a folder; each page is checked once.
+  const files = [...new Set(matches.flat())].toSorted();
+  const findings = await Promise.all(files.map(pageFindings));
+  return findings.flat();
+};
+
 /**
  * Run one check, turning the {@link BlumeError} it throws into its findings:
- * each config issue on its own, or the one diagnostic any other check has.
+ * each config issue or `components.ts` entry on its own, or the one diagnostic
+ * any other check has.
  */
 const findingsOf = async (
   check: () => Promise<void>
@@ -246,7 +417,10 @@ const findingsOf = async (
     await check();
     return [];
   } catch (error) {
-    if (error instanceof ConfigValidationError) {
+    if (
+      error instanceof ConfigValidationError ||
+      error instanceof ComponentOverridesError
+    ) {
       return error.issues;
     }
     if (error instanceof BlumeError) {
@@ -259,7 +433,8 @@ const findingsOf = async (
 /**
  * Check a project against this version of Blume: its config through the
  * loader (every invalid field, each with its line and replacement), its
- * `components.ts` through the static override planner, and its package.json
+ * `components.ts` through the static override planner (each entry at its
+ * line), its pages' front matter for removed fields, and its package.json
  * scripts for `blume build` flags that no longer exist. Returns the failures;
  * an empty list means the project is ready.
  */
@@ -279,6 +454,7 @@ export const collectUpgradeFindings = async (
           );
         })
       : []),
+    ...(await frontmatterFindings(root)),
     ...(await scriptFindings(root)),
   ];
 };
@@ -296,12 +472,14 @@ const plainFinding = (finding: Diagnostic, root: string): string => {
  * The handoff prompt: the findings inline (they're few, and each already
  * names its replacement), where the guide is, and the ground rules — change
  * the config's shape, never the site's behavior, and verify with the site's
- * own checks.
+ * own checks, run through the project's package runner (`npx`, `pnpm exec`),
+ * since a local install puts no `blume` on PATH.
  */
 export const upgradePrompt = (options: {
   findings: Diagnostic[];
   guidePath: string;
   root: string;
+  runner: string;
   version: string;
 }): string =>
   `Upgrade this Blume project to Blume ${options.version}. \`blume upgrade\` has bumped the \`blume\` dependency in package.json where it could; what's left is the config.
@@ -315,7 +493,7 @@ ${options.findings.map((finding) => plainFinding(finding, options.root)).join("\
 Work through every finding:
 1. Read the guide section for each change before editing.
 2. Rewrite the config to the Blume 2 form, adding the adapter imports it needs. Keep the site's behavior the same: the same content, routes, search backend, deployment target, analytics, and credentials (keep reading secrets from the same environment variables).
-3. The config loader reports every invalid field at once, but some changes only surface once earlier ones are fixed, so rerun \`blume doctor\` after each round of edits.
+3. The config loader reports every invalid field at once, but some changes only surface once earlier ones are fixed, so rerun \`${options.runner} blume doctor\` after each round of edits.
 4. Never delete content, or remove a setting only to silence an error; if something needs a human decision, leave it and say so in your summary.
 
-When \`blume doctor\` reports no errors, run \`blume build\` and fix anything it reports until it succeeds.`;
+When \`${options.runner} blume doctor\` reports no errors, run \`${options.runner} blume build\` and fix anything it reports until it succeeds.`;

@@ -342,6 +342,24 @@ describe("vercel platform", () => {
     expect(recorded.warn).toEqual([]);
   });
 
+  it("names the project's package manager in the function bundle remedy", async () => {
+    const root = await mkdtemp(join(tmpdir(), "blume-platform-"));
+    dirs.push(root);
+    const outputDir = join(root, ".vercel", "output");
+    await writeTree(root, {
+      ".vercel/output/functions/_render.func/.vc-config.json": JSON.stringify({
+        handler: "dist/server/entry.mjs",
+        runtime: "nodejs22.x",
+      }),
+      ".vercel/output/functions/_render.func/dist/server/entry.mjs":
+        'import { z } from "zod";\n',
+      "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
+    });
+    const { log, recorded } = recorder();
+    expect(await checkVercelFunctionBundles(outputDir, root, log)).toBe(false);
+    expect(recorded.error[0]).toContain("pnpm add -D zod");
+  });
+
   it("only warns about a project's own missing import", async () => {
     const root = await mkdtemp(join(tmpdir(), "blume-platform-"));
     dirs.push(root);

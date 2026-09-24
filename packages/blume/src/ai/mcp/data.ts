@@ -88,8 +88,12 @@ export const buildMcpData = async (project: BlumeProject): Promise<McpData> => {
   const pageById = new Map(graph.pages.map((page) => [page.id, page]));
 
   const routes: McpRoute[] = [];
+  // Fallback routes render the fallback locale's page at another locale's
+  // URL: listing them would pass that page off as a translation, once per
+  // locale. `get_page` still resolves them through `pages`, as llms.txt and
+  // search leave them out.
   for (const route of manifest.routes) {
-    if (route.hidden) {
+    if (route.hidden || route.fallback) {
       continue;
     }
     const page = pageById.get(route.id);

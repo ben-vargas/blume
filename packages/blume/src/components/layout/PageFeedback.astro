@@ -34,7 +34,12 @@ const buttonClass =
       {f.no}
     </button>
   </div>
-  <p class="hidden text-muted-foreground text-sm" data-feedback-thanks>
+  <p
+    class="hidden text-muted-foreground text-sm focus:outline-none"
+    data-feedback-thanks
+    role="status"
+    tabindex="-1"
+  >
     {f.thanks}
   </p>
 </section>
@@ -61,6 +66,11 @@ const buttonClass =
         });
         actions?.classList.add("hidden");
         thanks?.classList.remove("hidden");
+        // The clicked button just disappeared under focus; hand focus to the
+        // (live) thanks line so the reader isn't dropped at the top of the page.
+        if (thanks instanceof HTMLElement) {
+          thanks.focus();
+        }
       });
     }
   };

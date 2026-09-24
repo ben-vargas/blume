@@ -214,21 +214,27 @@ Set a token under `:root` for light mode and under `:root[data-theme="dark"]` fo
 
 ### Design tokens
 
-| Token                       | Controls                                  |
-| --------------------------- | ----------------------------------------- |
-| `--blume-background`        | Page background                           |
-| `--blume-foreground`        | Body text                                 |
-| `--blume-muted`             | Subtle surfaces — callouts, table headers |
-| `--blume-muted-foreground`  | Secondary text                            |
-| `--blume-border`            | Borders and dividers                      |
-| `--blume-accent`            | Accent color                              |
-| `--blume-accent-foreground` | Text and icons on an accent background    |
-| `--blume-action`            | Secondary accent (defaults to accent)     |
-| `--blume-code-background`   | Code block surface                        |
-| `--blume-radius`            | Corner radius                             |
-| `--blume-font-display`      | Heading font                              |
-| `--blume-font-body`         | Body / UI font                            |
-| `--blume-font-mono`         | Code font                                 |
+| Token | Controls |
+| --- | --- |
+| `--blume-background` | Page background |
+| `--blume-foreground` | Body text |
+| `--blume-muted` | Subtle surfaces — callouts, table headers |
+| `--blume-muted-foreground` | Secondary text |
+| `--blume-border` | Borders and dividers |
+| `--blume-accent` | Accent color |
+| `--blume-accent-foreground` | Text and icons on an accent background |
+| `--blume-action` | Secondary accent (defaults to accent) |
+| `--blume-action-foreground` | Text and icons on an action background (defaults to accent foreground) |
+| `--blume-code-background` | Code block surface |
+| `--blume-code-highlight`, `--blume-code-highlight-border` | Background and left rule of a highlighted code line (`// [!code highlight]` or a `{1,4-5}` range) |
+| `--blume-code-add`, `--blume-code-add-border` | Background and left rule of an added line (`// [!code ++]`) |
+| `--blume-code-remove`, `--blume-code-remove-border` | Background and left rule of a removed line (`// [!code --]`) |
+| `--blume-code-word`, `--blume-code-word-border` | Background and outline of a highlighted word (`// [!code word:…]`) |
+| `--blume-content-width` | Max width of the prose column — article, breadcrumb, table of contents, feedback, and pagination (default `42rem`) |
+| `--blume-radius` | Corner radius |
+| `--blume-font-display` | Heading font |
+| `--blume-font-body` | Body / UI font |
+| `--blume-font-mono` | Code font |
 
 Set a `--blume-font-*` token to any font stack to use a font outside the curated list, or to fall back to the system stack:
 
@@ -252,6 +258,9 @@ Blume's theme is built with Tailwind v4 internally, and your project's `.astro`,
 | `--blume-accent`            | `bg-accent`, `text-accent` |
 | `--blume-accent-foreground` | `text-accent-foreground`   |
 | `--blume-action`            | `bg-action`, `text-action` |
+| `--blume-action-foreground` | `text-action-foreground`   |
+| `--blume-code-background`   | `bg-code`                  |
+| `--blume-content-width`     | `max-w-content`            |
 | `--blume-radius`            | `rounded-blume`            |
 | `--blume-font-display`      | `font-display`             |
 | `--blume-font-body`         | `font-sans`                |

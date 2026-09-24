@@ -23,7 +23,10 @@ const prefersDark = () => document.documentElement.dataset.theme === "dark";
 
 let counter = 0;
 
-class BlumeMermaid extends HTMLElement {
+// Exported so this file is a module, not a script: `blume:features` lazy-loads
+// it with `import()`, and `astro check` rejects a dynamic import of a file with
+// no import or export of its own (ts(2306)) on every site with a diagram.
+export class BlumeMermaid extends HTMLElement {
   #observer: MutationObserver | null = null;
   #renderToken = 0;
 
@@ -84,8 +87,16 @@ class BlumeMermaid extends HTMLElement {
     // Re-render on color-theme changes so the diagram tracks light and dark.
     // One observer per connection, disconnected on removal — otherwise every
     // DOM move stacks another observer that renders into detached DOM forever.
+    // The theme script rewrites `data-theme` after every client-router swap,
+    // usually to the value it already had, so only a real flip re-renders.
+    let dark = prefersDark();
     this.#observer?.disconnect();
-    this.#observer = new MutationObserver(() => render());
+    this.#observer = new MutationObserver(() => {
+      if (prefersDark() !== dark) {
+        dark = prefersDark();
+        render();
+      }
+    });
     this.#observer.observe(document.documentElement, {
       attributeFilter: ["data-theme"],
     });

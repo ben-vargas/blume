@@ -6,7 +6,7 @@ sidebar:
   order: 2.5
 ---
 
-Blume 2 changes configuration, not content: your Markdown and MDX pages need no edits. Settings that used to be a named string or a keyed block — the search provider, the deployment target, content sources, API references, analytics, and the Ask AI backend — are now **adapters** you import from a `blume/*` subpath and call. The machine-readable settings move from `ai` to a new `agents` key, and `components.ts` overrides are checked before the build. A zero-config site, or one that sets none of these, only needs the version bump.
+Blume 2 changes configuration, not content: your Markdown and MDX pages need no edits, unless one sets the removed `search.boost` frontmatter field (see [Frontmatter](#frontmatter)). Settings that used to be a named string or a keyed block — the search provider, the deployment target, content sources, API references, analytics, and the Ask AI backend — are now **adapters** you import from a `blume/*` subpath and call. The machine-readable settings move from `ai` to a new `agents` key, and `components.ts` overrides are checked before the build. A zero-config site, or one that sets none of these, only needs the version bump.
 
 ## Upgrade with one command
 
@@ -16,7 +16,7 @@ Run the upgrade from your project, the folder with `blume.config.ts`:
 npx blume@latest upgrade
 ```
 
-It bumps `blume` in your `package.json` to 2, installs it with the package manager your project uses, then checks your config and `components.ts` against Blume 2. Every change that's still needed is listed with its file, line, and replacement — including `package.json` scripts that still pass the removed `blume build` flags — and the command exits non-zero until none are left. Run from a folder with neither a config nor a `blume` dependency, it stops with an error instead. Run it through `npx blume@latest` rather than `blume`: the command ships in Blume 2, so a project still on 1 doesn't have it yet.
+It bumps `blume` in your `package.json` to 2, installs it with the package manager your project uses, then checks your config and `components.ts` against Blume 2. Every change that's still needed is listed with its file, line, and replacement — including `package.json` scripts that still pass the removed `blume build` flags — and the command exits non-zero until none are left. Run from a folder with neither a config nor a `blume` dependency, it stops with an error instead. Run it through `npx blume@latest` rather than `blume`: the command ships in Blume 2, so a project still on 1 doesn't have it yet. On pnpm 12, add `--allow-build=esbuild` after `pnpm dlx`, since pnpm 12 won't run esbuild's install script unapproved.
 
 To hand the changes to a coding agent instead, add `--claude` or `--codex`:
 
@@ -54,7 +54,7 @@ export default defineConfig({
 
 </CodeGroup>
 
-- Orama Cloud, Typesense, and Mixedbread map the same way to `oramaCloud()`, `typesense()`, and `mixedbread()`. The search-only key is `apiKey` in every adapter that takes one; `mixedbread()` takes only `storeId`, since its queries run on the docs server. Admin keys stay in their env vars (`ALGOLIA_ADMIN_API_KEY`, `ORAMA_PRIVATE_API_KEY`, `TYPESENSE_ADMIN_API_KEY`, `MIXEDBREAD_API_KEY`).
+- Orama Cloud, Typesense, and Mixedbread map the same way to `oramaCloud()`, `typesense()`, and `mixedbread()`. The search-only key is `apiKey` in every adapter that takes one; `mixedbread()` takes `storeId` rather than a key, since its queries run on the docs server; any other option it's given is forwarded to the store search call, where `top_k` defaults to 8. Admin keys stay in their env vars (`ALGOLIA_ADMIN_API_KEY`, `ORAMA_PRIVATE_API_KEY`, `TYPESENSE_ADMIN_API_KEY`, `MIXEDBREAD_API_KEY`).
 - `provider: "pagefind"` becomes `pagefind()`, and `provider: "none"` becomes `search: false`.
 - To keep `popular` links or `indexing` options, wrap the adapter: `search: { provider: algolia({ … }), popular: […] }`.
 
@@ -131,6 +131,7 @@ export default defineConfig({
 
 - `mdx-remote`, `sanity`, `notion`, and `obsidian` become `mdxRemote()`, `sanity()`, `notion()`, and `obsidian()`, with every other field moving into the call unchanged. `{ type: "custom", source }` becomes `custom(source)`.
 - `content.root`, `content.include`, and `content.exclude` are still the shorthand for a single folder, but they can't sit beside `sources` any more. Move them into the `filesystem()` entry.
+- Release pages from `githubReleases()` publish in one language now, so a multi-locale site no longer copies them to every other locale's URL (`/de/changelog/…`). If other sites link to those copies, add [redirects](/docs/deployment#redirects) to the default-locale pages.
 
 ## API references
 
@@ -167,6 +168,7 @@ export default defineConfig({
 </CodeGroup>
 
 - `asyncapi: { … }` becomes `asyncapi({ … })` with the same options.
+- An AsyncAPI 1.x or 2.x spec is still converted to 3.0 for you, but the converter is now an optional peer: install `@asyncapi/converter` in your project, or the build fails with the install command. A 3.x spec needs nothing.
 - `renderer: "scalar"` becomes its own `scalar({ spec, theme, … })` entry in the list, keeping the block's `route` and `sources`.
 - A block with `enabled: false` is simply left out of the list.
 
@@ -272,6 +274,10 @@ export default defineConfig({
 - `markdown.codeBlocks` merges into `markdown.code`.
 - `theme.layout` is gone. Nothing read it, so delete it.
 
+## Frontmatter
+
+One frontmatter field is gone: `search.boost`. Blume 1 accepted it, but search never read it, so a page ranked the same without it. Delete it wherever it appears; a page that still sets it fails validation with a hint, and `blume upgrade` lists each one with its file and line.
+
 ## Component overrides
 
 Blume 2 checks every `components.ts` entry before the build instead of falling back at runtime. Each `mdx` and `layout` entry must be an imported component, a path string, or a `{ component, client, media }` object, and the `islands` group is gone: an `mdx` entry with a `client` mode is an island.
@@ -305,30 +311,36 @@ An inline function, a component declared in `components.ts` itself, a spread, or
 An app you [ejected](/docs/configuration/customization#eject) on Blume 1 no longer runs through the Blume CLI, but it still depends on the `blume` package. Its pages import Blume's components, `src/generated/` holds a snapshot of your site written by the Blume 1 generator, and `astro build` loads `blume.config.ts` again to write the search index, `llms.txt`, and the sitemap. Bumping `blume` to 2 under it pairs that Blume 1 snapshot with Blume 2 components that expect the new shapes, so eject again instead:
 
 <Steps>
-  <Step title="Upgrade the config">
-    Run `npx blume@latest upgrade` in the ejected app and apply what it lists,
-    so `blume.config.ts` and `components.ts` are valid Blume 2.
+  <Step title="Copy the project out">
+    Copy everything except `astro.config.mjs`, `src/`, `.blume/`, `dist/`, and
+    `node_modules/` into an empty folder: your content, `blume.config.ts`,
+    `components.ts`, `islands/`, `public/`, any spec files your references read,
+    and `package.json`. Leave the ejected app as it is.
+  </Step>
+  <Step title="Upgrade the copy">
+    In the copy, run `npx blume@latest upgrade` and apply what it lists, so
+    `blume.config.ts` and `components.ts` are valid Blume 2. Then run `npx blume
+    build` to confirm the site builds before you eject it.
   </Step>
   <Step title="Eject a fresh copy">
-    Copy your content folder, `blume.config.ts`, `components.ts`, `public/`, and
-    `package.json` into an empty folder (leave out `astro.config.mjs` and
-    `src/`), install, and run `npx blume eject`.
+    Run `npx blume eject --yes` in the copy, install the packages it adds, and
+    build it with `npm run build`.
   </Step>
   <Step title="Carry your edits across">
-    Diff the fresh output against your ejected app, and move your own changes
-    onto the new files.
+    Diff the fresh `astro.config.mjs` and `src/` against your ejected app, and
+    move your own changes onto the new files.
   </Step>
 </Steps>
 
-Until you do, keep the ejected app on Blume 1 (`"blume": "^1"`): nothing changes until you bump it.
+Until the fresh copy is ready, keep the ejected app on Blume 1 (`"blume": "^1"`) and don't run `blume upgrade` in it: nothing changes until you bump it.
 
 ## Check your work
 
 Once `blume upgrade` reports nothing left to change, run the site's own checks:
 
 ```bash
-blume doctor
-blume build
+npx blume doctor
+npx blume build
 ```
 
 The full list of changes, with the reasoning behind each, is in the [changelog](/changelog).

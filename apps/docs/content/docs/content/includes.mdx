@@ -3,7 +3,7 @@ title: Includes
 description: Reuse content across pages — splice shared Markdown, MDX, or code files into any page with the include syntax.
 ---
 
-Write a snippet once and splice it into any page. An `<include>` statement on its own line embeds another file at build time, as if its content were written inline — headings join the page's table of contents, text is indexed by search, and the content appears in the page's `.md` mirror and llms-full.txt.
+Write a snippet once and splice it into any page. An `<include>` statement on its own line embeds another file at build time, as if its content were written inline — headings join the page's table of contents, text is indexed by search, and the content appears in the page's `.md` mirror and llms-full.txt. A statement a formatter wraps across lines still splices, and one Blume can't parse raises a `BLUME_INCLUDE_MALFORMED` warning at its line instead of rendering as a raw tag.
 
 ```mdx
 <include>./_snippets/prerequisites.mdx</include>
@@ -48,9 +48,7 @@ A target that isn't `.md`/`.mdx` is embedded as a fenced code block, with the la
 ```mdx
 <include>./examples/config.ts</include>
 
-<include lang="ts" meta='title="blume.config.ts"'>
-  ../blume.config.ts
-</include>
+<include meta='title="config.ts"'>./examples/config.ts</include>
 
 <include lang="mdx">./_snippets/prerequisites.mdx</include>
 ```

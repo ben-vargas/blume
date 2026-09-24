@@ -454,7 +454,10 @@ export interface AskBackendTemplate {
   fields: string[];
   /** Import lines after the shared `astro` and `astro:env/server` ones. */
   imports: string[];
-  /** The up-front credential guard: a statement that returns a 500. */
+  /**
+   * The up-front credential guard: a statement that returns a 503, since the
+   * endpoint exists but can't answer until the deployment sets its key.
+   */
   keyCheck: string;
   /** The `model:` expression passed to `streamText`. */
   model: string;
@@ -497,7 +500,7 @@ const headersLine = (headers?: Record<string, string>): string =>
 const keyCheck = (env: string): string => `  if (!${secretExpr(env)}) {
     return new Response(
       ${JSON.stringify(`Ask AI is not configured: set ${env}.`)},
-      { status: 500 }
+      { status: 503 }
     );
   }`;
 
@@ -533,12 +536,14 @@ const gatewayBackend = (
     // The gateway provider reads the key (or Vercel's OIDC token) from the
     // environment itself; passing the key explicitly lets a binding-backed
     // secret store reach it too.
-    imports: ['import { createGateway, streamText } from "ai";'],
+    imports: [
+      'import { createGateway, createTextStreamResponse, streamText, toTextStream } from "ai";',
+    ],
     keyCheck: `  // The AI Gateway authenticates with an API key or Vercel's OIDC token.
   if (!(${secretExpr(options.apiKeyEnv)} || getSecret("VERCEL_OIDC_TOKEN"))) {
     return new Response(
       ${JSON.stringify(`Ask AI is not configured: set ${options.apiKeyEnv} (or deploy on Vercel with OIDC).`)},
-      { status: 500 }
+      { status: 503 }
     );
   }`,
     model: `gateway(${JSON.stringify(options.model)})`,
@@ -564,7 +569,7 @@ const openrouterBackend = (
     template: {
       fields: callFields({ providerOptions: options.providerOptions }),
       imports: [
-        'import { streamText } from "ai";',
+        'import { createTextStreamResponse, streamText, toTextStream } from "ai";',
         'import { createOpenRouter } from "@openrouter/ai-sdk-provider";',
       ],
       keyCheck: keyCheck(options.apiKeyEnv),
@@ -601,7 +606,7 @@ const openaiCompatibleBackend = (
   template: {
     fields: callFields(options),
     imports: [
-      'import { streamText } from "ai";',
+      'import { createTextStreamResponse, streamText, toTextStream } from "ai";',
       'import { createOpenAICompatible } from "@ai-sdk/openai-compatible";',
     ],
     keyCheck: keyCheck(options.apiKeyEnv),

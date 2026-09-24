@@ -39,9 +39,13 @@
  * the `after-swap` re-apply stays as the fallback that also picks up a
  * preference changed in another tab.
  *
- * Reads `data-mode` — `"system" | "light" | "dark"`.
+ * Reads `data-mode` — `"system" | "light" | "dark"`. Blocked storage (Safari
+ * "Block All Cookies", sandboxed iframes) throws on read. That reads as no
+ * stored preference instead of aborting before the swap listeners exist, and
+ * after a swap the theme the `before-swap` stamp carried over stands, so a
+ * toggle the reader made still holds for the rest of their visit.
  */
-export const THEME_INIT_SCRIPT = `(()=>{const m=document.currentScript?.dataset.mode??"system";const apply=()=>{const s=localStorage.getItem("blume-theme");const sys=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.dataset.theme=s??(m==="system"?sys:m);};apply();document.addEventListener("astro:before-swap",(e)=>{const t=document.documentElement.dataset.theme;if(t){e.newDocument.documentElement.dataset.theme=t;}});document.addEventListener("astro:after-swap",apply);})();`;
+export const THEME_INIT_SCRIPT = `(()=>{const m=document.currentScript?.dataset.mode??"system";const apply=()=>{const r=document.documentElement;let s=null;let blocked=false;try{s=localStorage.getItem("blume-theme");}catch{blocked=true;}const sys=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";r.dataset.theme=s??(blocked&&r.dataset.theme?r.dataset.theme:m==="system"?sys:m);};apply();document.addEventListener("astro:before-swap",(e)=>{const t=document.documentElement.dataset.theme;if(t){e.newDocument.documentElement.dataset.theme=t;}});document.addEventListener("astro:after-swap",apply);})();`;
 
 /**
  * Keep an embedded Scalar reference on Blume's theme. Scalar picks its own
@@ -63,12 +67,17 @@ export const THEME_INIT_SCRIPT = `(()=>{const m=document.currentScript?.dataset.
 export const SCALAR_THEME_INIT_SCRIPT = `(()=>{const d=document.documentElement;const mode=()=>d.dataset.theme==="dark"?"dark":"light";let pinned=0;for(const el of document.querySelectorAll("[data-scalar-client]")){let c;try{c=JSON.parse(el.dataset.configuration||"{}");}catch{continue;}if("forceDarkModeState" in c||"darkMode" in c){continue;}c.forceDarkModeState=mode();el.dataset.configuration=JSON.stringify(c);pinned+=1;}if(!pinned){return;}new MutationObserver(()=>{const dark=mode()==="dark";document.body.classList.toggle("dark-mode",dark);document.body.classList.toggle("light-mode",!dark);}).observe(d,{attributes:true,attributeFilter:["data-theme"]});})();`;
 
 /**
- * Hide a previously-dismissed banner before it can flash in — and again after
- * every client-router swap, which wipes the `<html>` marker attribute.
+ * Hide a previously-dismissed banner before it can flash in — and keep it
+ * hidden across client-router swaps, which replace the `<html>` attributes with
+ * the incoming page's: `astro:before-swap` carries the marker onto the incoming
+ * root (as the theme script does with `data-theme`), and `after-swap` re-reads
+ * storage as the fallback.
  *
- * Reads `data-key` — the banner's dismissal key.
+ * Reads `data-key` — the banner's dismissal key. A storage read that throws
+ * (blocked storage) reads as not dismissed; a dismissal made on this visit
+ * still holds across its swaps through the carried-over marker.
  */
-export const BANNER_INIT_SCRIPT = `(()=>{const k=document.currentScript?.dataset.key;if(!k){return;}const apply=()=>{if(localStorage.getItem("blume-banner:"+k)){document.documentElement.setAttribute("data-blume-banner-hidden","");}};apply();document.addEventListener("astro:after-swap",apply);})();`;
+export const BANNER_INIT_SCRIPT = `(()=>{const k=document.currentScript?.dataset.key;if(!k){return;}const apply=()=>{let hidden=null;try{hidden=localStorage.getItem("blume-banner:"+k);}catch{}if(hidden){document.documentElement.setAttribute("data-blume-banner-hidden","");}};apply();document.addEventListener("astro:before-swap",(e)=>{if(document.documentElement.hasAttribute("data-blume-banner-hidden")){e.newDocument.documentElement.setAttribute("data-blume-banner-hidden","");}});document.addEventListener("astro:after-swap",apply);})();`;
 
 /**
  * Keep the page styled across client-router swaps. Astro hoists the CSS of a

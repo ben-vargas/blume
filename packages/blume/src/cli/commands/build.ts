@@ -23,6 +23,7 @@ import {
 } from "../../upgrade/upgrade.ts";
 import { commandMeta } from "../command-meta.ts";
 import { refuseIfDevRunning } from "../dev-lock.ts";
+import { refuseIfEjected } from "../eject-scripts.ts";
 import { logger } from "../log.ts";
 import { prepareProject } from "../prepare.ts";
 
@@ -214,19 +215,29 @@ const reportBuild = async (
   const sitemapNote = config.seo.sitemap
     ? "no (set deployment.site)"
     : "no (seo.sitemap is false)";
-  logger.box(
+  const rows: [label: string, value: string | number][] = [
+    ["Output", config.deployment.options.output],
+    ["Adapter", config.deployment.kind],
+    ["Site", config.deployment.options.site ?? "not set"],
+    ["Search", config.search.provider.kind],
+    ["Redirects", config.redirects.length],
     [
-      `Output     ${config.deployment.options.output}`,
-      `Adapter    ${config.deployment.kind}`,
-      `Site       ${config.deployment.options.site ?? "not set"}`,
-      `Search     ${config.search.provider.kind}`,
-      `Redirects  ${config.redirects.length}`,
-      `Sitemap    ${config.deployment.options.site && config.seo.sitemap ? "yes" : sitemapNote}`,
-      `Robots     ${config.seo.robots ? "yes" : "no"}`,
-      `Agent JSON ${config.agents.agentReadability ? "yes" : "no"}`,
-      `LLM files  ${config.agents.llmsTxt.enabled ? "yes" : "no"}`,
-      `Server features  ${features.length > 0 ? features.join(", ") : "none"}`,
-    ].join("\n")
+      "Sitemap",
+      config.deployment.options.site && config.seo.sitemap
+        ? "yes"
+        : sitemapNote,
+    ],
+    ["Robots", config.seo.robots ? "yes" : "no"],
+    ["Agent JSON", config.agents.agentReadability ? "yes" : "no"],
+    ["LLM files", config.agents.llmsTxt.enabled ? "yes" : "no"],
+    ["Server features", features.length > 0 ? features.join(", ") : "none"],
+  ];
+  // One label column for every row, sized by the longest label.
+  const labelWidth = Math.max(...rows.map(([label]) => label.length)) + 2;
+  logger.box(
+    rows
+      .map(([label, value]) => `${label.padEnd(labelWidth)}${value}`)
+      .join("\n")
   );
 
   await runClientAssetChecks(distDir, args);
@@ -284,6 +295,7 @@ export const buildCommand = defineCommand({
       );
       process.exit(1);
     }
+    await refuseIfEjected(root, "build");
 
     // `--isolated` (or BLUME_RUNTIME_DIR) relocates the whole runtime to a
     // sibling dir so this build never touches a live dev server's `.blume/` or

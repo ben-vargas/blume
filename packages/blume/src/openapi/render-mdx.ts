@@ -9,6 +9,7 @@ import type { GraphqlMember } from "./graphql.ts";
 import { isGraphqlOperationKind } from "./graphql.ts";
 import type { ApiOperationRef, ApiSpecData } from "./model.ts";
 import type { ReferenceSource } from "./references.ts";
+import { asSentence } from "./sentence.ts";
 import { operationSignature } from "./signature.ts";
 
 /**
@@ -208,11 +209,16 @@ const operationDescription = (
     subject = `${operation.method.toUpperCase()} ${operation.path} endpoint`;
   }
   const suffix = `Reference for the ${subject} in the ${apiPhrase(spec)}.`;
+  // Room for the joining space and the period `asSentence` may add, so a
+  // title-like summary ("Get a flag") ends before the suffix begins.
   const prose = clip(
     plainProse(operation.description || operation.summary),
-    META_DESCRIPTION_MAX - stringWidth(suffix) - 1
+    META_DESCRIPTION_MAX - stringWidth(suffix) - 2
   );
-  return clip([prose, suffix].filter(Boolean).join(" "), META_DESCRIPTION_MAX);
+  return clip(
+    [asSentence(prose), suffix].filter(Boolean).join(" "),
+    META_DESCRIPTION_MAX
+  );
 };
 
 /** Prepend a markdown description (if any) above a component invocation. */

@@ -73,6 +73,10 @@ const uiStringsObject = z.object({
     .prefault({}),
   content: z
     .object({
+      // A `<Color.Item>` swatch's accessible name; `{name}` and `{value}` are
+      // replaced with the color's name and the value it shows.
+      copyColor: z.string().default("Copy {name} color {value}"),
+      copyPrompt: z.string().default("Copy prompt"),
       diagramError: z.string().default("Could not render this diagram."),
     })
     .prefault({}),

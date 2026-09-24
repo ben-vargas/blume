@@ -44,7 +44,11 @@ export const nl: UIStringsOverride = {
     description: "Productupdates en releaseopmerkingen.",
     title: "Wijzigingslogboek",
   },
-  content: { diagramError: "Dit diagram kon niet worden weergegeven." },
+  content: {
+    copyColor: "Kleur {name} {value} kopiëren",
+    copyPrompt: "Prompt kopiëren",
+    diagramError: "Dit diagram kon niet worden weergegeven.",
+  },
   feedback: {
     no: "Nee",
     question: "Was deze pagina nuttig?",

@@ -44,7 +44,11 @@ export const sv: UIStringsOverride = {
     description: "Produktuppdateringar och versionsinformation.",
     title: "Ändringslogg",
   },
-  content: { diagramError: "Det här diagrammet kunde inte visas." },
+  content: {
+    copyColor: "Kopiera färgen {name} {value}",
+    copyPrompt: "Kopiera prompt",
+    diagramError: "Det här diagrammet kunde inte visas.",
+  },
   feedback: {
     no: "Nej",
     question: "Var den här sidan till hjälp?",

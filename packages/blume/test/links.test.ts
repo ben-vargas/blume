@@ -5,7 +5,11 @@ import { tmpdir } from "node:os";
 import { join } from "pathe";
 
 import { extractLinks } from "../src/core/content.ts";
-import { validateLinks } from "../src/core/links.ts";
+import {
+  isIndexFileName,
+  resolveRelativeHref,
+  validateLinks,
+} from "../src/core/links.ts";
 import { pageMetaSchema } from "../src/core/schema.ts";
 import type {
   ContentGraph,
@@ -771,5 +775,183 @@ describe("validateLinks — partial-origin links", () => {
     ]);
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]?.message).not.toContain("included by");
+  });
+});
+
+describe(resolveRelativeHref, () => {
+  const leaf = { isIndex: false, route: "/guides/setup" };
+  const index = { isIndex: true, route: "/guides" };
+
+  it("leaves everything that isn't a relative page link alone", () => {
+    for (const href of [
+      "",
+      "#top",
+      "?tab=npm",
+      "/guides/install",
+      "https://example.com/x",
+      "mailto:a@b.dev",
+      "./diagram.png",
+      "../files/spec.pdf",
+    ]) {
+      expect(resolveRelativeHref(href, leaf)).toBeUndefined();
+    }
+  });
+
+  it("resolves a leaf page's links against its parent directory", () => {
+    expect(resolveRelativeHref("./install", leaf)).toBe("/guides/install");
+    expect(resolveRelativeHref("install", leaf)).toBe("/guides/install");
+    expect(resolveRelativeHref("../about", leaf)).toBe("/about");
+    expect(resolveRelativeHref("./", leaf)).toBe("/guides");
+  });
+
+  it("resolves an index page's links against its own route", () => {
+    // A browser at the slashless `/guides` would send `./install` to `/install`.
+    expect(resolveRelativeHref("./install", index)).toBe("/guides/install");
+    expect(resolveRelativeHref("../about", index)).toBe("/about");
+    expect(
+      resolveRelativeHref("./install", { isIndex: true, route: "/" })
+    ).toBe("/install");
+  });
+
+  it("keeps the authored query and fragment", () => {
+    expect(resolveRelativeHref("./install?tab=npm#step-2", index)).toBe(
+      "/guides/install?tab=npm#step-2"
+    );
+    expect(resolveRelativeHref("./install#step-2", leaf)).toBe(
+      "/guides/install#step-2"
+    );
+  });
+
+  it("maps a .md/.mdx file link through resolveFile, decoded", () => {
+    const seen: string[] = [];
+    const resolveFile = (path: string) => {
+      seen.push(path);
+      return path === "./01-caf\u00E9.mdx" ? "/guides/cafe" : undefined;
+    };
+    expect(resolveRelativeHref("./01-caf%C3%A9.mdx#a", leaf, resolveFile)).toBe(
+      "/guides/cafe#a"
+    );
+    expect(seen).toStrictEqual(["./01-caf\u00E9.mdx"]);
+  });
+
+  it("drops the extension route-relative for a file resolveFile doesn't know", () => {
+    const none = new Map<string, string>();
+    expect(
+      resolveRelativeHref("./install.md", leaf, (path) => none.get(path))
+    ).toBe("/guides/install");
+    expect(resolveRelativeHref("./nested/index.mdx", index)).toBe(
+      "/guides/nested"
+    );
+  });
+});
+
+describe(isIndexFileName, () => {
+  it("recognizes an index file, ordering prefix ignored", () => {
+    expect(isIndexFileName("guides/index.mdx")).toBe(true);
+    expect(isIndexFileName("guides/01-index.md")).toBe(true);
+    expect(isIndexFileName("guides/install.mdx")).toBe(false);
+    expect(isIndexFileName("guides/indexes.mdx")).toBe(false);
+  });
+
+  it("accepts a locale token only when one is configured", () => {
+    expect(isIndexFileName("index.fr.mdx", ["$", "fr"])).toBe(true);
+    expect(isIndexFileName("index.$.mdx", ["$", "fr"])).toBe(true);
+    expect(isIndexFileName("index.fr.mdx")).toBe(false);
+    expect(isIndexFileName("index.draft.mdx", ["$", "fr"])).toBe(false);
+  });
+});
+
+describe("validateLinks — relative file links", () => {
+  it("resolves a .md/.mdx link to the route its file publishes at", async () => {
+    // The ordering prefix and the target's own `slug` are route mapping's
+    // business: the link names the file, so it lands wherever that file goes.
+    const diagnostics = await validate([
+      makePage({
+        id: "guides/index.mdx",
+        links: [
+          link("./01-install.mdx"),
+          link("./setup.md#run"),
+          link("../about.mdx"),
+        ],
+        route: "/guides",
+      }),
+      makePage({ id: "guides/01-install.mdx", route: "/guides/install" }),
+      makePage({
+        headings: [heading("Run", "run")],
+        id: "guides/setup.md",
+        route: "/getting-started",
+      }),
+      makePage({ id: "about.mdx", route: "/about" }),
+    ]);
+    expect(diagnostics).toHaveLength(0);
+  });
+
+  it("falls back to the route-relative reading for a file it doesn't know", async () => {
+    const diagnostics = await validate([
+      makePage({
+        id: "guides/index.mdx",
+        links: [link("./missing.md")],
+        route: "/guides",
+      }),
+    ]);
+    expect(diagnostics[0]?.message).toContain(
+      "no page resolves to /guides/missing"
+    );
+  });
+
+  it("resolves route-relative on a page with no source file", async () => {
+    const diagnostics = await validate([
+      makePage({
+        id: "remote.mdx",
+        links: [link("./about.md")],
+        route: "/remote",
+        sourcePath: undefined,
+      }),
+      makePage({ id: "about.mdx", route: "/about" }),
+    ]);
+    expect(diagnostics).toHaveLength(0);
+  });
+
+  it("lets a shared file's default-locale route stand for it, never a fallback copy", async () => {
+    const i18n = {
+      defaultLocale: "en",
+      hideDefaultLocalePrefix: true,
+      locales: [{ code: "en" }, { code: "fr" }],
+    };
+    const shared = "/abs/shared.$.mdx";
+    const diagnostics = await validateLinks(
+      makeGraph([
+        makePage({
+          id: "fr/linker.mdx",
+          links: [link("./shared.$.mdx")],
+          locale: "fr",
+          route: "/fr/linker",
+          sourcePath: "/abs/linker.mdx",
+        }),
+        // A fallback copy of the shared file, listed first, never stands for it.
+        makePage({
+          fallback: true,
+          id: "copy",
+          locale: "fr",
+          route: "/fr/copy",
+          sourcePath: shared,
+        }),
+        makePage({
+          id: "shared-fr",
+          locale: "fr",
+          route: "/fr/shared",
+          sourcePath: shared,
+        }),
+        makePage({
+          id: "shared-en",
+          locale: "en",
+          route: "/shared",
+          sourcePath: shared,
+        }),
+      ]),
+      { i18n, publicDir: null }
+    );
+    // `/shared` moves into the linking page's locale, as the rendered link does.
+    expect(diagnostics).toHaveLength(0);
   });
 });

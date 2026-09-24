@@ -2081,6 +2081,7 @@ describe("resolveAskBackend", () => {
     expect(llm.template.keyCheck).toContain(
       "Ask AI is not configured: set MY_KEY."
     );
+    expect(llm.template.keyCheck).toContain("{ status: 503 }");
 
     const named = backendFor({
       enabled: true,
@@ -2492,7 +2493,9 @@ describe("ai.ask schema", () => {
 describe("askEndpointTemplate", () => {
   it("grounds the gateway endpoint and imports the retrieval helper", () => {
     const out = askEndpointTemplate(resolveAskBackend());
-    expect(out).toContain('import { createGateway, streamText } from "ai";');
+    expect(out).toContain(
+      'import { createGateway, createTextStreamResponse, streamText, toTextStream } from "ai";'
+    );
     expect(out).not.toContain("@openrouter/ai-sdk-provider");
     expect(out).not.toContain("@ai-sdk/openai-compatible");
     expect(out).toContain('model: gateway("openai/gpt-5.5")');
@@ -2525,6 +2528,8 @@ describe("askEndpointTemplate", () => {
       'if (!(getSecret("AI_GATEWAY_API_KEY") || getSecret("VERCEL_OIDC_TOKEN")))'
     );
     expect(out).toContain("Ask AI is not configured: set AI_GATEWAY_API_KEY");
+    // The route exists but can't answer yet: unavailable, not a server fault.
+    expect(out).toContain("{ status: 503 }");
     expect(out.indexOf("Ask AI is not configured")).toBeLessThan(
       out.indexOf("streamText({")
     );

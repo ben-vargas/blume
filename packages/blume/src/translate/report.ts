@@ -137,25 +137,56 @@ export const diagnosticLines = (diagnostics: Diagnostic[]): string[] =>
     (diagnostic) => `  ${colors.yellow("⚠")} ${colors.dim(diagnostic.message)}`
   );
 
+/** One (source, locale) pair a `--check` run flags. */
+interface DriftRow {
+  /** Absolute path of the default-locale source. */
+  file: string;
+  locale: string;
+  sourceRel: string;
+  status: WorkStatus;
+}
+
 /** Every (source, locale, status) drift row in a work list, pages then meta. */
-const driftRows = (
-  workList: TranslateWorkList
-): { locale: string; sourceRel: string; status: WorkStatus }[] =>
+const driftRows = (workList: TranslateWorkList): DriftRow[] =>
   workList.items.flatMap((item) =>
     item.kind === "page"
       ? [
           {
+            file: item.sourcePath,
             locale: item.locale,
             sourceRel: item.sourceRel,
             status: item.status,
           },
         ]
       : item.entries.map((entry: MetaWorkEntry) => ({
+          file: entry.meta.file,
           locale: item.locale,
           sourceRel: entry.meta.sourceRel,
           status: entry.status,
         }))
   );
+
+/**
+ * Each missing or stale translation as an error diagnostic, so the `--check`
+ * JSON's `summary` counts the drift that fails the gate — the exit-code
+ * contract `blume validate/audit/eval --json` keep, where a non-zero exit
+ * always shows as a non-zero `summary.error`.
+ */
+const driftDiagnostics = (workList: TranslateWorkList): Diagnostic[] =>
+  driftRows(workList).map((row) => ({
+    code:
+      row.status === "missing"
+        ? "BLUME_TRANSLATE_MISSING"
+        : "BLUME_TRANSLATE_STALE",
+    file: row.file,
+    message:
+      row.status === "missing"
+        ? `${row.sourceRel} has no "${row.locale}" translation.`
+        : `The "${row.locale}" translation of ${row.sourceRel} is stale: its source changed since it was translated.`,
+    severity: "error",
+    suggestion:
+      "Run `blume translate --claude` (or `--codex`) to bring the translations up to date.",
+  }));
 
 /** One line per missing/stale pair, plus dim lines for untracked adoptions. */
 export const checkLines = (workList: TranslateWorkList): string[] => [
@@ -191,10 +222,12 @@ export const hasDrift = (workList: TranslateWorkList): boolean =>
 
 /**
  * The machine-readable `--check` report. The `diagnostics` + `summary` shape
- * matches `blume validate/audit/eval --json` exactly, with the drift report
- * under `translate`.
+ * matches `blume validate/audit/eval --json` exactly — every missing or stale
+ * translation is an error diagnostic there, so `summary.error` agrees with the
+ * exit code — with the drift report grouped by locale under `translate`.
  */
 export const checkReportJson = (workList: TranslateWorkList): string => {
+  const diagnostics = [...workList.diagnostics, ...driftDiagnostics(workList)];
   const locales: Record<
     string,
     { missing: string[]; stale: string[]; untracked: string[] }
@@ -210,8 +243,8 @@ export const checkReportJson = (workList: TranslateWorkList): string => {
   }
   return `${JSON.stringify(
     {
-      diagnostics: workList.diagnostics,
-      summary: countBySeverity(workList.diagnostics),
+      diagnostics,
+      summary: countBySeverity(diagnostics),
       translate: { locales, upToDate: workList.upToDate },
     },
     null,

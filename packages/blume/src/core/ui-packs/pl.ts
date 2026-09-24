@@ -44,7 +44,11 @@ export const pl: UIStringsOverride = {
     description: "Aktualizacje produktu i informacje o wydaniach.",
     title: "Dziennik zmian",
   },
-  content: { diagramError: "Nie udało się wyświetlić tego diagramu." },
+  content: {
+    copyColor: "Kopiuj kolor {name} {value}",
+    copyPrompt: "Kopiuj prompt",
+    diagramError: "Nie udało się wyświetlić tego diagramu.",
+  },
   feedback: {
     no: "Nie",
     question: "Czy ta strona była pomocna?",

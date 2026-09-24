@@ -10,12 +10,14 @@ import type { AgentKind } from "../../audit/agent.ts";
 import { formatCatalog, formatReport, reportJson } from "../../audit/report.ts";
 import { NoBuildError, runAudit } from "../../audit/run.ts";
 import type { AuditResult } from "../../audit/run.ts";
+import { checkTerms, unknownCheckTerms } from "../../audit/terms.ts";
 import { BlumeError } from "../../core/diagnostics.ts";
 import { scanProject } from "../../core/project-graph.ts";
 import type { DiagnosticSeverity } from "../../core/types.ts";
 import { commandMeta } from "../command-meta.ts";
 import { reportInternalError } from "../internal-error.ts";
-import { flushStdout, logger } from "../log.ts";
+import { flushStdout, logger, reportDiagnostics } from "../log.ts";
+import { closestMatch } from "../unknown-flags.ts";
 
 const SEVERITIES: DiagnosticSeverity[] = ["error", "warning", "info"];
 
@@ -30,6 +32,31 @@ const splitTerms = (value: string | undefined): string[] =>
         .map((term) => term.trim())
         .filter(Boolean)
     : [];
+
+/**
+ * Exit when `--only`/`--skip` name a check or category that doesn't exist,
+ * suggesting the closest real one — a typo would otherwise filter every
+ * finding out and pass the gate.
+ */
+const rejectUnknownTerms = (terms: string[]): void => {
+  const unknown = unknownCheckTerms(terms);
+  if (unknown.length === 0) {
+    return;
+  }
+  const known = checkTerms();
+  const listed = unknown
+    .map((term) => {
+      const suggestion = closestMatch(term.trim().toLowerCase(), known);
+      return suggestion
+        ? `"${term}" (did you mean "${suggestion}"?)`
+        : `"${term}"`;
+    })
+    .join(", ");
+  logger.error(
+    `--only/--skip name no check or category: ${listed}. Run \`blume audit --list-checks\` for every check id and category.`
+  );
+  process.exit(1);
+};
 
 /** Whether the run should exit non-zero, given the gate. */
 export const shouldFail = (
@@ -135,6 +162,9 @@ export const auditCommand = defineCommand({
       logger.error(`--json and --${agent} are mutually exclusive.`);
       process.exit(1);
     }
+    const only = splitTerms(args.only);
+    const skip = splitTerms(args.skip);
+    rejectUnknownTerms([...only, ...skip]);
     let result: AuditResult;
     try {
       // `scanProject`, not `prepareProject`: the audit reads the *existing*
@@ -143,10 +173,10 @@ export const auditCommand = defineCommand({
       const project = await scanProject(root, { mode: "build" });
       result = await runAudit({
         external: args.external,
-        only: splitTerms(args.only),
+        only,
         origin: args.url,
         project,
-        skip: splitTerms(args.skip),
+        skip,
       });
     } catch (error) {
       if (error instanceof NoBuildError) {
@@ -154,7 +184,7 @@ export const auditCommand = defineCommand({
         process.exit(1);
       }
       if (error instanceof BlumeError) {
-        logger.error(error.diagnostic.message);
+        reportDiagnostics([error.diagnostic], root);
         process.exit(1);
       }
       reportInternalError(error);

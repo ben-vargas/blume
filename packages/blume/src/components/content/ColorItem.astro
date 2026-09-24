@@ -1,4 +1,8 @@
 ---
+import data from "blume:data";
+
+import { contentStrings } from "./content-strings.ts";
+
 interface ColorValue {
   dark?: string;
   light?: string;
@@ -17,12 +21,22 @@ const displayValue =
   lightValue && darkValue && lightValue !== darkValue
     ? `${lightValue} / ${darkValue}`
     : lightValue;
+const { actions: actionStrings, content: strings } = contentStrings(
+  data,
+  Astro.currentLocale
+);
+const label = strings.copyColor
+  .replace("{name}", name)
+  .replace("{value}", displayValue ?? "");
 ---
 
 <button
-  aria-label={`Copy ${name} color ${displayValue}`}
+  aria-label={label}
   class="group flex w-full cursor-pointer flex-col gap-2.5 text-center focus:outline-none"
-  data-blume-color-copy={displayValue}
+  data-blume-color-copy
+  data-copied={actionStrings.copied}
+  data-dark={darkValue}
+  data-light={lightValue}
   style={`--blume-color-light:${lightValue};--blume-color-dark:${darkValue};`}
   type="button"
 >
@@ -69,13 +83,17 @@ const displayValue =
         return;
       }
 
-      if (!(await copyText(button.dataset.blumeColorCopy ?? ""))) {
+      // The value the swatch shows right now: a theme-aware color copies the
+      // active theme's value, not the "light / dark" pair it lists.
+      const dark = document.documentElement.dataset.theme === "dark";
+      const value = (dark ? button.dataset.dark : button.dataset.light) ?? "";
+      if (!(await copyText(value))) {
         return;
       }
 
       const status = button.querySelector<HTMLElement>("[data-blume-color-status]");
       if (status) {
-        flashLabel(status, "Copied");
+        flashLabel(status, button.dataset.copied ?? "Copied!");
       }
     });
   }

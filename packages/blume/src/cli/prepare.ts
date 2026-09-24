@@ -16,6 +16,13 @@ export interface PrepareOptions {
   root: string;
   mode?: BuildMode;
   strict?: boolean;
+  /**
+   * Whether the command is strict only on request (`blume check --strict`),
+   * which changes how the abort message says to continue. Defaults to true in
+   * dev mode (`blume dev`, `blume sync`) and false otherwise, where strict is
+   * the default a user turns off with `--no-strict` (`blume build`).
+   */
+  strictOptIn?: boolean;
   /** Local dev server URL, used as the `deployment.site` fallback (dev only). */
   devServerUrl?: string;
   /** Render drafts and fetch unpublished CMS content. */
@@ -92,15 +99,16 @@ export const prepareProject = async (
     project.droppedPages > 0
       ? `${project.droppedPages} page(s) failed frontmatter validation and were dropped from the site. `
       : "";
+  const optIn = options.strictOptIn ?? options.mode === "dev";
   if (hadErrors && options.strict) {
     logger.error(
-      `Aborting due to errors. ${dropped}Fix the diagnostics above, or pass --no-strict to continue despite them.`
+      `Aborting due to errors. ${dropped}Fix the diagnostics above, or ${optIn ? "drop --strict" : "pass --no-strict"} to continue despite them.`
     );
     process.exit(1);
   }
   if (hasErrors(project.diagnostics) && !options.strict) {
     logger.warn(
-      `Continuing despite errors. ${dropped}Use --strict to fail instead.`
+      `Continuing despite errors. ${dropped}${optIn ? "Pass --strict" : "Drop --no-strict"} to fail instead.`
     );
   }
 

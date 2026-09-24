@@ -11,6 +11,7 @@ import { localizeRoute } from "./i18n.ts";
 import type { BlumeProject } from "./project-graph.ts";
 import { isWithin, scanProject } from "./project-graph.ts";
 import { VERSION_ID } from "./schema.ts";
+import type { Diagnostic } from "./types.ts";
 import { VERSION_LIKE, versionizeRoute } from "./versions.ts";
 
 /** What `cutVersion` did, for the CLI to report. */
@@ -21,6 +22,11 @@ export interface CutResult {
   rewritten: { file: string; count: number }[];
   /** Whether `blume.config.ts` was updated in place. */
   configUpdated: boolean;
+  /**
+   * Whether that update added the whole `versions` block — the first cut of a
+   * project that had no versioning — rather than one `archived` entry.
+   */
+  versionsAdded: boolean;
   /** Ready-to-paste config snippet when in-place update was not possible. */
   configSnippet: string | null;
   /** Absolute path of the created snapshot directory. */
@@ -144,11 +150,17 @@ export const rewriteSnapshotLinks = (
   return { count, text: lines.join("\n") };
 };
 
+/**
+ * The switcher label a first cut gives the live docs. `versions.current.label`
+ * is required, and "Latest" reads right until the author names the release.
+ */
+const CURRENT_LABEL = "Latest";
+
 /** The config entry to add, as a paste-ready snippet for the fallback path. */
 const snippetFor = (id: string, hasVersions: boolean): string =>
   hasVersions
     ? `Add to versions.archived in blume.config.ts (newest first):\n\n  { id: "${id}" },\n`
-    : `Add to blume.config.ts:\n\n  versions: {\n    archived: [{ id: "${id}" }],\n    current: { label: "…" },\n  },\n`;
+    : `Add to blume.config.ts:\n\n  versions: {\n    archived: [{ id: "${id}" }],\n    current: { label: "${CURRENT_LABEL}" },\n  },\n`;
 
 /**
  * Best-effort in-place config update: insert the new id at the head of an
@@ -190,6 +202,101 @@ export const insertArchivedVersion = async (
   }
   await writeTextAtomic(configPath, text.slice(0, insertAt) + entry + rest);
   return true;
+};
+
+/** The opening brace of the config object: `defineConfig({` or `export default {`. */
+const CONFIG_OBJECT = /(?:defineConfig\(\s*|export\s+default\s+)\{/gu;
+
+/**
+ * Best-effort in-place registration of a first version: add a `versions` block
+ * (the id archived, the live docs labeled {@link CURRENT_LABEL}) as the first
+ * property of the config object. Only the plain shape is edited — exactly one
+ * `defineConfig({` or `export default {` and no `versions` key yet — so a
+ * config built any other way falls back to the printed snippet rather than
+ * risk corrupting it.
+ */
+export const insertVersionsBlock = async (
+  configPath: string,
+  id: string
+): Promise<boolean> => {
+  let text: string;
+  try {
+    text = await readFile(configPath, "utf-8");
+  } catch {
+    return false;
+  }
+  const matches = [...text.matchAll(CONFIG_OBJECT)];
+  const [match] = matches;
+  if (matches.length !== 1 || !match || /\bversions\s*:/u.test(text)) {
+    return false;
+  }
+  const insertAt = match.index + match[0].length;
+  const rest = text.slice(insertAt);
+  const eol = text.includes("\r\n") ? "\r\n" : "\n";
+  const lineStart = text.lastIndexOf("\n", match.index) + 1;
+  const outer = /^[ \t]*/u.exec(text.slice(lineStart))?.[0] ?? "";
+  // Match the indentation of the property on the next line, when there is one.
+  const indent =
+    /^[ \t]*\r?\n(?<indent>[ \t]*)\S/u.exec(rest)?.groups?.indent ??
+    `${outer}  `;
+  const block = [
+    "versions: {",
+    `  archived: [{ id: "${id}" }],`,
+    `  current: { label: "${CURRENT_LABEL}" },`,
+    "},",
+  ]
+    .map((line) => `${indent}${line}`)
+    .join(eol);
+  const body = rest.trimStart();
+  let tail: string;
+  if (body.startsWith("}")) {
+    // An empty object: close it on its own line.
+    tail = `${eol}${outer}${body}`;
+  } else if (/^[ \t]*\r?\n/u.test(rest)) {
+    tail = rest;
+  } else {
+    // An inline object: move its first property onto the next line.
+    tail = `${eol}${indent}${body}`;
+  }
+  await writeTextAtomic(
+    configPath,
+    `${text.slice(0, insertAt)}${eol}${block}${tail}`
+  );
+  return true;
+};
+
+/**
+ * Version-shaped folders (`v1.0/`) at the top of the content root of a project
+ * with no `versions` config — usually a snapshot `blume version` cut but
+ * couldn't register — which build as ordinary content at `/v1.0/…`, so every
+ * page ships twice. With versioning configured, the scan's own
+ * `BLUME_VERSIONS_UNCONFIGURED_VERSION` covers a folder it doesn't list; this
+ * check is `blume doctor`'s alone, since an unversioned site can have a real
+ * `v1/` section that a warning on every build would only nag about.
+ */
+export const unregisteredSnapshotDiagnostics = (
+  project: BlumeProject
+): Diagnostic[] => {
+  if (project.config.versions) {
+    return [];
+  }
+  const { contentRoot } = project.context;
+  const folders = new Set<string>();
+  for (const page of project.graph.pages) {
+    const [first, ...rest] = page.sourcePath
+      ? relative(contentRoot, page.sourcePath).split("/")
+      : [];
+    if (first && rest.length > 0 && VERSION_LIKE.test(first)) {
+      folders.add(first);
+    }
+  }
+  return [...folders].toSorted().map((folder) => ({
+    code: "BLUME_VERSIONS_UNCONFIGURED_VERSION",
+    file: join(contentRoot, folder),
+    message: `Folder "${folder}/" looks like a version snapshot, but versioning isn't configured, so its pages build as ordinary content at /${folder}/….`,
+    severity: "warning",
+    suggestion: `If it's a snapshot, register it with \`versions: { archived: [{ id: "${folder}" }], current: { label: "${CURRENT_LABEL}" } }\` in blume.config.ts; if it's an ordinary section, ignore this.`,
+  }));
 };
 
 /**
@@ -304,18 +411,19 @@ export const cutVersion = async (
   };
   await walk(dir);
 
-  const configPath = join(root, "blume.config.ts");
-  const configUpdated =
-    project.config.versions !== undefined &&
-    (await insertArchivedVersion(configPath, id));
+  const configPath =
+    project.context.configFile ?? join(root, "blume.config.ts");
+  const firstVersion = project.config.versions === undefined;
+  const configUpdated = firstVersion
+    ? await insertVersionsBlock(configPath, id)
+    : await insertArchivedVersion(configPath, id);
 
   return {
-    configSnippet: configUpdated
-      ? null
-      : snippetFor(id, project.config.versions !== undefined),
+    configSnippet: configUpdated ? null : snippetFor(id, !firstVersion),
     configUpdated,
     copied,
     dir,
     rewritten,
+    versionsAdded: configUpdated && firstVersion,
   };
 };

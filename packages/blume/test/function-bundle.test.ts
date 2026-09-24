@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "pathe";
 
 import {
+  addDevDependencyCommand,
   auditFunctionBundle,
   auditVercelFunctions,
   blumeDependencyNames,
@@ -316,6 +317,18 @@ describe("functionBundleVerdict", () => {
     );
   });
 
+  it("prints the fix with the command it's given", () => {
+    const verdict = functionBundleVerdict(
+      audit,
+      "/site",
+      new Set(),
+      "pnpm add -D"
+    );
+    expect(verdict.message).toContain(
+      "  pnpm add -D @modelcontextprotocol/sdk left-pad"
+    );
+  });
+
   it("only warns when every missing package is the project's own", () => {
     const verdict = functionBundleVerdict(audit, "/site", new Set(["zod"]));
     expect(verdict.fatal).toBe(false);
@@ -330,6 +343,16 @@ describe("functionBundleVerdict", () => {
     expect(verdict.message).toContain(
       "bundle at /elsewhere/_render.func is missing"
     );
+  });
+});
+
+describe("addDevDependencyCommand", () => {
+  it("uses the package manager the project's lockfile names", async () => {
+    const root = await mkdtemp(join(tmpdir(), "blume-bundle-pm-"));
+    await writeFile(join(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+    await writeFile(join(root, "package.json"), "{}\n");
+    expect(await addDevDependencyCommand(root)).toBe("pnpm add -D");
+    await rm(root, { force: true, recursive: true });
   });
 });
 

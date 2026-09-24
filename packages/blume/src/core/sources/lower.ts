@@ -15,11 +15,26 @@
 // literal asterisk, in `.md` and `.mdx` alike.
 const MARKDOWN_SPECIALS = /[\\`*_{}[\]~<]/gu;
 
+// An entity or numeric character reference (`&copy;`, `&#38;`) is decoded
+// even in plain text, so one typed in the CMS would render as the character
+// it names rather than as written. A bare `&` is left alone.
+const CHARACTER_REFERENCE = /&(?=#?[a-z0-9]+;)/giu;
+
 // Block syntax is only syntax at the start of a line: `# `, `- `, `+ ` and
 // `1. `/`1) ` need the space (or line end) to become a heading or list item,
-// while `>` opens a quote on its own. A CMS paragraph that begins with one of
-// these — a soft break inside it counts as a line start too — must stay prose.
-const BLOCK_START = /^(?<marker>[#+-]|\d+[.)])(?=[ \t]|$)|^(?<quote>>)/gmu;
+// while `>` opens a quote on its own, and a line of only `=` or `-` turns the
+// line above it into a heading (or, alone, into a rule). A CMS paragraph that
+// begins with one of these — a soft break inside it counts as a line start
+// too — must stay prose.
+const BLOCK_START =
+  /^(?<marker>[#+-]|\d+[.)])(?=[ \t]|$)|^(?<quote>>)|^(?<rule>=+|-{2,})(?=[ \t]*$)/gmu;
+
+// MDX reads a top-level paragraph that opens with `import ` or `export ` as an
+// ESM statement, and prose like "import the CSV first" then fails the whole
+// page. The keyword's first letter as a character reference renders the same
+// in `.md` and `.mdx`, and MDX no longer sees the keyword. Only a paragraph's
+// first line counts; a blank line inside a run starts a new paragraph.
+const ESM_START = /(?<=^|\n[ \t]*\n)(?<keyword>import|export)(?= )/gu;
 
 const escapeBlockStart = (text: string): string =>
   text.replaceAll(BLOCK_START, (marker: string) => {
@@ -30,8 +45,20 @@ const escapeBlockStart = (text: string): string =>
       : `${marker.slice(0, index)}\\${marker.slice(index)}`;
   });
 
+const escapeEsmStart = (text: string): string =>
+  text.replaceAll(
+    ESM_START,
+    (keyword: string) => `&#${keyword.codePointAt(0)};${keyword.slice(1)}`
+  );
+
 export const escapeMarkdownText = (text: string): string =>
-  escapeBlockStart(text.replaceAll(MARKDOWN_SPECIALS, String.raw`\$&`));
+  escapeEsmStart(
+    escapeBlockStart(
+      text
+        .replaceAll(MARKDOWN_SPECIALS, String.raw`\$&`)
+        .replaceAll(CHARACTER_REFERENCE, String.raw`\&`)
+    )
+  );
 
 /** The marks a lowerer can put on an inline run. */
 export interface InlineMarks {

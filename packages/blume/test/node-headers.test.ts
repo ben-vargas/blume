@@ -1,0 +1,350 @@
+import { afterAll, describe, expect, it } from "bun:test";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { pathToFileURL } from "node:url";
+
+import { join } from "pathe";
+
+import type { BlumeProject } from "../src/core/project-graph.ts";
+import { blumeConfigSchema } from "../src/core/schema.ts";
+import type { BlumeConfigInput } from "../src/core/schema.ts";
+import { node } from "../src/deploy/adapters/index.ts";
+import {
+  NODE_ASTRO_ENTRY_FILE,
+  NODE_ENTRY_FILE,
+  nodeEntryWrapper,
+  nodeHeaderRules,
+  wrapNodeEntry,
+} from "../src/deploy/node-headers.ts";
+import { nodePlatform } from "../src/deploy/platforms/node.ts";
+import type { BuildLog } from "../src/deploy/platforms/types.ts";
+
+const dirs: string[] = [];
+
+afterAll(async () => {
+  await Promise.all(
+    dirs.map((dir) => rm(dir, { force: true, recursive: true }))
+  );
+});
+
+const scratch = async (): Promise<string> => {
+  const dir = await mkdtemp(join(tmpdir(), "blume-node-headers-"));
+  dirs.push(dir);
+  return dir;
+};
+
+/** A Node server config with the MCP server (and so the AI catalog) on. */
+const SERVER_CONFIG = {
+  agents: { mcp: { enabled: true } },
+  deployment: node({ base: "/docs", site: "https://docs.example.com" }),
+};
+
+const recorder = () => {
+  const recorded: Record<keyof BuildLog, string[]> = {
+    error: [],
+    info: [],
+    success: [],
+    warn: [],
+  };
+  const log: BuildLog = {
+    error: (message) => recorded.error.push(message),
+    info: (message) => recorded.info.push(message),
+    success: (message) => recorded.success.push(message),
+    warn: (message) => recorded.warn.push(message),
+  };
+  return { log, recorded };
+};
+
+/** The slice of a project `wrapNodeEntry` reads. */
+const projectAt = (root: string, input: BlumeConfigInput): BlumeProject =>
+  // SAFETY: `wrapNodeEntry` reads only `config` and `context.distDir`/`root`.
+  ({
+    config: blumeConfigSchema.parse(input),
+    context: { root },
+  }) as BlumeProject;
+
+// A stand-in for `@astrojs/node`'s entry: it records what the wrapper calls.
+const FAKE_ASTRO_ENTRY = `globalThis.__astroEntry = { autostart: process.env.ASTRO_NODE_AUTOSTART, calls: [], listeners: [] };
+export const options = { mode: globalThis.__fakeMode ?? "standalone" };
+export const handler = (req, res, next) => {
+  globalThis.__astroEntry.calls.push({ next, url: req.url });
+  return "handled";
+};
+export const startServer = () => globalThis.__fakeNoServer ? {} : ({
+  server: {
+    server: {
+      prependListener: (event, listener) =>
+        globalThis.__astroEntry.listeners.push({ event, listener }),
+    },
+  },
+});
+`;
+
+/** The request and response slices the wrapper touches. */
+interface FakeRequest {
+  url?: string;
+}
+interface FakeResponse {
+  setHeader: (name: string, value: string) => void;
+}
+
+interface FakeEntryState {
+  autostart: string | undefined;
+  calls: { next: string | undefined; url: string | undefined }[];
+  listeners: {
+    event: string;
+    listener: (req: FakeRequest, res: FakeResponse) => void;
+  }[];
+}
+
+interface WrapperModule {
+  handler: (req: FakeRequest, res: FakeResponse, next?: string) => string;
+  options: { mode: string };
+}
+
+declare global {
+  // oxlint-disable-next-line no-var
+  var __astroEntry: FakeEntryState;
+  // oxlint-disable-next-line no-var
+  var __fakeMode: string;
+  // oxlint-disable-next-line no-var
+  var __fakeNoServer: boolean | undefined;
+}
+
+const state = (): FakeEntryState => globalThis.__astroEntry;
+
+/** A response that records the headers set on it. */
+const response = () => {
+  const headers: Record<string, string> = {};
+  return {
+    headers,
+    res: {
+      setHeader: (name: string, value: string) => {
+        headers[name] = value;
+      },
+    },
+  };
+};
+
+/** Write the wrapper beside the fake entry and import it fresh. */
+const importWrapper = async (
+  autostart: string | null,
+  mode = "standalone"
+): Promise<WrapperModule> => {
+  const dir = await scratch();
+  await writeFile(join(dir, NODE_ASTRO_ENTRY_FILE), FAKE_ASTRO_ENTRY, "utf-8");
+  await writeFile(
+    join(dir, NODE_ENTRY_FILE),
+    nodeEntryWrapper(nodeHeaderRules(blumeConfigSchema.parse(SERVER_CONFIG))),
+    "utf-8"
+  );
+  const previous = process.env.ASTRO_NODE_AUTOSTART;
+  if (autostart === null) {
+    delete process.env.ASTRO_NODE_AUTOSTART;
+  } else {
+    process.env.ASTRO_NODE_AUTOSTART = autostart;
+  }
+  globalThis.__fakeMode = mode;
+  try {
+    // SAFETY: the wrapper's exports are the Astro entry contract above.
+    return (await import(
+      pathToFileURL(join(dir, NODE_ENTRY_FILE)).href
+    )) as WrapperModule;
+  } finally {
+    expect(process.env.ASTRO_NODE_AUTOSTART).toBe(autostart ?? undefined);
+    if (previous === undefined) {
+      delete process.env.ASTRO_NODE_AUTOSTART;
+    } else {
+      process.env.ASTRO_NODE_AUTOSTART = previous;
+    }
+  }
+};
+
+describe("nodeHeaderRules", () => {
+  it("merges the media type and CORS rules per path, under the base", () => {
+    const rules = nodeHeaderRules(
+      blumeConfigSchema.parse({
+        ...SERVER_CONFIG,
+        agents: {
+          mcp: { enabled: true },
+          webBotAuth: {
+            keys: [
+              {
+                crv: "Ed25519",
+                kty: "OKP",
+                x: "JrQLj5P_89iXES9-vFgrIy29clF9CC_oPPsw3c5D0bs",
+              },
+            ],
+          },
+        },
+      })
+    );
+    const byPath = Object.fromEntries(
+      rules.map((rule) => [rule.path, rule.headers])
+    );
+    expect(byPath["/docs/.well-known/api-catalog"]).toStrictEqual({
+      "Access-Control-Allow-Origin": "*",
+      "Content-Type": "application/linkset+json",
+    });
+    expect(byPath["/docs/.well-known/ai-catalog.json"]).toStrictEqual({
+      "Access-Control-Allow-Origin": "*",
+    });
+    expect(byPath["/docs/.well-known/mcp/server-card.json"]).toStrictEqual({
+      "Access-Control-Allow-Origin": "*",
+    });
+    expect(
+      byPath["/docs/.well-known/http-message-signatures-directory"]?.[
+        "Content-Type"
+      ]
+    ).toContain("application/http-message-signatures-directory");
+  });
+
+  it("has nothing to set for a site without discovery files", () => {
+    // The JSON API alone puts an API catalog on every default site.
+    expect(
+      nodeHeaderRules(blumeConfigSchema.parse({ agents: { api: false } }))
+    ).toStrictEqual([]);
+  });
+});
+
+describe("nodeEntryWrapper", () => {
+  it("sets a rule's headers, then hands the request to Astro", async () => {
+    const wrapper = await importWrapper("disabled");
+    expect(wrapper.options).toStrictEqual({ mode: "standalone" });
+    // Imported with autostart off, and started nothing on its own.
+    expect(state().autostart).toBe("disabled");
+    expect(state().listeners).toStrictEqual([]);
+
+    const matched = response();
+    expect(
+      wrapper.handler(
+        { url: "/docs/.well-known/api-catalog?x=1" },
+        matched.res,
+        "next"
+      )
+    ).toBe("handled");
+    expect(matched.headers).toStrictEqual({
+      "Access-Control-Allow-Origin": "*",
+      "Content-Type": "application/linkset+json",
+    });
+    expect(state().calls).toStrictEqual([
+      { next: "next", url: "/docs/.well-known/api-catalog?x=1" },
+    ]);
+
+    const other = response();
+    wrapper.handler({ url: "/docs/guide" }, other.res);
+    wrapper.handler({}, other.res);
+    expect(other.headers).toStrictEqual({});
+  });
+
+  it("still starts when the adapter exposes no HTTP server to hook", async () => {
+    globalThis.__fakeNoServer = true;
+    try {
+      await importWrapper(null);
+      expect(state().listeners).toStrictEqual([]);
+    } finally {
+      globalThis.__fakeNoServer = undefined;
+    }
+  });
+
+  it("starts the server with its listener first when autostart is on", async () => {
+    await importWrapper(null);
+    // Astro's entry was imported with autostart off either way.
+    expect(state().autostart).toBe("disabled");
+    const [started] = state().listeners;
+    expect(started?.event).toBe("request");
+    const served = response();
+    started?.listener({ url: "/docs/.well-known/mcp.json" }, served.res);
+    expect(served.headers).toStrictEqual({
+      "Access-Control-Allow-Origin": "*",
+    });
+  });
+
+  it("leaves a middleware-mode entry for its host to start", async () => {
+    await importWrapper(null, "middleware");
+    expect(state().listeners).toStrictEqual([]);
+  });
+});
+
+describe("wrapNodeEntry", () => {
+  it("moves Astro's entry aside and writes the wrapper once", async () => {
+    const root = await scratch();
+    const serverDir = join(root, "dist", "server");
+    await mkdir(serverDir, { recursive: true });
+    await writeFile(join(serverDir, NODE_ENTRY_FILE), "// astro\n", "utf-8");
+    const project = projectAt(root, SERVER_CONFIG);
+
+    const first = recorder();
+    await wrapNodeEntry(project, first.log);
+    expect(
+      await readFile(join(serverDir, NODE_ASTRO_ENTRY_FILE), "utf-8")
+    ).toBe("// astro\n");
+    const wrapper = await readFile(join(serverDir, NODE_ENTRY_FILE), "utf-8");
+    expect(wrapper).toContain(`import("./${NODE_ASTRO_ENTRY_FILE}")`);
+    expect(first.recorded.success).toHaveLength(1);
+
+    // A second pass over the same output leaves the wrapped entry alone.
+    const second = recorder();
+    await wrapNodeEntry(project, second.log);
+    expect(await readFile(join(serverDir, NODE_ENTRY_FILE), "utf-8")).toBe(
+      wrapper
+    );
+    expect(
+      await readFile(join(serverDir, NODE_ASTRO_ENTRY_FILE), "utf-8")
+    ).toBe("// astro\n");
+    expect(second.recorded.success).toStrictEqual([]);
+  });
+
+  it("warns when the build has no Node entry", async () => {
+    const root = await scratch();
+    const { log, recorded } = recorder();
+    await wrapNodeEntry(projectAt(root, SERVER_CONFIG), log);
+    expect(recorded.warn[0]).toContain("Could not find the Node server entry");
+  });
+
+  it("leaves Astro's entry alone when there are no rules", async () => {
+    const root = await scratch();
+    const serverDir = join(root, "dist", "server");
+    await mkdir(serverDir, { recursive: true });
+    await writeFile(join(serverDir, NODE_ENTRY_FILE), "// astro\n", "utf-8");
+    const { log, recorded } = recorder();
+    await wrapNodeEntry(
+      projectAt(root, { agents: { api: false }, deployment: node() }),
+      log
+    );
+    expect(await readFile(join(serverDir, NODE_ENTRY_FILE), "utf-8")).toBe(
+      "// astro\n"
+    );
+    expect(recorded.warn).toStrictEqual([]);
+  });
+
+  it("runs from the platform on a real build, not an isolated one", async () => {
+    const root = await scratch();
+    const serverDir = join(root, "dist", "server");
+    await mkdir(serverDir, { recursive: true });
+    await writeFile(join(serverDir, NODE_ENTRY_FILE), "// astro\n", "utf-8");
+    const project = projectAt(root, SERVER_CONFIG);
+
+    const isolated = recorder();
+    expect(
+      await nodePlatform.finalizeBuild?.({
+        isolated: true,
+        log: isolated.log,
+        project,
+      })
+    ).toBe(true);
+    expect(await readFile(join(serverDir, NODE_ENTRY_FILE), "utf-8")).toBe(
+      "// astro\n"
+    );
+
+    const real = recorder();
+    expect(
+      await nodePlatform.finalizeBuild?.({
+        isolated: false,
+        log: real.log,
+        project,
+      })
+    ).toBe(true);
+    expect(real.recorded.success).toHaveLength(1);
+  });
+});

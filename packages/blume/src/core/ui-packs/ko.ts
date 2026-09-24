@@ -45,6 +45,8 @@ export const ko: UIStringsOverride = {
     title: "변경 로그",
   },
   content: {
+    copyColor: "{name} 색상 {value} 복사",
+    copyPrompt: "프롬프트 복사",
     diagramError: "이 다이어그램을 표시할 수 없습니다.",
   },
   feedback: {

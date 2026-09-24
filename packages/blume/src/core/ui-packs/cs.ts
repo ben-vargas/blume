@@ -43,7 +43,11 @@ export const cs: UIStringsOverride = {
     description: "Novinky produktu a poznámky k vydání.",
     title: "Seznam změn",
   },
-  content: { diagramError: "Tento diagram se nepodařilo vykreslit." },
+  content: {
+    copyColor: "Kopírovat barvu {name} {value}",
+    copyPrompt: "Kopírovat prompt",
+    diagramError: "Tento diagram se nepodařilo vykreslit.",
+  },
   feedback: {
     no: "Ne",
     question: "Byla tato stránka užitečná?",

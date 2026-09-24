@@ -183,7 +183,7 @@ describe("openapi component serializers", () => {
         serializers(data)
       )
     ).toBe(
-      "- [`` GET /odd/`tick` ``](/reference/pets/odd) — Odd\n- [``` GET /edge/`` ```](/reference/pets/edge)\n"
+      "- [`` GET /odd/`tick` ``](/reference/pets/odd) — Odd.\n- [``` GET /edge/`` ```](/reference/pets/edge)\n"
     );
     expect(
       downlevelComponents(
@@ -212,7 +212,7 @@ describe("openapi component serializers", () => {
         serializers(data)
       )
     ).toBe(
-      "- [`GET /pets`](/reference/pets/list-pets) — List pets\n- [`POST /pets`](/reference/pets/add-pet) — Add a pet\n"
+      "- [`GET /pets`](/reference/pets/list-pets) — List pets.\n- [`POST /pets`](/reference/pets/add-pet) — Add a pet.\n"
     );
   });
 
@@ -238,7 +238,7 @@ describe("openapi component serializers", () => {
     ).toBe(
       [
         "- [`GET /users/{id}`](</reference/pets/get user (v1)>) — Fetch ",
-        "\\<user\\> by id, \\*only\\* for \\[admins\\]\\_ Deprecated.\n",
+        "\\<user\\> by id, \\*only\\* for \\[admins\\]\\_. Deprecated.\n",
       ].join("")
     );
   });

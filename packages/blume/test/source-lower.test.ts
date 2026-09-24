@@ -104,6 +104,34 @@ describe("lowering primitives", () => {
     expect(escapeMarkdownText("a\n- b\n#")).toBe("a\n\\- b\n\\#");
     // Without the space these are ordinary text.
     expect(escapeMarkdownText("#tag -dash 1.5")).toBe("#tag -dash 1.5");
+    // A line of `=` or `-` would make the line above a heading, or a rule.
+    expect(escapeMarkdownText("Title\n===")).toBe("Title\n\\===");
+    expect(escapeMarkdownText("Title\n-- ")).toBe("Title\n\\-- ");
+    expect(escapeMarkdownText("---")).toBe(String.raw`\---`);
+    expect(escapeMarkdownText("-- text")).toBe("-- text");
+  });
+
+  it("keeps a paragraph that opens with import or export out of MDX's ESM", () => {
+    expect(escapeMarkdownText("import the CSV first.")).toBe(
+      "&#105;mport the CSV first."
+    );
+    expect(escapeMarkdownText("export your data")).toBe(
+      "&#101;xport your data"
+    );
+    // A blank line starts a new paragraph; a soft break doesn't.
+    expect(escapeMarkdownText("a\n\nimport b\nimport c")).toBe(
+      "a\n\n&#105;mport b\nimport c"
+    );
+    // Only the lowercase keyword and a following space open a statement.
+    expect(escapeMarkdownText("Import it, importing, import\tx")).toBe(
+      "Import it, importing, import\tx"
+    );
+  });
+
+  it("keeps a character reference typed in the CMS as written", () => {
+    expect(escapeMarkdownText("&copy; &#38; AT&T")).toBe(
+      String.raw`\&copy; \&#38; AT&T`
+    );
   });
 
   it("picks a code-span delimiter longer than any backtick inside", () => {

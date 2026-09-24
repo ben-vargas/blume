@@ -44,7 +44,11 @@ export const id: UIStringsOverride = {
     description: "Pembaruan produk dan catatan rilis.",
     title: "Log perubahan",
   },
-  content: { diagramError: "Tidak dapat menampilkan diagram ini." },
+  content: {
+    copyColor: "Salin warna {name} {value}",
+    copyPrompt: "Salin prompt",
+    diagramError: "Tidak dapat menampilkan diagram ini.",
+  },
   feedback: {
     no: "Tidak",
     question: "Apakah halaman ini membantu?",

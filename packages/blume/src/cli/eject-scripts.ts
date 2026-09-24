@@ -1,9 +1,12 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 
 import { join } from "pathe";
 
+import { EJECTED_CONFIG_HEADER } from "../astro/templates.ts";
 import { packageRoot } from "../core/package-root.ts";
+import { commandsFor, detectProjectPackageManager } from "./init/scaffold.ts";
+import { logger } from "./log.ts";
 
 /** A JSON value, as `JSON.parse` of a manifest can return. */
 type JsonValue =
@@ -103,4 +106,40 @@ export const updatePackageScripts = async (
   }
   await writeFile(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`, "utf-8");
   return added;
+};
+
+/**
+ * Whether `root` holds an app `blume eject` already wrote: a root
+ * `astro.config.mjs` that starts with eject's header, or sits beside eject's
+ * `src/generated/` tree. A Blume project has neither — its runtime lives under
+ * `.blume/` — and the `src/generated/` check also recognizes an app Blume 1
+ * ejected, whose config still carried the generated-runtime header.
+ */
+export const isEjectedProject = (root: string): boolean => {
+  const config = join(root, "astro.config.mjs");
+  return (
+    existsSync(config) &&
+    (readFileSync(config, "utf-8").startsWith(EJECTED_CONFIG_HEADER) ||
+      existsSync(join(root, "src", "generated")))
+  );
+};
+
+/**
+ * Stop `blume dev`/`blume build` in an ejected app. Either would regenerate
+ * `.blume/` from `blume.config.ts` and run that hidden copy, ignoring every
+ * edit made to the app since eject, so point at the app's own script under
+ * the project's package manager instead.
+ */
+export const refuseIfEjected = async (
+  root: string,
+  script: "build" | "dev"
+): Promise<void> => {
+  if (!isEjectedProject(root)) {
+    return;
+  }
+  const commands = commandsFor(await detectProjectPackageManager(root));
+  logger.error(
+    `This project was ejected to a standalone Astro app, so \`blume ${script}\` would run a regenerated copy of the site instead of it. Run \`${commands[script]}\` instead.`
+  );
+  process.exit(1);
 };

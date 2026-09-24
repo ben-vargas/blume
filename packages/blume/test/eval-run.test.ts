@@ -189,7 +189,7 @@ describe("runEval", () => {
     const project = await projectFixture();
     const evals: EvalsFile = {
       questions: [
-        question({ id: "reader-dies" }),
+        question({ id: "reader-dies", routes: ["/guides/install"] }),
         question({ id: "judge-dies" }),
         question({ id: "garbled" }),
       ],
@@ -235,6 +235,11 @@ describe("runEval", () => {
     expect(details[2]).toBe("judge returned no parseable verdict");
     for (const finding of result.diagnostics) {
       expect(finding.code).toBe("BLUME_EVAL_QUESTION_ERROR");
+      // A run that never graded the docs points at its question, not at the
+      // page its route hint names.
+      expect(finding.file).toBe("/project/evals.yaml");
+      expect(finding.url).toBeUndefined();
+      expect(finding.message).toContain("so the docs weren't graded");
     }
   });
 

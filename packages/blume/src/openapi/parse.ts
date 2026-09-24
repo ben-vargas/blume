@@ -1,13 +1,16 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { setTimeout as sleep } from "node:timers/promises";
 
-import type { AsyncAPIDocument as ConverterDocument } from "@asyncapi/converter";
-import { convert } from "@asyncapi/converter";
+import type * as ConverterModule from "@asyncapi/converter";
 import { normalize, upgrade } from "@scalar/openapi-parser";
 import pRetry, { AbortError } from "p-retry";
 import { isAbsolute, join } from "pathe";
 import type * as UndiciModule from "undici";
 
+import {
+  commandsFor,
+  detectProjectPackageManager,
+} from "../cli/init/scaffold.ts";
 import { nodeRequire } from "../core/node-require.ts";
 import { hashText } from "../core/sources/cache.ts";
 import type { AsyncApiDocument } from "./asyncapi.ts";
@@ -15,6 +18,7 @@ import { normalizeAsyncApiDocument } from "./asyncapi.ts";
 import { buildGraphqlDocument } from "./graphql-build.ts";
 import type { GraphqlDocument } from "./graphql.ts";
 import type { ApiDocument } from "./model.ts";
+import { SpecDependencyError } from "./spec-dependency-error.ts";
 
 /**
  * Spec loading and normalization. Blume reuses Scalar's parser
@@ -329,15 +333,6 @@ export interface ParsedAsyncApiSpec {
 }
 
 /**
- * Read and normalize a spec to an AsyncAPI 3.x document — the AsyncAPI mirror
- * of {@link parseSpec}. 1.x/2.x documents are lifted to 3.0 with the official
- * `@asyncapi/converter` (channels + operations with `send`/`receive` actions),
- * so the extractor and components only ever handle one shape; `$ref`s stay
- * intact, matching the OpenAPI path. Error semantics match `parseSpec`: an
- * unreadable spec throws, a readable non-AsyncAPI document throws
- * {@link InvalidSpecError}, and callers lower both into source diagnostics.
- */
-/**
  * An object carrying a non-empty `asyncapi` version string — the only input
  * the converter and extractor can key on. `normalize` yields undefined for
  * non-mapping input, which fails the object check here.
@@ -351,6 +346,53 @@ const isAsyncApiDocument = <Value>(
   typeof value.asyncapi === "string" &&
   value.asyncapi !== "";
 
+const CONVERTER = "@asyncapi/converter";
+
+/**
+ * Load `@asyncapi/converter`, an optional peer. Only a 1.x/2.x spec needs it,
+ * and it depends on `@asyncapi/parser` — which it never loads — and so on
+ * Spectral and Scarf's telemetry postinstall, an unapproved build script that
+ * pnpm 12 refuses to install past. Leaving it out of a default install keeps
+ * `pnpm dlx blume` working; a spec that needs it gets the install command
+ * instead, through {@link SpecDependencyError}.
+ */
+const loadConverter = async (
+  spec: string,
+  version: string,
+  root: string
+): Promise<typeof ConverterModule> => {
+  try {
+    // `require`, not `import()`: see `core/node-require.ts`.
+    const converter: typeof ConverterModule = nodeRequire(CONVERTER);
+    return converter;
+  } catch (error) {
+    // SAFETY: a failed `require` throws a Node error; `code` and `message`
+    // are the only fields read.
+    const { code, message } = error as NodeJS.ErrnoException;
+    // Only the converter itself missing is the project's to fix; anything
+    // else (a broken install of one of its own dependencies) surfaces as is.
+    if (code !== "MODULE_NOT_FOUND" || !message.includes(`'${CONVERTER}'`)) {
+      throw error;
+    }
+    const { add } = commandsFor(await detectProjectPackageManager(root));
+    throw new SpecDependencyError(
+      `${spec} is AsyncAPI ${version}, and converting it to AsyncAPI 3.0 needs "${CONVERTER}", which isn't installed`,
+      `Install it with \`${add} ${CONVERTER}\`, or convert the spec to AsyncAPI 3.0.`
+    );
+  }
+};
+
+/**
+ * Read and normalize a spec to an AsyncAPI 3.x document — the AsyncAPI mirror
+ * of {@link parseSpec}. 1.x/2.x documents are lifted to 3.0 with the official
+ * `@asyncapi/converter` (channels + operations with `send`/`receive` actions),
+ * so the extractor and components only ever handle one shape; `$ref`s stay
+ * intact, matching the OpenAPI path. Error semantics match `parseSpec`: an
+ * unreadable spec throws, a readable non-AsyncAPI document throws
+ * {@link InvalidSpecError}, a pre-3.0 document without the converter installed
+ * throws {@link SpecDependencyError}, and callers lower all three into source
+ * diagnostics.
+ */
 export const parseAsyncApiSpec = async (
   spec: string,
   root: string,
@@ -366,6 +408,7 @@ export const parseAsyncApiSpec = async (
   const version = normalized.asyncapi;
   let document: AsyncApiDocument = normalized;
   if (!version.startsWith("3.")) {
+    const { convert } = await loadConverter(spec, version, root);
     // The converter reports lossy conversions (e.g. a 2.x parameter schema
     // that 3.0 can't express) through console.warn — capture those as spec
     // warnings instead of letting them leak into CLI output.
@@ -379,7 +422,7 @@ export const parseAsyncApiSpec = async (
       // the 3.0 shape the extractor consumes; the two packages just declare
       // the document type differently.
       document = convert(
-        document as ConverterDocument,
+        document as Parameters<typeof convert>[0],
         "3.0.0"
       ) as AsyncApiDocument;
     } catch (error) {

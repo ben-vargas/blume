@@ -48,6 +48,7 @@ export const checkCommand = defineCommand({
       root,
       runtimeDir,
       strict: args.strict,
+      strictOptIn: true,
     });
 
     const { outDir } = project.context;

@@ -21,6 +21,7 @@ import { languageIconTransformer } from "./language-icon.ts";
 import { mathPlugin } from "./math.ts";
 import { mermaidPlugin } from "./mermaid.ts";
 import { packageInstallPlugin } from "./package-install.ts";
+import { relativeLinksPlugin } from "./relative-links.ts";
 import { tableWrapPlugin } from "./table-wrap.ts";
 import { DEFAULT_CODE_THEMES } from "./themes.ts";
 import type { CodeThemes } from "./themes.ts";
@@ -279,25 +280,41 @@ export interface BlumeMarkdownOptions {
   /**
    * The docs content root, bounding `<include>` target resolution (and
    * anchoring `/`-leading include paths). When unset, relative includes still
-   * resolve from the including file.
+   * resolve from the including file. Also the base the `docs` collection's
+   * entry ids are relative to, which relative page links resolve through.
    */
   contentRoot?: string;
+  /**
+   * The `blume:data` snapshot file an ejected app aliases. Relative page links
+   * resolve through the snapshot the CLI publishes; with no CLI in the
+   * process, they read this file instead.
+   */
+  dataFile?: string;
 }
 
 /**
- * MDAST plugins that apply to both `.md` and `.mdx`: the base-path link
- * rewrite (added only when a `basePath` or `deployBase` is configured).
+ * MDAST plugins that apply to both `.md` and `.mdx`: relative page links
+ * rewritten to the root-relative route they mean, then the base-path link
+ * rewrite (added only when a `basePath` or `deployBase` is configured), which
+ * layers `deployment.base` over the rewritten routes.
  */
 const blumeSharedMdastPlugins = (
   options: BlumeMarkdownOptions
-): MdastPlugin[] =>
-  options.basePath || options.deployBase
+): MdastPlugin[] => [
+  asMdastPlugin(
+    relativeLinksPlugin({
+      contentRoot: options.contentRoot,
+      dataFile: options.dataFile,
+    })
+  ),
+  ...(options.basePath || options.deployBase
     ? [
         asMdastPlugin(
           baseLinksPlugin(options.deployBase ?? "", options.basePath ?? "")
         ),
       ]
-    : [];
+    : []),
+];
 
 /**
  * The `<include>` splice. Always first: its mutations apply before the next

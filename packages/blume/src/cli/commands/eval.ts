@@ -24,7 +24,7 @@ import type { EvalResult } from "../../eval/run.ts";
 import { EvalsFileError, loadEvalsFile } from "../../eval/schema.ts";
 import { commandMeta } from "../command-meta.ts";
 import { reportInternalError } from "../internal-error.ts";
-import { flushStdout, logger } from "../log.ts";
+import { flushStdout, logger, reportDiagnostics } from "../log.ts";
 
 const DEFAULT_FILE = "evals.yaml";
 
@@ -232,7 +232,7 @@ export const evalCommand = defineCommand({
         process.exit(1);
       }
       if (error instanceof BlumeError) {
-        logger.error(error.diagnostic.message);
+        reportDiagnostics([error.diagnostic], root);
         process.exit(1);
       }
       // SAFETY: only the `code` tag is inspected; a spawn failure throws an

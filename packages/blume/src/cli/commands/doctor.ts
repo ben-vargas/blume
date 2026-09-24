@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 
 import { defineCommand } from "citty";
 import { join } from "pathe";
@@ -6,11 +7,16 @@ import { satisfies } from "semver";
 
 import { discoverIslands } from "../../astro/islands.ts";
 import { missingDependencyDiagnostic } from "../../astro/runtime-deps.ts";
+import {
+  analyzeComponentOverrides,
+  ComponentOverridesError,
+} from "../../core/component-overrides.ts";
 import { BlumeError } from "../../core/diagnostics.ts";
 import { packageRoot } from "../../core/package-root.ts";
 import { scanProject } from "../../core/project-graph.ts";
 import { serverFeatures } from "../../core/server-features.ts";
 import type { Diagnostic } from "../../core/types.ts";
+import { unregisteredSnapshotDiagnostics } from "../../core/version-cut.ts";
 import { commandMeta } from "../command-meta.ts";
 import { loadEnvFiles } from "../env.ts";
 import { reportInternalError } from "../internal-error.ts";
@@ -23,6 +29,32 @@ import {
 import { checkRequiredSecrets } from "../required-secrets.ts";
 
 const FALLBACK_NODE_RANGE = ">=22.12.0";
+
+/**
+ * Plan `components.ts` the way `blume dev`/`build` do, reporting each override
+ * that can't be planned — a non-static form, or an import of a file that
+ * doesn't exist — with its own line. The scan alone never reads the file, so
+ * without this doctor would pass a project whose build fails.
+ */
+const componentsDiagnostics = async (
+  componentsFile: string | null
+): Promise<Diagnostic[]> => {
+  if (!componentsFile) {
+    return [];
+  }
+  try {
+    analyzeComponentOverrides(
+      await readFile(componentsFile, "utf-8"),
+      componentsFile
+    );
+    return [];
+  } catch (error) {
+    if (error instanceof ComponentOverridesError) {
+      return error.issues;
+    }
+    throw error;
+  }
+};
 
 /** The supported Node range, read from the package's own `engines` field so
  * doctor can never drift from what the package actually declares. */
@@ -66,7 +98,10 @@ export const doctorCommand = defineCommand({
 
     try {
       const project = await scanProject(root, { mode: "build" });
-      diagnostics.push(...project.diagnostics);
+      diagnostics.push(
+        ...project.diagnostics,
+        ...unregisteredSnapshotDiagnostics(project)
+      );
 
       const { config } = project;
       // The packages and secrets a build would need: an adapter's missing SDK
@@ -81,7 +116,10 @@ export const doctorCommand = defineCommand({
       if (dependencies) {
         diagnostics.push(dependencies);
       }
-      diagnostics.push(...checkRequiredSecrets(config));
+      diagnostics.push(
+        ...(await componentsDiagnostics(project.context.componentsFile)),
+        ...checkRequiredSecrets(config)
+      );
       const features = serverFeatures(config);
       if (
         features.length > 0 &&

@@ -452,6 +452,34 @@ describe("API catch-all", () => {
     });
   });
 
+  it("answers a per-page JSON miss as the page miss it is", async () => {
+    const context = { base: "/docs", site: "https://docs.example.com" };
+    const nope = await apiNotFoundResponse(
+      get("/docs/api/docs/pages/guides/n%C3%B6pe.json"),
+      context
+    ).json();
+    expect(nope.code).toBe("PAGE_NOT_FOUND");
+    expect(nope.detail).toBe(
+      'No documentation page has the route "/guides/nöpe".'
+    );
+    expect(nope.instance).toBe(
+      "https://docs.example.com/docs/api/docs/pages/guides/nöpe.json"
+    );
+    const home = await apiNotFoundResponse(get("/api/docs/pages/index.json"), {
+      base: "",
+      site: null,
+    }).json();
+    expect(home.detail).toBe('No documentation page has the route "/".');
+    // A malformed escape still names the page it asked for.
+    const malformed = await apiNotFoundResponse(
+      get("/api/docs/pages/%E0%A4%A.json"),
+      { base: "", site: null }
+    ).json();
+    expect(malformed.detail).toBe(
+      'No documentation page has the route "/%E0%A4%A".'
+    );
+  });
+
   it("keeps links root-relative under the base path without a site", async () => {
     const body = await apiNotFoundResponse(get("/docs/api/nope"), {
       base: "/docs",

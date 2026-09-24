@@ -193,6 +193,31 @@ describe("blume audit", () => {
     expect(strict.exitCode).toBe(1);
   });
 
+  it("rejects an --only or --skip term that names no check or category", async () => {
+    const root = await fixture(site());
+    const { exitCode, stderr } = await audit(
+      root,
+      "--only",
+      "link,nonsense",
+      "--skip",
+      "links"
+    );
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain('"link" (did you mean "links"?), "nonsense"');
+    expect(stderr).toContain("blume audit --list-checks");
+  });
+
+  it("reports an invalid config as its diagnostic, with the config line", async () => {
+    const root = await fixture({
+      ...site(),
+      "blume.config.ts": "export default {\n  title: 42,\n};\n",
+    });
+    const { exitCode, stderr } = await audit(root);
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("BLUME_CONFIG_INVALID");
+    expect(stderr).toContain("blume.config.ts:2");
+  });
+
   it("rejects an unknown --fail-on level", async () => {
     const root = await fixture(site());
     const { exitCode, stderr } = await audit(root, "--fail-on", "nope");

@@ -44,7 +44,11 @@ export const hr: UIStringsOverride = {
     description: "Ažuriranja proizvoda i napomene o izdanjima.",
     title: "Popis promjena",
   },
-  content: { diagramError: "Ovaj dijagram nije moguće prikazati." },
+  content: {
+    copyColor: "Kopiraj boju {name} {value}",
+    copyPrompt: "Kopiraj upit",
+    diagramError: "Ovaj dijagram nije moguće prikazati.",
+  },
   feedback: {
     no: "Ne",
     question: "Je li vam ova stranica bila korisna?",

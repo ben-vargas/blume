@@ -589,6 +589,7 @@ createIconSprite(Astro.locals);
       <aside
         aria-label={navStrings.primary}
         data-blume-nav-drawer
+        id="blume-nav-drawer"
         class:list={[
           "fixed top-[var(--blume-drawer-top,4rem)] start-0 z-[35] h-[calc(100dvh-var(--blume-drawer-top,4rem))] w-64 max-w-[80vw] -translate-x-[105%] overflow-y-auto border-border border-e bg-background px-5 pt-4 pb-6 transition-transform rtl:translate-x-[105%] [:where([data-blume-nav-open])_&]:translate-x-0! lg:sticky lg:top-16 lg:z-auto lg:h-[calc(100dvh-4rem)] lg:w-auto lg:max-w-none lg:translate-x-0! lg:scrollbar-thin lg:scrollbar-thumb-border lg:scrollbar-track-transparent lg:border-e-0 lg:bg-transparent lg:px-4",
           // A "bare" landing (the changelog index) has no sidebar column on
@@ -793,6 +794,7 @@ createIconSprite(Astro.locals);
       type="button"
     ></button>
     <script>
+      import type { Zoom } from "medium-zoom";
       import { copyText, createCopyFlash } from "../copy-feedback.ts";
       import { syncDrawerInert } from "./drawer-inert.ts";
       import { chromeIcons as icons } from "../../theme/chrome-icons.ts";
@@ -894,6 +896,13 @@ createIconSprite(Astro.locals);
       // client-router swap (which replaces the body with server-rendered
       // markup that has none of this applied). Everything in here binds to
       // elements the swap just created, so nothing double-attaches.
+      // One medium-zoom instance per real page load, re-pointed at each page's
+      // images: every instance adds document keyup/scroll and window resize
+      // listeners it never removes and holds on to the images it was given, so
+      // a fresh instance per client-router swap stacked listeners and kept
+      // every earlier page's images alive.
+      let zoom: Zoom | undefined;
+
       const initPage = async () => {
         // Localized copy-button labels, stamped on <body> by the layout markup
         // (the Search.astro data-attribute channel) since this bundled script
@@ -1012,6 +1021,15 @@ createIconSprite(Astro.locals);
         // via medium-zoom: ESC/scroll/click dismissal, natural-size capping,
         // and the open/close transition races are its problem, not ours.
         // Opt out per-image with `data-no-zoom`.
+        // The previous page's images are gone after a swap; let go of them
+        // before looking at this page. A swap that lands while an image is
+        // zoomed (Back mid-zoom) leaves the instance mid-animation, its overlay
+        // gone with the old body and its close never finishing, so start over
+        // then instead.
+        if (zoom?.getZoomedImage()) {
+          zoom = undefined;
+        }
+        zoom?.detach();
         if (document.body.hasAttribute("data-blume-image-zoom")) {
           const zoomTargets = Array.from(
             document.querySelectorAll<HTMLImageElement>(
@@ -1027,11 +1045,12 @@ createIconSprite(Astro.locals);
             const { default: mediumZoom } = await import(
               "medium-zoom/dist/pure"
             );
-            mediumZoom(zoomTargets, {
+            zoom ??= mediumZoom({
               background:
                 "color-mix(in oklab, var(--color-background) 80%, transparent)",
               margin: 24,
             });
+            zoom.attach(...zoomTargets);
           }
         }
       };

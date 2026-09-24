@@ -44,7 +44,11 @@ export const tr: UIStringsOverride = {
     description: "Ürün güncellemeleri ve sürüm notları.",
     title: "Değişiklik günlüğü",
   },
-  content: { diagramError: "Bu diyagram görüntülenemedi." },
+  content: {
+    copyColor: "Rengi kopyala: {name} {value}",
+    copyPrompt: "İstemi kopyala",
+    diagramError: "Bu diyagram görüntülenemedi.",
+  },
   feedback: {
     no: "Hayır",
     question: "Bu sayfa yardımcı oldu mu?",

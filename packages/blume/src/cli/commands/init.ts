@@ -64,7 +64,7 @@ const installScaffold = async (
     clack.outro("Scaffolded without dependencies.");
   } else {
     logger.error(outcome.failure);
-    logger.box(hint);
+    logger.box(hint.trimEnd());
   }
   process.exit(1);
 };
@@ -94,7 +94,7 @@ const ejectScaffold = async (
     // own install already ran, so install comes first either way.
     const ejectInstall = added.length > 0 ? [commands.install] : install;
     const steps = [...cd, ...ejectInstall, commands.dev];
-    logger.box(`Next steps:\n\n  ${steps.join("\n  ")}\n`);
+    logger.box(`Next steps:\n\n  ${steps.join("\n  ")}`);
   } catch (error) {
     // SAFETY: eject and the script rewrite throw Error instances; only the
     // message is surfaced in the fallback hint.
@@ -102,7 +102,7 @@ const ejectScaffold = async (
       `Scaffolded, but eject needs the project's dependencies installed to load blume.config.ts: ${(error as Error).message}`
     );
     const steps = [...cd, ...install, `${commands.exec} blume eject --yes`];
-    logger.box(`Next steps:\n\n  ${steps.join("\n  ")}\n`);
+    logger.box(`Next steps:\n\n  ${steps.join("\n  ")}`);
   }
 };
 
@@ -257,7 +257,9 @@ export const initCommand = defineCommand({
       clack.note(steps.trimEnd());
       clack.outro("You're all set.");
     } else {
-      logger.box(steps);
+      // consola's box pads its content itself; a trailing newline would add
+      // blank rows at the bottom.
+      logger.box(steps.trimEnd());
     }
   },
 });

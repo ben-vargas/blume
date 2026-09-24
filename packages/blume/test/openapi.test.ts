@@ -1320,7 +1320,7 @@ describe("render-mdx", () => {
     // under `seo` so it feeds the meta tag without also printing as a subtitle.
     expect(page.data.seo).toStrictEqual({
       description:
-        "Deletes a pet Reference for the DELETE /pet/{petId} endpoint in the Petstore API.",
+        "Deletes a pet. Reference for the DELETE /pet/{petId} endpoint in the Petstore API.",
     });
     expect(page.data).not.toHaveProperty("description");
   });
@@ -1502,7 +1502,7 @@ describe("render-mdx", () => {
     });
     expect(operation.data.seo).toStrictEqual({
       description:
-        "List pets Reference for the GET /pets endpoint in the Example API.",
+        "List pets. Reference for the GET /pets endpoint in the Example API.",
     });
 
     // The word can sit before a qualifier, be plural, or come from the

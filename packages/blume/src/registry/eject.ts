@@ -314,18 +314,28 @@ const examplesPreviewFiles = (
  * render with it (Blume ships React, so projects rarely list it). They have
  * to be the project's own dependencies after eject — under a strict linker
  * such as pnpm nothing else makes them resolvable, and `astro build` fails.
+ * The hidden runtime reaches the same packages through its `node_modules`
+ * junction into Blume's own, so only eject declares the ones its generated
+ * files import directly: the AI SDK the Ask AI route streams through (unless
+ * `ai.ask.endpoint` points elsewhere, when no route is written) and the EPUB
+ * generator's browser bundle `features.ts` loads.
  */
 const ejectDependencies = (
   options: Parameters<typeof runtimeDependencies>[0]
-): string[] => [
-  ...new Set([
-    "astro",
-    "@tailwindcss/vite",
-    "blume",
-    ...runtimeDependencies(options),
-    ...(options.needsReact ? ["react", "react-dom"] : []),
-  ]),
-];
+): string[] => {
+  const { ask } = options.config.ai;
+  return [
+    ...new Set([
+      "astro",
+      "@tailwindcss/vite",
+      "blume",
+      ...runtimeDependencies(options),
+      ...(options.needsReact ? ["react", "react-dom"] : []),
+      ...(ask?.enabled && !ask.endpoint ? ["ai"] : []),
+      ...(options.config.export.epub ? ["epub-gen-memory"] : []),
+    ]),
+  ];
+};
 
 const ejectIntegrationBridge = (
   config: BlumeProject["config"],

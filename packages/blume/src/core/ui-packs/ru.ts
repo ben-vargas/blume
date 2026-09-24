@@ -44,7 +44,11 @@ export const ru: UIStringsOverride = {
     description: "Обновления продукта и примечания к выпускам.",
     title: "Журнал изменений",
   },
-  content: { diagramError: "Не удалось отобразить эту диаграмму." },
+  content: {
+    copyColor: "Скопировать цвет {name} {value}",
+    copyPrompt: "Скопировать промпт",
+    diagramError: "Не удалось отобразить эту диаграмму.",
+  },
   feedback: {
     no: "Нет",
     question: "Эта страница была полезной?",

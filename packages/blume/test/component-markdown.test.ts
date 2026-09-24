@@ -473,13 +473,13 @@ describe("Card and CardGroup", () => {
         "  <CardGroup>",
         '    <Card title="B" href="/b">B body.</Card>',
         "  </CardGroup>",
-        '  <Icon name="sparkles" />',
+        '  <Widget name="sparkles" />',
         "</CardGroup>",
         "",
       ].join("\n")
     );
     expect(out).toBe(
-      'Pick one:\n\n**[A](/a)**\n\nA body.\n\n**[B](/b)**\n\nB body.\n\n<Icon name="sparkles" />\n'
+      'Pick one:\n\n**[A](/a)**\n\nA body.\n\n**[B](/b)**\n\nB body.\n\n<Widget name="sparkles" />\n'
     );
   });
 
@@ -722,5 +722,250 @@ describe("exampleComponentSerializers (<Component> downleveling)", () => {
     });
     const out = downlevelComponents('<Component path="md" />\n', withTicks);
     expect(out).toBe("````md\n```ts\nconst x = 1;\n```\n````\n");
+  });
+});
+
+// Every built-in with no serializer used to reach agents as raw JSX; each
+// now renders the information its component shows.
+const md = (lines: string[]): string =>
+  downlevelComponents(`${lines.join("\n")}\n`);
+
+describe("layout and disclosure components", () => {
+  it("opens an accordion into its items' titles and bodies", () => {
+    expect(
+      md([
+        "<Accordion>",
+        '  <AccordionItem title="Is it free?" description="Pricing">',
+        "    Yes.",
+        "  </AccordionItem>",
+        "  <AccordionItem>No title.</AccordionItem>",
+        "</Accordion>",
+      ])
+    ).toBe("**Is it free?**\n\nPricing\n\nYes.\n\nNo title.\n");
+    expect(md(["<AccordionItem title={t()}>X</AccordionItem>"])).toBe(
+      "<AccordionItem title={t()}>X</AccordionItem>\n"
+    );
+  });
+
+  it("opens an expandable, titled or with the default title", () => {
+    expect(
+      md(['<Expandable title="Details">', "  More.", "</Expandable>"])
+    ).toBe("**Details**\n\nMore.\n");
+    expect(md(["<Expandable>", "  More.", "</Expandable>"])).toBe(
+      "**Show more**\n\nMore.\n"
+    );
+  });
+
+  it("unwraps file trees, columns, and code groups to their contents", () => {
+    expect(md(["<FileTree>", "- docs/", "  - index.md", "</FileTree>"])).toBe(
+      "- docs/\n  - index.md\n"
+    );
+    expect(
+      md([
+        "<Columns cols={2}>",
+        "  <Column>Left.</Column>",
+        "  <Column>Right.</Column>",
+        "</Columns>",
+      ])
+    ).toBe("Left.\n\nRight.\n");
+    expect(
+      md([
+        "<CodeGroup>",
+        '```ts title="a.ts"',
+        "const a = 1;",
+        "```",
+        "",
+        '```ts title="b.ts"',
+        "const b = 2;",
+        "```",
+        "</CodeGroup>",
+      ])
+    ).toBe(
+      '```ts title="a.ts"\nconst a = 1;\n```\n\n```ts title="b.ts"\nconst b = 2;\n```\n'
+    );
+  });
+
+  it("keeps a frame's hint, slot, and caption, and a panel's title", () => {
+    expect(
+      md([
+        '<Frame hint="Above." caption="The **dashboard**.">',
+        "  ![Dashboard](/d.png)",
+        "</Frame>",
+      ])
+    ).toBe("Above.\n\n![Dashboard](/d.png)\n\nThe **dashboard**.\n");
+    expect(md(['<Panel title="Aside">', "  Note.", "</Panel>"])).toBe(
+      "**Aside**\n\nNote.\n"
+    );
+    expect(md(["<Panel>Untitled.</Panel>"])).toBe("Untitled.\n");
+  });
+
+  it("links a tile like a card", () => {
+    expect(
+      md(['<Tile title="Guides" href="/guides" description="Start here." />'])
+    ).toBe("**[Guides](/guides)**\n\nStart here.\n");
+    expect(md(['<Tile title="Plain">Preview.</Tile>'])).toBe(
+      "**Plain**\n\nPreview.\n"
+    );
+    expect(md(["<Tile />"])).toBe("<Tile />\n");
+    expect(md(["<Tile title={t()} />"])).toBe("<Tile title={t()} />\n");
+  });
+
+  it("heads an update with its label, linked when it has a page", () => {
+    expect(
+      md([
+        '<Update label="v2.0" description="Big one" tags={["major", "api"]}>',
+        "  Notes.",
+        "</Update>",
+      ])
+    ).toBe("**v2.0**\n\nBig one\n\nTags: major, api\n\nNotes.\n");
+    expect(
+      md(['<Update title="Launch" href="/changelog/launch" tags="news" />'])
+    ).toBe("**[Launch](/changelog/launch)**\n\nTags: news\n");
+    expect(md(["<Update />"])).toBe("**Update**\n");
+    expect(md(["<Update label={l()} />"])).toBe("<Update label={l()} />\n");
+  });
+
+  it("quotes a prompt under its description", () => {
+    expect(
+      md([
+        '<Prompt description="Add a page">',
+        "  Write a quickstart.",
+        "",
+        "  Keep it short.",
+        "</Prompt>",
+      ])
+    ).toBe("**Add a page**\n\n> Write a quickstart.\n>\n> Keep it short.\n");
+    expect(md(["<Prompt />"])).toBe("**Prompt**\n");
+  });
+});
+
+describe("data and inline components", () => {
+  it("links a GitHub card to its repository", () => {
+    expect(md(['<GithubInfo owner="acme" repo="sdk" />'])).toBe(
+      "[acme/sdk](https://github.com/acme/sdk)\n"
+    );
+    expect(
+      md([
+        '<GithubInfo owner="acme" repo="sdk" host="https://git.acme.dev/" />',
+      ])
+    ).toBe("[acme/sdk](https://git.acme.dev/acme/sdk)\n");
+    expect(md(['<GithubInfo owner="acme" />'])).toBe(
+      '<GithubInfo owner="acme" />\n'
+    );
+    expect(md(['<GithubInfo owner={o()} repo="sdk" />'])).toBe(
+      '<GithubInfo owner={o()} repo="sdk" />\n'
+    );
+  });
+
+  it("fences a code block, keeping its title", () => {
+    expect(md(['<CodeBlock code="let a = 1" lang="ts" title="a.ts" />'])).toBe(
+      '```ts title="a.ts"\nlet a = 1\n```\n'
+    );
+    expect(md(['<CodeBlock code="plain" />'])).toBe("```txt\nplain\n```\n");
+    expect(md(["<CodeBlock code={c()} />"])).toBe("<CodeBlock code={c()} />\n");
+  });
+
+  it("fences a diff from a patch or its two sides, never from files", () => {
+    expect(md(['<Diff patch="-a\\n+b" />'])).toBe("```diff\n-a\\n+b\n```\n");
+    expect(md(['<Diff old="a" new="b" lang="ts" />'])).toBe(
+      "**Before**\n\n```ts\na\n```\n\n**After**\n\n```ts\nb\n```\n"
+    );
+    expect(md(['<Diff src="./change.patch" />'])).toBe(
+      '<Diff src="./change.patch" />\n'
+    );
+    expect(md(["<Diff patch={p()} />"])).toBe("<Diff patch={p()} />\n");
+  });
+
+  it("keeps math as TeX, inline or displayed", () => {
+    expect(md(['<Math code="x^2" display />'])).toBe("$$\nx^2\n$$\n");
+    expect(md(['Area is <Math code="\\pi r^2" /> exactly.'])).toBe(
+      "Area is $\\pi r^2$ exactly.\n"
+    );
+    expect(md(["<Math code={c()} />"])).toBe("<Math code={c()} />\n");
+  });
+
+  it("drops a decorative icon, keeps a labeled one's label, and unwraps a badge", () => {
+    expect(md(['Status <Icon name="check" /> done.'])).toBe("Status  done.\n");
+    expect(md(['<Icon name="check" label="Supported" />'])).toBe("Supported\n");
+    expect(md(["Now <Badge>Beta</Badge> in the SDK."])).toBe(
+      "Now Beta in the SDK.\n"
+    );
+  });
+
+  it("spells out a tooltip's tip after its trigger", () => {
+    expect(
+      md([
+        'Uses <Tooltip headline="SSR" tip="Rendered per request">server output</Tooltip> here.',
+      ])
+    ).toBe("Uses server output (SSR: Rendered per request) here.\n");
+    expect(md(['<Tooltip tip="Only a tip" />'])).toBe("Only a tip\n");
+    expect(md(["<Tooltip>No tip</Tooltip>"])).toBe(
+      "<Tooltip>No tip</Tooltip>\n"
+    );
+    expect(md(["<Tooltip tip={t()}>X</Tooltip>"])).toBe(
+      "<Tooltip tip={t()}>X</Tooltip>\n"
+    );
+  });
+
+  it("draws a tree as the nested list it renders", () => {
+    expect(
+      md([
+        "<Tree>",
+        '  <Tree.Folder name="src">',
+        '    <Tree.Folder name="empty" />',
+        '    <Tree.File name="index.ts" />',
+        "  </Tree.Folder>",
+        '  <Tree.File name="README.md" />',
+        "</Tree>",
+      ])
+    ).toBe("- src/\n  - empty/\n  - index.ts\n- README.md\n");
+    expect(md(["<Tree.Folder>X</Tree.Folder>"])).toBe(
+      "<Tree.Folder>X</Tree.Folder>\n"
+    );
+    expect(md(["<Tree.File />"])).toBe("<Tree.File />\n");
+  });
+
+  it("lists a palette's colors by name and value", () => {
+    expect(
+      md([
+        "<Color>",
+        '  <Color.Row title="Brand">',
+        '    <Color.Item name="Accent" value="#2563eb" />',
+        '    <Color.Item name="Surface" value={{ light: "#ffffff", dark: "#0a0a0a" }} />',
+        '    <Color.Item name="Ink" value={{ dark: "#111111" }} />',
+        '    <Color.Item name="Same" value={{ light: "#000000", dark: "#000000" }} />',
+        "  </Color.Row>",
+        "</Color>",
+      ])
+    ).toBe(
+      "**Brand**\n\n- **Accent**: `#2563eb`\n- **Surface**: `#ffffff` (light), `#0a0a0a` (dark)\n- **Ink**: `#111111`\n- **Same**: `#000000`\n"
+    );
+    for (const value of ["{[1]}", "{new Date(0)}", "{{}}"]) {
+      const item = `<Color.Item name="X" value=${value} />`;
+      expect(md([item])).toBe(`${item}\n`);
+    }
+    expect(md(['<Color.Item value="#fff" />'])).toBe(
+      '<Color.Item value="#fff" />\n'
+    );
+  });
+});
+
+describe("nested content under a component", () => {
+  it("keeps a nested list's indentation inside an indented body", () => {
+    const out = downlevelComponents(
+      [
+        "<Steps>",
+        '  <Step title="Install">',
+        "    - macOS",
+        "      - brew install acme",
+        "    - Linux",
+        "  </Step>",
+        "</Steps>",
+        "",
+      ].join("\n")
+    );
+    expect(out).toBe(
+      "1. **Install**\n\n    - macOS\n      - brew install acme\n    - Linux\n"
+    );
   });
 });

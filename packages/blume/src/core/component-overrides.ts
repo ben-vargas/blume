@@ -1,10 +1,11 @@
 import { existsSync } from "node:fs";
 
-import { basename, dirname, extname, isAbsolute, resolve } from "pathe";
+import { basename, dirname, extname, isAbsolute, join, resolve } from "pathe";
 import ts from "typescript";
 
 import { BlumeError } from "./diagnostics.ts";
 import type { HydrationMode } from "./schema.ts";
+import type { Diagnostic } from "./types.ts";
 
 /**
  * Static analysis of a user `components.ts`/`.tsx`.
@@ -18,10 +19,12 @@ import type { HydrationMode } from "./schema.ts";
  * Only statically-analyzable authoring is accepted: a default export that is an
  * object literal or a `defineComponents({ ... })` call, whose `mdx`/`layout`
  * groups are object literals with entries that are imported identifiers, path
- * strings, or `{ component, client, media }` object literals. Anything else is a
- * config error ({@link BlumeError}, `BLUME_COMPONENTS_INVALID`) naming the entry
- * and the accepted forms — there is no runtime fallback, so an override that
- * can't be planned never silently renders without hydration.
+ * strings, or `{ component, client, media }` object literals, and a relative
+ * or absolute path must name a file that exists. Anything else is a config
+ * error ({@link ComponentOverridesError}, `BLUME_COMPONENTS_INVALID`) naming the
+ * entry, its line, and the accepted forms — there is no runtime fallback, so an
+ * override that can't be planned never silently renders without hydration, and
+ * a missing file never surfaces as a bundler error inside the generated runtime.
  */
 
 export type OverrideFramework = "react" | "svelte" | "vue";
@@ -111,7 +114,17 @@ const isHydrationMode = (value: string): value is HydrationMode =>
 interface ImportBinding {
   /** Exported name: `"default"` or a named export. */
   imported: string;
+  /** The import statement, where a missing file is reported. */
+  node: ts.ImportDeclaration;
   specifier: string;
+}
+
+/** Why one entry was rejected, and the node it's about (for its line). */
+interface Rejection {
+  message: string;
+  /** A path that names no file: the fix is the path, not the entry's form. */
+  missingFile?: boolean;
+  node?: ts.Node;
 }
 
 /** An override's declared component before framework/path resolution. */
@@ -125,10 +138,19 @@ interface RawDescriptor {
 interface AnalysisContext {
   dir: string;
   /** Rejections collected across the file; thrown together at the end. */
-  errors: string[];
+  errors: Rejection[];
   imports: Map<string, ImportBinding>;
   warnings: string[];
 }
+
+const reject = (
+  context: AnalysisContext,
+  message: string,
+  node?: ts.Node,
+  missingFile?: boolean
+): void => {
+  context.errors.push({ message, missingFile, node });
+};
 
 const propName = (name: ts.PropertyName): string | undefined =>
   ts.isIdentifier(name) || ts.isStringLiteral(name) ? name.text : undefined;
@@ -150,13 +172,18 @@ const addImportBindings = (
     return;
   }
   if (clause.name) {
-    map.set(clause.name.text, { imported: "default", specifier });
+    map.set(clause.name.text, {
+      imported: "default",
+      node: statement,
+      specifier,
+    });
   }
   const named = clause.namedBindings;
   if (named && ts.isNamedImports(named)) {
     for (const element of named.elements) {
       map.set(element.name.text, {
         imported: (element.propertyName ?? element.name).text,
+        node: statement,
         specifier,
       });
     }
@@ -212,6 +239,30 @@ const probeExtension = (base: string): string | null => {
   return null;
 };
 
+// A `.js` specifier in a TypeScript file may name its `.ts`/`.tsx` source, as
+// Vite resolves it; the same holds for `.jsx` and `.mjs`.
+const SCRIPT_EXT = /\.(?:jsx?|mjs)$/u;
+const TS_SOURCE_EXTS = ["ts", "tsx", "mts"];
+
+/**
+ * Whether a local path names something the bundler can import: the file
+ * itself, the file with a component extension added, a folder's `index`, or
+ * the TypeScript source a `.js` specifier stands for.
+ */
+const resolvesLocally = (absolute: string): boolean => {
+  if (existsSync(absolute) || probeExtension(absolute)) {
+    return true;
+  }
+  if (probeExtension(join(absolute, "index"))) {
+    return true;
+  }
+  const base = absolute.replace(SCRIPT_EXT, "");
+  return (
+    base !== absolute &&
+    TS_SOURCE_EXTS.some((extension) => existsSync(`${base}.${extension}`))
+  );
+};
+
 /** Resolve a module specifier to a wrapper-importable path + framework. */
 const toImport = (
   specifier: string,
@@ -241,6 +292,30 @@ const toImport = (
 };
 
 /**
+ * Resolve a specifier to its import, or record that the file it names doesn't
+ * exist. A bare package specifier is left to the bundler.
+ */
+const sourceFor = (
+  specifier: string,
+  imported: string,
+  label: string,
+  node: ts.Node,
+  context: AnalysisContext
+): OverrideImport | null => {
+  const local = specifier.startsWith(".") || isAbsolute(specifier);
+  if (local && !resolvesLocally(resolve(context.dir, specifier))) {
+    reject(
+      context,
+      `${label} points at "${specifier}", but no file exists there; fix the path or restore the file.`,
+      node,
+      true
+    );
+    return null;
+  }
+  return toImport(specifier, imported, context.dir);
+};
+
+/**
  * Resolve an identifier to the import it names, or record why it can't be: a
  * local binding (a `const`, a function declared in the file) has no source path
  * a wrapper could import.
@@ -248,14 +323,23 @@ const toImport = (
 const resolveIdentifier = (
   name: string,
   label: string,
+  node: ts.Node,
   context: AnalysisContext
 ): OverrideImport | null => {
   const binding = context.imports.get(name);
   if (binding) {
-    return toImport(binding.specifier, binding.imported, context.dir);
+    return sourceFor(
+      binding.specifier,
+      binding.imported,
+      label,
+      binding.node,
+      context
+    );
   }
-  context.errors.push(
-    `${label} refers to "${name}", which isn't imported in this file; import the component from its file.`
+  reject(
+    context,
+    `${label} refers to "${name}", which isn't imported in this file; import the component from its file.`,
+    node
   );
   return null;
 };
@@ -275,25 +359,32 @@ const applyDescriptorProperty = (
       descriptor.source = resolveIdentifier(
         property.name.text,
         `${label}'s \`component\``,
+        property,
         context
       );
       return;
     }
     const shorthand = property.name.text;
     if (shorthand === "client" || shorthand === "media") {
-      context.errors.push(
-        `${label} writes \`${shorthand}\` as a shorthand property; only \`component\` may be shorthand, \`${shorthand}\` must be a string literal.`
+      reject(
+        context,
+        `${label} writes \`${shorthand}\` as a shorthand property; only \`component\` may be shorthand, \`${shorthand}\` must be a string literal.`,
+        property
       );
       return;
     }
-    context.errors.push(
-      `${label} has a \`${shorthand}\` field; ${ALLOWED_FIELDS}`
+    reject(
+      context,
+      `${label} has a \`${shorthand}\` field; ${ALLOWED_FIELDS}`,
+      property
     );
     return;
   }
   if (!ts.isPropertyAssignment(property)) {
-    context.errors.push(
-      `${label} contains a spread, method, or accessor; write it as a plain \`{ component, client, media }\` object literal.`
+    reject(
+      context,
+      `${label} contains a spread, method, or accessor; write it as a plain \`{ component, client, media }\` object literal.`,
+      property
     );
     return;
   }
@@ -301,35 +392,48 @@ const applyDescriptorProperty = (
   const init = property.initializer;
   if (name === "component") {
     if (ts.isStringLiteral(init)) {
-      descriptor.source = toImport(init.text, "default", context.dir);
+      descriptor.source = sourceFor(
+        init.text,
+        "default",
+        `${label}'s \`component\``,
+        init,
+        context
+      );
     } else if (ts.isIdentifier(init)) {
       descriptor.source = resolveIdentifier(
         init.text,
         `${label}'s \`component\``,
+        init,
         context
       );
     } else {
-      context.errors.push(
-        `${label}'s \`component\` must be an imported identifier or a path string.`
+      reject(
+        context,
+        `${label}'s \`component\` must be an imported identifier or a path string.`,
+        init
       );
     }
   } else if (name === "client") {
     if (ts.isStringLiteral(init) && isHydrationMode(init.text)) {
       descriptor.client = init.text;
     } else {
-      context.errors.push(
-        `${label}'s \`client\` must be a string literal: ${HYDRATION_MODE_LIST}.`
+      reject(
+        context,
+        `${label}'s \`client\` must be a string literal: ${HYDRATION_MODE_LIST}.`,
+        init
       );
     }
   } else if (name === "media") {
     if (ts.isStringLiteral(init)) {
       descriptor.media = init.text;
     } else {
-      context.errors.push(`${label}'s \`media\` must be a string literal.`);
+      reject(context, `${label}'s \`media\` must be a string literal.`, init);
     }
   } else {
-    context.errors.push(
-      `${label} has a \`${name ?? property.name.getText()}\` field; ${ALLOWED_FIELDS}`
+    reject(
+      context,
+      `${label} has a \`${name ?? property.name.getText()}\` field; ${ALLOWED_FIELDS}`,
+      property
     );
   }
 };
@@ -353,8 +457,10 @@ const readDescriptor = (
     applyDescriptorProperty(descriptor, property, label, context);
   }
   if (!hadComponent) {
-    context.errors.push(
-      `${label} is an object literal without a \`component\` field.`
+    reject(
+      context,
+      `${label} is an object literal without a \`component\` field.`,
+      object
     );
   }
   return context.errors.length === before ? descriptor : null;
@@ -412,29 +518,35 @@ const normalizeEntry = (
     const name = entry.name.text;
     return finalize(
       name,
-      { source: resolveIdentifier(name, `${group}.${name}`, context) },
+      { source: resolveIdentifier(name, `${group}.${name}`, entry, context) },
       name,
       warnings
     );
   }
 
   if (ts.isSpreadAssignment(entry)) {
-    context.errors.push(
-      `${group} contains a spread (\`...${entry.expression.getText()}\`); list each override explicitly.`
+    reject(
+      context,
+      `${group} contains a spread (\`...${entry.expression.getText()}\`); list each override explicitly.`,
+      entry
     );
     return null;
   }
   const key = propName(entry.name);
   if (!key) {
-    context.errors.push(
-      `${group} has an entry with a computed key (\`${entry.name.getText()}\`); keys must be plain names.`
+    reject(
+      context,
+      `${group} has an entry with a computed key (\`${entry.name.getText()}\`); keys must be plain names.`,
+      entry
     );
     return null;
   }
   const label = `${group}.${key}`;
   if (!ts.isPropertyAssignment(entry)) {
-    context.errors.push(
-      `${label} is a method or accessor, which Blume can't analyze statically.`
+    reject(
+      context,
+      `${label} is a method or accessor, which Blume can't analyze statically.`,
+      entry
     );
     return null;
   }
@@ -443,7 +555,7 @@ const normalizeEntry = (
   if (ts.isIdentifier(value)) {
     return finalize(
       key,
-      { source: resolveIdentifier(value.text, label, context) },
+      { source: resolveIdentifier(value.text, label, entry, context) },
       value.text,
       warnings
     );
@@ -451,7 +563,7 @@ const normalizeEntry = (
   if (ts.isStringLiteral(value)) {
     return finalize(
       key,
-      { source: toImport(value.text, "default", context.dir) },
+      { source: sourceFor(value.text, "default", label, value, context) },
       value.text,
       warnings
     );
@@ -461,8 +573,10 @@ const normalizeEntry = (
     return descriptor ? finalize(key, descriptor, key, warnings) : null;
   }
 
-  context.errors.push(
-    `${label} is an inline expression, which Blume can't analyze statically.`
+  reject(
+    context,
+    `${label} is an inline expression, which Blume can't analyze statically.`,
+    entry
   );
   return null;
 };
@@ -474,21 +588,27 @@ const collectGroupOverrides = (
   result: ComponentOverrideAnalysis
 ): void => {
   if (ts.isSpreadAssignment(property)) {
-    context.errors.push(
-      `The top-level object contains a spread (\`...${property.expression.getText()}\`); list \`mdx\` and \`layout\` explicitly.`
+    reject(
+      context,
+      `The top-level object contains a spread (\`...${property.expression.getText()}\`); list \`mdx\` and \`layout\` explicitly.`,
+      property
     );
     return;
   }
   const name = propName(property.name);
   if (name === "islands") {
-    context.errors.push(
-      'The `islands` group was folded into `mdx`: move each entry there and give it a `client` mode, e.g. `mdx: { Counter: { component: Counter, client: "visible" } }`.'
+    reject(
+      context,
+      'The `islands` group was folded into `mdx`: move each entry there and give it a `client` mode, e.g. `mdx: { Counter: { component: Counter, client: "visible" } }`.',
+      property
     );
     return;
   }
   if (!(name && isGroup(name))) {
-    context.errors.push(
-      `\`${name ?? property.name.getText()}\` isn't an override group; use \`mdx\` or \`layout\`.`
+    reject(
+      context,
+      `\`${name ?? property.name.getText()}\` isn't an override group; use \`mdx\` or \`layout\`.`,
+      property
     );
     return;
   }
@@ -496,7 +616,11 @@ const collectGroupOverrides = (
     !ts.isPropertyAssignment(property) ||
     !ts.isObjectLiteralExpression(property.initializer)
   ) {
-    context.errors.push(`\`${name}\` must be an object literal of overrides.`);
+    reject(
+      context,
+      `\`${name}\` must be an object literal of overrides.`,
+      property
+    );
     return;
   }
   for (const entry of property.initializer.properties) {
@@ -507,19 +631,73 @@ const collectGroupOverrides = (
   }
 };
 
-const invalidOverrides = (filePath: string, errors: string[]): BlumeError =>
-  new BlumeError({
+/**
+ * A `components.ts` Blume can't plan. The diagnostic lists every rejected entry
+ * at once (at the first one's line); `issues` holds each on its own, with its
+ * line, for a caller that reports them one by one (`blume upgrade`).
+ */
+export class ComponentOverridesError extends BlumeError {
+  readonly issues: Diagnostic[];
+
+  constructor(diagnostic: Diagnostic, issues: Diagnostic[]) {
+    super(diagnostic);
+    this.name = "ComponentOverridesError";
+    this.issues = issues;
+  }
+}
+
+/** A rejection as a diagnostic, at its node's line when it has one. */
+const rejectionDiagnostic = (
+  filePath: string,
+  sourceFile: ts.SourceFile,
+  rejection: Rejection
+): Diagnostic => {
+  const position = rejection.node
+    ? sourceFile.getLineAndCharacterOfPosition(
+        rejection.node.getStart(sourceFile)
+      )
+    : undefined;
+  return {
     code: "BLUME_COMPONENTS_INVALID",
+    column: position && position.character + 1,
     file: filePath,
-    message: `${basename(filePath)} has ${errors.length} override(s) Blume can't plan:\n${errors.map((error) => `  - ${error}`).join("\n")}`,
+    line: position && position.line + 1,
+    message: rejection.message,
     severity: "error",
-    suggestion: ACCEPTED_OVERRIDE_FORMS,
-  });
+    suggestion: rejection.missingFile ? undefined : ACCEPTED_OVERRIDE_FORMS,
+  };
+};
+
+const invalidOverrides = (
+  filePath: string,
+  sourceFile: ts.SourceFile,
+  rejections: Rejection[]
+): ComponentOverridesError => {
+  const issues = rejections.map((rejection) =>
+    rejectionDiagnostic(filePath, sourceFile, rejection)
+  );
+  const first = issues.find((issue) => issue.line !== undefined);
+  return new ComponentOverridesError(
+    {
+      code: "BLUME_COMPONENTS_INVALID",
+      column: first?.column,
+      file: filePath,
+      line: first?.line,
+      message: `${basename(filePath)} has ${rejections.length} override(s) Blume can't plan:\n${rejections.map((rejection) => `  - ${rejection.message}`).join("\n")}`,
+      severity: "error",
+      suggestion: rejections.every((rejection) => rejection.missingFile)
+        ? undefined
+        : ACCEPTED_OVERRIDE_FORMS,
+    },
+    issues
+  );
+};
 
 /**
  * Parse a user `components.ts`/`.tsx` and return its normalized overrides. Never
- * executes the file. Throws a `BLUME_COMPONENTS_INVALID` {@link BlumeError}
- * listing every entry that isn't one of the accepted forms.
+ * executes the file. Throws a `BLUME_COMPONENTS_INVALID`
+ * {@link ComponentOverridesError} listing every entry that isn't one of the
+ * accepted forms or points at a file that doesn't exist.
  */
 export const analyzeComponentOverrides = (
   source: string,
@@ -536,14 +714,21 @@ export const analyzeComponentOverrides = (
 
   const exported = findDefaultExport(sourceFile);
   if (!exported) {
-    throw invalidOverrides(filePath, [
-      "No default export was found; export `defineComponents({ mdx, layout })` (or a plain object literal) as the default.",
+    throw invalidOverrides(filePath, sourceFile, [
+      {
+        message:
+          "No default export was found; export `defineComponents({ mdx, layout })` (or a plain object literal) as the default.",
+      },
     ]);
   }
   const object = unwrapObject(exported.expression);
   if (!object) {
-    throw invalidOverrides(filePath, [
-      "The default export isn't an object literal or a `defineComponents({ ... })` call.",
+    throw invalidOverrides(filePath, sourceFile, [
+      {
+        message:
+          "The default export isn't an object literal or a `defineComponents({ ... })` call.",
+        node: exported,
+      },
     ]);
   }
 
@@ -559,7 +744,7 @@ export const analyzeComponentOverrides = (
   }
 
   if (context.errors.length > 0) {
-    throw invalidOverrides(filePath, context.errors);
+    throw invalidOverrides(filePath, sourceFile, context.errors);
   }
   return result;
 };

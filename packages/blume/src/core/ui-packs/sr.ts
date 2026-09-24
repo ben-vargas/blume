@@ -43,7 +43,11 @@ export const sr: UIStringsOverride = {
     description: "Ажурирања производа и белешке о издањима.",
     title: "Дневник измена",
   },
-  content: { diagramError: "Није могуће приказати овај дијаграм." },
+  content: {
+    copyColor: "Копирај боју {name} {value}",
+    copyPrompt: "Копирај упит",
+    diagramError: "Није могуће приказати овај дијаграм.",
+  },
   feedback: {
     no: "Не",
     question: "Да ли вам је ова страница помогла?",

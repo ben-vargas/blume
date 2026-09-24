@@ -128,15 +128,21 @@ The module exposes:
 ---
 import { getCollection } from "astro:content";
 import data from "blume:data";
+import { getBlumeCollection } from "blume/runtime";
 
-// Each route's id matches its collection entry id.
-const routeById = new Map(data.routes.map((route) => [route.id, route.path]));
+// Under i18n every locale serves a route for each entry (its translation, or
+// a copy of the untranslated page), all sharing the entry's id. Key the map on
+// the default locale's routes only, so each post links once, in one language.
+const routes = getBlumeCollection(data, {
+  locale: data.config.i18n?.defaultLocale,
+});
+const routeByEntry = new Map(routes.map((route) => [route.entryId, route.path]));
 
 const posts = (await getCollection("docs"))
-  .filter((entry) => entry.data.type === "blog" && !entry.data.draft)
+  .filter((entry) => entry.data.type === "blog" && routeByEntry.has(entry.id))
   .map((entry) => ({
     description: entry.data.description,
-    href: routeById.get(entry.id),
+    href: routeByEntry.get(entry.id),
     title: entry.data.title,
   }));
 ---
@@ -157,7 +163,7 @@ const posts = (await getCollection("docs"))
 
 `blume/runtime` bundles the common data patterns so you don't reach into `blume:data` internals.
 
-**`getBlumeCollection(data, query?)`** selects content routes — filtered by collection, locale, or path prefix, with drafts and hidden pages excluded and the result sorted by path — which is exactly what a custom index needs:
+**`getBlumeCollection(data, query?)`** selects content routes — filtered by collection, locale, or path prefix, with drafts, hidden pages, and i18n fallback copies excluded and the result sorted by path — which is exactly what a custom index needs:
 
 ```astro pages/blog/index.astro lineNumbers
 ---

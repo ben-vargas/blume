@@ -156,6 +156,12 @@ const ctaClass = [
 // for the swap (next-themes' disableTransitionOnChange trick), force a
 // synchronous style flush, then restore them on the next tick.
 //
+// Both the theme toggle and the banner dismiss change the page first and only
+// then remember the choice: localStorage throws where storage is blocked
+// (Safari "Block All Cookies", sandboxed iframes), and a throw before the DOM
+// change would leave the toggle dead with transitions switched off for good.
+// There the choice simply isn't remembered.
+//
 // The mobile drawer sits below the sticky header, but the banner above the
 // header has no fixed height (its text wraps), so the drawer's top offset can't
 // be static: on open we measure the header's on-screen bottom edge into
@@ -163,6 +169,9 @@ const ctaClass = [
 // so the offset can't drift while open, and re-measure when a banner dismiss or
 // a resize/rotation moves the header. Crossing into the desktop breakpoint
 // (64rem, Tailwind `lg`) closes the drawer so the scroll lock can't outlive it.
+// The rest of the drawer's behavior — the toggle's `aria-expanded`, Escape to
+// close, and the inert page behind it — follows the same attribute from the
+// layouts' drawer-inert.ts.
 // Transparent header: flag the bar as scrolled once the page moves off the
 // top so the stylesheet below can swap it back to the frosted look. `sync`
 // re-queries the header each time, so the one listener a real load installs
@@ -172,7 +181,7 @@ const ctaClass = [
 // per real load, behind a window flag.
 const transparentScript = `(()=>{const sync=()=>{const h=document.querySelector("[data-blume-header-transparent]");if(h){h.toggleAttribute("data-blume-header-scrolled",scrollY>8);}};sync();if(window.__blumeTransparentHeader){return;}window.__blumeTransparentHeader=true;addEventListener("scroll",sync,{passive:true});document.addEventListener("astro:after-swap",sync);})();`;
 
-const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-blume-header]");if(h){document.documentElement.style.setProperty("--blume-drawer-top",h.getBoundingClientRect().bottom+"px");}};document.addEventListener("click",(e)=>{const t=e.target.closest("[data-blume-theme-toggle]");if(t){const d=document.documentElement;const next=d.dataset.theme==="dark"?"light":"dark";const s=document.createElement("style");s.appendChild(document.createTextNode("*,*::before,*::after{transition:none!important}"));document.head.appendChild(s);d.dataset.theme=next;localStorage.setItem("blume-theme",next);window.getComputedStyle(d).opacity;setTimeout(()=>document.head.removeChild(s),1);}const n=e.target.closest("[data-blume-nav-toggle]");if(n){const d=document.documentElement;const open=d.toggleAttribute("data-blume-nav-open");if(open){dr();}}const b=e.target.closest("[data-blume-banner-dismiss]");if(b){const bar=b.closest("[data-blume-banner]");const k=bar&&bar.getAttribute("data-banner-key");if(k){localStorage.setItem("blume-banner:"+k,"1");}document.documentElement.setAttribute("data-blume-banner-hidden","");requestAnimationFrame(dr);}});addEventListener("resize",()=>{const d=document.documentElement;if(!d.hasAttribute("data-blume-nav-open")){return;}if(matchMedia("(min-width:64rem)").matches){d.removeAttribute("data-blume-nav-open");}else{dr();}});})();`;
+const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-blume-header]");if(h){document.documentElement.style.setProperty("--blume-drawer-top",h.getBoundingClientRect().bottom+"px");}};const save=(k,v)=>{try{localStorage.setItem(k,v);}catch{}};document.addEventListener("click",(e)=>{const t=e.target.closest("[data-blume-theme-toggle]");if(t){const d=document.documentElement;const next=d.dataset.theme==="dark"?"light":"dark";const s=document.createElement("style");s.appendChild(document.createTextNode("*,*::before,*::after{transition:none!important}"));document.head.appendChild(s);d.dataset.theme=next;window.getComputedStyle(d).opacity;setTimeout(()=>document.head.removeChild(s),1);save("blume-theme",next);}const n=e.target.closest("[data-blume-nav-toggle]");if(n){const d=document.documentElement;const open=d.toggleAttribute("data-blume-nav-open");if(open){dr();}}const b=e.target.closest("[data-blume-banner-dismiss]");if(b){document.documentElement.setAttribute("data-blume-banner-hidden","");requestAnimationFrame(dr);const bar=b.closest("[data-blume-banner]");const k=bar&&bar.getAttribute("data-banner-key");if(k){save("blume-banner:"+k,"1");}}});addEventListener("resize",()=>{const d=document.documentElement;if(!d.hasAttribute("data-blume-nav-open")){return;}if(matchMedia("(min-width:64rem)").matches){d.removeAttribute("data-blume-nav-open");}else{dr();}});})();`;
 ---
 
 <header
@@ -183,6 +192,8 @@ const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-b
   {
     showNavToggle && (
       <button
+        aria-controls="blume-nav-drawer"
+        aria-expanded="false"
         aria-label={n.toggleNavigation}
         class={`${iconButton} lg:hidden`}
         data-blume-nav-toggle

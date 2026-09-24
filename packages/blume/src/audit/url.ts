@@ -124,16 +124,16 @@ export const resolveHref = (
     return { kind: "external", url: parsed.toString() };
   }
 
-  // A relative href resolves against the page's own URL. `URL` needs an origin
-  // to do that, so borrow a placeholder one and keep only the path. The base
-  // carries a trailing slash because Astro's directory build serves `/docs/api`
-  // at `/docs/api/` — so in a browser `./auth` there means `/docs/api/auth`, not
-  // `/docs/auth`. Resolving against the slashless form would silently mis-target
-  // every relative link on the site by one directory level.
-  const base =
-    pageUrl === "/"
-      ? "https://blume.invalid/"
-      : `https://blume.invalid${pageUrl}/`;
+  // A relative href resolves the way a browser resolves it from the page's
+  // canonical URL. `URL` needs an origin to do that, so borrow a placeholder
+  // one and keep only the path. The canonical URL is slashless — the generated
+  // config sets `trailingSlash: "never"`, Vercel redirects `/docs/api/` onto
+  // `/docs/api`, and the dev server 404s the slashed form — so `./auth` there
+  // means `/docs/auth`, exactly where a reader's click lands. Content links
+  // never hit this: the Markdown pipeline rewrites them root-relative (see
+  // `resolveRelativeHref`); what's left is hand-written HTML, which a browser
+  // reads this way.
+  const base = `https://blume.invalid${pageUrl}`;
   let resolved: URL;
   try {
     resolved = new URL(target, base);

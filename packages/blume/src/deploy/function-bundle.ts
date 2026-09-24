@@ -6,6 +6,10 @@ import { init, parse } from "es-module-lexer";
 import { dirname, join, relative } from "pathe";
 import { z } from "zod";
 
+import {
+  commandsFor,
+  detectProjectPackageManager,
+} from "../cli/init/scaffold.ts";
 import { packageRoot } from "../core/package-root.ts";
 
 /**
@@ -272,15 +276,26 @@ export interface FunctionBundleVerdict {
 }
 
 /**
+ * The command that adds a dev dependency with the project's package manager
+ * (`pnpm add -D`, `npm install -D`, …), for the fix a verdict prints. The
+ * missing packages are an isolated-linker problem, so the project is often
+ * not on npm at all.
+ */
+export const addDevDependencyCommand = async (root: string): Promise<string> =>
+  `${commandsFor(await detectProjectPackageManager(root)).add} -D`;
+
+/**
  * Describe a function's missing packages and how to fix them. Vercel's trace
  * only reaches packages resolvable from the project root, so the remedy is a
  * root-level dependency entry for each — the same mirror rule Blume's native
- * dependencies (`sharp`, `takumi-js`) already follow.
+ * dependencies (`sharp`, `takumi-js`) already follow — added with
+ * `addDevCommand` (see {@link addDevDependencyCommand}).
  */
 export const functionBundleVerdict = (
   audit: FunctionBundleAudit,
   root: string,
-  ownDependencies: ReadonlySet<string>
+  ownDependencies: ReadonlySet<string>,
+  addDevCommand = "npm install -D"
 ): FunctionBundleVerdict => {
   const names = audit.missing.map((entry) => entry.name);
   const lines = audit.missing.map(
@@ -291,7 +306,7 @@ export const functionBundleVerdict = (
     `The Vercel function bundle at ${relative(root, audit.dir) || audit.dir} is missing packages its server code imports, so the deployed function would fail on every request with ERR_MODULE_NOT_FOUND:`,
     ...lines,
     "Vercel's dependency trace only includes packages resolvable from the project root; under an isolated linker (pnpm, Bun's isolated mode) Blume's own dependencies are not. Add them to the project's package.json so the trace can find them:",
-    `  npm install -D ${names.join(" ")}`,
+    `  ${addDevCommand} ${names.join(" ")}`,
   ].join("\n");
   return { fatal, message };
 };

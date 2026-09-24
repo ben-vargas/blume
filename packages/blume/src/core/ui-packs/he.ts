@@ -43,7 +43,11 @@ export const he: UIStringsOverride = {
     description: "עדכוני מוצר והערות גרסה.",
     title: "יומן שינויים",
   },
-  content: { diagramError: "לא ניתן להציג את התרשים הזה." },
+  content: {
+    copyColor: "העתק את הצבע {name} {value}",
+    copyPrompt: "העתק הנחיה",
+    diagramError: "לא ניתן להציג את התרשים הזה.",
+  },
   feedback: {
     no: "לא",
     question: "האם העמוד הזה היה מועיל?",

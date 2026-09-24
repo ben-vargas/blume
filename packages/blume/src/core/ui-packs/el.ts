@@ -45,6 +45,8 @@ export const el: UIStringsOverride = {
     title: "Ιστορικό αλλαγών",
   },
   content: {
+    copyColor: "Αντιγραφή χρώματος {name} {value}",
+    copyPrompt: "Αντιγραφή προτροπής",
     diagramError: "Δεν ήταν δυνατή η απόδοση αυτού του διαγράμματος.",
   },
   feedback: {

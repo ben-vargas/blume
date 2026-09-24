@@ -16,7 +16,7 @@ Run it from the root of the docs project you're migrating:
 npx blume migrate fumadocs --claude
 ```
 
-Swap `fumadocs` for your framework, and `--claude` for `--codex` to use Codex. The agent opens interactively in your terminal, so every edit goes through its own permission flow. It works in place, so start from a clean working tree and review the whole migration as one diff.
+Swap `fumadocs` for your framework, and `--claude` for `--codex` to use Codex. With pnpm 12, add `--allow-build=esbuild` after `pnpm dlx`, since pnpm 12 won't run esbuild's install script unapproved. The agent opens interactively in your terminal, so every edit goes through its own permission flow. It works in place, so start from a clean working tree and review the whole migration as one diff.
 
 ## Sources
 

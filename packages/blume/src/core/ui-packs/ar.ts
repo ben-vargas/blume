@@ -43,7 +43,11 @@ export const ar: UIStringsOverride = {
     description: "تحديثات المنتج وملاحظات الإصدارات.",
     title: "سجل التغييرات",
   },
-  content: { diagramError: "تعذّر عرض هذا المخطط." },
+  content: {
+    copyColor: "نسخ اللون {name} {value}",
+    copyPrompt: "نسخ الموجّه",
+    diagramError: "تعذّر عرض هذا المخطط.",
+  },
   feedback: {
     no: "لا",
     question: "هل كانت هذه الصفحة مفيدة؟",

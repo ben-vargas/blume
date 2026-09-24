@@ -44,7 +44,11 @@ export const hu: UIStringsOverride = {
     description: "Termékfrissítések és kiadási megjegyzések.",
     title: "Változásnapló",
   },
-  content: { diagramError: "Ezt a diagramot nem sikerült megjeleníteni." },
+  content: {
+    copyColor: "{name} szín másolása: {value}",
+    copyPrompt: "Prompt másolása",
+    diagramError: "Ezt a diagramot nem sikerült megjeleníteni.",
+  },
   feedback: {
     no: "Nem",
     question: "Hasznos volt ez az oldal?",

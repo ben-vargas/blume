@@ -28,7 +28,7 @@ import { runTranslate } from "../../translate/run.ts";
 import { computeWorkList } from "../../translate/work-list.ts";
 import { commandMeta } from "../command-meta.ts";
 import { reportInternalError } from "../internal-error.ts";
-import { flushStdout, logger } from "../log.ts";
+import { flushStdout, logger, reportDiagnostics } from "../log.ts";
 
 /** Wall-clock ceiling per file, in seconds. */
 const DEFAULT_TIMEOUT_S = DEFAULT_TRANSLATE_TIMEOUT_MS / 1000;
@@ -293,7 +293,7 @@ export const translateCommand = defineCommand({
       }
     } catch (error) {
       if (error instanceof BlumeError) {
-        logger.error(error.diagnostic.message);
+        reportDiagnostics([error.diagnostic], root);
         process.exit(1);
       }
       // SAFETY: an ENOENT from spawning the agent CLI is an ErrnoException;

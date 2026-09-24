@@ -50,12 +50,59 @@ export const isRootTab = (tab: NavTab, root: string): boolean =>
 const sidebarIcon = (page: PageRecord): string | undefined =>
   page.meta.sidebar.icon ?? page.meta.icon;
 
+/**
+ * Words a folder name spells in lowercase that read wrong capitalized: the
+ * acronyms and brand casings docs folders are named after (`api-reference`
+ * is "API Reference", not "Api Reference").
+ */
+const WORD_FORMS = new Map([
+  ["ai", "AI"],
+  ["api", "API"],
+  ["apis", "APIs"],
+  ["asyncapi", "AsyncAPI"],
+  ["cli", "CLI"],
+  ["css", "CSS"],
+  ["faq", "FAQ"],
+  ["faqs", "FAQs"],
+  ["graphql", "GraphQL"],
+  ["html", "HTML"],
+  ["http", "HTTP"],
+  ["https", "HTTPS"],
+  ["id", "ID"],
+  ["ids", "IDs"],
+  ["ios", "iOS"],
+  ["js", "JS"],
+  ["json", "JSON"],
+  ["jwt", "JWT"],
+  ["llm", "LLM"],
+  ["llms", "LLMs"],
+  ["macos", "macOS"],
+  ["mcp", "MCP"],
+  ["oauth", "OAuth"],
+  ["openapi", "OpenAPI"],
+  ["rss", "RSS"],
+  ["sdk", "SDK"],
+  ["sdks", "SDKs"],
+  ["seo", "SEO"],
+  ["sql", "SQL"],
+  ["sso", "SSO"],
+  ["ts", "TS"],
+  ["ui", "UI"],
+  ["url", "URL"],
+  ["urls", "URLs"],
+  ["xml", "XML"],
+  ["yaml", "YAML"],
+]);
+
 const humanize = (segment: string): string =>
   segment
     .replace(NUMERIC_PREFIX, "")
     .split(WORD_SPLIT)
     .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .map(
+      (word) =>
+        WORD_FORMS.get(word) ?? word.charAt(0).toUpperCase() + word.slice(1)
+    )
     .join(" ");
 
 const numericOrder = (segment: string): number => {

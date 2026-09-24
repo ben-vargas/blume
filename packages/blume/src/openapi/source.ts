@@ -30,6 +30,7 @@ import {
 import type { BlumeReferenceSource } from "./references.ts";
 import { operationMdx, overviewMdx } from "./render-mdx.ts";
 import type { RenderedPage } from "./render-mdx.ts";
+import { SpecDependencyError } from "./spec-dependency-error.ts";
 
 /**
  * The staged content source behind Blume's own API reference renderer (OpenAPI
@@ -113,6 +114,25 @@ const INVALID_SUGGESTIONS = {
   openapi:
     "Point the spec at an OpenAPI document (a YAML or JSON file with an object at the top level).",
 } satisfies Record<BlumeReferenceSource["kind"], string>;
+
+/**
+ * What to suggest for a spec that failed to load: the install command when
+ * reading it needs a package the project lacks, a fix to the file when it
+ * isn't a spec of its kind, and reachability for everything else (a fetch or
+ * read failure).
+ */
+const failureSuggestion = (
+  error: Error,
+  kind: BlumeReferenceSource["kind"]
+): string => {
+  if (error instanceof SpecDependencyError) {
+    return error.suggestion;
+  }
+  if (error instanceof InvalidSpecError) {
+    return INVALID_SUGGESTIONS[kind];
+  }
+  return "Check the spec URL/path is reachable from the build environment; behind a proxy, set HTTP(S)_PROXY.";
+};
 
 const toEntry = (rendered: RenderedPage, ref: string): SourceEntry => {
   const raw = matter.stringify(`${rendered.body}\n`, rendered.data);
@@ -335,21 +355,17 @@ export const openApiSource = (
         spec,
       };
     } catch (error) {
+      // SAFETY: spec loading fails with Error instances (fetch, read, parse,
+      // and missing-package errors alike).
+      const failure = error as Error;
       return {
         code: `${codePrefix}_UNAVAILABLE`,
-        // SAFETY: spec loading fails with Error instances (fetch, read, and
-        // parse errors alike); only the message is read for the diagnostic.
-        message: `Could not load ${kindLabel} spec "${reference.spec}" for ${reference.route} (${(error as Error).message}); its reference pages were skipped.`,
+        message: `Could not load ${kindLabel} spec "${reference.spec}" for ${reference.route} (${failure.message}); its reference pages were skipped.`,
         // A configured-but-unloadable spec ships a dead nav tab (a 404 route),
         // so fail loudly in build (blocks under --strict) while staying a warning
         // in dev so offline work still runs.
         severity: ctx.mode === "build" ? "error" : "warning",
-        // A readable-but-invalid file is a content problem, not a network one;
-        // only point at reachability for actual fetch/read failures.
-        suggestion:
-          error instanceof InvalidSpecError
-            ? INVALID_SUGGESTIONS[reference.kind]
-            : "Check the spec URL/path is reachable from the build environment; behind a proxy, set HTTP(S)_PROXY.",
+        suggestion: failureSuggestion(failure, reference.kind),
       };
     }
   };

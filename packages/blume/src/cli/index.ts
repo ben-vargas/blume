@@ -16,7 +16,7 @@ import "./log.ts";
 
 const main = defineCommand({
   meta: {
-    description: "Markdown-first documentation powered by Astro and Vite.",
+    description: "The open-source docs framework for humans and agents.",
     name: "blume",
     version: getBlumeVersion(),
   },

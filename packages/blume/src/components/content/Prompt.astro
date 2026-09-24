@@ -1,7 +1,10 @@
 ---
 import { createSatteriMarkdownProcessor } from "@astrojs/markdown-satteri";
+import data from "blume:data";
 
+import { contentStrings } from "./content-strings.ts";
 import { escapeRawHtml, unwrapParagraph } from "./inline-markdown.ts";
+import { promptMarkdown } from "./prompt-markdown.ts";
 
 interface Props {
   actions?: boolean | string | string[];
@@ -26,6 +29,15 @@ const renderedDescription = await markdownProcessor.render(
   escapeRawHtml(description)
 );
 const descriptionHtml = unwrapParagraph(renderedDescription.code);
+// The prompt as Markdown, for the copy button and the Cursor link: the rendered
+// body's text alone would drop its links, list markers, and code fences.
+const promptSource = Astro.slots.has("default")
+  ? promptMarkdown(await Astro.slots.render("default"))
+  : "";
+const { actions: actionStrings, content: strings } = contentStrings(
+  data,
+  Astro.currentLocale
+);
 
 const primaryButton =
   "inline-flex h-8 cursor-pointer items-center rounded-lg bg-accent px-3.5 font-medium text-accent-foreground text-xs transition hover:bg-accent/90";
@@ -35,6 +47,7 @@ const secondaryButton =
 
 <blume-prompt
   class="not-prose my-6 block rounded-blume border border-border bg-muted/30"
+  data-blume-prompt-markdown={promptSource}
 >
   <div class="flex items-center justify-between gap-3 px-4 py-3">
     <p
@@ -47,38 +60,34 @@ const secondaryButton =
         <div class="flex shrink-0 items-center gap-2">
           {enabledActions.has("copy") && (
             <button
-              aria-label="Copy prompt"
               class={primaryButton}
               data-blume-prompt-copy
+              data-copied={actionStrings.copied}
               type="button"
             >
               {/* Both labels share one grid cell so the button is always sized
-                  to the wider ("Copy prompt") — swapping to "Copied" on copy
-                  can't resize it and shift the description beside it. */}
+                  to the wider one — swapping to the copied label on copy can't
+                  resize it and shift the description beside it. */}
               <span class="grid *:col-start-1 *:row-start-1 *:text-center">
-                <span data-blume-prompt-copy-idle>Copy prompt</span>
+                <span data-blume-prompt-copy-idle>{strings.copyPrompt}</span>
                 <span aria-hidden="true" class="invisible" data-blume-prompt-copy-done>
-                  Copied
+                  {actionStrings.copied}
                 </span>
               </span>
             </button>
           )}
           {enabledActions.has("cursor") && (
             <a
-              aria-label="Open prompt in Cursor"
               class={secondaryButton}
               data-blume-prompt-cursor
-              href="cursor://anysphere.cursor-deeplink/prompt"
+              href={`cursor://anysphere.cursor-deeplink/prompt?text=${encodeURIComponent(promptSource)}`}
             >
-              Open in Cursor
+              {actionStrings.openIn.replace("{name}", "Cursor")}
             </a>
           )}
         </div>
       )
     }
-  </div>
-  <div data-blume-prompt-content hidden>
-    <slot />
   </div>
 </blume-prompt>
 
@@ -87,17 +96,9 @@ const secondaryButton =
 
   class BlumePrompt extends HTMLElement {
     connectedCallback() {
-      const content = this.querySelector<HTMLElement>(
-        "[data-blume-prompt-content]"
-      );
-      const promptText = () => content?.textContent?.trim() ?? "";
-
-      const cursor = this.querySelector<HTMLAnchorElement>(
-        "[data-blume-prompt-cursor]"
-      );
-      if (cursor) {
-        cursor.href = `cursor://anysphere.cursor-deeplink/prompt?text=${encodeURIComponent(promptText())}`;
-      }
+      // Serialized to Markdown at build time; the Cursor link already carries
+      // it in its href.
+      const promptText = this.dataset.blumePromptMarkdown ?? "";
 
       const copy = this.querySelector<HTMLButtonElement>(
         "[data-blume-prompt-copy]"
@@ -113,10 +114,9 @@ const secondaryButton =
       const flash = createCopyFlash((copied) => {
         idle?.classList.toggle("invisible", copied);
         done?.classList.toggle("invisible", !copied);
-      }, "Copied");
+      }, copy?.dataset.copied ?? "Copied!");
       copy?.addEventListener("click", async () => {
-        const text = promptText();
-        if (text && (await copyText(text))) {
+        if (promptText && (await copyText(promptText))) {
           flash();
         }
       });

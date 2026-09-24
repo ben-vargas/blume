@@ -6,6 +6,7 @@ import { join } from "pathe";
 
 import { loadConfig } from "../../core/config.ts";
 import { resolveProjectContext } from "../../core/project.ts";
+import { deployOutputDir } from "../../deploy/adapter-output.ts";
 import { parsePort } from "../args.ts";
 import { commandMeta } from "../command-meta.ts";
 import { normalizeHost } from "../host-args.ts";
@@ -22,7 +23,12 @@ export const previewCommand = defineCommand({
     const { config } = await loadConfig(root);
     const context = resolveProjectContext(root, config);
 
-    if (!existsSync(join(context.outDir, "astro.config.mjs"))) {
+    // `blume dev` writes `.blume/astro.config.mjs` too, so the runtime alone
+    // doesn't mean there's anything to serve: the build output must exist.
+    if (
+      !existsSync(join(context.outDir, "astro.config.mjs")) ||
+      !existsSync(deployOutputDir(config, context))
+    ) {
       logger.error("No build found. Run `blume build` first.");
       process.exit(1);
     }

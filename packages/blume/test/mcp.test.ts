@@ -1630,6 +1630,23 @@ export default { content: { types: { rfc: { facets: ["status"], frontmatter: { s
     expect(data.defaultLocale).toBeUndefined();
   });
 
+  it("leaves i18n fallback copies out of the route list, not out of pages", async () => {
+    const project = await scanFixture({
+      "blume.config.ts":
+        'export default { i18n: { defaultLocale: "en", locales: [{ code: "en", label: "English" }, { code: "fr", label: "Français" }] }, title: "Docs" };',
+      "docs/fr/index.md": "---\ntitle: Accueil\n---\n# Accueil\n\nBonjour.\n",
+      "docs/guide.md": "---\ntitle: Guide\n---\n# Guide\n\nEnglish only.\n",
+      "docs/index.md": "---\ntitle: Home\n---\n# Home\n\nHi.\n",
+    });
+
+    const data = await buildMcpData(project);
+
+    const routePaths = data.routes.map((route) => route.route).toSorted();
+    expect(routePaths).toStrictEqual(["/", "/fr", "/guide"]);
+    // The fallback URL still serves its (fallback-locale) Markdown.
+    expect(data.pages["/fr/guide"]).toContain("English only.");
+  });
+
   it("carries i18n.defaultLocale so search_docs can pick a tokenizer", async () => {
     const project = await scanFixture({
       "blume.config.ts":

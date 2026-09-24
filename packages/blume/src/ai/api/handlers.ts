@@ -154,19 +154,43 @@ export const buildPage = (data: McpData, route: string): ApiPage | null => {
   return { ...summarize(entry, data), markdown };
 };
 
+/** The 404 for a route no page has, at its per-page JSON path. */
+const pageNotFoundResponse = (
+  route: string,
+  context: ApiSiteContext
+): Response =>
+  problemResponse({
+    code: "PAGE_NOT_FOUND",
+    detail: `No documentation page has the route "${route}".`,
+    instance: siteUrl(pageJsonPath(route), context),
+    resolution: `List every page at ${siteUrl(API_PAGES_PATH, context)}, or discover the API through ${siteUrl(OPENAPI_PATH, context)}.`,
+    status: 404,
+    title: "Page not found",
+  });
+
 export const pageResponse = (data: McpData, route: string): Response => {
   const page = buildPage(data, route);
-  if (!page) {
-    return problemResponse({
-      code: "PAGE_NOT_FOUND",
-      detail: `No documentation page has the route "${route}".`,
-      instance: siteUrl(pageJsonPath(route), data),
-      resolution: `List every page at ${siteUrl(API_PAGES_PATH, data)}, or discover the API through ${siteUrl(OPENAPI_PATH, data)}.`,
-      status: 404,
-      title: "Page not found",
-    });
+  return page ? jsonResponse(page) : pageNotFoundResponse(route, data);
+};
+
+const PAGE_JSON_PATH = /^\/api\/docs\/pages\/(?<param>.+)\.json$/u;
+
+/**
+ * The route a base-less `pages/{route}.json` path asks for (`index` is the
+ * home page), or `undefined` for any other path.
+ */
+const requestedPageRoute = (path: string): string | undefined => {
+  const param = PAGE_JSON_PATH.exec(path)?.groups?.param;
+  if (param === undefined) {
+    return undefined;
   }
-  return jsonResponse(page);
+  let decoded = param;
+  try {
+    decoded = decodeURIComponent(param);
+  } catch {
+    // A malformed escape names no page either; report it as written.
+  }
+  return decoded === "index" ? "/" : `/${decoded}`;
 };
 
 /** The default navigation tree (default locale, current docs). */
@@ -248,13 +272,24 @@ export const createSearchHandler = (
 /**
  * The 404 for anything under `/api/` that no endpoint answers — the catch-all
  * behind every live route on server output, so an agent probing the API
- * namespace gets a problem document instead of the HTML not-found page.
+ * namespace gets a problem document instead of the HTML not-found page. A
+ * `pages/{route}.json` miss gets the per-page `PAGE_NOT_FOUND` problem.
  */
 export const apiNotFoundResponse = (
   request: Request,
   context: ApiSiteContext
 ): Response => {
   const { pathname } = new URL(request.url);
+  // Per-page JSON is prerendered, so a route no page has falls through to
+  // this catch-all on server output; answer it as the page miss it is.
+  const baseless =
+    context.base && pathname.startsWith(`${context.base}/`)
+      ? pathname.slice(context.base.length)
+      : pathname;
+  const route = requestedPageRoute(baseless);
+  if (route !== undefined) {
+    return pageNotFoundResponse(route, context);
+  }
   return problemResponse({
     code: "API_ROUTE_NOT_FOUND",
     detail: `No API route exists at ${pathname}.`,

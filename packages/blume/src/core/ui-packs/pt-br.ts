@@ -45,6 +45,8 @@ export const ptBR: UIStringsOverride = {
     title: "Registro de alterações",
   },
   content: {
+    copyColor: "Copiar a cor {name} {value}",
+    copyPrompt: "Copiar prompt",
     diagramError: "Não foi possível renderizar este diagrama.",
   },
   feedback: {

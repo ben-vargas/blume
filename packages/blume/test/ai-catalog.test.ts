@@ -54,9 +54,9 @@ describe("buildAiCatalog", () => {
         displayName: "Acme docs API",
         identifier: "urn:air:docs.example.com:api:docs",
         representativeQueries: [
-          "fetch a Acme docs page as JSON",
+          "fetch a page of the Acme docs as JSON",
           "list the pages in the Acme docs",
-          "get the Acme docs navigation tree",
+          "get the navigation tree of the Acme docs",
         ],
         type: "application/vnd.oai.openapi+json",
         url: "https://docs.example.com/openapi.json",
@@ -112,12 +112,29 @@ describe("buildAiCatalog", () => {
       identifier: "urn:air:docs.example.com:mcp:acme-docs",
       representativeQueries: [
         "search the Acme documentation",
-        "get a Acme docs page as Markdown",
+        "get a page of the Acme docs as Markdown",
         "list every page in the Acme docs",
       ],
       type: "application/mcp-server-card+json",
       url: "https://docs.example.com/.well-known/mcp/server-card.json",
     });
+  });
+
+  it("doesn't say docs twice for a title that already names its docs", () => {
+    const config = configWith({
+      agents: { mcp: { enabled: true } },
+      title: "Acme Docs",
+    });
+    const entries: { displayName: string; representativeQueries: string[] }[] =
+      parse(config).entries;
+    const queries = entries.flatMap((entry) => entry.representativeQueries);
+    expect(queries).toContain("search the Acme Docs");
+    expect(queries).toContain("get a page of the Acme Docs as Markdown");
+    expect(queries).toContain("overview of the Acme Docs");
+    expect(queries.join("\n")).not.toMatch(/docs (?:docs|documentation)/iu);
+    expect(entries.map((entry) => entry.displayName)).toContain(
+      "Acme Docs API"
+    );
   });
 
   it("falls back to a generated MCP description and a `docs` name for a non-ASCII server name", () => {
@@ -182,8 +199,8 @@ describe("buildAiCatalog", () => {
       displayName: "API Reference",
       identifier: "urn:air:docs.example.com:reference:reference",
       representativeQueries: [
-        "what operations does the API Reference API expose",
-        "how do I call the API Reference API",
+        "what operations does the API Reference expose",
+        "how do I call the API Reference",
       ],
       type: "text/html",
       url: "https://docs.example.com/site/docs/reference",

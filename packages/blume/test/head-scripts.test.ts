@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 import {
+  BANNER_INIT_SCRIPT,
   SCALAR_THEME_INIT_SCRIPT,
   THEME_INIT_SCRIPT,
 } from "../src/components/layout/head-scripts.ts";
@@ -38,14 +39,26 @@ let runs = 0;
 // The layouts inline the script as `<script is:inline>`, so it runs against
 // the real DOM globals. Stand in the handful it touches, then execute it as a
 // throwaway module — a fresh file per run, since module evaluation is cached.
+/** A `localStorage` whose reads return `stored`, or throw when `blocked`. */
+const fakeStorage = (stored: string | null, blocked = false) => ({
+  getItem: () => {
+    if (blocked) {
+      // What Safari's "Block All Cookies" throws on any storage access.
+      throw new Error("SecurityError: The operation is insecure.");
+    }
+    return stored;
+  },
+});
+
 const runThemeScript = async (input: {
   document: FakeDocument;
   stored: string | null;
   prefersDark: boolean;
+  blocked?: boolean;
 }) => {
   Object.assign(globalThis, {
     document: input.document,
-    localStorage: { getItem: () => input.stored },
+    localStorage: fakeStorage(input.stored, input.blocked),
     matchMedia: () => ({ matches: input.prefersDark }),
   });
   const dir = await mkdtemp(path.join(tmpdir(), "blume-head-scripts-"));
@@ -99,6 +112,26 @@ describe("THEME_INIT_SCRIPT", () => {
     await runThemeScript({ document, prefersDark: false, stored: "dark" });
     Reflect.deleteProperty(document.documentElement.dataset, "theme");
     document.dispatch("astro:after-swap", { newDocument: fakeDocument() });
+    expect(document.documentElement.dataset.theme).toBe("dark");
+  });
+
+  test("reads blocked storage as no preference and still follows swaps", async () => {
+    const document = fakeDocument("system");
+    await runThemeScript({
+      blocked: true,
+      document,
+      prefersDark: false,
+      stored: null,
+    });
+    // The read threw, yet the theme is applied and the listeners exist.
+    expect(document.documentElement.dataset.theme).toBe("light");
+    // The reader toggles to dark (the toggle can't persist it either); the
+    // swap's stamp carries it over, and the re-apply keeps it for the visit.
+    document.documentElement.dataset.theme = "dark";
+    const incoming = fakeDocument();
+    document.dispatch("astro:before-swap", { newDocument: incoming });
+    expect(incoming.documentElement.dataset.theme).toBe("dark");
+    document.dispatch("astro:after-swap", { newDocument: incoming });
     expect(document.documentElement.dataset.theme).toBe("dark");
   });
 
@@ -258,5 +291,105 @@ describe("SCALAR_THEME_INIT_SCRIPT", () => {
     expect(initial.dataset.configuration).toBe('{"darkMode":true}');
     expect(broken.dataset.configuration).toBe("{nope");
     expect(observations).toHaveLength(0);
+  });
+});
+
+interface BannerRoot {
+  attributes: Set<string>;
+  hasAttribute: (name: string) => boolean;
+  setAttribute: (name: string, value: string) => void;
+}
+
+type BannerListener = (event: {
+  newDocument: { documentElement: BannerRoot };
+}) => void;
+
+interface BannerDocument {
+  currentScript: { dataset: { key?: string } } | null;
+  documentElement: BannerRoot;
+  addEventListener: (type: string, listener: BannerListener) => void;
+  dispatch: (type: string, root: BannerRoot) => void;
+}
+
+const bannerRoot = (): BannerRoot => {
+  const attributes = new Set<string>();
+  return {
+    attributes,
+    hasAttribute: (name) => attributes.has(name),
+    setAttribute: (name) => {
+      attributes.add(name);
+    },
+  };
+};
+
+const bannerDocument = (key?: string): BannerDocument => {
+  const listeners = new Map<string, BannerListener[]>();
+  return {
+    addEventListener: (type, listener) => {
+      listeners.set(type, [...(listeners.get(type) ?? []), listener]);
+    },
+    currentScript: { dataset: key === undefined ? {} : { key } },
+    dispatch: (type, root) => {
+      for (const listener of listeners.get(type) ?? []) {
+        listener({ newDocument: { documentElement: root } });
+      }
+    },
+    documentElement: bannerRoot(),
+  };
+};
+
+const HIDDEN = "data-blume-banner-hidden";
+
+const runBannerScript = async (input: {
+  document: BannerDocument;
+  stored: string | null;
+  blocked?: boolean;
+}) => {
+  Object.assign(globalThis, {
+    document: input.document,
+    localStorage: fakeStorage(input.stored, input.blocked),
+  });
+  const dir = await mkdtemp(path.join(tmpdir(), "blume-head-scripts-"));
+  runs += 1;
+  const file = path.join(dir, `banner-${runs}.js`);
+  await writeFile(file, BANNER_INIT_SCRIPT);
+  await import(file);
+};
+
+describe("BANNER_INIT_SCRIPT", () => {
+  test("hides a banner dismissed on an earlier visit", async () => {
+    const document = bannerDocument("launch");
+    await runBannerScript({ document, stored: "1" });
+    expect(document.documentElement.hasAttribute(HIDDEN)).toBe(true);
+  });
+
+  test("does nothing without a dismissal key", async () => {
+    const document = bannerDocument();
+    await runBannerScript({ document, stored: "1" });
+    expect(document.documentElement.hasAttribute(HIDDEN)).toBe(false);
+  });
+
+  test("reads blocked storage as not dismissed, and keeps a dismissal across swaps", async () => {
+    const document = bannerDocument("launch");
+    await runBannerScript({ blocked: true, document, stored: null });
+    expect(document.documentElement.hasAttribute(HIDDEN)).toBe(false);
+    // Dismissed on this visit: the swap carries the marker onto the incoming
+    // root, since storage can't remember it.
+    document.documentElement.setAttribute(HIDDEN, "");
+    const incoming = bannerRoot();
+    document.dispatch("astro:before-swap", incoming);
+    expect(incoming.hasAttribute(HIDDEN)).toBe(true);
+  });
+
+  test("leaves a shown banner shown across a swap, and re-reads storage after it", async () => {
+    const document = bannerDocument("launch");
+    await runBannerScript({ document, stored: null });
+    const incoming = bannerRoot();
+    document.dispatch("astro:before-swap", incoming);
+    expect(incoming.hasAttribute(HIDDEN)).toBe(false);
+    // Dismissed in another tab since: the after-swap re-read picks it up.
+    globalThis.localStorage.getItem = () => "1";
+    document.dispatch("astro:after-swap", incoming);
+    expect(document.documentElement.hasAttribute(HIDDEN)).toBe(true);
   });
 });
