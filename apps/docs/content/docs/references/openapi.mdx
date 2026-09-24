@@ -85,7 +85,7 @@ Credentials typed into the auth inputs stay in memory and vanish on reload. Chec
 
 ### CORS and the proxy
 
-As with a [Scalar embed](/docs/references/scalar), requests go **directly from the browser** to the target API, so the API must allow cross-origin requests from the docs site (`Access-Control-Allow-Origin`). For APIs that can't, set `playground.proxy`: a URL routes requests through a proxy you host, and `true` enables the built-in `/_api-proxy` route — which needs [server output](/docs/deployment#server-rendering): a host adapter such as `deployment: vercel()` from `blume/deploy`:
+As with a [Scalar embed](/docs/references/scalar), requests go **directly from the browser** to the target API, so the API must allow cross-origin requests from the docs site (`Access-Control-Allow-Origin`). For APIs that can't, set `playground.proxy`: a URL routes requests through a proxy you host, and `true` enables the built-in `/_api-proxy` route (at `{basePath}/_api-proxy` when you set a [`basePath`](/docs/deployment#mount-the-docs-under-a-path)) — which needs [server output](/docs/deployment#server-rendering): a host adapter such as `deployment: vercel()` from `blume/deploy`:
 
 ```ts blume.config.ts lineNumbers
 reference: [
