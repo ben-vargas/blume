@@ -59,12 +59,24 @@ export interface StaticDeployment {
   site?: string;
 }
 
+/**
+ * `deployment.site`: an absolute http(s) URL, which always has a host. A bare
+ * `z.url()` takes any scheme, so `localhost:4321` (scheme `localhost:`),
+ * `mailto:`, and `javascript:` all passed and became the prefix of every
+ * sitemap entry and canonical link.
+ */
+export const siteUrlSchema = z.url({
+  error:
+    'Use an absolute http(s) URL with a host, like "https://docs.example.com" or "http://localhost:4321".',
+  protocol: /^https?$/u,
+});
+
 /** The named options' schema; every host adapter extends it with `z.json()` passthrough. */
 export const deployOptionsSchema = z
   .object({
     base: z.string().optional(),
     output: z.enum(["static", "server"]).optional(),
-    site: z.url().optional(),
+    site: siteUrlSchema.optional(),
   })
   .catchall(z.json());
 

@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 
+import { basename } from "pathe";
 import { z } from "zod";
 
 import type { BlumeConfig } from "./config-input.ts";
@@ -9,7 +10,7 @@ import {
   diagnosticsFromIssues,
   diagnosticsFromZod,
 } from "./diagnostics.ts";
-import { createModuleLoader } from "./load-module.ts";
+import { createDefaultExportLoader } from "./load-module.ts";
 import { findConfigFile } from "./project.ts";
 import { blumeConfigSchema } from "./schema.ts";
 import type { ResolvedConfig } from "./schema.ts";
@@ -68,8 +69,8 @@ import type { Diagnostic } from "./types.ts";
  * - `theme` — `accent` color, `fonts` (curated slugs, any provider family, or
  *   local font files), `radius`,
  *   `mode` (`system`/`light`/`dark`), and `background`.
- * - `markdown` — `code` (language icons, inline highlighting, line wrap),
- *   `headingAnchors`, `imageZoom`, and opt-in KaTeX `math`.
+ * - `markdown` — `code` (language icons, light/dark Shiki `theme`, line
+ *   `wrap`), `externalLinks`, `headingAnchors`, and `imageZoom`.
  * - `toc` — on-page table of contents; `true`/`false` or a heading-level range.
  * - `lastModified` — "Last updated" stamps from `git` history or frontmatter.
  * - `feedback` — the per-page "Was this helpful?" widget (on by default).
@@ -199,7 +200,7 @@ export interface ConfigLoadResult {
   themeFontsConfigured: boolean;
 }
 
-const importConfigModule = createModuleLoader();
+const importConfigModule = createDefaultExportLoader();
 
 /**
  * The slice of a user config module probed before schema defaults apply:
@@ -288,6 +289,19 @@ export const loadConfig = async (
         file: configFile,
         message: `Failed to load config: ${(error as Error).message}`,
         severity: "error",
+      });
+    }
+    // Validating whatever else the module holds would build a silent default
+    // site (a bare `defineConfig({…})` call) or reject a named `config` export
+    // as an unknown key, neither of which names the actual mistake.
+    if (raw === undefined) {
+      throw new BlumeError({
+        code: "BLUME_CONFIG_INVALID",
+        file: configFile,
+        message: `${basename(configFile)} has no default export, so Blume can't read its config.`,
+        severity: "error",
+        suggestion:
+          "Export the config as the file's default: `export default defineConfig({ … })`.",
       });
     }
   }

@@ -7,6 +7,7 @@ import { netlify, netlifyAdapterSchema } from "./netlify.ts";
 import type { NetlifyAdapter } from "./netlify.ts";
 import { node, nodeAdapterSchema } from "./node.ts";
 import type { NodeAdapter } from "./node.ts";
+import { siteUrlSchema } from "./types.ts";
 import type { DeployOutput, StaticDeployment } from "./types.ts";
 import { vercel, vercelAdapterSchema } from "./vercel.ts";
 import type { VercelAdapter } from "./vercel.ts";
@@ -56,7 +57,7 @@ const staticDeploymentSchema = z.strictObject(
   {
     base: z.string().optional(),
     kind: z.literal("static").optional(),
-    site: z.url().optional(),
+    site: siteUrlSchema.optional(),
   },
   {
     error: (issue) => (issue.code === "unrecognized_keys" ? HINT : undefined),

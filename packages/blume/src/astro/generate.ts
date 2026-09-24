@@ -1701,6 +1701,7 @@ export const analyzeComponentsFile = async (
 const projectOgFonts = (project: BlumeProject): DerivedOgFonts =>
   resolveOgFonts(
     {
+      locales: fontLocaleCodes(project.config.i18n),
       ogFonts: project.config.seo.og.fonts,
       themeFonts: project.config.theme.fonts,
       themeFontsConfigured: project.themeFontsConfigured,

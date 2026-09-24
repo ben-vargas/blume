@@ -98,50 +98,237 @@ const isKeySegment = (segment: string | number): segment is string =>
   typeof segment === "string";
 
 /**
- * Best-effort source position for a Zod issue path (e.g. `["seo", "title"]`) in
- * the raw config / frontmatter text. Narrows key-by-key — finding each string
- * segment as a `key:`/`key =` at or after the previous match — so a nested key
- * lands under its parent. Array indices are skipped. Returns 1-based line/column,
- * or undefined when nothing matches.
+ * Where a located value's children are searched. `object` and `array` are the
+ * inside of a `{…}`/`[…]` literal, searched entry by entry so a key or an index
+ * only matches a direct child. `block` has no brackets — the whole file at the
+ * top, or a YAML key's indented lines — and is searched at any depth.
  */
-const stepSegment = (
-  source: string,
-  segment: string | number,
-  cursor: number
-) => {
-  // A non-string path segment (array index) is skipped without moving on.
-  if (!isKeySegment(segment)) {
-    return { index: -1, next: cursor, stop: false };
+interface Scope {
+  end: number;
+  /** A literal's direct entries (keys or elements), in source order. */
+  entries: number[];
+  kind: "array" | "block" | "object";
+  start: number;
+}
+
+/** A located key or element: where it starts, and where its value starts. */
+interface Step {
+  index: number;
+  next: number;
+}
+
+const QUOTES = new Set(['"', "'", "`"]);
+const OPENERS = new Set(["(", "[", "{"]);
+const CLOSERS = new Set([")", "]", "}"]);
+const WHITESPACE = /\s/u;
+
+/**
+ * The index just past a comment starting at `index`, or `index` when none does.
+ * A `//` after a `:` is a URL scheme in YAML (`href: https://…`), not a comment.
+ */
+const skipComment = (source: string, index: number): number => {
+  if (source.startsWith("//", index) && source.charAt(index - 1) !== ":") {
+    const end = source.indexOf("\n", index);
+    return end === -1 ? source.length : end;
   }
-  // The negative lookbehind keeps a segment like `title` from matching the
-  // tail of an unrelated key such as `subtitle:`.
-  const matcher = new RegExp(
-    `(?<![\\w$])${escapeRegExp(segment)}\\s*[:=]`,
-    "gu"
-  );
-  matcher.lastIndex = cursor;
-  const match = matcher.exec(source);
-  if (!match) {
-    return { index: -1, next: cursor, stop: true };
+  if (source.startsWith("/*", index)) {
+    const end = source.indexOf("*/", index + 2);
+    return end === -1 ? source.length : end + 2;
   }
-  return { index: match.index, next: matcher.lastIndex, stop: false };
+  return index;
 };
 
+/**
+ * The index just past a string literal starting at `index`, or `index` when
+ * none does. A `'`/`"` that doesn't close on its own line is an apostrophe in
+ * plain YAML text, not a string.
+ */
+const skipString = (source: string, index: number): number => {
+  const quote = source.charAt(index);
+  if (!QUOTES.has(quote)) {
+    return index;
+  }
+  let cursor = index + 1;
+  while (cursor < source.length) {
+    const char = source.charAt(cursor);
+    if (char === quote) {
+      return cursor + 1;
+    }
+    if (char === "\n" && quote !== "`") {
+      return index;
+    }
+    cursor += char === "\\" ? 2 : 1;
+  }
+  return index;
+};
+
+/** Where a literal closes, and where each of its direct entries starts. */
+interface LiteralScan {
+  end: number;
+  entries: number[];
+}
+
+/**
+ * Walk the `{…}`/`[…]` literal opened at `open`: where each direct entry starts
+ * (a key, or an array element) and where the literal closes. Nested brackets,
+ * strings, and comments are stepped over, so only the literal's own commas
+ * separate its entries.
+ */
+const scanLiteral = (source: string, open: number): LiteralScan => {
+  const entries: number[] = [];
+  let depth = 0;
+  let pending = true;
+  let index = open + 1;
+  while (index < source.length) {
+    const afterComment = skipComment(source, index);
+    const char = source.charAt(index);
+    if (afterComment !== index || WHITESPACE.test(char)) {
+      index = Math.max(afterComment, index + 1);
+      continue;
+    }
+    if (depth === 0 && CLOSERS.has(char)) {
+      return { end: index, entries };
+    }
+    if (depth === 0 && pending) {
+      entries.push(index);
+      pending = false;
+    }
+    const afterString = skipString(source, index);
+    if (afterString !== index) {
+      index = afterString;
+      continue;
+    }
+    if (OPENERS.has(char)) {
+      depth += 1;
+    } else if (CLOSERS.has(char)) {
+      depth -= 1;
+    } else if (char === "," && depth === 0) {
+      pending = true;
+    }
+    index += 1;
+  }
+  return { end: source.length, entries };
+};
+
+/**
+ * The lines indented deeper than the key at `anchor` — a YAML mapping's
+ * children — up to the first line that isn't, or `limit`.
+ */
+const indentedBlock = (
+  source: string,
+  anchor: number,
+  limit: number
+): Scope => {
+  const column = anchor - (source.lastIndexOf("\n", anchor - 1) + 1);
+  const lineEnd = source.indexOf("\n", anchor);
+  const start = lineEnd === -1 ? limit : Math.min(lineEnd + 1, limit);
+  let end = start;
+  while (end < limit) {
+    const next = source.indexOf("\n", end);
+    const after = next === -1 || next >= limit ? limit : next + 1;
+    const line = source.slice(end, after);
+    if (line.trim() !== "" && line.length - line.trimStart().length <= column) {
+      break;
+    }
+    end = after;
+  }
+  return { end, entries: [], kind: "block", start };
+};
+
+/** A value's lead-in before its literal: spaces, or an adapter call's `vercel(`. */
+const VALUE_LEAD = /[\s\w$.(]*/uy;
+
+/**
+ * The scope holding the children of the key or element at `anchor`, whose
+ * value starts at `from`. A `{…}`/`[…]` literal — written directly, or as the
+ * first argument of a call like `vercel({…})` — is walked entry by entry;
+ * anything else falls back to the lines indented under `anchor` (YAML's
+ * nesting), within the enclosing scope's `limit`.
+ */
+const valueScope = (source: string, step: Step, limit: number): Scope => {
+  VALUE_LEAD.lastIndex = step.next;
+  VALUE_LEAD.exec(source);
+  const open = VALUE_LEAD.lastIndex;
+  const char = source.charAt(open);
+  if (open < limit && (char === "{" || char === "[")) {
+    const literal = scanLiteral(source, open);
+    return {
+      end: literal.end,
+      entries: literal.entries,
+      kind: char === "{" ? "object" : "array",
+      start: open,
+    };
+  }
+  return indentedBlock(source, step.index, limit);
+};
+
+/**
+ * Find `segment` as a `key:`/`key =` (bare or quoted) in `scope`: among an
+ * object literal's own entries, or anywhere in a block. The negative lookbehind
+ * keeps `title` from matching the tail of an unrelated key such as `subtitle:`.
+ */
+const findKey = (
+  source: string,
+  scope: Scope,
+  segment: string
+): Step | undefined => {
+  const key = escapeRegExp(segment);
+  const pattern = `(?<![\\w$])(?:${key}|"${key}"|'${key}')\\s*[:=]`;
+  if (scope.kind === "block") {
+    const matcher = new RegExp(pattern, "gu");
+    matcher.lastIndex = scope.start;
+    const match = matcher.exec(source);
+    return match && match.index < scope.end
+      ? { index: match.index, next: matcher.lastIndex }
+      : undefined;
+  }
+  // Sticky: the key must start exactly where the entry does.
+  const matcher = new RegExp(pattern, "uy");
+  for (const entry of scope.kind === "object" ? scope.entries : []) {
+    matcher.lastIndex = entry;
+    if (matcher.test(source)) {
+      return { index: entry, next: matcher.lastIndex };
+    }
+  }
+  return undefined;
+};
+
+/** The element at `position` of an array literal; a block can't be indexed. */
+const findElement = (scope: Scope, position: number): Step | undefined => {
+  const index = scope.kind === "array" ? scope.entries[position] : undefined;
+  return index === undefined ? undefined : { index, next: index };
+};
+
+/**
+ * Best-effort source position for a Zod issue path (e.g. `["seo", "title"]`,
+ * `["redirects", 2, "status"]`) in the raw config / frontmatter text. Narrows
+ * segment by segment: a key is found among its parent's own entries (or, where
+ * there are no brackets, in the parent's indented lines), an index picks that
+ * element of an array literal. A segment that isn't there — a missing key —
+ * stops the walk at its parent, so the position never escapes into a sibling.
+ * Returns 1-based line/column, or undefined when not even the first segment
+ * matches.
+ */
 const locatePath = (
   source: string,
   path: readonly (string | number)[]
 ): { column: number; line: number } | undefined => {
-  let cursor = 0;
+  let scope: Scope = {
+    end: source.length,
+    entries: [],
+    kind: "block",
+    start: 0,
+  };
   let found = -1;
   for (const segment of path) {
-    const step = stepSegment(source, segment, cursor);
-    if (step.stop) {
+    const step = isKeySegment(segment)
+      ? findKey(source, scope, segment)
+      : findElement(scope, segment);
+    if (!step) {
       break;
     }
-    cursor = step.next;
-    if (step.index >= 0) {
-      found = step.index;
-    }
+    found = step.index;
+    scope = valueScope(source, step, scope.end);
   }
   if (found < 0) {
     return;

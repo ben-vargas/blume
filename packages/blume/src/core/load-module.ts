@@ -14,3 +14,23 @@ export const createModuleLoader = (): ((file: string) => Promise<unknown>) => {
     return loaded?.default ?? loaded;
   };
 };
+
+/**
+ * Create a loader for a module whose default export is its whole value
+ * (`blume.config.ts`). Unlike {@link createModuleLoader}, it never falls back
+ * to the module's namespace: a module with no default export, or one that
+ * exports `null`/`undefined`, resolves to `undefined` so the caller can say
+ * so, instead of validating `{}` (a bare `defineConfig({…})` call) or
+ * `{ config }` (a named export). jiti's default interop is off because it
+ * throws on `export default null`.
+ */
+export const createDefaultExportLoader: typeof createModuleLoader = () => {
+  const jiti = createJiti(import.meta.url, {
+    interopDefault: false,
+    moduleCache: false,
+  });
+  return async (file: string) => {
+    const loaded = await jiti.import<{ default?: unknown }>(file);
+    return loaded.default ?? undefined;
+  };
+};

@@ -364,6 +364,8 @@ dateFormat: { year: "numeric", month: "2-digit", day: "2-digit" },
 | `timeZone` | IANA time zone. Defaults to `UTC`, so a date reads the same regardless of where the site builds. |
 | `calendar`, `numberingSystem` | Calendar system (e.g. `"japanese"`) and numbering system (e.g. `"arab"`). |
 
+`timeZone`, `calendar`, and `numberingSystem` don't change the shape: a `dateFormat` that sets only those keeps the long form.
+
 ## SEO and agents
 
 Metadata, Open Graph images, RSS feeds, JSON-LD, the sitemap, and `robots.txt` live under `seo`; `llms.txt`, raw Markdown, the JSON API, the MCP server, and the discovery manifests live under `agents`. Both are covered page by page in the [Discoverability](/docs/discoverability) section, which treats search engines and AI agents as two audiences for the same machine-readable layer. The reader-facing model features — the assistant and the Open in chat action — live under `ai`.
@@ -381,7 +383,7 @@ seo: {
 | Option | Default | Description |
 | --- | --- | --- |
 | `og.enabled` | auto | Per-page Open Graph images — on when a site URL is set. |
-| `rss.enabled` | `true` | Build feeds for blog and changelog content. |
+| `rss.enabled` | `true` | Build feeds for blog and changelog content (needs deployment.site). |
 | `rss.types` | `["blog", "changelog"]` | Content types that each get a feed. |
 | `rss.limit` | `50` | Maximum items per feed. |
 | `sitemap` | `true` | Generate sitemap.xml (needs deployment.site). |

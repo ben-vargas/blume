@@ -32,7 +32,7 @@ A static build includes:
 
 Sitemaps, canonical tags, RSS, and Open Graph images need an absolute origin. On **Vercel**, **Netlify**, and **Cloudflare Pages**, Blume detects it from the platform's environment at build time — no config required.
 
-Set `site` to override the detected value, or to provide one on hosts that don't expose it (GitHub Pages, S3, a custom CDN). For a static build that's the plain `deployment` object:
+Set `site`, an absolute `http://` or `https://` URL, to override the detected value, or to provide one on hosts that don't expose it (GitHub Pages, S3, a custom CDN). For a static build that's the plain `deployment` object:
 
 ```ts blume.config.ts lineNumbers
 deployment: {
@@ -152,7 +152,7 @@ Two hosts need more than the file:
 :::
 
 :::note
-Write both `from` and `to` as if mounted at root — under [`base`](#subpath-deploys) and [`basePath`](#mount-the-docs-under-a-path) alike, Blume rewrites both sides for you, so a redirect lands inside the base. A base you've already written into `to` by hand is preserved rather than doubled.
+Write both `from` and `to` as if mounted at root, starting with `/` (`to` can also be a full `https://` URL) — under [`base`](#subpath-deploys) and [`basePath`](#mount-the-docs-under-a-path) alike, Blume rewrites both sides for you, so a redirect lands inside the base. A base you've already written into `to` by hand is preserved rather than doubled.
 :::
 
 ## Content types

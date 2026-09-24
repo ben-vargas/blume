@@ -456,7 +456,11 @@ const navTabSchema = z.strictObject({
     )
     .optional(),
   label: localizableLabelSchema,
-  path: z.string(),
+  // Canonical like the routes it's matched against — one leading slash, no
+  // trailing one — so `/guides/` still marks its pages' tab and scopes their
+  // sidebar, and `api` links to `/api` rather than resolving relative to the
+  // current page.
+  path: z.string().transform(normalizeRoute),
 });
 
 const navSelectorItemSchema = z.strictObject({
@@ -1154,9 +1158,30 @@ const versionsConfigSchema = z
 const REDIRECT_PATTERN = /(?:^|\/):[A-Za-z_]|\*/u;
 const URL_ORIGIN = /^[a-z][\d+.a-z-]*:\/\/[^/]*/iu;
 
+/**
+ * The shape each end must start with: `from` is always a path on this site,
+ * `to` may also leave it. A path without its leading slash would never gain
+ * `basePath` or the deployment base, and hosts read it relative to nothing.
+ */
+const REDIRECT_START = {
+  from: {
+    allows: (path: string) => path.startsWith("/"),
+    message:
+      "redirects take root-relative paths: `from` must start with `/` (`/old-page`, not `old-page`).",
+  },
+  to: {
+    allows: (path: string) => path.startsWith("/") || URL_ORIGIN.test(path),
+    message:
+      "redirects take root-relative paths or full URLs: `to` must start with `/` (`/new-page`, not `new-page`) or be an absolute URL (`https://…`).",
+  },
+};
+
 const exactRedirectPath = (end: "from" | "to") =>
   z
     .string()
+    .refine(REDIRECT_START[end].allows, {
+      message: REDIRECT_START[end].message,
+    })
     .refine((path) => !REDIRECT_PATTERN.test(path.replace(URL_ORIGIN, "")), {
       message: `redirects take exact paths: \`${end}\` can't hold a \`:param\` segment or a \`*\` wildcard. Add one redirect per path, or put pattern rules in your host's redirect config (vercel.json, _redirects).`,
     });
@@ -1645,6 +1670,16 @@ const lastModifiedConfigSchema = z.union(
  * build machine's zone. `dateStyle` is a preset that can't be combined with the
  * individual component fields (`year`, `month`, …), matching `Intl`'s own rule.
  */
+/** The `dateFormat` fields that choose the date's shape (length, components). */
+const DATE_FORM_FIELDS = [
+  "dateStyle",
+  "weekday",
+  "era",
+  "year",
+  "month",
+  "day",
+] as const;
+
 const dateFormatConfigSchema = z
   .strictObject({
     /** Calendar system (e.g. `japanese`, `buddhist`). */
@@ -1678,6 +1713,14 @@ const dateFormatConfigSchema = z
       message:
         "dateFormat.dateStyle can't be combined with weekday/era/year/month/day; use one or the other.",
     }
+  )
+  // `timeZone`, `calendar`, and `numberingSystem` don't pick a shape, so a
+  // format that sets only those keeps the long default instead of falling to
+  // Intl's bare numeric date (`7/21/2026`).
+  .transform((value) =>
+    DATE_FORM_FIELDS.some((field) => value[field] !== undefined)
+      ? value
+      : { ...value, dateStyle: "long" as const }
   );
 
 /** Code rendering options (`markdown.code`). */
@@ -1806,6 +1849,12 @@ export const blumeConfigSchema = z
        */
       basePath: z
         .string()
+        // Normalizing would turn a URL into `/https:/docs.example.com/docs`
+        // and keep a query or fragment inside every route.
+        .refine((value) => !URL_ORIGIN.test(value) && !/[#?]/u.test(value), {
+          message:
+            'basePath takes a path like "/docs", not a URL: no scheme, host, query, or fragment. The site\'s origin goes in deployment.site.',
+        })
         .optional()
         .transform((value) => normalizeBasePath(value)),
       content: contentConfigSchema.prefault({}),

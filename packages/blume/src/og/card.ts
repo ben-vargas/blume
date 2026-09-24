@@ -261,11 +261,23 @@ const logoMark = (svg: string, foreground: string): Node => {
 };
 
 // Fallback mark when no SVG logo is configured: an accent tile with the brand's
-// initial, matching the docs favicon aesthetic.
-const initialMark = (accent: string, initial: string): Node =>
+// initial, matching the docs favicon aesthetic. The initial takes the headline's
+// family, so it matches the title rather than whichever loaded font comes first.
+const initialMark = (
+  accent: string,
+  initial: string,
+  family: { fontFamily?: string }
+): Node =>
   container({
     children: initial
-      ? [text(initial, { color: "#ffffff", fontSize: 32, fontWeight: 600 })]
+      ? [
+          text(initial, {
+            color: "#ffffff",
+            fontSize: 32,
+            fontWeight: 600,
+            ...family,
+          }),
+        ]
       : [],
     style: {
       alignItems: "center",
@@ -319,7 +331,11 @@ export const renderOgImage = async (
     if (logo === false) {
       return [];
     }
-    return [logo ? logoMark(logo, foreground) : initialMark(accent, initial)];
+    return [
+      logo
+        ? logoMark(logo, foreground)
+        : initialMark(accent, initial, titleFamily),
+    ];
   };
   const header = container({
     children: mark(),

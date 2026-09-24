@@ -22,7 +22,7 @@ agents: {
 },
 ```
 
-Most of this is sharper with an absolute site URL — set [`deployment.site`](/docs/deployment) so feeds, OG images, canonicals, the sitemap, JSON-LD, and every agent manifest can emit full URLs. A few surfaces (Open Graph images, the sitemap) stay off until it's set.
+Most of this is sharper with an absolute site URL — set [`deployment.site`](/docs/deployment) so feeds, OG images, canonicals, the sitemap, JSON-LD, and every agent manifest can emit full URLs. A few surfaces — Open Graph images, the sitemap, RSS feeds, and the AI catalog — stay off until it's set.
 
 ## What the build emits
 
@@ -31,7 +31,7 @@ Most of this is sharper with an absolute site URL — set [`deployment.site`](/d
 | `<head>` metadata, canonicals, X cards | every page | on | [Metadata](/docs/discoverability/metadata) |
 | Social share images | `/og/<route>.png` | on with a site URL | [Open Graph images](/docs/discoverability/open-graph) |
 | schema.org JSON-LD | every page | on | [Structured data](/docs/discoverability/structured-data) |
-| RSS feeds | `/<type>/rss.xml` | on | [RSS feeds](/docs/discoverability/rss) |
+| RSS feeds | `/<type>/rss.xml` | on with a site URL | [RSS feeds](/docs/discoverability/rss) |
 | `sitemap.xml`, `robots.txt`, content signals | site root | on | [Sitemap and robots](/docs/discoverability/sitemap-and-robots) |
 | `llms.txt`, `llms-full.txt` | site root | on | [llms.txt](/docs/discoverability/llms-txt) |
 | Raw Markdown mirrors, content negotiation, Copy as Markdown, Open in chat | `/<route>.md` | on | [Markdown for agents](/docs/discoverability/markdown) |

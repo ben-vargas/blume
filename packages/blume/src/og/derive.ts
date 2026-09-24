@@ -2,7 +2,9 @@
  * Bridges `theme.fonts` into the OG card renderer. A site that explicitly
  * picks its typefaces gets matching cards (and non-Latin coverage) without
  * configuring `seo.og.fonts`; untouched defaults derive nothing, so plain
- * sites keep Takumi's built-in font and gain no build-time font fetch.
+ * sites keep Takumi's built-in font and gain no build-time font fetch. Locales
+ * in scripts that font can't draw (Japanese, Hindi, Russian, …) add a Noto
+ * fallback for their script either way.
  */
 
 import { existsSync } from "node:fs";
@@ -14,7 +16,7 @@ import type {
   FontValue,
   LocalFontConfig,
 } from "../theme/fonts.ts";
-import { GOOGLE_FONTS, isFontSlug } from "../theme/fonts.ts";
+import { GOOGLE_FONTS, isFontSlug, localeFontSubsets } from "../theme/fonts.ts";
 import type { OgFont, OgFontFamilies, OgLocalFont } from "./card.ts";
 
 /** Fonts plus per-role families for the generated OG endpoint. */
@@ -160,6 +162,140 @@ export const deriveOgFonts = (
   return result;
 };
 
+/**
+ * The family Takumi renders a card in when no font is loaded: its embedded
+ * Geist, which covers Latin only. Naming it keeps a card's Latin text in that
+ * face once locale fallbacks are loaded, since Takumi otherwise tries loaded
+ * fonts first; a glyph Geist lacks still falls back to them. Were Takumi to
+ * rename it, the name would resolve to nothing and cards would fall back to
+ * the loaded fonts, never to tofu.
+ */
+const BUILT_IN_FAMILY = "Geist";
+
+/**
+ * The Google Noto family that draws each language's script, keyed by BCP 47
+ * language subtag, for scripts beyond the Latin, Cyrillic, Greek, and
+ * Vietnamese that `Noto Sans` covers (see {@link localeOgFonts}). Keep keys
+ * alphabetical.
+ */
+const SCRIPT_FAMILIES = {
+  am: "Noto Sans Ethiopic",
+  ar: "Noto Sans Arabic",
+  as: "Noto Sans Bengali",
+  bn: "Noto Sans Bengali",
+  ckb: "Noto Sans Arabic",
+  fa: "Noto Sans Arabic",
+  gu: "Noto Sans Gujarati",
+  he: "Noto Sans Hebrew",
+  hi: "Noto Sans Devanagari",
+  hy: "Noto Sans Armenian",
+  ja: "Noto Sans JP",
+  ka: "Noto Sans Georgian",
+  km: "Noto Sans Khmer",
+  kn: "Noto Sans Kannada",
+  ko: "Noto Sans KR",
+  lo: "Noto Sans Lao",
+  ml: "Noto Sans Malayalam",
+  mr: "Noto Sans Devanagari",
+  my: "Noto Sans Myanmar",
+  ne: "Noto Sans Devanagari",
+  or: "Noto Sans Oriya",
+  pa: "Noto Sans Gurmukhi",
+  ps: "Noto Sans Arabic",
+  sa: "Noto Sans Devanagari",
+  si: "Noto Sans Sinhala",
+  ta: "Noto Sans Tamil",
+  te: "Noto Sans Telugu",
+  th: "Noto Sans Thai",
+  ti: "Noto Sans Ethiopic",
+  ur: "Noto Sans Arabic",
+  yi: "Noto Sans Hebrew",
+  zh: "Noto Sans SC",
+} satisfies Record<string, string>;
+
+/** Type guard: does `language` have an entry in the script table? */
+const isScriptLanguage = (
+  language: string
+): language is keyof typeof SCRIPT_FAMILIES =>
+  Object.hasOwn(SCRIPT_FAMILIES, language);
+
+/** A locale fallback: a Google family at the weights the card renders. */
+export interface LocaleOgFont {
+  name: string;
+  weight: number[];
+}
+
+/** Subtags that write Chinese in traditional characters (`zh-Hant`, `zh-TW`). */
+const TRADITIONAL_CHINESE = new Set(["hant", "hk", "mo", "tw"]);
+
+/** The Noto family for one locale's script, or null when Geist covers it. */
+const localeFamily = (locale: string): string | null => {
+  const [language = "", ...subtags] = locale.toLowerCase().split("-");
+  if (
+    language === "zh" &&
+    subtags.some((tag) => TRADITIONAL_CHINESE.has(tag))
+  ) {
+    return "Noto Sans TC";
+  }
+  if (isScriptLanguage(language)) {
+    return SCRIPT_FAMILIES[language];
+  }
+  // Anything past plain `latin` in the theme's subset table (Polish, Russian,
+  // Greek, Vietnamese, …) needs glyphs Geist lacks and `Noto Sans` has.
+  return localeFontSubsets([locale]).length > 1 ? "Noto Sans" : null;
+};
+
+/**
+ * The fallback card fonts the configured locales' scripts need, at the card's
+ * weights. Takumi's built-in font covers only basic Latin, so without these a
+ * Japanese or Hindi page's card renders every glyph as tofu. The renderer
+ * fetches only the glyph subsets a card's text uses, so an English card on
+ * the same site pulls nothing extra.
+ */
+export const localeOgFonts = (locales: string[]): LocaleOgFont[] => {
+  const names = new Set<string>();
+  for (const locale of locales) {
+    const family = localeFamily(locale);
+    if (family) {
+      names.add(family);
+    }
+  }
+  return [...names].map((name) => ({ name, weight: CARD_WEIGHTS }));
+};
+
+/** A bare Google family name entry (as opposed to the object forms). */
+const isGoogleFamilyName = (font: OgFont): font is string =>
+  typeof font === "string";
+
+/** The family an OG font entry registers under. */
+const ogFontName = (font: OgFont): string =>
+  isGoogleFamilyName(font) ? font : font.name;
+
+/**
+ * `derived` plus the locale fallbacks it doesn't already load. A card that
+ * names no family is pinned to {@link BUILT_IN_FAMILY}, so its Latin text
+ * keeps the face it had before any fallback was loaded.
+ */
+const withLocaleFonts = (
+  derived: DerivedOgFonts,
+  locales: string[]
+): DerivedOgFonts => {
+  const loaded = new Set(derived.fonts.map(ogFontName));
+  const fallbacks = localeOgFonts(locales).filter(
+    (font) => !loaded.has(ogFontName(font))
+  );
+  if (fallbacks.length === 0) {
+    return derived;
+  }
+  return {
+    families: derived.families ?? {
+      body: BUILT_IN_FAMILY,
+      title: BUILT_IN_FAMILY,
+    },
+    fonts: [...derived.fonts, ...fallbacks],
+  };
+};
+
 /** Explicit `seo.og.fonts` with local `src` paths resolved to absolute. */
 export const resolveOgFontSources = (fonts: OgFont[], root: string): OgFont[] =>
   fonts.map((font) =>
@@ -170,10 +306,14 @@ export const resolveOgFontSources = (fonts: OgFont[], root: string): OgFont[] =>
  * The fonts baked into the generated OG endpoint. An explicit `seo.og.fonts`
  * always wins (including `[]` to opt out, keeping the card's role styling
  * untouched); otherwise a site that explicitly set `theme.fonts` gets its
- * display/body fonts derived so cards match the site without extra config.
+ * display/body fonts derived so cards match the site without extra config,
+ * and either way the configured locales add a fallback for each script the
+ * built-in font can't draw.
  */
 export const resolveOgFonts = (
   options: {
+    /** The site's configured locale codes (none without `i18n`). */
+    locales?: string[];
     /** Explicit `seo.og.fonts`, or undefined when unset. */
     ogFonts: OgFont[] | undefined;
     themeFonts: FontsConfig;
@@ -185,9 +325,10 @@ export const resolveOgFonts = (
   if (options.ogFonts) {
     return { fonts: resolveOgFontSources(options.ogFonts, root) };
   }
-  return options.themeFontsConfigured
+  const derived = options.themeFontsConfigured
     ? deriveOgFonts(options.themeFonts, root)
     : { fonts: [] };
+  return withLocaleFonts(derived, options.locales ?? []);
 };
 
 /**

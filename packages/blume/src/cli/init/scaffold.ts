@@ -14,6 +14,7 @@ import { payload } from "../../sources/payload.ts";
 import type { AnySourceAdapter } from "../../sources/registry.ts";
 import { sanity } from "../../sources/sanity.ts";
 import { strapi } from "../../sources/strapi.ts";
+import { STARTER_OPENAPI_JSON } from "./starter-spec.ts";
 
 export const TEMPLATES = ["docs", "api", "sdk", "changelog"] as const;
 export type Template = (typeof TEMPLATES)[number];
@@ -64,6 +65,11 @@ interface Starter {
   /** Import lines the fragment needs, placed after the `defineConfig` import. */
   configImports: string[];
   files: (contentDir: string) => { content: string; path: string }[];
+  /**
+   * Files the config itself reads (the `api` starter's spec), written beside
+   * it whichever content sources are selected.
+   */
+  projectFiles?: { content: string; path: string }[];
 }
 
 const page = (title: string, description: string, body: string): string =>
@@ -77,8 +83,8 @@ export const STARTERS = {
       route: "/api",
       sources: [
         {
-          label: "Petstore",
-          spec: "https://petstore3.swagger.io/api/v3/openapi.json",
+          label: "Pet Store",
+          spec: "./openapi.json",
         },
       ],
     }),
@@ -89,11 +95,12 @@ export const STARTERS = {
         content: page(
           "API Reference",
           "Reference documentation for the API, generated from its OpenAPI spec, with every endpoint, its parameters, request bodies, and responses.",
-          "Your OpenAPI spec renders at [`/api`](/api). Point `openapi()` at your own spec in `blume.config.ts`."
+          "The example spec in `openapi.json` renders at [`/api`](/api). Replace it with your own, or point `openapi()` at your spec in `blume.config.ts`."
         ),
         path: join(dir, "index.mdx"),
       },
     ],
+    projectFiles: [{ content: STARTER_OPENAPI_JSON, path: "openapi.json" }],
   },
   changelog: {
     configExtra: `
@@ -622,6 +629,7 @@ export const buildPlan = (
   answers: InitAnswers,
   env: PlanEnvironment = {}
 ): ScaffoldFile[] => {
+  const starter: Starter = STARTERS[answers.template];
   const files: ScaffoldFile[] = [
     {
       content: blumePackageJson(
@@ -632,11 +640,15 @@ export const buildPlan = (
     },
     ...packageManagerConfigFor(root, answers, env),
     { content: buildConfig(answers), path: join(root, "blume.config.ts") },
+    ...(starter.projectFiles ?? []).map((file) => ({
+      ...file,
+      path: join(root, file.path),
+    })),
   ];
   // Seed pages only make sense when a local filesystem source will read them.
   if (answers.sources.length === 0 || answers.sources.includes("filesystem")) {
     files.push(
-      ...STARTERS[answers.template]
+      ...starter
         .files(answers.contentDir)
         .map((file) => ({ ...file, path: join(root, file.path) }))
     );
