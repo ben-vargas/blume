@@ -150,7 +150,7 @@ navigation: {
 }
 ```
 
-An enabled [OpenAPI or AsyncAPI reference](/docs/references/openapi) mounts at its route but doesn't add a tab on its own — point a tab at that route to surface it in the header (and, for the native renderer, to scope its operations sidebar), with whatever label you like:
+An enabled [OpenAPI](/docs/references/openapi), [AsyncAPI](/docs/references/asyncapi), or [GraphQL](/docs/references/graphql) reference mounts at its route but doesn't add a tab on its own — point a tab at that route to surface it in the header (and, for the native renderer, to scope its operations sidebar), with whatever label you like:
 
 ```ts blume.config.ts
 navigation: {
@@ -247,6 +247,8 @@ navigation: {
 
 Each item is a page route (a string), a group (`label` + `items`), or a link (`label` + `href`). Groups can nest, override the global [`display` mode](#display-modes), and start `collapsed`.
 
+Blume warns about an item it can't render as written: a route that matches no page (the item is left out), a `root` that matches no page (its link would 404), or an item with no route, `href`, `root`, or `items` (left out).
+
 ## Header actions
 
 `navigation.actions` puts plain links in the header, left of the icon buttons, and `navigation.cta` is the one filled button:
@@ -293,7 +295,7 @@ These come for free from the sidebar tree — no configuration:
 
 ## On this page
 
-A right-rail outline is generated automatically from each page's `##` and `###` headings, so long pages stay scannable. On narrower screens, where the right rail is hidden, it collapses into an “On this page” dropdown above the content.
+A right-rail outline is generated automatically from each page's headings — `##` and `###` by default — so long pages stay scannable. Set [`toc`](/docs/configuration#table-of-contents) to change the heading range or turn the outline off. On narrower screens, where the right rail is hidden, it collapses into an “On this page” dropdown above the content.
 
 ## Page actions
 
@@ -301,8 +303,9 @@ Below the table of contents, every page shows a set of quick actions:
 
 - **Edit on GitHub** — links straight to the source file. Appears once you set [`github`](/docs/configuration) in your config.
 - **Scroll to top** — smoothly returns to the top of long pages.
-- **Give feedback** — opens a prefilled GitHub issue with an optional reaction and note (also requires `github`).
 
-Others hand the page to AI tools — **Copy as Markdown** and **Open in chat** — covered in [AI](/docs/discoverability/markdown#copy-as-markdown).
+Others hand the page to AI tools — **Copy as Markdown** and **Open in chat** — covered in [Markdown for agents](/docs/discoverability/markdown#copy-as-markdown).
+
+Feedback lives at the foot of the page instead: a "Was this page helpful?" yes/no rating that sends a `feedback` analytics event and doesn't need `github` — see [Page feedback](/docs/configuration#page-feedback).
 
 With [`export`](/docs/configuration/export) on, an **Export** action also lets readers download the page as a PDF or EPUB.

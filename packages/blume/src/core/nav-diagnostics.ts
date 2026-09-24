@@ -1,6 +1,8 @@
 import { isAssetIcon } from "../theme/icon-kind.ts";
 import { hasIcon } from "../theme/icons.ts";
 import { isInternalPath } from "./base-path.ts";
+import { isPageRef, normalizeRef } from "./navigation.ts";
+import type { SidebarItemConfig } from "./schema.ts";
 import type { Diagnostic, NavNode, Navigation, PageRecord } from "./types.ts";
 
 /**
@@ -137,7 +139,9 @@ export const validateNavTargets = (
     if (!isInternalPath(path) || path.startsWith("/#") || seen.has(path)) {
       continue;
     }
-    if (!resolvesToPages(routes, path.split("#")[0] ?? path)) {
+    // A query or fragment (`/guides?tab=cli`) rides on the route; only the
+    // path names a page.
+    if (!resolvesToPages(routes, path.split(/[?#]/u)[0] ?? path)) {
       seen.add(path);
       diagnostics.push({
         code: "BLUME_NAV_MISSING_PAGE",
@@ -147,6 +151,57 @@ export const validateNavTargets = (
       });
     }
   }
+  return diagnostics;
+};
+
+/**
+ * Warn about explicit `navigation.sidebar` items that can't render as written,
+ * instead of dropping them without a word: a page ref that matches no page
+ * (left out of the sidebar), a `root` that matches no page (its link leads
+ * nowhere), and an item with no page, `href`, `root`, or `items` (left out).
+ * `resolves` answers whether a normalized ref (`/guides`) names a page — in
+ * any locale — or a route served outside the content tree.
+ */
+export const validateSidebarItems = (
+  items: SidebarItemConfig[],
+  resolves: (route: string) => boolean
+): Diagnostic[] => {
+  const diagnostics: Diagnostic[] = [];
+  const walk = (list: SidebarItemConfig[]): void => {
+    for (const item of list) {
+      if (isPageRef(item)) {
+        if (!resolves(normalizeRef(item))) {
+          diagnostics.push({
+            code: "BLUME_NAV_MISSING_PAGE",
+            message: `Sidebar entry "${item}" matches no page, so it's left out of the sidebar.`,
+            severity: "warning",
+            suggestion: "Fix the route, or add a page at it.",
+          });
+        }
+        continue;
+      }
+      if (item.root && !resolves(normalizeRef(item.root))) {
+        diagnostics.push({
+          code: "BLUME_NAV_MISSING_PAGE",
+          message: `Sidebar entry "${item.label}" has root "${item.root}", but no page matches it, so its link leads nowhere.`,
+          severity: "warning",
+          suggestion: "Fix the root, or add a page at that route.",
+        });
+      }
+      if (item.items) {
+        walk(item.items);
+      } else if (!(item.root || item.href)) {
+        diagnostics.push({
+          code: "BLUME_NAV_EMPTY_ITEM",
+          message: `Sidebar entry "${item.label}" has no page, href, root, or items, so it's left out of the sidebar.`,
+          severity: "warning",
+          suggestion:
+            "Give it an href or a root to link somewhere, or items to make it a group.",
+        });
+      }
+    }
+  };
+  walk(items);
   return diagnostics;
 };
 

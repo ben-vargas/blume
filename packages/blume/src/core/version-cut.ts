@@ -65,6 +65,13 @@ const buildRouteRewrites = (
   const { basePath, i18n } = project.config;
   const { contentRoot } = project.context;
   const rewrites = new Map<string, string>();
+  // Under i18n, authors write links in the unprefixed form (`/guides/setup`)
+  // and rendering moves them into the reader's locale — a form no page is
+  // routed at when the default locale keeps its prefix
+  // (`hideDefaultLocalePrefix: false`). So it is mapped too, to the
+  // unprefixed snapshot route, which rendering localizes the same way. Page
+  // routes win where the two forms coincide.
+  const logical = new Map<string, string>();
   for (const page of project.graph.pages) {
     // `sourcePath` marks a page backed by a local file, which excludes
     // generated and remote pages; the content-root check below excludes local
@@ -81,11 +88,19 @@ const buildRouteRewrites = (
     ) {
       continue;
     }
-    const logical = versionizeRoute(page.versionKey, id);
+    const snapshot = versionizeRoute(page.versionKey, id);
     rewrites.set(
       stripBasePath(basePath, page.route),
-      i18n ? localizeRoute(logical, page.locale, i18n) : logical
+      i18n ? localizeRoute(snapshot, page.locale, i18n) : snapshot
     );
+    if (i18n) {
+      logical.set(page.versionKey, snapshot);
+    }
+  }
+  for (const [route, snapshot] of logical) {
+    if (!rewrites.has(route)) {
+      rewrites.set(route, snapshot);
+    }
   }
   return rewrites;
 };

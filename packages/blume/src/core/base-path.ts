@@ -89,6 +89,21 @@ export const withBasePath = (basePath: string, route: string): string => {
 };
 
 /**
+ * Mount a route Blume generates from content under `basePath`,
+ * unconditionally. {@link withBasePath} leaves a route that already starts
+ * with the base alone, which is right for a link an author based by hand but
+ * wrong for a content route: with `basePath: "/docs"`, `docs/guide.md` routes
+ * to `/docs/guide` before the base and publishes at `/docs/docs/guide`, not on
+ * top of the root `guide.md`.
+ */
+export const mountBasePath = (basePath: string, route: string): string => {
+  if (!basePath) {
+    return route;
+  }
+  return route === "/" ? basePath : `${basePath}${route}`;
+};
+
+/**
  * {@link withBasePath} for the composed `deployment.base` + `basePath` stack
  * (`/base` + `/docs` serves pages at `/base/docs/x`). The hand-written-base
  * promise applies per layer: authors write `basePath` by hand (see

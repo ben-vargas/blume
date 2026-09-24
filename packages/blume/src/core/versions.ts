@@ -150,9 +150,12 @@ export const versionsDiagnostics = (
   for (const page of pages) {
     // The version-looking folder is the first segment of the source-local ref
     // (e.g. `v1.0/guide.md`), not the namespaced id (`filesystem:v1.0/guide.md`).
-    const [first] = page.source.ref.split("/");
+    // Only a folder can be a snapshot: a root file like `v3-migration.md` has
+    // no further segments.
+    const [first, ...rest] = page.source.ref.split("/");
     if (
       first &&
+      rest.length > 0 &&
       !seen.has(first) &&
       VERSION_LIKE.test(first) &&
       !configured.has(first)

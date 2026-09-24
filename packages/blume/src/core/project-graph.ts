@@ -256,7 +256,14 @@ export const scanProject = async (
   const metaSources: FolderMetaSource[] = sources.flatMap((source) =>
     source.staged || !source.contentRoot
       ? []
-      : [{ prefix: source.prefix, root: source.contentRoot }]
+      : [
+          {
+            exclude: source.exclude,
+            include: source.include,
+            prefix: source.prefix,
+            root: source.contentRoot,
+          },
+        ]
   );
 
   // Run every source's `load()` in parallel, then funnel each entry through the

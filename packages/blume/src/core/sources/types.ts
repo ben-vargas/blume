@@ -147,6 +147,13 @@ export interface ContentSource {
    * no local tree.
    */
   readonly contentRoot?: string;
+  /**
+   * The globs a filesystem source reads under `contentRoot`, and the ones it
+   * skips. Folder-meta discovery honors them, so a `meta.ts` outside the
+   * content the source reads is never imported.
+   */
+  readonly include?: readonly string[];
+  readonly exclude?: readonly string[];
   /** Pull every entry. Called once per scan. */
   load: () => Promise<SourceLoadResult>;
   /** Validate the source is usable; throws a BlumeError when not. */

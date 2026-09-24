@@ -1,5 +1,5 @@
 import { basename, dirname, relative } from "pathe";
-import { glob } from "tinyglobby";
+import { glob, isDynamicPattern } from "tinyglobby";
 
 import { diagnosticsFromZod } from "./diagnostics.ts";
 import { createModuleLoader } from "./load-module.ts";
@@ -38,11 +38,56 @@ const resolveMeta = async (mod: MetaModuleExport) =>
 
 /** A filesystem content source to scan for folder meta: its on-disk root and
  * optional route prefix. The prefix is folded into every key so meta lines up
- * with the sidebar group path, which carries the same prefix. */
+ * with the sidebar group path, which carries the same prefix. `include` and
+ * `exclude` are the source's content globs, which scope the scan to the
+ * folders the source reads. */
 export interface FolderMetaSource {
   root: string;
   prefix?: string;
+  include?: readonly string[];
+  exclude?: readonly string[];
 }
+
+/**
+ * The literal directory a glob starts from (`docs/**\/*.md` → `docs`, `""`
+ * when it matches from the root): its leading segments up to the first one
+ * with glob syntax, the file-name segment excluded.
+ */
+const globBase = (pattern: string): string => {
+  const literal: string[] = [];
+  for (const segment of pattern.split("/").slice(0, -1)) {
+    if (isDynamicPattern(segment)) {
+      break;
+    }
+    if (segment !== "" && segment !== ".") {
+      literal.push(segment);
+    }
+  }
+  return literal.join("/");
+};
+
+/** Whether `dir` is `base`, or nested beneath or above it (`""` is the root). */
+const onPathOf = (dir: string, base: string): boolean =>
+  dir === base ||
+  base === "" ||
+  dir === "" ||
+  dir.startsWith(`${base}/`) ||
+  base.startsWith(`${dir}/`);
+
+/**
+ * Whether a meta file's directory can configure a sidebar group of the
+ * source: it lies on the path of some `include` glob's base — the folders
+ * that glob reads, or the ancestors whose groups hold them. Negated globs
+ * only narrow what a source reads, so they never qualify a folder.
+ */
+const withinInclude = (
+  dir: string,
+  include: readonly string[] | undefined
+): boolean =>
+  include === undefined ||
+  include.some(
+    (pattern) => !pattern.startsWith("!") && onPathOf(dir, globBase(pattern))
+  );
 
 /**
  * The folder-meta key for a directory. Mirrors the sidebar group path: the
@@ -93,7 +138,12 @@ export const discoverFolderMeta = async (
   const list: FolderMetaSource[] = Array.isArray(sources)
     ? sources
     : [{ root: sources }];
-  const localeDirs = new Set(options.localeDirs);
+  // Locale folders match case-insensitively, like content does (`pt-br/` for
+  // a configured `pt-BR`), and key under the configured casing, which is what
+  // navigation looks meta up by.
+  const localeDirs = new Map(
+    (options.localeDirs ?? []).map((code) => [code.toLowerCase(), code])
+  );
   const versionDirs = new Set(options.versionDirs);
 
   const load = createModuleLoader();
@@ -105,14 +155,25 @@ export const discoverFolderMeta = async (
   // `content.root` still contributes its folder meta.
   const perSource = await Promise.all(
     list.map(async (source) => {
-      const files = await glob(META_FILES, {
+      const found = await glob(META_FILES, {
         absolute: true,
         cwd: source.root,
         // Never descend into dependencies or build output — relevant when the
         // root is the project root (e.g. a `.`-rooted or all-staged project).
-        ignore: ["**/node_modules/**", "**/.blume/**", "**/dist/**"],
+        // The source's own `exclude` applies too: a `meta.ts` under an
+        // excluded folder (`src/lib/meta.ts` beside `exclude: ["src/**"]`)
+        // is application code, not folder meta, and importing it would fail.
+        ignore: [
+          ...(source.exclude ?? []),
+          "**/node_modules/**",
+          "**/.blume/**",
+          "**/dist/**",
+        ],
         onlyFiles: true,
       });
+      const files = found.filter((file) =>
+        withinInclude(relative(source.root, dirname(file)), source.include)
+      );
       const loaded = await Promise.all(
         files.map(
           async (
@@ -149,7 +210,9 @@ export const discoverFolderMeta = async (
       const version = head && versionDirs.has(head) ? head : "";
       const afterVersion = version ? tail : [head ?? "", ...tail];
       const [localeHead, ...localeTail] = afterVersion;
-      const locale = localeHead && localeDirs.has(localeHead) ? localeHead : "";
+      const locale = localeHead
+        ? (localeDirs.get(localeHead.toLowerCase()) ?? "")
+        : "";
       const rest = (locale ? localeTail : afterVersion)
         .filter(Boolean)
         .join("/");

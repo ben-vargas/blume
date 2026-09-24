@@ -94,14 +94,20 @@ const WORD_FORMS = new Map([
   ["yaml", "YAML"],
 ]);
 
+/**
+ * Capitalize one word of a slug-like name for display, spelling the acronyms
+ * and brand casings in {@link WORD_FORMS} their own way (`api` → "API").
+ * Shared with page titles derived from file names, so a page and a folder
+ * named alike read alike.
+ */
+export const titleWord = (word: string): string =>
+  WORD_FORMS.get(word) ?? word.charAt(0).toUpperCase() + word.slice(1);
+
 const humanize = (segment: string): string =>
   stripOrderingPrefix(segment)
     .split(WORD_SPLIT)
     .filter(Boolean)
-    .map(
-      (word) =>
-        WORD_FORMS.get(word) ?? word.charAt(0).toUpperCase() + word.slice(1)
-    )
+    .map(titleWord)
     .join(" ");
 
 const numericOrder = (segment: string): number => {
@@ -157,6 +163,8 @@ interface MutablePage {
    * so they're excluded from the duplicate-order diagnostic.
    */
   orderIsAuthored: boolean;
+  /** Whether `order` is the node's position in its folder meta `pages` list. */
+  ranked?: boolean;
 }
 
 interface MutableGroup {
@@ -165,6 +173,12 @@ interface MutableGroup {
   path: string;
   /** The group's URL path (folder route prefix); set as pages are inserted. */
   routePath?: string;
+  /**
+   * The group's URL path read off its folder names, from a page whose
+   * frontmatter `slug` moved it off the folder's path. Fills `routePath` only
+   * when no other page under the folder supplies one.
+   */
+  folderPath?: string;
   /** The folder's index page route, when it has one; the group row's link. */
   route?: string;
   label: string;
@@ -172,6 +186,8 @@ interface MutableGroup {
   collapsed?: boolean;
   display?: SidebarDisplay;
   order: number;
+  /** Whether `order` is the node's position in its folder meta `pages` list. */
+  ranked?: boolean;
   children: MutableNode[];
   index: Map<string, MutableGroup>;
 }
@@ -278,6 +294,7 @@ const applyFolderMeta = (
   // section's own page once the index row is hidden. Index-less folders keep
   // no link: their row would 404.
   group.route = indexRoute.get(group.path);
+  group.routePath ??= group.folderPath;
   // Locale-specific meta wins; a shared `meta.$.*` (keyed by the locale-stripped
   // group path — version-prefixed inside a snapshot) applies to every locale
   // otherwise.
@@ -293,19 +310,6 @@ const applyFolderMeta = (
     group.icon = meta.icon ?? group.icon;
     group.order = meta.order ?? group.order;
     group.collapsed = meta.collapsed ?? group.collapsed;
-
-    if (meta.pages) {
-      const rank = new Map(meta.pages.map((key, i) => [key, i]));
-      for (const child of group.children) {
-        const position = rank.get(child.key);
-        if (position !== undefined) {
-          child.order = position;
-          if (child.kind === "page") {
-            child.orderIsAuthored = true;
-          }
-        }
-      }
-    }
   }
 
   for (const child of group.children) {
@@ -319,6 +323,24 @@ const applyFolderMeta = (
         indexDisplay,
         indexRoute
       );
+    }
+  }
+
+  // Ranked after the children resolved their own meta: the `pages` list is
+  // this folder's word on its children's order, so it wins over a listed
+  // subfolder's own `order` just as it wins over a listed page's
+  // `sidebar.order`.
+  if (meta?.pages) {
+    const rank = new Map(meta.pages.map((key, i) => [key, i]));
+    for (const child of group.children) {
+      const position = rank.get(child.key);
+      if (position !== undefined) {
+        child.order = position;
+        child.ranked = true;
+        if (child.kind === "page") {
+          child.orderIsAuthored = true;
+        }
+      }
     }
   }
 };
@@ -457,22 +479,27 @@ const isAuthoredOrder = (node: MutableNode): boolean =>
  * excluded: that's the common, intentional case of "just sort alphabetically."
  * So is a derived, non-authored order (e.g. two changelog entries published
  * on the same day) — not an authoring mistake.
+ *
+ * A folder meta `pages` rank is a list position, not a number the author
+ * picked, so it only ties with another rank: a listed page at position 1
+ * beside an unlisted `01-setup.md` is not a conflict anyone wrote.
  */
 const duplicateOrderDiagnostics = (nodes: MutableNode[]): Diagnostic[] => {
-  const byOrder = new Map<number, MutableNode[]>();
+  const byOrder = new Map<string, { order: number; tied: MutableNode[] }>();
   for (const node of nodes) {
     if (!Number.isFinite(node.order) || !isAuthoredOrder(node)) {
       continue;
     }
-    const tied = byOrder.get(node.order);
-    if (tied) {
-      tied.push(node);
+    const key = `${node.ranked === true}:${node.order}`;
+    const entry = byOrder.get(key);
+    if (entry) {
+      entry.tied.push(node);
     } else {
-      byOrder.set(node.order, [node]);
+      byOrder.set(key, { order: node.order, tied: [node] });
     }
   }
   const diagnostics: Diagnostic[] = [];
-  for (const [order, tied] of byOrder) {
+  for (const { order, tied } of byOrder.values()) {
     if (tied.length > 1) {
       const names = tied.map((node) => `"${node.label}"`);
       const list =
@@ -660,15 +687,35 @@ const buildFileSystemSidebar = (
       : routeSegments.slice(0, -1);
     const routeDirCount = dirs.filter((dir) => !GROUP_FOLDER.test(dir)).length;
     const offset = Math.max(0, folderParts.length - routeDirCount);
+    // A frontmatter `slug` publishes the page away from its folder, so its
+    // route says nothing about where the folder lives (`guides/a.md` with
+    // `slug: install` is `/install`). Its groups read their path off the folder
+    // names instead, behind the route's leading base/locale/version segments
+    // (whatever precedes the slug's own `versionKey`), and only where no
+    // other page under the folder supplies one.
+    const slugged = page.meta.slug !== undefined;
+    const leading = routeSegments.slice(
+      0,
+      Math.max(
+        0,
+        routeSegments.length - page.versionKey.split("/").filter(Boolean).length
+      )
+    );
 
     let parent = root;
     let consumed = offset;
+    const folders: string[] = [];
     for (const dir of dirs) {
       parent = ensureGroup(parent, dir);
       if (!GROUP_FOLDER.test(dir)) {
         consumed += 1;
+        folders.push(stripOrderingPrefix(dir));
       }
-      parent.routePath ??= `/${folderParts.slice(0, consumed).join("/")}`;
+      if (slugged) {
+        parent.folderPath ??= `/${[...leading, ...folders].join("/")}`;
+      } else {
+        parent.routePath ??= `/${folderParts.slice(0, consumed).join("/")}`;
+      }
     }
 
     const { order, orderIsAuthored } = pageOrder(page, filename);
@@ -703,7 +750,11 @@ const buildFileSystemSidebar = (
   return root.children.map((child) => toNavNode(child, display));
 };
 
-const normalizeRef = (ref: string): string => {
+/**
+ * An explicit-sidebar ref (`"guides/"`, `"/guides/index"`, `"index"`) in the
+ * slashless route form pages are keyed by (`/guides`, `/`).
+ */
+export const normalizeRef = (ref: string): string => {
   if (ref === "index") {
     return "/";
   }
@@ -734,8 +785,35 @@ const routeForRef = (
 };
 
 /** An explicit-config sidebar item written as a bare page-ref string. */
-const isPageRef = (item: SidebarItemConfig): item is string =>
+export const isPageRef = (item: SidebarItemConfig): item is string =>
   typeof item === "string";
+
+/**
+ * Pages keyed the way explicit-sidebar refs look them up: by the
+ * locale-agnostic `translationKey` under i18n (`byLogical`), so one authored
+ * sidebar maps onto every locale's pages, else by route. Refs are authored as
+ * if mounted at root while `page.route` carries the base, so each page is also
+ * aliased under its base-less route (the `translationKey` is base-less
+ * already).
+ */
+export const pagesByRef = (
+  pages: PageRecord[],
+  basePath: string,
+  byLogical: boolean
+): Map<string, PageRecord> => {
+  const byRoute = new Map(
+    pages.map((page) => [byLogical ? page.translationKey : page.route, page])
+  );
+  if (basePath && !byLogical) {
+    for (const page of pages) {
+      const bare = stripBasePath(basePath, page.route);
+      if (!byRoute.has(bare)) {
+        byRoute.set(bare, page);
+      }
+    }
+  }
+  return byRoute;
+};
 
 /**
  * Convert one non-group explicit-config sidebar item (string ref, `root`, or
@@ -823,6 +901,35 @@ const buildConfigSidebar = (
 };
 
 /**
+ * The two roots a tab's target resolves between, both based: `tabs`, the root
+ * of the space tab paths are written in (the current docs' localized root,
+ * `/fr`), and `tree`, the root this tree's pages live under — the same route,
+ * except in an archived version tree (`/fr/v1.0`).
+ */
+interface TabRoots {
+  tabs: string;
+  tree: string;
+}
+
+/**
+ * `path` relative to `root` (`/fr/guides` under `/fr` is `/guides`, the root
+ * itself is `/`), or undefined when it isn't under it.
+ */
+const pathUnder = (path: string, root: string): string | undefined => {
+  if (root === "/") {
+    return path;
+  }
+  if (path === root) {
+    return "/";
+  }
+  return path.startsWith(`${root}/`) ? path.slice(root.length) : undefined;
+};
+
+/** Mount a root-relative remainder (`/guides`, never `/`) under `root`. */
+const joinRoute = (root: string, rest: string): string =>
+  root === "/" ? rest : `${root}${rest}`;
+
+/**
  * Resolve a tab's clickable target. A tab's `path` scopes its sidebar section
  * but need not be a real route — a section with no index page would 404 if the
  * tab linked straight to it. Prefer the path itself when it's served outside
@@ -832,30 +939,40 @@ const buildConfigSidebar = (
  *
  * Routes outside the content tree are served at their own path, not under
  * `basePath` (`pages/changelog.astro` answers `/changelog` on a `/docs`-based
- * site), while tab paths arrive based (`/docs/changelog`). So when the based
- * path is neither an outside route nor a tree node, the base-less path is
- * checked against the outside routes before the section's first page wins.
+ * site) or a locale prefix, while tab paths arrive based and localized
+ * (`/docs/fr/changelog`). So when the tab path is neither an outside route nor
+ * a tree node, its base-less and then its root-relative form (`/changelog`)
+ * are checked against the outside routes before the section's first page
+ * wins.
+ *
+ * In an archived version tree the section is looked up under the versioned
+ * root (`/v1.0/guides`), where that tree's pages live — tab paths stay in
+ * current-docs space, where nothing in the tree could match.
  */
 const resolveTabHref = (
   sidebar: NavNode[],
   path: string,
   extraRoutes: ReadonlySet<string>,
-  basePath: string
+  basePath: string,
+  roots: TabRoots
 ): string => {
   if (extraRoutes.has(path)) {
     return path;
   }
+  const rest = pathUnder(path, roots.tabs);
+  const section =
+    rest === undefined || rest === "/" ? path : joinRoute(roots.tree, rest);
   let first: string | undefined;
   const walk = (nodes: NavNode[]): boolean => {
     for (const node of nodes) {
       const { route } = node;
-      if (route === path) {
+      if (route === section) {
         return true;
       }
       if (
         first === undefined &&
         route !== undefined &&
-        route.startsWith(`${path}/`)
+        route.startsWith(`${section}/`)
       ) {
         first = route;
       }
@@ -866,10 +983,16 @@ const resolveTabHref = (
     return false;
   };
   if (walk(sidebar)) {
-    return path;
+    return section;
   }
   const bare = stripBasePath(basePath, path);
-  return extraRoutes.has(bare) ? bare : (first ?? path);
+  if (extraRoutes.has(bare)) {
+    return bare;
+  }
+  if (rest !== undefined && extraRoutes.has(rest)) {
+    return rest;
+  }
+  return first ?? path;
 };
 
 /**
@@ -884,11 +1007,13 @@ const withTabHrefs = (
   tabs: NavTab[],
   sidebar: NavNode[],
   extraRoutes: ReadonlySet<string>,
-  basePath: string
+  basePath: string,
+  roots: TabRoots
 ): NavTab[] =>
   tabs.map((tab) => {
     const href =
-      tab.href ?? resolveTabHref(sidebar, tab.path, extraRoutes, basePath);
+      tab.href ??
+      resolveTabHref(sidebar, tab.path, extraRoutes, basePath, roots);
     return href === tab.path ? tab : { ...tab, href };
   });
 
@@ -1000,6 +1125,14 @@ export const buildNavigation = (
      */
     localizedRoot?: string;
     /**
+     * The root of the space tab paths are written in, before `basePath`: the
+     * current docs' localized root (`"/"`, `/fr`). Defaults to
+     * `localizedRoot`; an archived version tree passes it because its own
+     * root is versionized (`/fr/v1.0`) while tab paths are not, so a tab's
+     * section can be found under the version.
+     */
+    tabRoot?: string;
+    /**
      * Sink for diagnostics produced while building the tree (duplicate sidebar
      * `order` values, index-page title/folder-meta-title mismatches). Pushed
      * into in place; omit to discard.
@@ -1027,24 +1160,7 @@ export const buildNavigation = (
     basePath,
     options
   );
-  const byRoute = new Map(
-    pages.map((page) => [
-      options.refByLogical ? page.translationKey : page.route,
-      page,
-    ])
-  );
-  // Explicit-sidebar refs (`"foo/index"`) are authored as if mounted at root,
-  // but `page.route` carries the base — alias each page under its base-less
-  // route so a bare ref still resolves. (The i18n `refByLogical` map is already
-  // keyed by the base-less `translationKey`, so it needs no alias.)
-  if (basePath && !options.refByLogical) {
-    for (const page of pages) {
-      const bare = stripBasePath(basePath, page.route);
-      if (!byRoute.has(bare)) {
-        byRoute.set(bare, page);
-      }
-    }
-  }
+  const byRoute = pagesByRef(pages, basePath, Boolean(options.refByLogical));
 
   // A tab pointing at the tree root spans the whole sidebar rather than one
   // section, so it must not feed tab-section hoisting. `tabs` carries final
@@ -1057,6 +1173,13 @@ export const buildNavigation = (
   // paths stay in current-docs space, so root-tab checks use `isRootTab`
   // containment, not equality.
   const rootTabPath = withBasePath(basePath, options.localizedRoot ?? "/");
+  const tabRoots: TabRoots = {
+    tabs: withBasePath(
+      basePath,
+      options.tabRoot ?? options.localizedRoot ?? "/"
+    ),
+    tree: rootTabPath,
+  };
 
   // Emitted here, before the sidebar-mode branch: an explicit config sidebar
   // ignores a stray `sidebar.display` just like the filesystem sidebar does
@@ -1080,7 +1203,7 @@ export const buildNavigation = (
       root: rootTabPath,
       selectors,
       sidebar,
-      tabs: withTabHrefs(tabs, sidebar, extraRoutes, basePath),
+      tabs: withTabHrefs(tabs, sidebar, extraRoutes, basePath, tabRoots),
     };
   }
 
@@ -1103,6 +1226,6 @@ export const buildNavigation = (
     root: rootTabPath,
     selectors,
     sidebar,
-    tabs: withTabHrefs(tabs, sidebar, extraRoutes, basePath),
+    tabs: withTabHrefs(tabs, sidebar, extraRoutes, basePath, tabRoots),
   };
 };

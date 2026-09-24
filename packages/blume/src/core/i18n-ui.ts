@@ -281,11 +281,20 @@ const packFor = (code: string): UIStringsOverride | undefined => {
   );
 };
 
+/** Whether a locale code is English (`en`, `en-GB`, `en_US`), in any case. */
+const isEnglish = (code: string): boolean =>
+  code.toLowerCase().split(/[-_]/u)[0] === "en";
+
 /**
  * Resolve the active dictionary for a locale. Layers, in order:
  * English baseline ← default-locale pack ← default-locale override ←
  * locale pack ← locale override. So a missing key falls back to the default
  * locale's translation, then to English.
+ *
+ * English has no pack because the baseline is its complete translation, so an
+ * English locale (`en`, `en-GB`) skips the default-locale layers: on a site
+ * whose default is German, English pages keep English chrome instead of
+ * inheriting the German strings.
  */
 export const resolveUIStrings = (
   locale: string,
@@ -296,8 +305,10 @@ export const resolveUIStrings = (
 ): UIStrings => {
   const { defaultLocale, overrides } = options;
   let dict = EN_UI;
-  dict = mergeUI(dict, packFor(defaultLocale));
-  dict = mergeUI(dict, overrides?.[defaultLocale]);
+  if (!isEnglish(locale) || isEnglish(defaultLocale)) {
+    dict = mergeUI(dict, packFor(defaultLocale));
+    dict = mergeUI(dict, overrides?.[defaultLocale]);
+  }
   if (locale !== defaultLocale) {
     dict = mergeUI(dict, packFor(locale));
     dict = mergeUI(dict, overrides?.[locale]);

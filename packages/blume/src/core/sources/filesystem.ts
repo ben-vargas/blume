@@ -83,7 +83,9 @@ export const filesystemSource = (
         file: contentRoot,
         message: `Content root not found: ${options.root}`,
         severity: "error",
-        suggestion: `Create a "${options.root}" folder with at least one .md or .mdx file, or set content.root in blume.config.ts.`,
+        // `content.root` is rejected beside `content.sources`, so the hint
+        // names both places a root is set.
+        suggestion: `Create a "${options.root}" folder with at least one .md or .mdx file, or point Blume at your docs folder: content.root in blume.config.ts, or the filesystem() source's root when you list content.sources.`,
       });
     }
   };
@@ -113,6 +115,8 @@ export const filesystemSource = (
 
   return {
     contentRoot,
+    exclude: options.exclude,
+    include: options.include,
     load,
     name: options.name,
     prefix: options.prefix,

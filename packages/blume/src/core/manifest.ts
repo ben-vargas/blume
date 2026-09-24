@@ -1,4 +1,4 @@
-import { withBasePath } from "./base-path.ts";
+import { mountBasePath } from "./base-path.ts";
 import { localizeRoute, resolveFallbackLocale } from "./i18n.ts";
 import type { ResolvedConfig } from "./schema.ts";
 import type {
@@ -106,7 +106,7 @@ const buildFallbackRoutes = (
       if (present.has(key)) {
         continue;
       }
-      const path = withBasePath(basePath, localizeRoute(key, code, i18n));
+      const path = mountBasePath(basePath, localizeRoute(key, code, i18n));
       // A fallback route is a real prerendered page, so it registers as a
       // version alternate too — the switcher on a sibling version's page
       // lands here instead of bouncing to the version root. Its own path is

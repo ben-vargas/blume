@@ -109,10 +109,11 @@ const NUMERIC_PREFIX = /^\d+[-_.]/u;
  * falsely flagged as broken. Tested against `navPath` — the locale-stripped
  * path — so a dot-parser localized index (`index.fr.mdx`) and a shared
  * locale-agnostic one (`index.$.mdx`) count too, matching how route mapping
- * recognizes them.
+ * recognizes them. Only a lowercase `index` counts, as in route mapping:
+ * `Index.md` publishes at `…/Index`, a page of its own.
  */
 const isIndexPage = (page: PageRecord): boolean =>
-  /^index\.(?:md|mdx)$/iu.test(
+  /^index\.[Mm][Dd][Xx]?$/u.test(
     basename(page.navPath).replace(NUMERIC_PREFIX, "")
   );
 
@@ -218,14 +219,16 @@ export const resolveRelativeHref = (
  * Whether a content file is its folder's index, from its name as written on
  * disk: `index.md(x)` after an ordering prefix, optionally carrying one of
  * `localeTokens` before the extension (`index.fr.mdx` under the `dot` locale
- * parser, `index.$.mdx` for a file shared by every locale).
+ * parser, `index.$.mdx` for a file shared by every locale). The `index` itself
+ * is case-sensitive, as route mapping reads it: `Index.md` is a page named
+ * `Index`, not its folder's index.
  */
 export const isIndexFileName = (
   name: string,
   localeTokens: readonly string[] = []
 ): boolean => {
   const stem = basename(name).replace(NUMERIC_PREFIX, "");
-  const match = /^index(?:\.(?<token>[^./]+))?\.(?:md|mdx)$/iu.exec(stem);
+  const match = /^index(?:\.(?<token>[^./]+))?\.[Mm][Dd][Xx]?$/u.exec(stem);
   if (!match) {
     return false;
   }

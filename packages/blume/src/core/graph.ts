@@ -1,17 +1,22 @@
-import { withBasePath } from "./base-path.ts";
+import { mountBasePath, withBasePath } from "./base-path.ts";
 import {
   localizeInternalPath,
   localizeRoute,
   resolveFallbackLocale,
 } from "./i18n.ts";
-import { validateNavIcons, validateNavStructure } from "./nav-diagnostics.ts";
-import { buildNavigation } from "./navigation.ts";
+import {
+  validateNavIcons,
+  validateNavStructure,
+  validateSidebarItems,
+} from "./nav-diagnostics.ts";
+import { buildNavigation, isPageRef, pagesByRef } from "./navigation.ts";
 import type {
   FolderMeta,
   LocalizableLabel,
   ResolvedConfig,
   ResolvedI18nConfig,
   ResolvedVersionsConfig,
+  SidebarItemConfig,
 } from "./schema.ts";
 import type {
   ContentGraph,
@@ -83,7 +88,7 @@ const localePagesFor = (
         ...source,
         fallback: true,
         locale: code,
-        route: withBasePath(basePath, localizeRoute(key, code, i18n)),
+        route: mountBasePath(basePath, localizeRoute(key, code, i18n)),
       });
     }
   }
@@ -114,6 +119,28 @@ const resolveLabel = (
     ""
   );
 };
+
+/**
+ * An explicit sidebar with every item's `href` passed through `localize` (page
+ * refs and `root`s resolve against each locale's own pages already).
+ */
+const localizeSidebarHrefs = (
+  items: SidebarItemConfig[],
+  localize: (href: string) => string
+): SidebarItemConfig[] =>
+  items.map((item) => {
+    if (isPageRef(item)) {
+      return item;
+    }
+    const localized = { ...item };
+    if (item.href !== undefined) {
+      localized.href = localize(item.href);
+    }
+    if (item.items) {
+      localized.items = localizeSidebarHrefs(item.items, localize);
+    }
+    return localized;
+  });
 
 /** Resolve every localizable label in the configured tabs for one locale. */
 const resolveTabLabels = (
@@ -227,6 +254,7 @@ const buildLocaleNavigation = (
     href: localizeServed(item.href, false),
   });
   const { actions, cta, featured } = options.navigation;
+  const sidebarItems = options.navigation.sidebar.items;
 
   const navigation = buildNavigation(localePages, {
     actions: actions?.map(localizeHref),
@@ -250,13 +278,33 @@ const buildLocaleNavigation = (
     sharedMetaPrefix: version,
     // A configured explicit sidebar describes the current docs; a frozen
     // snapshot's structure comes from the snapshot itself, so archived trees
-    // always build from the filesystem.
-    sidebar: version ? undefined : options.navigation.sidebar.items,
+    // always build from the filesystem. Its `href` links are localized like
+    // featured links.
+    sidebar:
+      version || !sidebarItems
+        ? undefined
+        : localizeSidebarHrefs(sidebarItems, (href) =>
+            localizeServed(href, false)
+          ),
+    // Tab paths are written against the current docs' root, which a
+    // snapshot's versionized `localizedRoot` no longer is.
+    tabRoot: localizeRoute("/", code, i18n),
     tabs,
   });
-  return options.brandHref === undefined
-    ? navigation
-    : { ...navigation, brandHref: localizeServed(options.brandHref, false) };
+  if (options.brandHref === undefined) {
+    return navigation;
+  }
+  // `serves` checked the localized brand link against based routes, and
+  // unlike tab and header links it isn't rebased later, so a localized one
+  // takes the base here (`/fr` is served at `/docs/fr`).
+  const brandHref = localizeServed(options.brandHref, false);
+  return {
+    ...navigation,
+    brandHref:
+      brandHref === options.brandHref
+        ? brandHref
+        : withBasePath(basePath, brandHref),
+  };
 };
 
 /**
@@ -348,6 +396,8 @@ const buildVersionNavigation = (
       selectors: options.navigation.selectors,
       sharedFolderMeta: options.sharedFolderMeta,
       sharedMetaPrefix: id,
+      // Tab paths are written against the current docs' root.
+      tabRoot: "/",
       // A configured explicit sidebar describes the current docs; a snapshot's
       // structure comes from the snapshot itself.
       tabs: resolveTabLabels(options.navigation.tabs, ""),
@@ -417,6 +467,23 @@ export const buildContentGraph = (
     ...validateNavIcons(navigation),
     ...validateNavStructure(navigation, currentPages)
   );
+  // Checked once against every locale's pages, not per locale tree: a page
+  // missing from one locale's sidebar is an untranslated page, not a typo.
+  const sidebarItems = options.navigation.sidebar.items;
+  if (sidebarItems) {
+    const byRef = pagesByRef(
+      currentPages,
+      options.basePath ?? "",
+      Boolean(i18n)
+    );
+    const extraRoutes = options.extraRoutes ?? new Set<string>();
+    diagnostics.push(
+      ...validateSidebarItems(
+        sidebarItems,
+        (route) => byRef.has(route) || extraRoutes.has(route)
+      )
+    );
+  }
 
   return {
     diagnostics,

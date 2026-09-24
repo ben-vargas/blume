@@ -23,6 +23,8 @@ export default defineMeta({
 
 Every field is optional — set only what you want to override.
 
+Blume only reads `meta.ts` files from folders your content covers: one under a folder your content `exclude` globs skip, or outside every `include` glob, is never imported. With `root: "."` and `exclude: ["src/**"]`, an unrelated `src/lib/meta.ts` is left alone.
+
 ## Fields
 
 | Field | Type | Description |
@@ -34,7 +36,7 @@ Every field is optional — set only what you want to override.
 | `display` | `"flat" \| "group" \| "page"` | Render mode for this group; overrides the global [`navigation.sidebar.display`](/docs/content/navigation#display-modes). |
 | `pages` | `string[]` | Explicit order for the group's children, by slug. |
 
-The `pages` array lists children by slug — the folder or file name with its numeric prefix and any parentheses stripped (so `01-quickstart.mdx` is `"quickstart"`). Children you leave out still appear, after the listed ones.
+The `pages` array lists children by slug — the folder or file name with its numeric prefix and any parentheses stripped (so `01-quickstart.mdx` is `"quickstart"`). Each listed child takes its position in the array as its order (`0`, `1`, `2`, …). Children you leave out still appear, sorted by their own order: an `index` page stays first, a child with a `sidebar.order`, a numeric prefix, or its own `meta.ts` `order` sorts by that number among the listed ones, and a child with none of these goes after them. List every child when the array should be the whole order.
 
 How groups render — flat headers, collapsible disclosures, or drill-in panels — defaults to the sidebar-wide `navigation.sidebar.display`; set `display` here to override it for this group alone. A folder's `index` page can also set it from frontmatter, which wins over `meta.ts` — see [per-group overrides](/docs/content/navigation#per-group-overrides).
 
@@ -53,7 +55,7 @@ export default defineMeta(async () => ({
 
 ## Ordering within a group
 
-The `pages` array sets the order of a group's children. Anything it omits falls back to each page's frontmatter `sidebar.order`, then the file system (an `index` page first, then numeric prefixes, then alphabetical). For the full sidebar precedence — including an explicit config sidebar — see [Navigation › Ordering](/docs/content/navigation#ordering).
+The `pages` array sets the order of a group's children, and it wins over a listed page's own `sidebar.order` or a listed subfolder's own `order`. Anything it omits falls back to each page's frontmatter `sidebar.order`, then the file system (an `index` page first, then numeric prefixes, then alphabetical). For the full sidebar precedence — including an explicit config sidebar — see [Navigation › Ordering](/docs/content/navigation#ordering).
 
 To group pages _without_ adding a URL segment, you don't need a `meta.ts` at all: use a parenthesized folder name — see [Pages › Group folders](/docs/content#group-folders).
 

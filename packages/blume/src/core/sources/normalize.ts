@@ -3,12 +3,13 @@ import { existsSync, readFileSync } from "node:fs";
 import GithubSlugger from "github-slugger";
 import { extname } from "pathe";
 
-import { withBasePath } from "../base-path.ts";
+import { mountBasePath } from "../base-path.ts";
 import { nextFenceState } from "../code-fences.ts";
 import type { FenceState } from "../code-fences.ts";
 import { diagnosticsFromIssues, diagnosticsFromZod } from "../diagnostics.ts";
 import { occupySlug, parseHeadingMarkers } from "../heading-markers.ts";
 import { localePlacement, localizeRoute } from "../i18n.ts";
+import { titleWord } from "../navigation.ts";
 import { stripOrderingPrefix } from "../ordering-prefix.ts";
 import { pageMetaSchema } from "../schema.ts";
 import type {
@@ -63,13 +64,9 @@ export const slugify = (text: string): string =>
 export const slugifyPath = (text: string): string =>
   text.split("/").map(slugify).filter(Boolean).join("/");
 
-/** Title-case a slug segment for display. */
+/** Title-case a slug segment for display, acronyms as the sidebar spells them. */
 const titleCase = (value: string): string =>
-  value
-    .split(WORD_SPLIT)
-    .filter(Boolean)
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+  value.split(WORD_SPLIT).filter(Boolean).map(titleWord).join(" ");
 
 /**
  * Strip characters that cannot survive the route → URL → output-file round
@@ -254,6 +251,8 @@ interface HeadingScanState {
    * end so a tag wrapped over several lines still matches.
    */
   anchorLines: string[];
+  /** The multi-line comment the scan is inside, if any — see `scanCommentLine`. */
+  comment: "html" | "jsx" | null;
   curlyMarkers: CurlyMarker[];
   fence: FenceState;
   /** 1-based body line of the line being scanned. */
@@ -486,6 +485,48 @@ const scanContentLine = (
   state.paragraph.push(line.trim());
 };
 
+// A comment that opens a line hides everything up to its close from the
+// reader: an HTML comment (`<!--` … `-->`, a CommonMark HTML block, so up to
+// 3 leading spaces) or an MDX JSX one (`{/*` … `*/}`, any indentation — MDX
+// has no indented code).
+const HTML_COMMENT_OPEN = /^ {0,3}<!--/u;
+const JSX_COMMENT_OPEN = /^\s*\{\/\*/u;
+const JSX_COMMENT_CLOSE = /\*\/\s*\}/u;
+
+/**
+ * Advance the multi-line comment state over one line, returning whether the
+ * line belongs to a comment. A commented-out `# Old title` renders nothing, so
+ * it must not become a heading — the page title, a TOC entry, or an anchor.
+ * A comment that closes on its opening line is left to the regular scan,
+ * which never reads a line starting with `<` or `{` as a heading. The
+ * CommonMark end condition is any `-->` on the line, the opening one
+ * included.
+ */
+const scanCommentLine = (line: string, state: HeadingScanState): boolean => {
+  if (state.comment === "html") {
+    if (line.includes("-->")) {
+      state.comment = null;
+    }
+    return true;
+  }
+  if (state.comment === "jsx") {
+    if (JSX_COMMENT_CLOSE.test(line)) {
+      state.comment = null;
+    }
+    return true;
+  }
+  if (HTML_COMMENT_OPEN.test(line) && !line.includes("-->")) {
+    state.comment = "html";
+    return true;
+  }
+  const jsx = JSX_COMMENT_OPEN.exec(line);
+  if (jsx && !JSX_COMMENT_CLOSE.test(line.slice(jsx[0].length))) {
+    state.comment = "jsx";
+    return true;
+  }
+  return false;
+};
+
 /** Scan one line for a heading, advancing the fence/paragraph state. */
 const scanHeadingLine = (
   line: string,
@@ -494,6 +535,18 @@ const scanHeadingLine = (
   headings: Heading[],
   isRefDefined: (label: string) => boolean
 ): void => {
+  // Comments hide fences too, and fences and prompts hide comments. A comment
+  // line still goes to the anchor pass, which strips HTML comments itself.
+  if (
+    state.fence === null &&
+    state.promptDepth === 0 &&
+    !state.promptTag &&
+    scanCommentLine(line, state)
+  ) {
+    state.anchorLines.push(line.replaceAll(INLINE_CODE, ""));
+    state.paragraph = [];
+    return;
+  }
   const next = nextFenceState(line, state.fence);
   // Skip fence delimiter lines themselves and anything inside a fence. A fence
   // also ends any open paragraph, so no underline can reach across it.
@@ -561,6 +614,7 @@ export const scanBody = (body: string): BodyScan => {
   const slugger = new GithubSlugger();
   const state: HeadingScanState = {
     anchorLines: [],
+    comment: null,
     curlyMarkers: [],
     fence: null,
     line: 0,
@@ -899,8 +953,17 @@ const deriveTitle = (
   if (firstHeading) {
     return firstHeading.text;
   }
-  const base = id.split("/").pop() ?? id;
-  return titleCase(stripNumericPrefix(base.replace(extname(base), "")));
+  const parts = id.split("/");
+  const base = parts.at(-1) ?? id;
+  const stem = stripNumericPrefix(base.replace(extname(base), ""));
+  // An index page stands for its folder, so an untitled one takes the label
+  // the sidebar gives that folder (`guides/index.md` is "Guides"). The
+  // content root's own index has no folder to borrow from.
+  const folder = stem === "index" ? parts.at(-2) : undefined;
+  if (folder !== undefined) {
+    return titleCase(stripNumericPrefix(groupLabel(folder) ?? folder));
+  }
+  return titleCase(stem);
 };
 
 /** Strip habitual leading/trailing slashes (`/getting-started`, `guides/`). */
@@ -1274,10 +1337,12 @@ export const normalizeEntry = (
   // `basePath` is applied outermost — after locale prefixing — so the route
   // reads `{basePath}/{locale?}/{prefix?}/…`; `navPath` and `translationKey`
   // stay base-less so the nav tree and translation matching are unaffected.
+  // The base is mounted unconditionally: a `docs/` folder under a `/docs`
+  // base is a real `/docs/docs/…` route, not an already-based one.
   const pages = locales.map((locale) => ({
     ...base,
     locale,
-    route: withBasePath(
+    route: mountBasePath(
       ctx.basePath ?? "",
       localizedRoute(logicalRoute, locale, ctx.i18n)
     ),

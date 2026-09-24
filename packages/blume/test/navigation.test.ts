@@ -1109,9 +1109,10 @@ describe("buildNavigation — duplicate sidebar order diagnostics", () => {
     expect(diagnostics).toHaveLength(0);
   });
 
-  it("warns when a folder-meta pages[] rank collides with an explicit sidebar.order", () => {
+  it("does not warn when a folder-meta pages[] rank meets an explicit sidebar.order", () => {
     // "alpha" gets rank 0 from meta.pages; "beta" separately claims order 0
-    // via its own frontmatter. Both are authored, so the tie is real.
+    // via its own frontmatter. A rank is a list position, not a number the
+    // author picked, so the two never conflict.
     const folderMeta = new Map<string, FolderMeta>([
       ["guide", { pages: ["alpha"] }],
     ]);
@@ -1123,8 +1124,7 @@ describe("buildNavigation — duplicate sidebar order diagnostics", () => {
       ],
       { diagnostics, folderMeta }
     );
-    expect(diagnostics).toHaveLength(1);
-    expect(diagnostics[0]?.code).toBe("BLUME_DUPLICATE_SIDEBAR_ORDER");
+    expect(diagnostics).toStrictEqual([]);
   });
 });
 

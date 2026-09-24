@@ -44,13 +44,6 @@ export interface LocalizeLinkOptions {
   routes: RouteSet;
 }
 
-/**
- * Mirrors the asset heuristic in `markdown/base-links.ts`: a path whose final
- * segment carries a file extension is a `public/` asset (or a raw `.md` twin),
- * served at the site root and never localized.
- */
-const ASSET_PATH = /\.[a-z0-9]+$/iu;
-
 /** Decode a percent-encoded path for a route lookup; leave junk as-is. */
 const decodePercent = (value: string): string => {
   try {
@@ -98,9 +91,14 @@ export interface LocalizeHrefOptions extends LocalizeLinkOptions {
 }
 
 /**
- * Localize a rendered `href`: external URLs, relative paths, bare fragments, and
- * asset links pass through; a root-relative page link keeps its `?query` and
+ * Localize a rendered `href`: external URLs, relative paths, and bare
+ * fragments pass through; a root-relative page link keeps its `?query` and
  * `#fragment` and its `deployment.base` layer around the localized path.
+ *
+ * Asset links (`/logo.png`, a raw `.md` twin) pass through too, because no
+ * page is served at their localized path — the same served-route test the
+ * link checker applies. A file extension alone doesn't mark an asset: a
+ * dotted page route (`/releases/v1.2`) is localized like any other page.
  */
 export const localizeHref = (
   href: string,
@@ -112,9 +110,6 @@ export const localizeHref = (
   const suffixAt = href.search(/[#?]/u);
   const path = suffixAt === -1 ? href : href.slice(0, suffixAt);
   const suffix = suffixAt === -1 ? "" : href.slice(suffixAt);
-  if (ASSET_PATH.test(path)) {
-    return href;
-  }
   const based = stripBasePath(options.deployBase, path);
   const localized = localizeLinkPath(based, options);
   if (localized === based) {
