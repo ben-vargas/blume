@@ -628,7 +628,7 @@ describe("send + response rendering", () => {
     await clickSend(fixture);
     expect(fixture.response.textContent).toContain("cross-origin");
     expect(fixture.response.textContent).toContain(
-      "`openapi.playground.proxy`"
+      "`playground: { proxy: true }` on the `openapi()` reference"
     );
 
     fetchImpl = () => Promise.reject(new Error("boom"));

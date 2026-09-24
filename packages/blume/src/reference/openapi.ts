@@ -22,7 +22,8 @@ export interface OpenApiOptions {
    * The interactive "Try it" panel (Blume renderer). On by default; `false`
    * hides it. The object form sets `proxy`, the CORS escape hatch the Send
    * button routes requests through: a proxy URL, or `true` for the built-in
-   * `/_api-proxy` endpoint (which requires `deployment.output: "server"`).
+   * `/_api-proxy` endpoint (which needs server output: a host adapter such as
+   * `vercel()` in `deployment`).
    */
   playground?: PlaygroundOptions;
   /** Where the reference mounts. Defaults to `/reference`. */

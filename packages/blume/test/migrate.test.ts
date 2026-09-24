@@ -154,7 +154,7 @@ describe("migratePrompt", () => {
     });
     expect(prompt).toContain("wasn't detected");
     expect(prompt).toContain(
-      "Mintlify, Docusaurus, Fumadocs, Nextra, Starlight"
+      "Mintlify, Fumadocs, Docusaurus, Starlight, Nextra"
     );
     expect(prompt).toContain("/pkg/skills/blume-migrate/references");
   });

@@ -31,7 +31,9 @@ const logoLightDimensions = logo?.dimensions?.light;
 const logoDarkDimensions = logo?.dimensions?.dark ?? logo?.dimensions?.light;
 const logoAlt = logo?.alt ?? "";
 // The configured `logo.href` (default `/`) is authored in the default locale's
-// path space, like a tab path; localize it for the page's locale. External and
+// path space, like a tab path; localize it for the page's locale. The locale's
+// navigation carries it resolved against the routes the build serves (a custom
+// home page exists only at `/`, so it isn't moved to `/fr`). External and
 // protocol-relative hrefs pass through, and `withBase` layers the deployment
 // base on afterwards, so the locale prefix sits inside the base like every
 // other localized route.
@@ -39,7 +41,8 @@ const configuredHref = logo?.href ?? "/";
 const brandHref =
   locale === undefined
     ? configuredHref
-    : localizeInternalPath(configuredHref, locale, data.config.i18n);
+    : (data.navigationByLocale[locale]?.brandHref ??
+      localizeInternalPath(configuredHref, locale, data.config.i18n));
 // Wordmark beside the mark: the configured `logo.text`, or the site title when
 // it's omitted. An explicit `""` hides it (an image-only logo whose mark already
 // carries the wordmark).

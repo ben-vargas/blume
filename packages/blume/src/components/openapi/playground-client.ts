@@ -28,8 +28,8 @@ import { validateJson } from "./validate-json.ts";
 const CORS_MESSAGE =
   "The browser blocked this request before it reached the API — the API " +
   "likely does not allow cross-origin requests from this docs site. Set " +
-  "`openapi.playground.proxy` in the Blume config to route playground " +
-  "requests through the docs server instead.";
+  "`playground: { proxy: true }` on the `openapi()` reference in the Blume " +
+  "config to route playground requests through the docs server instead.";
 
 /**
  * `Cookie` is a forbidden header name: a page cannot set it, so a credential

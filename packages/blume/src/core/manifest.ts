@@ -82,9 +82,14 @@ const buildFallbackRoutes = (
   if (!fallback) {
     return [];
   }
+  // A monolingual page (a GitHub release) publishes in one language only, so it
+  // gets no copy at every other locale's URL: those would be duplicates of the
+  // same text under a translated chrome.
   const fallbackPages = new Map(
     graph.pages.flatMap((page) =>
-      page.locale === fallback ? [[page.translationKey, page] as const] : []
+      page.locale === fallback && !page.monolingual
+        ? [[page.translationKey, page] as const]
+        : []
     )
   );
   const routes: RouteManifestEntry[] = [];

@@ -5,6 +5,7 @@ import type { AstroIntegration } from "astro";
 import { join, relative, resolve } from "pathe";
 
 import { loadEnvFiles } from "../cli/env.ts";
+import type { CustomPageRoute } from "../core/custom-pages.ts";
 import { enrichDiagnostic } from "../core/diagnostics.ts";
 import { scanProject } from "../core/project-graph.ts";
 import type { BlumeProject } from "../core/project-graph.ts";
@@ -221,12 +222,7 @@ export const showBlumeErrorOverlay = (diagnostics: Diagnostic[]): void => {
 };
 
 /** A user page mounted into the generated runtime. */
-export interface BlumePageRoute {
-  /** Route pattern, e.g. `/changelog` or `/examples/[slug]`. */
-  pattern: string;
-  /** Absolute path to the user's `.astro` page file. */
-  entrypoint: string;
-}
+export type BlumePageRoute = CustomPageRoute;
 
 export interface BlumeIntegrationOptions {
   pages: BlumePageRoute[];

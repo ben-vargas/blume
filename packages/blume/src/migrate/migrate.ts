@@ -15,10 +15,10 @@ import { join } from "pathe";
 /** The docs frameworks the skill has a mapping reference for. */
 export const MIGRATE_SOURCES = [
   "mintlify",
-  "docusaurus",
   "fumadocs",
-  "nextra",
+  "docusaurus",
   "starlight",
+  "nextra",
 ] as const;
 
 export type MigrateSourceId = (typeof MIGRATE_SOURCES)[number];

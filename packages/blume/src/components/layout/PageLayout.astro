@@ -222,8 +222,11 @@ const markdownMirror = route === "/" ? withBase("/index.md") : null;
 // Derive canonical + og:image from the site URL the same way the catch-all does
 // for content pages, so a custom page gets both for free. The matching OG card
 // (`/og/<slug>.png`, `index` for the home) is generated for static custom pages
-// when `og.enabled`. Explicit props still win.
+// when `og.enabled` — not for a dynamic route (`[param]`), whose concrete URLs
+// can't be enumerated up front, so such a page advertises no generated card
+// rather than one that 404s. Explicit props still win.
 const ogSlug = route === "/" ? "index" : route.slice(1);
+const ogCardGenerated = !Astro.routePattern.includes("[");
 // Absolute URLs carry the deployment base too (`site + base + route`), since the
 // page is served under it. `withBase` handles a root base as a no-op.
 const basedRoute = withBase(route);
@@ -247,7 +250,7 @@ const absolutizeOgImage = (value: string): string =>
   value.startsWith("/") && siteBase ? `${siteBase}${withBase(value)}` : value;
 const resolvedOgImage = ogImage
   ? absolutizeOgImage(ogImage)
-  : ogEnabled && siteBase
+  : ogEnabled && ogCardGenerated && siteBase
     ? `${siteBase}${encodeURI(withBase(`/og/${ogSlug}.png`))}`
     : null;
 // Only the generated card has a known size and format, so its dimensions are

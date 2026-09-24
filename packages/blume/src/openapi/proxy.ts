@@ -1,7 +1,8 @@
 /**
  * The playground's CORS proxy. Browsers block the "Try it" panel's `fetch`
  * whenever the documented API doesn't allow cross-origin requests from the
- * docs site, so `openapi.playground.proxy: true` mounts this handler at
+ * docs site, so `playground: { proxy: true }` on an `openapi()` reference
+ * mounts this handler at
  * `/_api-proxy` (server output only) and the client sends its real request
  * here as `?url=<encoded target>` instead. The handler replays the request
  * upstream and mirrors the response back, so the browser only ever talks

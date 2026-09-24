@@ -25,6 +25,8 @@ import { versionizeRoute } from "./versions.ts";
 interface BuildContentGraphOptions {
   /** Site-wide route mount point (`""` or `/seg`); invisible to the nav tree. */
   basePath?: string;
+  /** The header brand link as configured (`logo.href`, default `/`). */
+  brandHref?: string;
   /** Routes served outside the content tree that tabs may link to directly. */
   extraRoutes?: ReadonlySet<string>;
   folderMeta: Map<string, FolderMeta>;
@@ -144,14 +146,54 @@ const buildLocaleNavigation = (
   diagnostics: Diagnostic[],
   version = ""
 ): Navigation => {
-  // Localize internal tab paths — the tab's own and its dropdown items' — so a
-  // header tab points to its in-locale route (e.g. `/docs` -> `/fr/docs`);
-  // external paths pass through. Selectors are left alone: a language
-  // selector's items intentionally target specific locales. The header's brand
-  // link (`Logo.astro`) runs through the same helper, so the logo and the tabs
-  // beside it always agree on the reader's locale.
-  const localizePath = (path: string): string =>
-    localizeInternalPath(path, code, i18n);
+  const basePath = options.basePath ?? "";
+  const real = pages.filter((page) => page.locale === code);
+  const localePages = localePagesFor(
+    code,
+    real,
+    fallback,
+    fallbackByKey,
+    i18n,
+    basePath
+  );
+  // Every route the build serves: each locale's pages (this locale's fallback
+  // copies included) plus the routes outside the content tree — custom pages
+  // and the generated changelog index, which mount outside `basePath`.
+  const pageRoutes = [
+    ...new Set([...pages, ...localePages].map((page) => page.route)),
+  ];
+  const extraRoutes = options.extraRoutes ?? new Set<string>();
+  // Whether `path` (authored at root, like a tab path) is served — exactly, or
+  // with `section`, as the prefix of a served page (a tab resolves to its
+  // section's first page, a plain link doesn't).
+  const serves = (path: string, section: boolean): boolean => {
+    if (extraRoutes.has(path)) {
+      return true;
+    }
+    const based = withBasePath(basePath, path);
+    const prefix = based === "/" ? "/" : `${based}/`;
+    return pageRoutes.some(
+      (route) => route === based || (section && route.startsWith(prefix))
+    );
+  };
+  // Localize an internal link so it points to its in-locale route (e.g. `/docs`
+  // -> `/fr/docs`); external paths pass through. A route this locale doesn't
+  // serve while the default one does — a custom page, the generated changelog
+  // index — exists only at its own path, so the link stays there instead of
+  // 404ing. Tab paths (and their dropdown items') resolve to a section's first
+  // page, so a translated section counts; hrefs must be served exactly.
+  // Selectors are left alone: a language selector's items intentionally target
+  // specific locales. The header's brand link resolves the same way, so the
+  // logo and the tabs beside it always agree on the reader's locale.
+  const localizeServed = (path: string, section: boolean): string => {
+    const localized = localizeInternalPath(path, code, i18n);
+    return localized === path ||
+      serves(localized, section) ||
+      !serves(path, section)
+      ? localized
+      : path;
+  };
+  const localizePath = (path: string): string => localizeServed(path, true);
   const tabs = resolveTabLabels(
     options.navigation.tabs,
     code,
@@ -166,19 +208,10 @@ const buildLocaleNavigation = (
       path: localizePath(tab.path),
     };
     if (localized.href) {
-      localized.href = localizePath(localized.href);
+      localized.href = localizeServed(localized.href, false);
     }
     return localized;
   });
-  const real = pages.filter((page) => page.locale === code);
-  const localePages = localePagesFor(
-    code,
-    real,
-    fallback,
-    fallbackByKey,
-    i18n,
-    options.basePath ?? ""
-  );
   // Meta files live in locale directories only under the `dir` parser
   // (`fr/guides/meta.ts` -> key `fr/guides`). Under `dot`, translations sit
   // next to the originals and `guides/meta.ts` applies to every locale —
@@ -191,13 +224,13 @@ const buildLocaleNavigation = (
   // locale, not kick them back to the default one.
   const localizeHref = <T extends { href: string }>(item: T): T => ({
     ...item,
-    href: localizePath(item.href),
+    href: localizeServed(item.href, false),
   });
   const { actions, cta, featured } = options.navigation;
 
-  return buildNavigation(localePages, {
+  const navigation = buildNavigation(localePages, {
     actions: actions?.map(localizeHref),
-    basePath: options.basePath ?? "",
+    basePath,
     cta: cta ? localizeHref(cta) : null,
     diagnostics,
     display: options.navigation.sidebar.display,
@@ -221,6 +254,9 @@ const buildLocaleNavigation = (
     sidebar: version ? undefined : options.navigation.sidebar.items,
     tabs,
   });
+  return options.brandHref === undefined
+    ? navigation
+    : { ...navigation, brandHref: localizeServed(options.brandHref, false) };
 };
 
 /**
@@ -238,10 +274,12 @@ const buildI18nNavigation = (
   // Pages of the fallback locale, by translation key — used to fill in a
   // locale's sidebar for pages it hasn't translated yet.
   const fallback = resolveFallbackLocale(i18n);
+  // Monolingual pages (GitHub releases) are left out: they aren't served at the
+  // other locales' URLs (see the route manifest), so no sidebar may link there.
   const fallbackByKey = new Map<string, PageRecord>();
   if (fallback) {
     for (const page of pages) {
-      if (page.locale === fallback) {
+      if (page.locale === fallback && !page.monolingual) {
         fallbackByKey.set(page.translationKey, page);
       }
     }

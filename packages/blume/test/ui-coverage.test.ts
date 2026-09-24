@@ -697,10 +697,12 @@ describe("layout chrome sources", () => {
 
   it("links the header logo to the active locale's root", async () => {
     // The brand link follows the reader's locale like the tabs beside it:
-    // Logo.astro localizes the configured href (default `/`) with the same
+    // Logo.astro takes the href the locale's navigation resolved (moved into
+    // the locale only when it serves that route), falling back to the same
     // helper the per-locale tab paths use, and every layout that renders the
     // header hands it the page locale to do so.
     const logo = await layoutSource("Logo.astro");
+    expect(logo).toContain("data.navigationByLocale[locale]?.brandHref");
     expect(logo).toContain(
       "localizeInternalPath(configuredHref, locale, data.config.i18n)"
     );
@@ -933,6 +935,17 @@ describe("layout chrome sources", () => {
     // alternate included — it must not survive the opt-out on its own.
     expect(partial).toContain("discovery && markdownMirror && (");
     expect(partial).toContain('rel="alternate" type="text/markdown"');
+  });
+
+  it("advertises a generated OG card only for static custom routes", async () => {
+    // Cards are generated per static custom page (`customOgRoutes` skips
+    // `[param]` routes), so a dynamic page must not point `og:image` at a card
+    // the build never renders.
+    const source = await layoutSource("PageLayout.astro");
+    expect(source).toContain(
+      'const ogCardGenerated = !Astro.routePattern.includes("[");'
+    );
+    expect(source).toContain(": ogEnabled && ogCardGenerated && siteBase");
   });
 
   it("advertises the homepage Markdown mirror from PageLayout", async () => {

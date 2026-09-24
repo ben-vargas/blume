@@ -318,6 +318,13 @@ export interface Navigation {
   featured: FeaturedLink[];
   /** Repo URL for the header link, or null when hidden (`navigation.repo`). */
   repoUrl?: string | null;
+  /**
+   * Where the header's brand link points in this locale: `logo.href` moved
+   * into the locale's prefix when the locale serves that route, else left on
+   * the default route (a custom home page exists only at `/`). Set on i18n
+   * locale trees.
+   */
+  brandHref?: string;
 }
 
 /** The full content graph: the source of truth for generated modules. */

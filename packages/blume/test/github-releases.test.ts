@@ -659,7 +659,7 @@ describe("generateRuntime with a staged changelog source", () => {
 });
 
 describe("release pages under i18n", () => {
-  it("marks every release route monolingual so it renders no language switcher", async () => {
+  it("marks release routes monolingual and copies none into other locales", async () => {
     const root = await mkdtemp(join(tmpdir(), "blume-mono-cl-"));
     dirs.push(root);
     const files = {
@@ -698,12 +698,16 @@ describe("release pages under i18n", () => {
       const releaseRoutes = project.manifest.routes.filter(
         (route) => route.contentType === "changelog"
       );
-      // The release itself and its German fallback both carry the flag.
-      expect(releaseRoutes.map((route) => route.locale).toSorted()).toEqual([
-        "de",
-        "en",
-      ]);
+      // The release publishes in one language: it carries the flag (so it
+      // renders no language switcher) and gets no German fallback copy, while
+      // a filesystem page still does.
+      expect(releaseRoutes.map((route) => route.locale)).toEqual(["en"]);
       expect(releaseRoutes.every((route) => route.monolingual)).toBe(true);
+      expect(
+        project.manifest.routes.some(
+          (route) => route.path === "/de" && route.fallback
+        )
+      ).toBe(true);
       // A filesystem page stays translatable.
       const home = project.manifest.routes.find((route) => route.path === "/");
       expect(home?.monolingual).toBeUndefined();

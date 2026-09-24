@@ -2,6 +2,7 @@ import { isAbsolute, relative } from "pathe";
 
 import { CHANGELOG_INDEX_ROUTE, hasChangelogIndex } from "./changelog-index.ts";
 import { loadConfig } from "./config.ts";
+import { customStaticRoutes, discoverPages } from "./custom-pages.ts";
 import { buildContentGraph } from "./graph.ts";
 import { i18nDiagnostics } from "./i18n.ts";
 import { expandIncludes, hasIncludeStatements } from "./includes.ts";
@@ -205,6 +206,15 @@ const normalizeLoadedEntries = (
  * Collects all diagnostics without throwing on content-level problems so
  * callers can decide how strict to be.
  */
+/** Narrows the logo config's image shorthand from its object form. */
+const isLogoShorthand = (
+  logo: NonNullable<ResolvedConfig["logo"]>
+): logo is string => typeof logo === "string";
+
+/** The configured brand link: `logo.href`, else the site root. */
+const logoHref = (logo: ResolvedConfig["logo"]): string =>
+  logo === undefined || isLogoShorthand(logo) ? "/" : (logo.href ?? "/");
+
 export const scanProject = async (
   root: string,
   options: {
@@ -364,14 +374,20 @@ export const scanProject = async (
     );
   }
 
+  // Custom `.astro` pages and the generated changelog index aren't content
+  // pages, so name them for navigation: a `/changelog` tab should open the
+  // timeline, not the newest entry, and a tab or brand link to a custom page
+  // must stay on its route in every locale.
+  const customPages = context.pagesRoot
+    ? await discoverPages(context.pagesRoot)
+    : [];
   const graph = buildContentGraph(pages, {
     basePath: config.basePath,
-    // The generated changelog index isn't a content page, so name it here for
-    // tab resolution: a `/changelog` tab should open the timeline, not the
-    // newest entry.
-    extraRoutes: new Set(
-      hasChangelogIndex(pages, config) ? [CHANGELOG_INDEX_ROUTE] : []
-    ),
+    brandHref: logoHref(config.logo),
+    extraRoutes: new Set([
+      ...customStaticRoutes(customPages),
+      ...(hasChangelogIndex(pages, config) ? [CHANGELOG_INDEX_ROUTE] : []),
+    ]),
     folderMeta: folderMeta.meta,
     i18n: config.i18n,
     navigation: config.navigation,

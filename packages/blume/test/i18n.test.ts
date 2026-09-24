@@ -30,7 +30,7 @@ import type {
   ResolvedI18nConfig,
 } from "../src/core/schema.ts";
 import { resolveDocsCollection } from "../src/core/sources/collection.ts";
-import type { NavNode, ProjectContext } from "../src/core/types.ts";
+import type { NavNode, PageRecord, ProjectContext } from "../src/core/types.ts";
 import { UI_PACKS } from "../src/core/ui-packs/index.ts";
 
 type I18nInput = Partial<NonNullable<BlumeConfigInput["i18n"]>>;
@@ -72,7 +72,11 @@ const FILES = {
   "docs/index.mdx": "---\ntitle: Home\n---\n# Home\n",
 };
 
-const buildProject = async (resolved: ResolvedConfig) => {
+const buildProject = async (
+  resolved: ResolvedConfig,
+  graphOptions: { brandHref?: string; extraRoutes?: ReadonlySet<string> } = {},
+  mapPages: (pages: PageRecord[]) => PageRecord[] = (pages) => pages
+) => {
   const root = await mkdtemp(join(tmpdir(), "blume-i18n-"));
   dirs.push(root);
   const contentRoot = join(root, "docs");
@@ -84,14 +88,16 @@ const buildProject = async (resolved: ResolvedConfig) => {
     })
   );
 
-  const { pages } = await discoverContent({
+  const discovered = await discoverContent({
     contentRoot,
     defaultType: resolved.content.defaultType,
     exclude: resolveDocsCollection(resolved, contentRoot).exclude,
     i18n: resolved.i18n,
     include: resolveDocsCollection(resolved, contentRoot).include,
   });
+  const pages = mapPages(discovered.pages);
   const graph = buildContentGraph(pages, {
+    ...graphOptions,
     folderMeta: new Map<string, FolderMeta>(),
     i18n: resolved.i18n,
     navigation: resolved.navigation,
@@ -460,6 +466,84 @@ describe("per-locale navigation", () => {
     // reader's locale; external links pass through untouched.
     expect(hrefs("fr")).toEqual(["/fr/changelog", "https://blog.example.com"]);
     expect(hrefs("en")).toEqual(["/changelog", "https://blog.example.com"]);
+  });
+
+  it("keeps links on routes only the default locale serves", async () => {
+    const resolved = blumeConfigSchema.parse({
+      i18n: {
+        defaultLocale: "en",
+        locales: [
+          { code: "en", label: "English" },
+          { code: "fr", label: "Français" },
+        ],
+      },
+      navigation: {
+        featured: [
+          { href: "/guides/only-en", label: "Only EN" },
+          { href: "/cli", label: "CLI" },
+          { href: "/nowhere", label: "Nowhere" },
+        ],
+        tabs: [
+          { label: "Guides", path: "/guides" },
+          { label: "CLI", path: "/cli" },
+          { href: "/changelog", label: "Changelog", path: "/changelog" },
+        ],
+      },
+    });
+    // `/cli` is a custom page and `/changelog` the generated index: both are
+    // served at their own path only, never under `/fr`.
+    const { graph } = await buildProject(resolved, {
+      brandHref: "/",
+      extraRoutes: new Set(["/", "/changelog", "/cli"]),
+    });
+    const { fr } = graph.navigationByLocale;
+    // A translated (or fallback-padded) section moves into the locale; a route
+    // only the default locale serves stays put instead of 404ing.
+    expect(fr?.tabs.map((tab) => tab.href ?? tab.path)).toEqual([
+      "/fr/guides/quickstart",
+      "/cli",
+      "/changelog",
+    ]);
+    // Hrefs must be served exactly: the fallback copy of `only-en` is, a
+    // custom page stays on its route, and an unknown route is localized as
+    // before.
+    expect(fr?.featured.map((link) => link.href)).toEqual([
+      "/fr/guides/only-en",
+      "/cli",
+      "/fr/nowhere",
+    ]);
+    // The French home is a content page, so the brand link follows the locale.
+    expect(fr?.brandHref).toBe("/fr");
+    expect(graph.navigationByLocale.en?.brandHref).toBe("/");
+  });
+
+  it("keeps the brand link on a custom home the locale doesn't serve", async () => {
+    // No content home in either locale: `/` is a custom page, so French
+    // readers' brand link goes there rather than to a `/fr` that 404s.
+    const { graph } = await buildProject(
+      config(),
+      { brandHref: "/", extraRoutes: new Set(["/"]) },
+      (pages) => pages.filter((page) => page.translationKey !== "/")
+    );
+    expect(graph.navigationByLocale.fr?.brandHref).toBe("/");
+  });
+
+  it("gives monolingual pages no fallback copy in other locales", async () => {
+    const { graph, manifest } = await buildProject(config(), {}, (pages) =>
+      pages.map((page) =>
+        page.translationKey === "/guides/only-en"
+          ? { ...page, monolingual: true }
+          : page
+      )
+    );
+    // A GitHub release publishes one language: no `/fr` copy is built, and the
+    // French sidebar doesn't link to one.
+    expect(
+      manifest.routes.some((route) => route.path === "/fr/guides/only-en")
+    ).toBe(false);
+    const frRoutes = JSON.stringify(graph.navigationByLocale.fr?.sidebar);
+    expect(frRoutes).not.toContain("/fr/guides/only-en");
+    expect(frRoutes).toContain("/fr/guides/quickstart");
   });
 
   it("localizes tab dropdown item paths per locale", async () => {

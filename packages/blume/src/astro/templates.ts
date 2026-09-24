@@ -1566,7 +1566,8 @@ export const ALL: APIRoute = ({ request }) => handler(request);
 /**
  * Generate the playground's CORS proxy endpoint
  * (`.blume/src/blume-openapi/api-proxy.ts`), behind
- * `openapi.playground.proxy: true`. A thin server-rendered wrapper around the
+ * `playground: { proxy: true }` on an `openapi()` reference. A thin
+ * server-rendered wrapper around the
  * shipped `createPlaygroundProxyHandler`; injected at `/_api-proxy` rather
  * than written under `pages/` because Astro treats `_`-prefixed page files as
  * private.
