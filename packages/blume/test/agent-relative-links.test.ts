@@ -92,6 +92,20 @@ describe("relative page links on the agent surfaces", () => {
     expect(full).toContain("See [Install](/sub/guides/install).");
   });
 
+  it("returns a page with no relative link untouched, skipping the parse", async () => {
+    const project = await scanFixture(FILES);
+    const rewrite = relativeLinkRewriter(project);
+    const page = {
+      route: "/guides/leaf",
+      sourcePath: project.graph.pages[0]?.sourcePath,
+    };
+    const text =
+      "See [docs](https://example.com), [home](/), [top](#intro), and [mail](mailto:a@b.c).\n\n[ref]: https://example.com/x\n";
+    expect(rewrite(text, page)).toBe(text);
+    // A relative target anywhere still takes the full path.
+    expect(rewrite("[x](install)", page)).not.toBe("[x](install)");
+  });
+
   it("leaves a page with no source file as written", async () => {
     const project = await scanFixture(FILES);
     const rewrite = relativeLinkRewriter(project);

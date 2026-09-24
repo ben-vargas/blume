@@ -1,9 +1,10 @@
 import { afterAll, afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { join } from "pathe";
+import { join, normalize } from "pathe";
 
 import {
   publishRuntimeModules,
@@ -18,7 +19,11 @@ import {
 
 /** Relative page links are rewritten to the route they mean at render time. */
 
-const ROOT = "/site/docs";
+// An absolute path on this platform (with a drive letter on Windows), as the
+// processors receive from the CLI; `pathToFileURL` adds the drive to a bare
+// POSIX path there, which would no longer sit under a drive-less root.
+const SITE = normalize(path.resolve("/site"));
+const ROOT = `${SITE}/docs`;
 
 interface Route {
   collection?: string;
@@ -241,7 +246,7 @@ describe("relative page links", () => {
     );
     const html = await render(
       "[Usage](./usage.md)\n\n[Next](./usage)",
-      "/site/.blume/content/sdk/index.md"
+      `${SITE}/.blume/content/sdk/index.md`
     );
     expect(html).toContain('href="/sdk/usage">Usage');
     expect(html).toContain('href="/sdk/usage">Next');

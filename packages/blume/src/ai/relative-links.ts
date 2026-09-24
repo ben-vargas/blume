@@ -33,6 +33,15 @@ export type RelativeLinkRewriter = (text: string, page: LinkedPage) => string;
 const DEFINITION =
   /^(?<lead> {0,3}\[(?:[^\]\\]|\\.)+\]:[\t ]*)(?:<(?<angled>[^>]*)>|(?<bare>\S+))/u;
 
+/**
+ * Whether a text could hold a relative page link at all: an inline link or a
+ * reference definition whose target isn't a URL with a scheme, a root path, or
+ * a fragment. Most pages hold none, and those skip the link parse and the
+ * line-by-line fence scan entirely.
+ */
+const MAYBE_RELATIVE =
+  /\]\([\t ]*<?(?![a-z][\d+.a-z-]*:|\/|#)|^ {0,3}\[[^\]\n]+\]:[\t ]*<?(?![a-z][\d+.a-z-]*:|\/|#)/imu;
+
 interface Splice {
   column: number;
   length: number;
@@ -78,7 +87,7 @@ export const relativeLinkRewriter = (
 
   return (text, page) => {
     const { sourcePath } = page;
-    if (!sourcePath) {
+    if (!sourcePath || !MAYBE_RELATIVE.test(text)) {
       return text;
     }
     const from: RelativeLinkBase = {

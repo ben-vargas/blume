@@ -387,8 +387,15 @@ export default {
       'export default {\n  versions: {\n    archived: [{ id: "v1.0" }],\n    current: { label: "Latest" },\n  },\n  title: "Docs",\n};\n'
     );
     // The registered snapshot routes as v1.0, so a scan no longer serves it as
-    // current content.
-    const project = await scanProject(root);
+    // current content. The scan reads a copy at a fresh path: Bun caches an
+    // imported config by path, so rescanning `root` in this process could
+    // see the config as it was before the cut (it does on Windows).
+    const copy = await makeProject({
+      "blume.config.ts": await readFile(join(root, "blume.config.ts"), "utf-8"),
+      "docs/index.mdx": "---\ntitle: Home\n---\n# Home\n",
+      "docs/v1.0/index.mdx": "---\ntitle: Home\n---\n# Home\n",
+    });
+    const project = await scanProject(copy);
     expect(project.config.versions?.archived.map((v) => v.id)).toEqual([
       "v1.0",
     ]);

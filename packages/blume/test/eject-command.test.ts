@@ -118,10 +118,12 @@ describe("blume eject", () => {
     const dev = await runCli(root, undefined, ["dev"]);
     expect(dev.exitCode).toBe(1);
     expect(dev.output).toContain("ejected to a standalone Astro app");
-    expect(dev.output).toContain("Run pnpm dev instead.");
+    // consola's fancy reporter renders the backticks as color, its CI
+    // reporter prints them, so match the command either way.
+    expect(dev.output).toMatch(/Run `?pnpm dev`? instead\./u);
     const build = await runCli(root, undefined, ["build"]);
     expect(build.exitCode).toBe(1);
-    expect(build.output).toContain("Run pnpm build instead.");
+    expect(build.output).toMatch(/Run `?pnpm build`? instead\./u);
     // Neither regenerated the hidden runtime eject removed.
     expect(existsSync(join(root, ".blume"))).toBe(false);
   });

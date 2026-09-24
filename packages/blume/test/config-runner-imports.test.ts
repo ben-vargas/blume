@@ -50,7 +50,8 @@ const resolveBlume = (specifier: string): string => {
     if (pattern.endsWith("/*") && subpath.startsWith(prefix)) {
       return join(
         PACKAGE_ROOT,
-        target.replace("*", subpath.slice(prefix.length))
+        // Node substitutes the matched segment for every `*` in the target.
+        target.replaceAll("*", subpath.slice(prefix.length))
       );
     }
   }
