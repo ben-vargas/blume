@@ -1,0 +1,239 @@
+---
+// "Your docs, in every coding agent." — the MCP server up close: a split with
+// what the server exposes beside a docs page with its "Connect to MCP" menu
+// open (the real menu's rows, in its order), over a command strip that shows
+// what the pointed-at row copies or opens. The Claude Code row is highlighted
+// and its command shown until the pointer is over the menu; hovering a row
+// swaps both, all in CSS (`:has`). The art is decorative and hidden from
+// assistive tech.
+import Split from "../_home/Split.astro";
+import Tray from "../_home/Tray.astro";
+import { glyph, icons, sampleBrand } from "../_home/shared.ts";
+import { agentMarks } from "./marks.ts";
+
+const items = [
+  {
+    body: "`search_docs`, `get_page`, `list_pages`, and `get_navigation`, with every page also served as a `text/markdown` resource.",
+    title: "Four tools and every page.",
+  },
+  {
+    body: "Each page's Connect to MCP menu copies the Claude Code or Codex command, or installs the server straight into Cursor or VS Code.",
+    title: "Connected from any page.",
+  },
+  {
+    body: "Agents can narrow search to content types like RFCs or runbooks, and filter by the facets you declare.",
+    title: "Scoped retrieval.",
+  },
+  {
+    body: "Set `agents.mcp.enabled` and deploy to Vercel, Netlify, Cloudflare, or Node. A server card at `/.well-known/mcp/server-card.json` describes it.",
+    title: "One switch to turn on.",
+  },
+];
+
+const url = "https://docs.acme.dev/mcp";
+
+// The menu's rows, as Blume renders them, with what each one copies or opens.
+// A row's icon is either a brand `mark` (a full <svg>) or a Lucide `glyph`.
+const rows = [
+  { command: url, glyph: glyph("link"), id: "url", label: "Copy server URL" },
+  {
+    command: `claude mcp add --transport http acme ${url}`,
+    mark: agentMarks.claude,
+    id: "claude",
+    label: "Copy Claude Code command",
+  },
+  {
+    command: `codex mcp add acme --url ${url}`,
+    mark: agentMarks.codex,
+    id: "codex",
+    label: "Copy Codex command",
+  },
+  {
+    command: "Opens Cursor to install acme",
+    external: true,
+    mark: agentMarks.cursor,
+    id: "cursor",
+    label: "Add to Cursor",
+  },
+  {
+    command: "Opens VS Code to install acme",
+    external: true,
+    glyph: glyph("code"),
+    id: "vscode",
+    label: "Add to VS Code",
+  },
+];
+
+const bar = "h-2 rounded-full bg-foreground/10";
+const window =
+  "rounded-xl bg-background shadow-lg shadow-[rgb(28_40_64/0.08)] ring-1 ring-foreground/5 dark:shadow-none";
+---
+
+<Split
+  items={items}
+  link={{ href: "/docs/discoverability/mcp", label: "Set up the MCP server" }}
+  tagline="One click from any page to a connected server."
+  title="Your docs, in every coding agent."
+>
+  <Tray innerClass="flex flex-col justify-center gap-4 p-6 sm:p-10 lg:min-h-[560px]" tone="sky">
+    <div aria-hidden="true" class="flex flex-col gap-4" data-connect data-nosnippet data-reveal>
+      <div class:list={[window, "overflow-hidden"]}>
+        <div class="flex items-center justify-between gap-4 border-border border-b px-4 py-2.5">
+          <p class="flex items-center gap-2 font-medium text-foreground text-xs">
+            <span
+              class="inline-flex size-3.5 text-accent [&>svg]:size-full"
+              set:html={sampleBrand.logo}
+            />
+            {sampleBrand.name}
+          </p>
+          <div class="flex items-center gap-2">
+            <div class:list={[bar, "w-10"]}></div>
+            <div class:list={[bar, "w-10"]}></div>
+            <div class:list={[bar, "w-16"]}></div>
+          </div>
+        </div>
+        <div class="relative flex flex-col gap-2.5 p-4">
+          <div class="flex items-center justify-between gap-4">
+            <p class="font-semibold text-base text-foreground">Webhooks</p>
+            <p
+              class="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md px-2 py-1 text-foreground text-xs ring-1 ring-border"
+            >
+              <svg
+                class="size-3 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                set:html={icons.plug}
+              />
+              Connect to MCP
+              <svg
+                class="size-3 shrink-0 rotate-180"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                set:html={icons.chevronDown}
+              />
+            </p>
+          </div>
+          <div class:list={[bar, "w-full"]}></div>
+          <div class:list={[bar, "w-4/5"]}></div>
+          <div class:list={[bar, "w-11/12"]}></div>
+          <div class:list={[bar, "w-3/5"]}></div>
+          <div class="my-1.5 flex h-20 flex-col gap-2 rounded-lg bg-muted p-3">
+            <div class="h-2 w-2/5 rounded-full bg-foreground/15"></div>
+            <div class="h-2 w-3/5 rounded-full bg-foreground/15"></div>
+            <div class="h-2 w-1/3 rounded-full bg-foreground/15"></div>
+          </div>
+          <div class:list={[bar, "w-full"]}></div>
+          <div class:list={[bar, "w-2/3"]}></div>
+          <div class:list={[bar, "w-5/6"]}></div>
+          <div class:list={[bar, "w-1/2"]}></div>
+
+          <!-- The open menu, hanging off the page's button -->
+          <ul
+            class:list={[
+              window,
+              "group/rows absolute top-14 right-4 flex w-64 max-w-[calc(100%-2rem)] flex-col gap-0.5 p-1.5",
+            ]}
+            role="list"
+          >
+            {
+              rows.map((row, index) => (
+                <>
+                  {index === 3 && <li class="my-1 border-border border-t" />}
+                  <li
+                    class:list={[
+                      "reveal-fade flex cursor-default items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs",
+                      row.id === "claude"
+                        ? "bg-muted text-foreground group-hover/rows:not-hover:bg-transparent group-hover/rows:not-hover:text-muted-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    ]}
+                    data-connect-row={row.id}
+                    style={`--reveal-delay: ${200 + index * 80}ms`}
+                  >
+                    <span class="inline-flex size-3.5 shrink-0 [&>svg]:size-full">
+                      {row.mark ? (
+                        <Fragment set:html={row.mark} />
+                      ) : (
+                        <svg
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="2"
+                          viewBox="0 0 24 24"
+                          set:html={row.glyph}
+                        />
+                      )}
+                    </span>
+                    <span class="flex-1 truncate">{row.label}</span>
+                    {row.external && (
+                      <svg
+                        class="size-3 shrink-0"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        set:html={glyph("external-link")}
+                      />
+                    )}
+                  </li>
+                </>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
+
+      <!-- What the pointed-at row copies or opens -->
+      <div
+        class="reveal-rise grid overflow-hidden rounded-xl bg-zinc-950 px-4 py-3 font-mono text-xs text-zinc-300 [--reveal-delay:700ms]"
+      >
+        {
+          rows.map((row) => (
+            <p
+              class="connect-command col-start-1 row-start-1 flex min-w-0 items-center gap-2"
+              data-command-for={row.id}
+            >
+              <span class="shrink-0 select-none text-teal-400">
+                {row.external ? "↗" : "❯"}
+              </span>
+              <span class="truncate">{row.command}</span>
+            </p>
+          ))
+        }
+      </div>
+    </div>
+  </Tray>
+</Split>
+
+<style>
+  /* The strip shows the Claude Code command until the pointer is over a
+     row, then that row's. */
+  .connect-command {
+    visibility: hidden;
+  }
+
+  [data-connect]:not(:has([data-connect-row]:hover))
+    .connect-command[data-command-for="claude"],
+  [data-connect]:has([data-connect-row="url"]:hover)
+    .connect-command[data-command-for="url"],
+  [data-connect]:has([data-connect-row="claude"]:hover)
+    .connect-command[data-command-for="claude"],
+  [data-connect]:has([data-connect-row="codex"]:hover)
+    .connect-command[data-command-for="codex"],
+  [data-connect]:has([data-connect-row="cursor"]:hover)
+    .connect-command[data-command-for="cursor"],
+  [data-connect]:has([data-connect-row="vscode"]:hover)
+    .connect-command[data-command-for="vscode"] {
+    visibility: visible;
+  }
+</style>

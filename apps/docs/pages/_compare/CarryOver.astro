@@ -1,0 +1,95 @@
+---
+// "Your docs come with you." — a split with what the migration carries over
+// beside the concrete rewrites the blume-migrate skill makes for this tool
+// (linking to the skill's full reference for it):
+// a mono window of `from → to` rows on a sky tray (on phones each row stacks,
+// the source above an arrow and its rewrite, so neither side truncates). The
+// rows rise in as the card arrives and highlight under the pointer like the
+// homepage bento's.
+import Split from "../_home/Split.astro";
+import Tray from "../_home/Tray.astro";
+import { glyph } from "../_home/shared.ts";
+import type { CompareTool } from "./tools.ts";
+
+interface Props {
+  tool: CompareTool;
+}
+
+const { tool } = Astro.props;
+const arrow = glyph("arrow-right");
+---
+
+<Split
+  items={tool.carryOver.items}
+  link={{
+    href: `https://github.com/haydenbleasel/blume/blob/main/skills/blume-migrate/references/${tool.id}.md`,
+    label: "See every mapping",
+  }}
+  reverse
+  tagline={tool.carryOver.tagline}
+  title="Your docs come with you."
+>
+  <Tray innerClass="flex flex-col justify-center p-6 sm:p-10 lg:min-h-[520px]" tone="sky">
+    <div
+      class="w-full overflow-hidden rounded-2xl bg-background shadow-xl shadow-[rgb(28_40_64/0.12)] ring-1 ring-foreground/5 dark:shadow-none"
+      data-nosnippet
+      data-reveal
+    >
+      <div
+        class="flex items-center gap-2 border-border border-b px-4 py-3 text-xs sm:grid sm:grid-cols-[minmax(0,1fr)_1rem_minmax(0,1fr)] sm:gap-3"
+      >
+        <p class="flex items-center gap-2 font-medium text-foreground">
+          <span
+            aria-hidden="true"
+            class="inline-flex size-3.5 shrink-0"
+            set:html={tool.source.logo}
+          />
+          {tool.source.name}
+        </p>
+        <svg
+          aria-hidden="true"
+          class="size-3.5 shrink-0 text-muted-foreground/60"
+          fill="none"
+          stroke="currentColor"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          viewBox="0 0 24 24"
+          set:html={arrow}
+        />
+        <p class="font-medium text-foreground">Blume</p>
+      </div>
+      <ul class="group/rows flex flex-col gap-0.5 p-1.5" role="list">
+        {
+          tool.carryOver.mappings.map((mapping, index) => (
+            <li
+              class:list={[
+                "reveal-rise grid grid-cols-[1rem_minmax(0,1fr)] items-center gap-x-2 gap-y-1 rounded-lg px-2.5 py-2 font-mono text-xs sm:grid-cols-[minmax(0,1fr)_1rem_minmax(0,1fr)] sm:gap-3",
+                index === 0
+                  ? "bg-accent/10 group-hover/rows:not-hover:bg-transparent"
+                  : "hover:bg-accent/10",
+              ]}
+              style={`--reveal-delay: ${index * 80}ms`}
+            >
+              <span class="col-span-2 truncate text-muted-foreground sm:col-span-1">
+                {mapping.from}
+              </span>
+              <svg
+                aria-hidden="true"
+                class="size-3.5 shrink-0 text-muted-foreground/60"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                set:html={arrow}
+              />
+              <span class="truncate text-accent">{mapping.to}</span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </Tray>
+</Split>

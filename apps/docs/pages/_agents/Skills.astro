@@ -1,0 +1,88 @@
+---
+// "Ship your skills with your docs." — skills discovery up close: a split
+// (visual on the left) with what publishing does beside the one line of
+// config and the discovery index it produces, in the shape the build writes
+// (one entry per skill with its digest; the `$schema` line is left out to
+// keep the window narrow). Both windows rise in as the tray arrives.
+import CodeWindow from "../_home/CodeWindow.astro";
+import Split from "../_home/Split.astro";
+import Tray from "../_home/Tray.astro";
+import { icons } from "../_home/shared.ts";
+
+const items = [
+  {
+    body: "Point `agents.skills` at your skills folder, and the build publishes them at `/.well-known/agent-skills/` under the Agent Skills Discovery RFC.",
+    title: "Found at a well-known URL.",
+  },
+  {
+    body: "Every skill in the index carries a SHA-256 digest, and skills with scripts or references ship as archives so their paths still resolve.",
+    title: "Verified on download.",
+  },
+  {
+    body: "A skill with a missing or invalid name or description is skipped with a build warning instead.",
+    title: "Never published broken.",
+  },
+  {
+    body: "Published skills also appear in your `llms.txt`, next to the docs that explain them.",
+    title: "Listed in llms.txt.",
+  },
+];
+
+const config = `export default defineConfig({
+  agents: {
+    skills: "./skills",
+  },
+});`;
+
+const index = `{
+  "skills": [
+    {
+      "description": "Send email and SMS with the Acme API.",
+      "digest": "sha256:9c1e4f…",
+      "name": "acme",
+      "type": "skill-md",
+      "url": "/.well-known/agent-skills/acme/SKILL.md"
+    },
+    {
+      "description": "Receive and verify Acme webhooks.",
+      "digest": "sha256:47b0d2…",
+      "name": "acme-webhooks",
+      "type": "archive",
+      "url": "/.well-known/agent-skills/acme-webhooks.tar.gz"
+    }
+  ]
+}`;
+---
+
+<Split
+  items={items}
+  link={{
+    href: "/docs/discoverability/agent-discovery#skills-discovery",
+    label: "Publish your skills",
+  }}
+  reverse
+  tagline="Agents that find your docs find your skills too."
+  title="Ship your skills with your docs."
+>
+  <Tray
+    innerClass="flex flex-col justify-center gap-4 p-6 sm:p-10 lg:min-h-[560px]"
+    tone="sky"
+  >
+    <div class="flex flex-col gap-4" data-nosnippet data-reveal>
+      <CodeWindow
+        class="reveal-rise"
+        code={config}
+        icon={icons.config}
+        lang="ts"
+        title="blume.config.ts"
+      />
+      <CodeWindow
+        class="reveal-rise [--reveal-delay:250ms]"
+        code={index}
+        icon={icons.api}
+        lang="json"
+        title="/.well-known/agent-skills/index.json"
+      />
+    </div>
+  </Tray>
+</Split>

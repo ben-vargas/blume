@@ -1,0 +1,85 @@
+---
+// The /compare index hero: the compare pages' top-aligned split (a two-tone
+// headline on the left; the summary and links on the right), over a tray of
+// one card per compare page — the tool's mark, "Blume vs <tool>", its tagline,
+// and a chevron that nudges on hover. The cards come from _compare/tools.ts, so
+// a new entry there lands here too. Two columns until `xl`, where every card
+// shares one row; an odd last card spans the two-column row it would orphan.
+import TextLink from "../_home/TextLink.astro";
+import Tray from "../_home/Tray.astro";
+import { glyph } from "../_home/shared.ts";
+import { tools } from "./tools.ts";
+
+const chevron = glyph("chevron-right");
+---
+
+<section class="flex flex-col gap-12 pt-8 sm:pt-12 lg:gap-16">
+  <div class="grid gap-x-16 gap-y-8 lg:grid-cols-[5fr_4fr] lg:items-start">
+    <h1
+      class="max-w-[20ch] text-balance font-medium text-4xl sm:text-5xl lg:text-6xl"
+    >
+      <span class="block">How Blume compares.</span>
+      <span class="block text-muted-foreground">
+        Side by side with the tools you know.
+      </span>
+    </h1>
+    <div class="flex flex-col items-start gap-8">
+      <p class="max-w-[48ch] text-pretty text-lg text-muted-foreground">
+        What each tool costs, where it runs, what it gives your readers and
+        their agents, and what moving to Blume looks like. Where another tool
+        fits better, each page says so.
+      </p>
+      <div class="flex flex-wrap items-center gap-6">
+        <TextLink href="#migrate">Migrate with an agent</TextLink>
+        <TextLink href="/docs/quickstart">Start from scratch</TextLink>
+      </div>
+    </div>
+  </div>
+
+  <Tray innerClass="p-2">
+    <ul
+      class="grid gap-2 sm:grid-cols-2 xl:grid-cols-[repeat(var(--cols),minmax(0,1fr))]"
+      role="list"
+      style={`--cols: ${tools.length}`}
+    >
+      {
+        tools.map((tool) => (
+          <li class="sm:last:odd:col-span-2 xl:last:odd:col-span-1">
+            <a
+              class="group flex h-full flex-col gap-12 rounded-xl bg-background p-6 shadow-[0_1px_2px_rgb(28_40_64/0.06)] ring-1 ring-foreground/5 hover:shadow-[0_12px_32px_-12px_rgb(28_40_64/0.25)] motion-safe:transition-shadow dark:shadow-none dark:hover:ring-foreground/15"
+              href={`/compare/${tool.id}`}
+            >
+              <span
+                aria-hidden="true"
+                class="inline-flex size-8 shrink-0"
+                set:html={tool.source.logo}
+              />
+              <span class="mt-auto flex flex-col gap-1">
+                <span class="font-medium text-foreground">
+                  Blume vs {tool.source.name}
+                </span>
+                <span class="text-pretty text-muted-foreground text-sm">
+                  {tool.tagline}
+                </span>
+              </span>
+              <span class="inline-flex items-center gap-1 font-medium text-accent text-sm group-hover:text-foreground">
+                Read the comparison
+                <svg
+                  aria-hidden="true"
+                  class="size-3.5 shrink-0 group-hover:translate-x-0.5 motion-safe:transition-transform"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  viewBox="0 0 24 24"
+                  set:html={chevron}
+                />
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </Tray>
+</section>

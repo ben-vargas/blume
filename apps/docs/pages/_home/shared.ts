@@ -86,7 +86,7 @@ export const sampleBrand = {
 // `blume init`) as HTML: everything else is escaped, each span becomes a
 // styled <code>. For the landing-page sections whose copy lives in data
 // arrays, where inline <code> elements can't be authored directly.
-const escapeHtml = (text: string): string =>
+export const escapeHtml = (text: string): string =>
   text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
 export const inlineCode = (text: string): string =>

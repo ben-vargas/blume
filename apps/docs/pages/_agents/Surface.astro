@@ -1,7 +1,7 @@
 ---
-// "Built for humans and models" — the agent surface behind the agent-native
-// scores (right below): a bento of the discoverability features, grouped
-// rather than listed, in one tray (the scorecards' container). From `lg` up the rows run
+// "Everything agents look for." — the agents page's tour of the agent
+// surface: a bento of the discoverability features, grouped rather than
+// listed, in one tray (the scorecards' container). From `lg` up the rows run
 // 2+1 / 1+1+1 / 1+2, so the reader-facing features (Ask AI, open in chat)
 // bookend the machine-facing ones. Each card pairs a caption with an
 // illustration drawn from placeholder bars and the odd real label, so it
@@ -11,10 +11,10 @@
 // opens and closes, lists highlight the hovered row, and Ask AI's send
 // button replays the answer. The art is decorative and hidden from assistive
 // tech, so these are pointer-only toys: plain elements, never focusable.
-import BentoCard from "./BentoCard.astro";
-import SectionHeading from "./SectionHeading.astro";
-import TextLink from "./TextLink.astro";
-import { glyph, icons, sampleBrand } from "./shared.ts";
+import BentoCard from "../_home/BentoCard.astro";
+import SectionHeading from "../_home/SectionHeading.astro";
+import TextLink from "../_home/TextLink.astro";
+import { glyph, icons, sampleBrand } from "../_home/shared.ts";
 
 // The same read-only surface over three transports: the MCP server's tools,
 // the subset WebMCP registers in the page, and the JSON API's endpoints.
@@ -136,8 +136,8 @@ const bentoScript = `(() => {
 
 <section class="flex flex-col gap-12">
   <SectionHeading
-    tagline="Every page is as readable to agents as it is to people."
-    title="Built for humans and models."
+    tagline="Built into every Blume site, most of it on by default."
+    title="Everything agents look for."
   >
     <TextLink href="/docs/discoverability">Explore discoverability</TextLink>
   </SectionHeading>

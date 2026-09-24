@@ -1,0 +1,246 @@
+---
+// Agents page hero — centered, unlike the homepage's left-aligned sky and the
+// CLI and compare pages' splits: the two-tone headline, the summary, and the
+// install box with links, over a wide sky tray holding a coding agent's
+// session with a Blume site's MCP server connected. The session plays out on
+// load (the prompt, two tool calls, then the answer and its code), and each
+// tool call is a native disclosure that opens on what the tool returned. The
+// install box copy button uses the page-level delegated
+// `data-blume-copy-install` handler.
+import InstallBox from "../_home/InstallBox.astro";
+import TextLink from "../_home/TextLink.astro";
+import Tray from "../_home/Tray.astro";
+import { glyph, icons } from "../_home/shared.ts";
+
+const wrench = glyph("wrench");
+const chevron = icons.chevronDown;
+
+// What `search_docs` found and what `get_page` returned, for the disclosures.
+const results = [
+  { path: "/docs/webhooks", title: "Webhooks" },
+  { path: "/docs/webhooks/verify", title: "Verify signatures" },
+  { path: "/docs/webhooks/retries", title: "Retries" },
+];
+
+// The change the agent writes, following the page it read.
+const code = [
+  "export async function POST(request: Request) {",
+  "  const body = await request.text();",
+  '  const signature = request.headers.get("acme-signature");',
+  "  if (!acme.webhooks.verify(body, signature)) {",
+  '    return new Response("Invalid signature", { status: 401 });',
+  "  }",
+];
+
+const toolSummary =
+  "flex cursor-pointer list-none items-center gap-2 rounded-lg px-3 py-2 font-mono text-xs ring-1 ring-border hover:bg-muted [&::-webkit-details-marker]:hidden";
+---
+
+<section class="flex flex-col gap-12 pt-8 sm:pt-12 lg:gap-16">
+  <div class="flex flex-col items-center gap-8 text-center">
+    <h1
+      class="max-w-[20ch] text-balance font-medium text-4xl sm:text-5xl lg:text-6xl"
+    >
+      <span class="block">Docs agents can read.</span>
+      <span class="block text-muted-foreground">And help you write.</span>
+    </h1>
+    <p class="max-w-[56ch] text-pretty text-lg text-muted-foreground">
+      Every Blume site serves what coding agents look for, from llms.txt to an
+      MCP server, and ships the agent tooling to test, translate, and update
+      the docs themselves. On your own host, with the model you choose.
+    </p>
+    <div
+      class="flex w-full flex-col items-center gap-x-6 gap-y-4 sm:flex-row sm:justify-center"
+    >
+      <div class="w-full sm:w-72">
+        <InstallBox />
+      </div>
+      <div class="flex items-center gap-6">
+        <TextLink href="/docs/discoverability">Read the docs</TextLink>
+        <TextLink href="/docs/advanced/skills">Agent skills</TextLink>
+      </div>
+    </div>
+  </div>
+
+  <Tray
+    innerClass="flex justify-center overflow-hidden px-4 pt-10 pb-12 sm:px-10 sm:pt-16 sm:pb-16"
+    tone="sky"
+  >
+    <div
+      class="agent-session w-full max-w-3xl overflow-hidden rounded-2xl bg-background ring-1 ring-foreground/5"
+      data-nosnippet
+    >
+      <div
+        class="flex items-center justify-between gap-4 border-border border-b px-4 py-2.5 text-xs"
+      >
+        <p class="flex items-center gap-2 font-medium text-foreground">
+          <svg
+            aria-hidden="true"
+            class="size-3.5 shrink-0 text-accent"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            set:html={icons.sparkle}
+          />
+          Agent session
+        </p>
+        <p class="flex items-center gap-1.5 font-mono text-muted-foreground">
+          <span class="size-1.5 rounded-full bg-emerald-500"></span>
+          acme-docs · MCP
+        </p>
+      </div>
+
+      <div class="flex flex-col gap-3 p-4 sm:p-6">
+        <p
+          class="max-w-[85%] self-end rounded-xl bg-foreground px-3 py-1.5 text-background text-sm"
+          data-line
+          style="--line: 0"
+        >
+          Add Acme webhooks to the checkout service.
+        </p>
+
+        <details class="group" data-line style="--line: 1">
+          <summary class={toolSummary}>
+            <svg
+              aria-hidden="true"
+              class="size-3.5 shrink-0 text-muted-foreground"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              set:html={wrench}
+            />
+            <span class="shrink-0 text-muted-foreground max-sm:hidden">acme-docs ›</span>
+            <span class="shrink-0 text-foreground">search_docs</span>
+            <span class="truncate text-muted-foreground">"webhooks"</span>
+            <span class="ms-auto shrink-0 text-muted-foreground">3 results</span>
+            <svg
+              aria-hidden="true"
+              class="size-3.5 shrink-0 text-muted-foreground group-open:rotate-180"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              set:html={chevron}
+            />
+          </summary>
+          <ul class="flex flex-col gap-1 px-3 pt-2 pb-1 font-mono text-xs" role="list">
+            {
+              results.map((result) => (
+                <li class="flex items-center justify-between gap-4">
+                  <span class="truncate text-accent">{result.path}</span>
+                  <span class="shrink-0 text-muted-foreground">{result.title}</span>
+                </li>
+              ))
+            }
+          </ul>
+        </details>
+
+        <details class="group" data-line style="--line: 2">
+          <summary class={toolSummary}>
+            <svg
+              aria-hidden="true"
+              class="size-3.5 shrink-0 text-muted-foreground"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              set:html={wrench}
+            />
+            <span class="shrink-0 text-muted-foreground max-sm:hidden">acme-docs ›</span>
+            <span class="shrink-0 text-foreground">get_page</span>
+            <span class="truncate text-muted-foreground">"/docs/webhooks"</span>
+            <span class="ms-auto shrink-0 text-muted-foreground">
+              <span class="max-sm:hidden">text/markdown · </span>1.2k tokens
+            </span>
+            <svg
+              aria-hidden="true"
+              class="size-3.5 shrink-0 text-muted-foreground group-open:rotate-180"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              set:html={chevron}
+            />
+          </summary>
+          <div class="flex flex-col gap-1.5 px-3 pt-2 pb-1 font-mono text-xs">
+            <p class="text-foreground"># Webhooks</p>
+            <p class="text-muted-foreground">
+              Acme signs every event it sends with an acme-signature header.
+            </p>
+            <p class="text-foreground">## Verify the signature</p>
+            <p class="text-muted-foreground">
+              Reject any request whose signature doesn't match…
+            </p>
+          </div>
+        </details>
+
+        <div class="flex items-start gap-2 pt-1" data-line style="--line: 3">
+          <svg
+            aria-hidden="true"
+            class="h-lh size-4 shrink-0 text-accent"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            set:html={icons.sparkle}
+          />
+          <div class="flex min-w-0 flex-1 flex-col gap-3">
+            <p class="text-pretty text-foreground text-sm">
+              The Acme docs say to verify each event's signature before trusting
+              it, so the new route checks it first:
+            </p>
+            <div class="overflow-hidden rounded-lg ring-1 ring-border">
+              <p
+                class="border-border border-b bg-muted px-3 py-1.5 font-mono text-muted-foreground text-xs"
+              >
+                app/api/webhooks/route.ts
+              </p>
+              <pre
+                class="overflow-x-auto py-2 font-mono text-xs leading-relaxed"><code>{code.map((line) => (<span class="block bg-emerald-500/10 pr-3"><span class="inline-block w-6 select-none text-center text-emerald-600 dark:text-emerald-400">+</span>{line}</span>))}</code></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </Tray>
+</section>
+
+<style>
+  .agent-session {
+    box-shadow: 0 40px 80px -24px rgb(28 40 64 / 0.35);
+  }
+
+  :global([data-theme="dark"]) .agent-session {
+    box-shadow: none;
+  }
+
+  /* The session plays out once, on load: the prompt, each tool call, then
+     the answer, a beat apart, like an agent working through it. */
+  @media (prefers-reduced-motion: no-preference) {
+    [data-line] {
+      animation: session-line 0.45s ease-out both;
+      animation-delay: calc(var(--line) * 550ms + 300ms);
+    }
+  }
+
+  @keyframes session-line {
+    from {
+      opacity: 0;
+      transform: translateY(0.375rem);
+    }
+  }
+</style>

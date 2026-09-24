@@ -1,0 +1,90 @@
+---
+// A compare page per tool (/compare/<id>), prerendered from the data in
+// _compare/tools.ts: the "Blume vs <tool>" hero with its at-a-glance table,
+// the agent-readiness scores when both sites were scanned, what the
+// migration carries over, where the other tool fits better, the homepage's
+// Migrate picker opened on this tool, questions (also emitted as FAQPage
+// JSON-LD), and the install CTA. Built in the homepage's design language.
+import PageLayout from "blume/components/layout/PageLayout.astro";
+import data from "blume:data";
+import CarryOver from "../_compare/CarryOver.astro";
+import Faq from "../_compare/Faq.astro";
+import Fit from "../_compare/Fit.astro";
+import Hero from "../_compare/Hero.astro";
+import Scores from "../_compare/Scores.astro";
+import type { CompareTool } from "../_compare/tools.ts";
+import { tools } from "../_compare/tools.ts";
+import Footer from "../_home/Footer.astro";
+import InstallCta from "../_home/InstallCta.astro";
+import Migrate from "../_home/Migrate.astro";
+import Motion from "../_home/Motion.astro";
+import { installCopyScript } from "../_home/shared.ts";
+
+export const getStaticPaths = () =>
+  tools.map((tool) => ({ params: { tool: tool.id }, props: { tool } }));
+
+interface Props {
+  tool: CompareTool;
+}
+
+const { tool } = Astro.props;
+const { config } = data;
+
+// The questions as schema.org FAQPage structured data, with code-span
+// backticks dropped and `<` escaped so the JSON can't close its script tag.
+const faqJsonLd = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: tool.faq.map((item) => ({
+    "@type": "Question",
+    acceptedAnswer: { "@type": "Answer", text: item.answer.replaceAll("`", "") },
+    name: item.question,
+  })),
+}).replaceAll("<", "\\u003c");
+---
+
+<PageLayout
+  analytics={config.analytics}
+  banner={config.banner}
+  favicon={config.favicon}
+  fontCssVars={data.fontCssVars}
+  logo={config.logo}
+  navigation={data.navigation}
+  ogEnabled={config.og.enabled}
+  page={{
+    description: tool.meta.description,
+    route: `/compare/${tool.id}`,
+    title: tool.meta.title,
+  }}
+  searchEnabled={config.search.enabled}
+  site={{ description: config.description, title: config.title }}
+  siteUrl={config.site}
+  structuredDataEnabled={config.structuredData}
+  themeMode={config.theme.mode}
+  x={config.x}
+>
+  <div
+    class="mx-auto grid max-w-[1400px] gap-24 px-6 pb-20 sm:pb-24 lg:gap-32 xl:gap-40"
+  >
+    <Hero tool={tool} />
+
+    {tool.scores && <Scores scores={tool.scores} tool={tool} />}
+
+    <CarryOver tool={tool} />
+
+    <Fit tool={tool} />
+
+    <div class="scroll-mt-24" id="migrate">
+      <Migrate initial={tool.id} />
+    </div>
+
+    <Faq tool={tool} />
+
+    <InstallCta />
+  </div>
+  <!-- After the sections, so their reveal containers exist when it arms -->
+  <Motion />
+  <script is:inline set:html={installCopyScript} />
+  <script is:inline set:html={faqJsonLd} type="application/ld+json" />
+  <Footer slot="footer" />
+</PageLayout>

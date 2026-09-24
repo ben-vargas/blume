@@ -94,6 +94,8 @@ export default defineConfig({
         path: "/docs",
       },
       { label: "CLI", path: "/cli" },
+      { label: "Agents", path: "/agents" },
+      { label: "Compare", path: "/compare" },
       {
         label: {
           de: "Änderungen",

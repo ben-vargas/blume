@@ -1,0 +1,112 @@
+---
+// "Three ways to ship docs." — where Blume sits among the kinds of tools it's
+// compared with: a hosted platform, a framework you own, and Blume. A tray of
+// three columns, each with the marks of the tools in that camp, its name, and
+// the same four answers; Blume's column is the raised white card. Claims here
+// are about the camp, so keep them true of every tool named in it (see the
+// per-tool pages in _compare/tools.ts for the specifics).
+import data from "blume:data";
+import SectionHeading from "../_home/SectionHeading.astro";
+import Tray from "../_home/Tray.astro";
+import { logos } from "../_home/migrate-sources.ts";
+
+const { config } = data;
+const blumeLogo = config.logo?.svg ?? "";
+
+const models = [
+  {
+    answers: [
+      "Your content, in their web editor or synced from Git",
+      "The vendor's cloud",
+      "A free tier, then paid plans with metered AI",
+      "Built in, on the vendor's platform",
+    ],
+    marks: [logos.mintlify],
+    name: "A hosted platform",
+    raised: false,
+    tools: "Mintlify",
+  },
+  {
+    answers: [
+      "Your content, plus the app around it",
+      "Any host you choose",
+      "Free and open source",
+      "Mostly plugins, or route code that lives in your app",
+    ],
+    marks: [logos.fumadocs, logos.docusaurus, logos.starlight, logos.nextra],
+    name: "A framework you own",
+    raised: false,
+    tools: "Fumadocs, Docusaurus, Starlight, Nextra",
+  },
+  {
+    answers: [
+      "Just your content",
+      "Any host, as static files or a server",
+      "Free and open source",
+      "llms.txt, Markdown mirrors, and skills by default; an MCP server you switch on",
+    ],
+    marks: [blumeLogo],
+    name: "Blume",
+    raised: true,
+    tools: "The framework is the template",
+  },
+];
+
+const questions = ["You maintain", "It runs on", "It costs", "Agent features"];
+---
+
+<section class="flex flex-col gap-12">
+  <SectionHeading
+    tagline="Blume gives you the platform's polish with none of the app."
+    title="Three ways to ship docs."
+  />
+  <Tray innerClass="p-2">
+    <div class="grid gap-2 lg:grid-cols-3" data-reveal>
+      {
+        models.map((model, index) => (
+          <article
+            class:list={[
+              "reveal-rise flex flex-col gap-8 rounded-xl p-6 sm:p-8",
+              model.raised &&
+                "bg-background shadow-[0_12px_32px_-12px_rgb(28_40_64/0.25)] ring-1 ring-foreground/5 dark:shadow-none",
+            ]}
+            style={`--reveal-delay: ${index * 100}ms`}
+          >
+            <div class="flex flex-col gap-4">
+              <div aria-hidden="true" class="flex h-6 items-center gap-2">
+                {model.marks.map((mark) => (
+                  <span
+                    class:list={[
+                      "inline-flex h-full shrink-0 text-foreground [&>svg]:h-full [&>svg]:w-auto",
+                      model.raised ? "" : "aspect-square",
+                    ]}
+                    set:html={mark}
+                  />
+                ))}
+              </div>
+              <div>
+                <h3 class="font-medium text-xl tracking-normal">{model.name}</h3>
+                <p class="mt-1 text-muted-foreground text-sm">{model.tools}</p>
+              </div>
+            </div>
+            <dl class="flex flex-col divide-y divide-border border-border border-t">
+              {questions.map((question, row) => (
+                <div class="flex flex-col gap-1 py-4">
+                  <dt class="text-muted-foreground text-xs">{question}</dt>
+                  <dd
+                    class:list={[
+                      "text-pretty text-base sm:text-sm",
+                      model.raised ? "text-foreground" : "text-muted-foreground",
+                    ]}
+                  >
+                    {model.answers[row]}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </article>
+        ))
+      }
+    </div>
+  </Tray>
+</section>

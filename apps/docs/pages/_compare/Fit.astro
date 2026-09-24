@@ -1,0 +1,33 @@
+---
+// "When <tool> might suit you better." — said plainly, because a comparison
+// that only flatters Blume reads as an ad. A two-tone heading over a hairline
+// grid of the cases where the other tool is the better choice.
+import SectionHeading from "../_home/SectionHeading.astro";
+import type { CompareTool } from "./tools.ts";
+
+interface Props {
+  tool: CompareTool;
+}
+
+const { tool } = Astro.props;
+---
+
+<section class="flex flex-col gap-12">
+  <SectionHeading
+    tagline="Blume isn't the right fit for every team."
+    title={`When ${tool.source.name} might suit you better.`}
+  />
+  <dl class="grid gap-x-16 md:grid-cols-3" data-reveal>
+    {
+      tool.fit.map((item, index) => (
+        <div
+          class="reveal-rise border-border border-t py-6 text-base sm:text-sm"
+          style={`--reveal-delay: ${index * 100}ms`}
+        >
+          <dt class="font-medium text-foreground">{item.title}</dt>
+          <dd class="mt-2 text-pretty text-muted-foreground">{item.body}</dd>
+        </div>
+      ))
+    }
+  </dl>
+</section>

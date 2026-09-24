@@ -1,0 +1,244 @@
+---
+// "One page, two readers." — the homepage's short take on the agent surface
+// (the full tour is the bento on /agents): one docs page in a browser window,
+// split into two panes. On the left, the page as a person reads it, rendered
+// by Blume's own components: the <Callout> a `:::warning[Title]` directive
+// becomes and the Shiki <CodeBlock> a titled fence becomes (with the mock copy
+// glyph the other homepage code blocks use). On the right, the Markdown an
+// agent gets from the same URL, as Blume's `.md` mirror writes it
+// (frontmatter, the directive and fence as authored). Each block is paired with its twin: pointing at one lights up
+// both, in CSS (`:has`), and the title pair is lit until the pointer arrives.
+// The panes sit side by side from `md` up and stack on phones. The agent's
+// blocks rise in as the window scrolls into view. Four one-line features
+// follow, then the scores.
+import Callout from "blume/components/content/Callout.astro";
+import CodeBlock from "blume/components/content/CodeBlock.astro";
+import CopyGlyph from "./CopyGlyph.astro";
+import SectionHeading from "./SectionHeading.astro";
+import TextLink from "./TextLink.astro";
+import Tray from "./Tray.astro";
+import { escapeHtml, inlineCode } from "./shared.ts";
+
+const features = [
+  {
+    body: "An index and the full corpus in `llms-full.txt`, rebuilt on every build.",
+    title: "llms.txt",
+  },
+  {
+    body: "Raw source at every `.md` URL, with `Accept: text/markdown` negotiation.",
+    title: "Markdown at every URL",
+  },
+  {
+    body: "Tools that let coding agents search and read your docs directly.",
+    title: "An MCP server",
+  },
+  {
+    body: "Your skills, published where agents know to look for them.",
+    title: "Agent skills",
+  },
+];
+
+// The callout and code block, rendered on the left and authored on the right.
+const callout = {
+  body: "Check the signature before you trust the payload.",
+  title: "Verify every event",
+};
+const code = [
+  'const sig = request.headers.get("acme-signature");',
+  "if (!acme.webhooks.verify(body, sig)) {",
+  "  return new Response(null, { status: 401 });",
+  "}",
+];
+
+// The agent's pane, as the `.md` mirror writes it: lines of tinted spans,
+// joined with real newlines for the `whitespace-pre-wrap` blocks below.
+const tint = (className: string, text: string): string =>
+  `<span class="${className}">${escapeHtml(text)}</span>`;
+const markdown = [
+  {
+    block: "title",
+    html: [
+      tint("text-zinc-500", "---"),
+      `${tint("text-sky-400", "title:")} Webhooks`,
+      `${tint("text-sky-400", "description:")} Get notified when a message is delivered, opened, or bounced.`,
+      tint("text-zinc-500", "---"),
+    ].join("\n"),
+  },
+  {
+    block: "body",
+    html: escapeHtml(
+      "Acme sends a POST request to your endpoint for every event, signed with an `acme-signature` header."
+    ),
+  },
+  {
+    block: "callout",
+    html: [
+      tint("text-amber-300", `:::warning[${callout.title}]`),
+      escapeHtml(callout.body),
+      tint("text-amber-300", ":::"),
+    ].join("\n"),
+  },
+  {
+    block: "code",
+    html: [
+      tint("text-zinc-500", "```ts route.ts"),
+      escapeHtml(code.join("\n")),
+      tint("text-zinc-500", "```"),
+    ].join("\n"),
+  },
+];
+
+// A paired block: padded so its highlight has room, pulled back so its text
+// still lines up with the pane's.
+const block = "-mx-3 rounded-lg px-3 py-2";
+---
+
+<section class="flex flex-col gap-12">
+  <SectionHeading
+    tagline="Every page serves people and agents from the same URL."
+    title="One page, two readers."
+  >
+    <TextLink href="/agents">Blume for agents</TextLink>
+  </SectionHeading>
+
+  <div class="flex flex-col gap-8">
+    <Tray
+      innerClass="flex justify-center px-4 pt-10 pb-12 sm:px-10 sm:pt-14 sm:pb-16"
+      tone="sky"
+    >
+      <div
+        aria-hidden="true"
+        class="two-readers w-full max-w-5xl overflow-hidden rounded-2xl bg-background ring-1 ring-foreground/5"
+        data-nosnippet
+        data-reveal
+      >
+        <div class="flex items-center gap-3 border-border border-b px-4 py-2.5">
+          <span class="flex gap-1.5">
+            <span class="size-2.5 rounded-full bg-foreground/10"></span>
+            <span class="size-2.5 rounded-full bg-foreground/10"></span>
+            <span class="size-2.5 rounded-full bg-foreground/10"></span>
+          </span>
+          <p
+            class="min-w-0 flex-1 truncate rounded-md bg-muted px-3 py-1 text-center font-mono text-muted-foreground text-xs"
+          >
+            docs.acme.dev/docs/webhooks
+          </p>
+          <span class="w-[2.625rem] shrink-0"></span>
+        </div>
+
+        <div class="grid md:grid-cols-2">
+          <!-- The page as a person reads it -->
+          <div class="pane-human flex flex-col gap-2 p-6 sm:p-8">
+            <p class="mb-2">
+              <span
+                class="rounded-full bg-muted px-2.5 py-1 font-medium text-foreground text-xs"
+              >
+                Human
+              </span>
+            </p>
+            <div class={block} data-block="title">
+              <p class="font-semibold text-2xl text-foreground">Webhooks</p>
+              <p class="mt-1 text-muted-foreground text-sm">
+                Get notified when a message is delivered, opened, or bounced.
+              </p>
+            </div>
+            <p class:list={[block, "text-foreground text-sm"]} data-block="body">
+              Acme sends a POST request to your endpoint for every event, signed
+              with an{" "}
+              <code class="rounded bg-muted px-1 font-mono text-[0.85em]">acme-signature</code>
+              {" "}header.
+            </p>
+            <div class:list={[block, "[&_aside]:my-0"]} data-block="callout">
+              <Callout title={callout.title} type="warning">
+                <p>{callout.body}</p>
+              </Callout>
+            </div>
+            <div class:list={[block, "[&_pre]:my-0!"]} data-block="code">
+              <div class="relative">
+                <CodeBlock code={code.join("\n")} icons lang="ts" title="route.ts" />
+                <CopyGlyph />
+              </div>
+            </div>
+          </div>
+
+          <!-- The same URL, as an agent reads it -->
+          <div
+            class="pane-agent flex flex-col gap-2 border-border bg-zinc-950 p-6 font-mono text-[0.6875rem]/5 text-zinc-300 max-md:border-t sm:p-8 md:border-l dark:bg-zinc-900"
+          >
+            <p class="mb-2 flex items-center justify-between gap-4">
+              <span
+                class="rounded-full bg-white/10 px-2.5 py-1 font-medium font-sans text-white text-xs"
+              >
+                Agent
+              </span>
+              <span class="text-zinc-500">text/markdown</span>
+            </p>
+            {
+              markdown.map((part, index) => (
+                <p
+                  class:list={[
+                    block,
+                    "reveal-rise overflow-hidden whitespace-pre-wrap",
+                  ]}
+                  data-block={part.block}
+                  set:html={part.html}
+                  style={`--reveal-delay: ${200 + index * 150}ms`}
+                />
+              ))
+            }
+          </div>
+        </div>
+      </div>
+    </Tray>
+
+    <dl class="grid gap-x-10 sm:grid-cols-2 lg:grid-cols-4">
+      {
+        features.map((feature) => (
+          <div class="border-border border-t py-5 text-base sm:text-sm">
+            <dt class="font-medium text-foreground">{feature.title}</dt>
+            <dd
+              class="mt-1 text-pretty text-muted-foreground"
+              set:html={inlineCode(feature.body)}
+            />
+          </div>
+        ))
+      }
+    </dl>
+  </div>
+</section>
+
+<style>
+  .two-readers {
+    box-shadow: 0 40px 80px -24px rgb(28 40 64 / 0.35);
+  }
+
+  :global([data-theme="dark"]) .two-readers {
+    box-shadow: none;
+  }
+
+  /* Pointing at a block lights it and its twin in the other pane; until the
+     pointer is over one, the title pair is lit. */
+  [data-block] {
+    transition: background-color 0.2s ease;
+  }
+
+  .two-readers:not(:has([data-block]:hover)) .pane-human [data-block="title"],
+  .two-readers:has([data-block="title"]:hover) .pane-human [data-block="title"],
+  .two-readers:has([data-block="body"]:hover) .pane-human [data-block="body"],
+  .two-readers:has([data-block="callout"]:hover)
+    .pane-human
+    [data-block="callout"],
+  .two-readers:has([data-block="code"]:hover) .pane-human [data-block="code"] {
+    background-color: color-mix(in oklab, var(--blume-accent) 10%, transparent);
+  }
+
+  .two-readers:not(:has([data-block]:hover)) .pane-agent [data-block="title"],
+  .two-readers:has([data-block="title"]:hover) .pane-agent [data-block="title"],
+  .two-readers:has([data-block="body"]:hover) .pane-agent [data-block="body"],
+  .two-readers:has([data-block="callout"]:hover)
+    .pane-agent
+    [data-block="callout"],
+  .two-readers:has([data-block="code"]:hover) .pane-agent [data-block="code"] {
+    background-color: rgb(255 255 255 / 0.08);
+  }
+</style>

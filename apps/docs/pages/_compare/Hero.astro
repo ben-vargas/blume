@@ -1,0 +1,183 @@
+---
+// A compare page's hero: the CLI page's top-aligned split (the two-tone
+// "Blume vs <tool>" headline on the left; the summary, the migrate command,
+// and links on the right), then the answer up front: an at-a-glance table in
+// a tray, Blume's column beside the other tool's. Below `sm` each row stacks:
+// its label across the top, then the two answers side by side, each tagged. The
+// command box uses the page-level delegated `data-blume-copy-install` handler.
+import Icon from "blume/components/Icon.astro";
+import data from "blume:data";
+import TextLink from "../_home/TextLink.astro";
+import Tray from "../_home/Tray.astro";
+import { installCommand } from "../_home/migrate-sources.ts";
+import { glyph, inlineCode } from "../_home/shared.ts";
+import type { CompareTool } from "./tools.ts";
+
+interface Props {
+  tool: CompareTool;
+}
+
+const { tool } = Astro.props;
+const { config } = data;
+const blumeLogo = config.logo?.svg;
+const chevronRight = glyph("chevron-right");
+
+// A channel for corrections: a new GitHub issue prefilled with this page and
+// prompts for what changed and where, so readers can keep the table honest.
+const reportBody = [
+  `Page: ${config.site ?? ""}/compare/${tool.id}`,
+  "",
+  "What's out of date:",
+  "",
+  "Where the current details are (a link helps):",
+].join("\n");
+const reportQuery = new URLSearchParams({
+  body: reportBody,
+  title: `Compare page: ${tool.source.name} details are out of date`,
+});
+const reportHref = config.repoUrl
+  ? `${config.repoUrl}/issues/new?${reportQuery}`
+  : null;
+---
+
+<section class="flex flex-col gap-12 pt-8 sm:pt-12 lg:gap-16">
+  <div class="grid gap-x-16 gap-y-8 lg:grid-cols-[5fr_4fr] lg:items-start">
+    <h1
+      class="max-w-[20ch] text-balance font-medium text-4xl sm:text-5xl lg:text-6xl"
+    >
+      <span class="block">Blume vs {tool.source.name}.</span>
+      <span class="block text-muted-foreground">{tool.tagline}</span>
+    </h1>
+    <div class="flex flex-col items-start gap-8">
+      <p class="max-w-[48ch] text-pretty text-lg text-muted-foreground">
+        {tool.summary}
+      </p>
+      <div class="flex w-full flex-col items-start gap-4">
+        <div
+          class="flex w-full max-w-xl items-center gap-3 rounded-blume border border-border bg-background py-2 pr-2 pl-4"
+        >
+          <span
+            aria-hidden="true"
+            class="select-none font-mono text-muted-foreground text-sm"
+          >
+            $
+          </span>
+          <code class="min-w-0 flex-1 truncate font-mono text-[0.8125rem] text-foreground">
+            {installCommand}
+          </code>
+          <button
+            aria-label="Copy the blume-migrate install command"
+            class="relative inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+            data-blume-copy-install
+            data-command={installCommand}
+            type="button"
+          >
+            <span
+              aria-hidden="true"
+              class="absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden"
+            />
+            <Icon class="size-4" name="copy" size={16} />
+          </button>
+        </div>
+        <div class="flex flex-wrap items-center gap-6">
+          <TextLink href="#migrate">Migrate with an agent</TextLink>
+          <TextLink href="/docs/quickstart">Start from scratch</TextLink>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flex flex-col gap-3">
+    <Tray innerClass="p-2 sm:p-4">
+      <table class="w-full border-collapse text-left">
+        <caption class="sr-only">
+          Blume and {tool.source.name} at a glance
+        </caption>
+        <thead class="max-sm:hidden">
+          <tr>
+            <td class="w-40 p-4"></td>
+            <th class="p-4 font-medium text-base" scope="col">
+              <span class="flex items-center gap-2">
+                {
+                  blumeLogo && (
+                    <span
+                      aria-hidden="true"
+                      class="inline-flex h-4 text-foreground [&>svg]:h-full [&>svg]:w-auto"
+                      set:html={blumeLogo}
+                    />
+                  )
+                }
+                Blume
+              </span>
+            </th>
+            <th class="p-4 font-medium text-base" scope="col">
+              <span class="flex items-center gap-2">
+                <span
+                  aria-hidden="true"
+                  class="inline-flex size-4 shrink-0"
+                  set:html={tool.source.logo}
+                />
+                {tool.source.name}
+              </span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            tool.glance.map((row) => (
+              <tr class="grid grid-cols-2 border-foreground/5 border-t first:border-t-0 sm:table-row sm:first:border-t">
+                <th
+                  class="col-span-2 px-2 pt-4 pb-2 align-top font-medium text-muted-foreground text-sm sm:table-cell sm:p-4"
+                  scope="row"
+                >
+                  {row.label}
+                </th>
+                <td class="px-2 pb-4 align-top text-pretty text-foreground text-sm sm:table-cell sm:p-4">
+                  <span class="mb-1 block text-muted-foreground text-xs sm:hidden">
+                    Blume
+                  </span>
+                  <span set:html={inlineCode(row.blume)} />
+                </td>
+                <td class="px-2 pb-4 align-top text-pretty text-muted-foreground text-sm sm:table-cell sm:p-4">
+                  <span class="mb-1 block text-xs sm:hidden">
+                    {tool.source.name}
+                  </span>
+                  <span set:html={inlineCode(row.them)} />
+                </td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </Tray>
+    <p class="text-muted-foreground text-xs">
+      {tool.source.name} details are from its own site and docs as of {tool.checked}.
+      {
+        reportHref && (
+          <Fragment>
+            {" "}Something out of date?{" "}
+            <a
+              class="inline-flex items-center gap-0.5 font-medium text-accent hover:text-foreground"
+              href={reportHref}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              Let us know
+              <svg
+                aria-hidden="true"
+                class="size-3 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+                set:html={chevronRight}
+              />
+            </a>
+          </Fragment>
+        )
+      }
+    </p>
+  </div>
+</section>

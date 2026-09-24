@@ -1,0 +1,373 @@
+---
+// "And agents that help you write." — the second half of the page: the agent
+// tooling that works on the docs rather than reading them, as a bento in the
+// homepage's tray. From `lg` up the rows run 2+1 / 1+1+1: the self-updating
+// docs skill (a pull request) and `blume eval` (a graded report), then
+// `blume translate` (a pages-by-locales grid whose stale cells turn fresh),
+// `blume audit --claude` (findings checked off), and `blume-migrate` (every
+// source it moves, into Blume). A footer strip says what they share: your own
+// agent CLI, no keys held by Blume. The art is decorative, like the homepage
+// bento's, and a few rows follow the pointer.
+import data from "blume:data";
+import BentoCard from "../_home/BentoCard.astro";
+import { logos } from "../_home/migrate-sources.ts";
+import SectionHeading from "../_home/SectionHeading.astro";
+import TextLink from "../_home/TextLink.astro";
+import { glyph, icons } from "../_home/shared.ts";
+import { agentMarks } from "./marks.ts";
+
+const { config } = data;
+const blumeLogo = config.logo?.svg ?? "";
+
+// The docs pull request the update skill opens.
+const changedFiles = [
+  { added: 9, path: "docs/webhooks/retries.mdx", removed: 2 },
+  { added: 4, path: "docs/messages/send.mdx", removed: 1 },
+  { added: 2, path: "docs/api/rate-limits.mdx", removed: 2 },
+];
+
+// One eval run: each question's verdict and graded score, and the fact a
+// failing answer was missing.
+const evals = [
+  { name: "send-first-message", pass: true, score: "1.00" },
+  { name: "verify-webhooks", pass: true, score: "0.92" },
+  {
+    missing: "retries back off for 24 hours",
+    name: "retry-schedule",
+    pass: false,
+    score: "0.40",
+  },
+];
+
+// Pages by locale: which cells were stale or missing before this run.
+const locales = ["de", "ja", "pt", "hi"];
+const grid = [
+  { name: "quickstart", stale: [] as number[] },
+  { name: "webhooks", stale: [1] },
+  { name: "retries", stale: [0, 2, 3] },
+];
+
+// Audit findings, each checked off as the agent fixes it.
+const findings = [
+  { name: "Meta description missing", pages: 3 },
+  { name: "Title too long or too short", pages: 2 },
+  { name: "Link to a broken page", pages: 1 },
+];
+
+const migrateFrom = [
+  logos.mintlify,
+  logos.fumadocs,
+  logos.docusaurus,
+  logos.starlight,
+  logos.nextra,
+];
+
+// Shared illustration pieces, as in the homepage bento.
+const window =
+  "rounded-xl bg-background shadow-lg shadow-[rgb(28_40_64/0.08)] ring-1 ring-foreground/5 dark:shadow-none";
+const windowTitle =
+  "flex items-center gap-2 border-border border-b px-3 py-2 font-mono text-muted-foreground text-xs";
+const hoverRow = "rounded-lg hover:bg-accent/10";
+const sparkles = glyph("sparkles");
+---
+
+<section class="flex flex-col gap-12">
+  <SectionHeading
+    tagline="Test, translate, fix, and update your docs with the agent you already use."
+    title="And agents that help you write."
+  >
+    <TextLink href="/cli">Explore the CLI</TextLink>
+  </SectionHeading>
+
+  <div
+    class="rounded-[28px] bg-background p-2 shadow-[0_0_0_1px_var(--color-border)]"
+  >
+    <dl class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      <!-- Self-updating docs: the pull request the skill opens -->
+      <BentoCard
+        body="The `blume-update-docs` skill reads recently merged pull requests, updates only the pages that went stale, checks the build, and opens a pull request. If nothing drifted, it opens nothing."
+        class="sm:col-span-2"
+        title="Docs that keep up with the code."
+      >
+        <div class:list={[window, "w-full max-w-md overflow-hidden"]}>
+          <div class="flex flex-col gap-1.5 border-border border-b px-4 py-3">
+            <p class="flex items-center gap-2 text-xs">
+              <span
+                class="rounded-full bg-emerald-500/15 px-2 py-0.5 font-medium text-emerald-700 dark:text-emerald-400"
+              >
+                Open
+              </span>
+              <span class="font-mono text-muted-foreground">blume/update-docs</span>
+            </p>
+            <p class="font-medium text-foreground text-sm">
+              Update the docs for this week's changes
+            </p>
+          </div>
+          <ul class="group/rows flex flex-col gap-0.5 p-1.5" role="list">
+            {
+              changedFiles.map((file, index) => (
+                <li
+                  class:list={[
+                    "reveal-rise flex items-center gap-2 px-2.5 py-1.5 font-mono text-xs",
+                    hoverRow,
+                  ]}
+                  style={`--reveal-delay: ${150 + index * 110}ms`}
+                >
+                  <svg
+                    class="size-3.5 shrink-0 text-muted-foreground"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    set:html={icons.fileText}
+                  />
+                  <span class="min-w-0 flex-1 truncate text-foreground">{file.path}</span>
+                  <span class="shrink-0 text-emerald-600 dark:text-emerald-400">
+                    +{file.added}
+                  </span>
+                  <span class="shrink-0 text-red-600 dark:text-red-400">
+                    −{file.removed}
+                  </span>
+                </li>
+              ))
+            }
+          </ul>
+          <p
+            class="flex items-center gap-2 border-border border-t px-4 py-2.5 text-muted-foreground text-xs"
+          >
+            <span
+              class="reveal-pop inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white [--reveal-delay:600ms]"
+            >
+              <svg
+                class="size-2.5"
+                fill="none"
+                stroke="currentColor"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="3"
+                viewBox="0 0 24 24"
+                set:html={icons.check}
+              />
+            </span>
+            <span class="font-mono">blume build</span> passed
+          </p>
+        </div>
+      </BentoCard>
+
+      <!-- Evals: a graded run with one failure -->
+      <BentoCard
+        body="`blume eval` has an agent answer real questions from your docs alone, a judge grades each answer, and CI fails when the docs can't answer."
+        title="Tested like code."
+      >
+        <div class:list={[window, "w-64 max-w-[calc(100%-2rem)] overflow-hidden"]}>
+          <p class={windowTitle}>
+            <svg
+              class="size-3.5 shrink-0"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+              set:html={glyph("flask-conical")}
+            />
+            blume eval
+          </p>
+          <ul class="group/rows flex flex-col gap-0.5 p-1.5 font-mono text-xs" role="list">
+            {
+              evals.map((run, index) => (
+                <li
+                  class:list={["reveal-rise flex flex-col gap-1 px-2.5 py-1.5", hoverRow]}
+                  style={`--reveal-delay: ${index * 140}ms`}
+                >
+                  <span class="flex items-center gap-2">
+                    <span
+                      class:list={[
+                        "shrink-0",
+                        run.pass
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-red-600 dark:text-red-400",
+                      ]}
+                    >
+                      {run.pass ? "✔" : "✖"}
+                    </span>
+                    <span class="min-w-0 flex-1 truncate text-foreground">{run.name}</span>
+                    <span class="shrink-0 text-muted-foreground tabular-nums">
+                      {run.score}
+                    </span>
+                  </span>
+                  {run.missing && (
+                    <span class="text-pretty ps-5 text-muted-foreground">
+                      missing: {run.missing}
+                    </span>
+                  )}
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </BentoCard>
+
+      <!-- Translate: pages by locale, stale cells turning fresh -->
+      <BentoCard
+        body="`blume translate` finds the pages that are missing or out of date in each language and translates only those, with a CI check that fails on drift."
+        title="Every language, kept current."
+      >
+        <div class:list={[window, "p-4"]}>
+          <table class="border-separate border-spacing-1.5 font-mono text-xs">
+            <thead>
+              <tr>
+                <td></td>
+                {locales.map((locale) => <th class="font-normal text-muted-foreground">{locale}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {
+                grid.map((page, row) => (
+                  <tr>
+                    <th class="pe-2 text-start font-normal text-foreground">{page.name}</th>
+                    {locales.map((_, column) => (
+                      <td>
+                        <span
+                          class:list={[
+                            "block size-5 rounded-md bg-emerald-500/70",
+                            page.stale.includes(column) && "locale-flip",
+                          ]}
+                          style={`--reveal-delay: ${300 + (row * 4 + column) * 70}ms`}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      </BentoCard>
+
+      <!-- Audit: findings the agent checks off -->
+      <BentoCard
+        body="`blume audit --claude` hands every finding to Claude Code, or Codex with `--codex`, which fixes the pages and reruns the audit until it's clean."
+        title="Audits your agent fixes."
+      >
+        <div class:list={[window, "w-64 max-w-[calc(100%-2rem)] overflow-hidden"]}>
+          <p class={windowTitle}>
+            <span class="inline-flex size-3.5 shrink-0 [&>svg]:size-full" set:html={agentMarks.claude} />
+            blume audit --claude
+          </p>
+          <ul class="group/rows flex flex-col gap-0.5 p-1.5 text-xs" role="list">
+            {
+              findings.map((finding, index) => (
+                <li
+                  class:list={["flex items-center gap-2 px-2.5 py-1.5", hoverRow]}
+                >
+                  <span class="relative inline-flex size-4 shrink-0 items-center justify-center">
+                    <span class="size-2 rounded-full bg-amber-400" />
+                    <span
+                      class="reveal-pop absolute inset-0 inline-flex items-center justify-center rounded-full bg-emerald-500 text-white"
+                      style={`--reveal-delay: ${400 + index * 350}ms`}
+                    >
+                      <svg
+                        class="size-2.5"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="3"
+                        viewBox="0 0 24 24"
+                        set:html={icons.check}
+                      />
+                    </span>
+                  </span>
+                  <span class="min-w-0 flex-1 truncate text-foreground">{finding.name}</span>
+                  <span class="shrink-0 text-muted-foreground tabular-nums">
+                    {finding.pages}
+                  </span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </BentoCard>
+
+      <!-- Migrate: every source the skill moves, into Blume -->
+      <BentoCard
+        body="The `blume-migrate` skill moves a Mintlify, Fumadocs, Docusaurus, Starlight, or Nextra site over, and reports anything it can't carry across."
+        class="sm:col-span-2 lg:col-span-1"
+        title="Moved in by an agent."
+      >
+        <div class="flex flex-col items-center gap-4">
+          <ul class="flex items-center gap-2" role="list">
+            {
+              migrateFrom.map((mark, index) => (
+                <li
+                  class:list={[window, "reveal-pop flex size-10 items-center justify-center p-2.5 hover:-translate-y-0.5 motion-safe:transition-transform"]}
+                  style={`--reveal-delay: ${index * 90}ms`}
+                >
+                  <span class="inline-flex size-full text-foreground" set:html={mark} />
+                </li>
+              ))
+            }
+          </ul>
+          <svg
+            class="reveal-rise size-4 text-muted-foreground [--reveal-delay:550ms]"
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            set:html={glyph("arrow-down")}
+          />
+          <span
+            class:list={[window, "reveal-pop flex h-12 items-center justify-center px-4 text-foreground [--reveal-delay:750ms] [&>svg]:h-6 [&>svg]:w-auto"]}
+            set:html={blumeLogo}
+          />
+        </div>
+      </BentoCard>
+    </dl>
+
+    <div
+      class="flex flex-col gap-3 px-6 pt-5 pb-3 sm:flex-row sm:items-center sm:justify-between sm:px-8"
+    >
+      <p class="flex items-center gap-2.5 text-sm">
+        <span
+          aria-hidden="true"
+          class="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent [&>svg]:size-3.5"
+        >
+          <svg
+            fill="none"
+            stroke="currentColor"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+            set:html={sparkles}
+          />
+        </span>
+        Runs on the agent CLI you already use. Blume holds no API keys and
+        calls no model itself.
+      </p>
+      <TextLink class="shrink-0" href="/docs/advanced/skills">
+        Agent skills
+      </TextLink>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Translate: a stale or missing cell starts amber and turns fresh as the
+     card arrives, one after another. With no motion (or no JS) every cell
+     is already fresh, which is the finished state. */
+  @media (prefers-reduced-motion: no-preference) {
+    .locale-flip {
+      transition: background-color 0.4s ease var(--reveal-delay, 0ms);
+    }
+
+    :global([data-reveal-armed]:not([data-inview])) .locale-flip {
+      background-color: color-mix(in oklab, rgb(245 158 11) 70%, transparent);
+    }
+  }
+</style>
