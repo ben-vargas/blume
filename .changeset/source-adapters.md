@@ -2,21 +2,13 @@
 "blume": major
 ---
 
-Replace the `content.sources` `{ type: "…" }` objects with content source adapters. Each entry is now a descriptor returned by a factory imported from `blume/sources` — `filesystem({ root, include, exclude })`, `mdxRemote({ github, url, files, include })`, `githubReleases({ owner, repo, limit, prereleases, drafts })`, `sanity({ projectId, dataset, query, fields, apiVersion })`, `notion({ database, properties, publishedValue, concurrency })`, `obsidian({ vault, exclude })`, or `custom(source)` for any `ContentSource` implementation. `prefix` and `pollInterval` are shared options every factory with an options object accepts, so each declares only what is specific to it; `custom(source)` takes the instance itself, which carries its own `prefix` and `watch`.
-
-Each adapter is a plain descriptor that owns its options, the SDK it needs, and the env vars it reads, so the generated project's `package.json`, the secrets check at `blume dev`/`build`, `blume doctor`, and the ejected site all read the descriptor instead of switching on a source name: `notion()` declares `@notionhq/client` and `NOTION_TOKEN`, `sanity()` declares `@sanity/client` and `SANITY_TOKEN`, and `githubReleases()` declares `GITHUB_TOKEN`, as `mdxRemote()` does when it reads from GitHub (`github`, or a `url` on raw.githubusercontent.com).
-
-The top-level `content.root`, `content.include`, and `content.exclude` remain the zero-config shorthand and desugar to exactly one `filesystem()` source when `sources` is absent. They are rejected beside `sources` — move them into the `filesystem()` entry — so the resolved config has one source of truth and the `docs` collection always roots at the first `filesystem()` source.
-
-Migration:
+Replace the `content.sources` `{ type: "…" }` objects with adapters imported from `blume/sources`: `filesystem()`, `mdxRemote()`, `githubReleases()`, `sanity()`, `notion()`, `obsidian()`, or `custom(source)` for any `ContentSource`. Every other field moves into the call unchanged, each factory that takes options also accepts `prefix` and `pollInterval`, and a leftover `type` object fails validation naming its factory:
 
 ```ts
-import { defineConfig } from "blume";
 import { filesystem, githubReleases } from "blume/sources";
 
 export default defineConfig({
   content: {
-    // was: root: "content", sources: [{ type: "filesystem", root: "content" }, { type: "github-releases", owner, repo, prefix }]
     sources: [
       filesystem({ root: "content" }),
       githubReleases({ owner: "acme", repo: "sdk", prefix: "changelog" }),
@@ -25,4 +17,4 @@ export default defineConfig({
 });
 ```
 
-`{ type: "mdx-remote", … }` becomes `mdxRemote({ … })`, `{ type: "sanity", … }` becomes `sanity({ … })`, `{ type: "notion", … }` becomes `notion({ … })`, `{ type: "obsidian", … }` becomes `obsidian({ … })`, and `{ type: "custom", source }` becomes `custom(source)`; every other field moves into the call unchanged. A leftover `type` object fails validation with the factory that replaces it.
+Each adapter declares the SDK and env vars it needs — `notion()` needs `@notionhq/client` and `NOTION_TOKEN`, `sanity()` needs `@sanity/client` and `SANITY_TOKEN`, and `githubReleases()` needs `GITHUB_TOKEN`, as does `mdxRemote()` when it reads from GitHub — so the generated project, the secrets check, and `blume doctor` take them from the adapter. The top-level `content.root`, `include`, and `exclude` remain the zero-config shorthand for one `filesystem()` source but can't sit beside `sources`: move them into the `filesystem()` entry.
