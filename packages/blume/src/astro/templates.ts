@@ -14,7 +14,7 @@ import { BLUME_IGNORE_DIRS } from "../core/sources/watch.ts";
 import { trimChar } from "../core/trim.ts";
 import type { ProjectContext } from "../core/types.ts";
 import { deployPassthrough } from "../deploy/adapters/types.ts";
-import { SVG_ASSET_POLICY } from "../deploy/headers.ts";
+import { SVG_ASSET_HEADERS } from "../deploy/headers.ts";
 import { deployPlatform } from "../deploy/platforms/index.ts";
 import { adapterRoot, distDir } from "../deploy/platforms/paths.ts";
 import { applyBaseToAstroRedirects } from "../deploy/redirects.ts";
@@ -1662,11 +1662,12 @@ export const GET: APIRoute = async ({ params }) => {
   const body = await readFile(path);
   const type = contentType(path);
   // An SVG opened directly is a document that can run script; the sandbox
-  // keeps an uploaded one inert on the docs origin. Static hosts get the same
-  // header from the build's header rules.
+  // keeps an uploaded one inert on the docs origin. This endpoint
+  // prerenders, so these headers reach dev only: a build serves the files
+  // with the same headers from its host's rules (see deploy/headers.ts).
   const headers: Record<string, string> =
     type === "image/svg+xml"
-      ? { "Content-Security-Policy": ${JSON.stringify(SVG_ASSET_POLICY)}, "Content-Type": type }
+      ? { ...${JSON.stringify(SVG_ASSET_HEADERS)}, "Content-Type": type }
       : { "Content-Type": type };
   return new Response(new Uint8Array(body), { headers });
 };

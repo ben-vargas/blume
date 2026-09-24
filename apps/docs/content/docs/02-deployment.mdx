@@ -22,7 +22,8 @@ A static build includes:
 
 - every docs and custom page as static HTML
 - a local search index (Orama by default, Pagefind opt-in)
-- a [`sitemap.xml`](/docs/discoverability/sitemap-and-robots#sitemap) and [`robots.txt`](/docs/discoverability/sitemap-and-robots#robots) when the site URL is known
+- a [`sitemap.xml`](/docs/discoverability/sitemap-and-robots#sitemap) when the site URL is known
+- a [`robots.txt`](/docs/discoverability/sitemap-and-robots#robots), which points to the sitemap when the site URL is known
 - `llms.txt` and `llms-full.txt` for AI tools
 - redirect pages
 - prerendered [Open Graph images](/docs/discoverability/open-graph) when `seo.og.enabled` is on
@@ -39,7 +40,7 @@ deployment: {
 }
 ```
 
-When detecting automatically, Blume prefers your stable production domain over per-deploy preview URLs, so the canonical origin stays put across deploys.
+On Vercel and Netlify, automatic detection prefers your stable production domain over per-deploy preview URLs, so the canonical origin stays put across deploys. Cloudflare Pages exposes only the current deployment's URL (`CF_PAGES_URL`), which changes with every deploy, so set `site` there.
 
 During `blume dev`, the site URL falls back to your local dev server (e.g. `http://localhost:4321`) when none is set, so site-gated features — Open Graph images, canonicals, the sitemap — work out of the box. Builds never use this fallback, so production output is never pointed at localhost.
 
@@ -117,7 +118,7 @@ Naming an adapter switches the build to server output. To keep a static build on
 deployment: netlify({ output: "static" }),
 ```
 
-A server build includes everything a static build does, plus any Astro endpoints or middleware you add. The `node()` adapter produces a standalone server you can run directly with `node dist/server/entry.mjs`. The server resolves its packages through links into your project's `node_modules`, so deploy the project with its installed dependencies, not `dist/` alone. When the site publishes discovery files, Blume puts a small wrapper in front of Astro's entry (moved to `astro-entry.mjs` beside it) so the `.well-known` discovery files go out with their media types and CORS headers, which the standalone server's static handler can't set on its own.
+A server build includes everything a static build does, plus any Astro endpoints or middleware you add. The `node()` adapter produces a standalone server you can run directly with `node dist/server/entry.mjs`. It listens on `localhost:4321` unless you set the `HOST` and `PORT` environment variables when you start it (`HOST=0.0.0.0 PORT=8080 node dist/server/entry.mjs`); `host` and `port` passed to `node()` have no effect, because `@astrojs/node` replaces them with Astro's own server settings. The server resolves its packages through links into your project's `node_modules`, so deploy the project with its installed dependencies, not `dist/` alone. When the site publishes discovery files, serves images a content source downloaded, or configures redirects, Blume puts a small wrapper in front of Astro's entry (moved to `astro-entry.mjs` beside it). It sends the `.well-known` discovery files with their media types and CORS headers and downloaded SVGs sandboxed, which the standalone server's static handler can't do on its own, and answers each redirect with its configured status.
 
 A `cloudflare()` server build deploys with `npx wrangler deploy` from the project root after `blume build`: Blume writes the redirected Wrangler config to `.wrangler/deploy/` (and adds `.wrangler/` to `.gitignore`), and names the Worker after your project — the `package.json` `name`, else the site's hostname, else the folder — unless a `wrangler.jsonc` of your own at the project root sets `name`.
 
@@ -139,7 +140,12 @@ Map old URLs to new ones in `blume.config.ts`:
 redirects: [{ from: "/old", to: "/new", status: 301 }],
 ```
 
-`status` accepts `301`, `302`, `307`, or `308` (default `301`). Server builds handle redirects at request time. Static builds emit redirect pages **and** the platform files your host reads, so it issues a real HTTP redirect: `_redirects` for `netlify()` and `cloudflare()`, `vercel.json` for `vercel()`, and — when no host is named — both of those plus `blume-redirects.json`, a structured manifest for anything else (nginx/Apache rules, an edge worker). A `_redirects` or `vercel.json` you ship in `public/` is left untouched.
+`status` accepts `301`, `302`, `307`, or `308` (default `301`). Server builds answer redirects at request time with the configured status. Static builds emit redirect pages **and** the platform files your host reads, so it issues a real HTTP redirect: `_redirects` for `netlify()` and `cloudflare()`, `vercel.json` for `vercel()`, and — when no host is named — both of those plus `blume-redirects.json`, a structured manifest for anything else (nginx/Apache rules, an edge worker). A `_redirects` or `vercel.json` you ship in `public/` is left untouched.
+
+Two hosts need more than the file:
+
+- **Netlify** serves a file that exists ahead of a redirect rule unless the rule is forced, and a static build has a redirect page at every `from`. The `_redirects` for `netlify()` forces its rules (`/old /new 301!`). Cloudflare rejects that flag, so the file a build for no named host writes leaves it off, and on Netlify that build answers with the redirect page instead; name the host with `netlify({ output: "static" })` to get the HTTP redirect.
+- **Vercel** reads `vercel.json` from the project's root directory, never from the output directory, so the copy in `dist/` applies only when you deploy that folder itself with the Vercel CLI (`vercel deploy dist`). A Git-connected project never reads it: it serves the redirect pages and none of the headers from [Content types](#content-types). Copy the `redirects` and `headers` from `dist/vercel.json` into the `vercel.json` in your project's root directory, or use `vercel()` for a server build, whose routing config carries the redirects and the discovery headers.
 
 :::note
 `from` and `to` are exact paths — a `:param` segment or `*` wildcard (e.g. `/blog/:slug` or `/old/*`) fails config validation, since hosts disagree on patterns. If you need pattern-based rules, handle them in an infrastructure file like `vercel.json` (which supports wildcard `source` patterns) or your host's redirect config instead. A `vercel.json` you ship in `public/` is preserved as-is.
@@ -151,7 +157,7 @@ Write both `from` and `to` as if mounted at root — under [`base`](#subpath-dep
 
 ## Content types
 
-Where the host reads one, a build also emits a `_headers` file that pins `charset=utf-8` onto the raw AI-ready endpoints — `/<route>.md`, `/<route>.mdx`, and the `.txt` files (`llms.txt`, `llms-full.txt`). Those responses are valid UTF-8, but many static hosts serve them as `text/markdown` / `text/plain` with **no** charset, and browsers then fall back to Windows-1252 — so non-ASCII docs (Japanese, accented Latin, …) render as mojibake when the raw URL is opened directly. HTML pages are unaffected because they carry `<meta charset>`. Netlify reads `_headers` on a static deploy and Cloudflare (Pages, and Workers static assets) on both static and server builds, so those adapters and an unnamed static host get the file; Vercel (whose headers ride the routing config) and Node (whose server ignores the file) don't. A `_headers` you ship in `public/` is left untouched.
+Where the host reads one, a build also emits a `_headers` file that pins `charset=utf-8` onto the raw AI-ready endpoints — `/<route>.md`, `/<route>.mdx`, and the `.txt` files (`llms.txt`, `llms-full.txt`). Those responses are valid UTF-8, but many static hosts serve them as `text/markdown` / `text/plain` with **no** charset, and browsers then fall back to Windows-1252 — so non-ASCII docs (Japanese, accented Latin, …) render as mojibake when the raw URL is opened directly. HTML pages are unaffected because they carry `<meta charset>`. Netlify reads `_headers` on a static deploy and Cloudflare (Pages, and Workers static assets) on both static and server builds, so those adapters and an unnamed static host get the file; Vercel (whose headers ride the routing config) and Node (whose server ignores the file) don't. A static Vercel build writes the same rules into `dist/vercel.json` instead, which a Git-connected project doesn't read (see [Redirects](#redirects)). A `_headers` you ship in `public/` is left untouched.
 
 ## Environment variables
 
@@ -162,8 +168,9 @@ When a feature needs a runtime secret, Blume warns at `blume dev`/`build` if it'
 | Assistant (AI Gateway) | `AI_GATEWAY_API_KEY` (or Vercel OIDC) |
 | Assistant (other adapters) | the adapter's default key env var (`OPENROUTER_API_KEY`, `LLMGATEWAY_API_KEY`, `INKEEP_API_KEY`), or the `apiKeyEnv` you passed it |
 | Mixedbread search | `MIXEDBREAD_API_KEY` |
+| [Content sources](/docs/content/sources) | `NOTION_TOKEN` (`notion()`), `SANITY_TOKEN` (`sanity()`), `CONTENTFUL_ACCESS_TOKEN` (`contentful()`), `PAYLOAD_API_KEY` (`payload()`), `STRAPI_API_TOKEN` (`strapi()`), `GITHUB_TOKEN` (`githubReleases()`, and `mdxRemote()` reading from GitHub) |
 
-Set them in `.env.local` for local dev and in your host's environment for production. Build-time secrets for search-index sync (Algolia, Orama Cloud, Typesense) are warned about separately during the sync step.
+Set them in `.env.local` for local dev and in your host's environment for production. A content source reads its token when it fetches, during `blume dev` and `blume build`, so set it where your site builds. Build-time secrets for search-index sync (Algolia, Orama Cloud, Typesense) are warned about separately during the sync step.
 
 ## Build cache
 

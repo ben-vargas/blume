@@ -16,6 +16,8 @@
  * prerendered problem-details 404.
  */
 
+import { SVG_ASSET_HEADERS } from "./headers.ts";
+
 /**
  * Regex for the `accept` header condition. Written to hold under both matching
  * semantics a router may apply — full-string and substring — by anchoring the
@@ -248,6 +250,30 @@ const corsRoute = (path: string): VercelRoute => ({
   src: `^${routePattern(path)}$`,
 });
 
+/**
+ * The `src` of the route stamping the content-source SVG headers: every `.svg`
+ * under `/blume-assets/`. The adapter copies the static files into the Build
+ * Output tree without the deployment base, like every path matched here.
+ */
+const SVG_ASSET_SRC = String.raw`^/blume-assets/.+\.svg$`;
+
+/**
+ * A main-phase `continue` route stamping the sandbox headers
+ * (`deploy/headers.ts`) on a downloaded SVG, which Vercel serves from the
+ * static layer — where the prerendered asset endpoint's own headers never
+ * reach.
+ */
+const svgAssetRoute = (): VercelRoute => ({
+  continue: true,
+  headers: Object.fromEntries(
+    Object.entries(SVG_ASSET_HEADERS).map(([name, value]) => [
+      name.toLowerCase(),
+      value,
+    ])
+  ),
+  src: SVG_ASSET_SRC,
+});
+
 /** Whether a route is a `corsRoute` — the same three-field shape test as the others. */
 const isCorsRoute = (route: VercelRoute): boolean =>
   route.continue === true &&
@@ -279,7 +305,8 @@ const isNegotiationRoute = (route: VercelRoute): boolean =>
     isString(route.headers?.link) &&
     route.src === HOME_SRC &&
     Object.keys(route).length === 3) ||
-  isCorsRoute(route);
+  isCorsRoute(route) ||
+  (route.continue === true && route.src === SVG_ASSET_SRC);
 
 /**
  * Splice the negotiation routes into a Build Output `config.json`, plus — when
@@ -297,7 +324,8 @@ const isNegotiationRoute = (route: VercelRoute): boolean =>
  * `404.md`, `notFound.json` for `404.json`), its routes go into the miss
  * phase right before the adapter's `/404.html` fallback — and nowhere when
  * that fallback is absent, since a `dest` with no file behind it would serve
- * nothing. Returns the updated JSON
+ * nothing. With `svgAssets`, a main-phase route also sandboxes the SVGs a
+ * content source downloaded (see {@link svgAssetRoute}). Returns the updated JSON
  * text (tab-indented, like the adapter's own output), or `null` when there is
  * nowhere safe to splice: an unparsable config, no `routes` array, or no
  * `handle: "filesystem"` marker to anchor the splice.
@@ -309,7 +337,8 @@ export const injectNegotiationRoutes = (
   contentTypeOverrides?: Record<string, string>,
   homeTokens?: number,
   notFound: NotFoundVariants = {},
-  corsPaths: readonly string[] = []
+  corsPaths: readonly string[] = [],
+  svgAssets = false
 ): string | null => {
   const overrideEntries = Object.entries(contentTypeOverrides ?? {});
   let config: {
@@ -348,6 +377,9 @@ export const injectNegotiationRoutes = (
     });
   }
   headerRoutes.push(...corsPaths.map(corsRoute));
+  if (svgAssets) {
+    headerRoutes.push(svgAssetRoute());
+  }
   // Headers first: `continue` routes accumulate, so a request the rewrite
   // route then terminates (Markdown negotiation on the homepage) still carries
   // the Link header.

@@ -124,7 +124,10 @@ export const emitVercelNegotiation = async (
       json: existsSync(join(staticDir, "404.json")),
       markdown: existsSync(join(staticDir, "404.md")),
     },
-    crossOriginDiscoveryPaths(config)
+    crossOriginDiscoveryPaths(config),
+    // Downloaded content assets are prerendered static files; only a build
+    // that has them needs the SVG sandbox route.
+    existsSync(join(staticDir, "blume-assets"))
   );
   if (injected === null) {
     log.warn(
@@ -144,8 +147,9 @@ export const emitVercelNegotiation = async (
  * `@vercel/nft` dependency trace is rooted there too, and tracing from the
  * hidden runtime silently drops the function's chunks and `node_modules`.
  * Static assets are served from the tree's `static/` half, so the deploy
- * artifacts are written there; headers arrive through the routing config
- * rather than a `_headers` file, which Vercel never reads.
+ * artifacts are written there; headers (the discovery files', the sandbox on
+ * downloaded SVGs) arrive through the routing config rather than a
+ * `_headers` file, which Vercel never reads.
  */
 export const vercelPlatform: DeployPlatform = {
   astro: {

@@ -7,8 +7,11 @@ export const NODE_ADAPTER_PACKAGE = "@astrojs/node";
 
 /**
  * Options for {@link node}: `output`, `site`, and `base`, plus any option of
- * `@astrojs/node` forwarded verbatim (`mode`, `host`, `port`, …). Blume
- * defaults `mode` to `"standalone"`; an option you pass wins.
+ * `@astrojs/node` forwarded verbatim (`mode`, `staticHeaders`, …). Blume
+ * defaults `mode` to `"standalone"`; an option you pass wins. `host` and
+ * `port` are forwarded too, but `@astrojs/node` replaces both with Astro's
+ * own server settings, so the standalone server listens on `localhost:4321`
+ * unless the `HOST` and `PORT` environment variables are set when it starts.
  */
 export type NodeOptions = DeployOptions;
 

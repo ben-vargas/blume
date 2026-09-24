@@ -70,14 +70,32 @@ export const handler = (req, res, next) => {
   globalThis.__astroEntry.calls.push({ next, url: req.url });
   return "handled";
 };
-export const startServer = () => globalThis.__fakeNoServer ? {} : ({
-  server: {
+export const startServer = () => {
+  if (globalThis.__fakeNoServer) {
+    return {};
+  }
+  // The adapter's own request listener, then the slice of Node's EventEmitter
+  // the wrapper uses to take it over.
+  const entries = globalThis.__astroEntry.listeners;
+  entries.push({
+    event: "request",
+    listener: (req) =>
+      globalThis.__astroEntry.calls.push({ next: "server", url: req.url }),
+  });
+  return {
     server: {
-      prependListener: (event, listener) =>
-        globalThis.__astroEntry.listeners.push({ event, listener }),
+      server: {
+        listeners: (event) =>
+          entries.filter((entry) => entry.event === event).map((entry) => entry.listener),
+        on: (event, listener) => entries.push({ event, listener }),
+        removeAllListeners: (event) => {
+          const kept = entries.filter((entry) => entry.event !== event);
+          entries.splice(0, entries.length, ...kept);
+        },
+      },
     },
-  },
-});
+  };
+};
 `;
 
 /** The request and response slices the wrapper touches. */
@@ -247,17 +265,23 @@ describe("nodeEntryWrapper", () => {
     }
   });
 
-  it("starts the server with its listener first when autostart is on", async () => {
+  it("starts the server with its listener in front of Astro's when autostart is on", async () => {
     await importWrapper(null);
     // Astro's entry was imported with autostart off either way.
     expect(state().autostart).toBe("disabled");
-    const [started] = state().listeners;
+    // The wrapper's listener replaced Astro's, which it now calls itself.
+    const { listeners } = state();
+    expect(listeners).toHaveLength(1);
+    const [started] = listeners;
     expect(started?.event).toBe("request");
     const served = response();
     started?.listener({ url: "/docs/.well-known/mcp.json" }, served.res);
     expect(served.headers).toStrictEqual({
       "Access-Control-Allow-Origin": "*",
     });
+    expect(state().calls).toStrictEqual([
+      { next: "server", url: "/docs/.well-known/mcp.json" },
+    ]);
   });
 
   it("leaves a middleware-mode entry for its host to start", async () => {
@@ -348,6 +372,7 @@ describe("wrapNodeEntry", () => {
       module.handler({ url: "/blume-assets/sanity/abc.svg?v=1" }, svg.res);
       expect(svg.headers).toStrictEqual({
         "Content-Security-Policy": "sandbox",
+        "X-Content-Type-Options": "nosniff",
       });
       const png = response();
       module.handler({ url: "/blume-assets/sanity/abc.png" }, png.res);

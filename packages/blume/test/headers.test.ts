@@ -54,26 +54,35 @@ describe("buildNetlifyHeaders", () => {
         "  Content-Type: text/plain; charset=utf-8",
         "/blume-assets/*.svg",
         "  Content-Security-Policy: sandbox",
+        "/blume-assets/*.svg",
+        "  X-Content-Type-Options: nosniff",
         "",
       ].join("\n")
     );
   });
 
   it("sandboxes content-source SVGs under the deployment base", () => {
-    expect(buildNetlifyHeaders(configWith({ base: "/docs" }))).toContain(
+    const out = buildNetlifyHeaders(configWith({ base: "/docs" }));
+    expect(out).toContain(
       "/docs/blume-assets/*.svg\n  Content-Security-Policy: sandbox"
+    );
+    expect(out).toContain(
+      "/docs/blume-assets/*.svg\n  X-Content-Type-Options: nosniff"
     );
   });
 
-  it("prefixes globs with the composed deployment.base + basePath stack", () => {
+  it("prefixes globs with deployment.base, beside basePath", () => {
     const out = buildNetlifyHeaders(
       configWith({ base: "/base", basePath: "/docs" })
     );
-    expect(out).toContain("/base/docs/*.md");
-    expect(out).toContain("/base/docs/*.mdx");
-    // llms.txt / llms-full.txt live at the dist root, not under basePath.
-    expect(out).toContain("/base/*.txt");
-    expect(out).not.toContain("/base/docs/*.txt");
+    // The section home's mirror (`/base/docs.md`) and the synthesized
+    // `/base/index.md`, `/base/changelog.md`, and `/base/404.md` sit outside
+    // basePath, and the glob spans segments, so one rule at the base covers
+    // every mirror.
+    expect(out).toContain("/base/*.md\n");
+    expect(out).toContain("/base/*.mdx\n");
+    expect(out).toContain("/base/*.txt\n");
+    expect(out).not.toContain("/base/docs/*.");
   });
 
   it("normalizes a trailing slash on deployment.base", () => {
@@ -82,11 +91,12 @@ describe("buildNetlifyHeaders", () => {
     );
   });
 
-  it("keeps the .txt rule at the root when only basePath is set", () => {
+  it("keeps every rule at the root when only basePath is set", () => {
     const out = buildNetlifyHeaders(configWith({ basePath: "/docs" }));
-    expect(out).toContain("/docs/*.md");
-    expect(out).toContain("/*.txt");
-    expect(out).not.toContain("/docs/*.txt");
+    expect(out.startsWith("/*.md\n")).toBe(true);
+    expect(out).toContain("\n/*.mdx\n");
+    expect(out).toContain("\n/*.txt\n");
+    expect(out).not.toContain("/docs/*.");
   });
 
   it("appends a homepage Link rule when a link header is provided", () => {
@@ -177,7 +187,7 @@ describe("buildVercelHeaders", () => {
       sources.map((entry) => [entry.source, entry.headers])
     );
     // A `*` glob becomes the segment-spanning `(.*)` group.
-    expect(bySource.get("/docs/guide/(.*).md")).toStrictEqual([
+    expect(bySource.get("/docs/(.*).md")).toStrictEqual([
       { key: "Content-Type", value: "text/markdown; charset=utf-8" },
     ]);
     expect(bySource.get("/docs/(.*).txt")).toStrictEqual([

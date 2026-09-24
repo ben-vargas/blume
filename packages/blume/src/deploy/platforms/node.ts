@@ -6,11 +6,12 @@ import type { DeployPlatform } from "./types.ts";
 /**
  * A self-hosted Node server. The standalone server in `dist/server` serves
  * `dist/client` through its own static handler, which has no `_headers` or
- * `_redirects` support — redirects are answered at request time from the
- * Astro config, and a header file written there would be inert. The headers
- * the discovery files need come from a wrapper around the server entry
- * instead (`deploy/node-headers.ts`). No platform env to detect: the site URL
- * has to be configured.
+ * `_redirects` support, so a file written there would be inert. A wrapper
+ * around the server entry (`deploy/node-headers.ts`) sets the headers the
+ * discovery files and downloaded SVGs need instead, and answers the
+ * configured redirects with their exact status, which Astro's own handler
+ * would default to 301 or 308. No platform env to detect: the site URL has to
+ * be configured.
  */
 export const nodePlatform: DeployPlatform = {
   astro: {

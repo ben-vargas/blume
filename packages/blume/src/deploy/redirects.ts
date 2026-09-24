@@ -82,10 +82,21 @@ export const platformRedirects = (config: ResolvedConfig): Redirect[] =>
     config.deployment.options.base ?? ""
   );
 
-/** `_redirects` text (Netlify + Cloudflare Pages): `from to status` per line. */
-export const buildNetlifyRedirects = (redirects: Redirect[]): string =>
+/**
+ * `_redirects` text (Netlify + Cloudflare Pages): `from to status` per line.
+ * `force` appends Netlify's `!` to each status (`301!`), so the rule wins over
+ * the redirect page Astro writes at `from`; Cloudflare, which always applies
+ * its rules first, rejects a line carrying it.
+ */
+export const buildNetlifyRedirects = (
+  redirects: Redirect[],
+  force = false
+): string =>
   `${redirects
-    .map((redirect) => `${redirect.from} ${redirect.to} ${redirect.status}`)
+    .map(
+      (redirect) =>
+        `${redirect.from} ${redirect.to} ${redirect.status}${force ? "!" : ""}`
+    )
     .join("\n")}\n`;
 
 /** The `vercel.json` Blume writes for a static deploy of `dist/`. */

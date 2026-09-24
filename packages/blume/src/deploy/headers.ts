@@ -29,44 +29,43 @@ import type { ResolvedConfig } from "../core/schema.ts";
 
 /**
  * One rule per served extension. `.mdx` uses `text/markdown` to match the
- * runtime endpoint, which serves both variants as `text/markdown`. The raw
- * Markdown mirrors live under the page routes (which carry `basePath`), while
- * the `.txt` files (`llms.txt`, `llms-full.txt`) are written to the dist root
- * and served at the deployment base — so only the `.md`/`.mdx` rules take the
- * `basePath` layer.
+ * runtime endpoint, which serves both variants as `text/markdown`. Every rule
+ * sits at the deployment base, not under `basePath`: most Markdown mirrors
+ * live under the page routes, but the section home's mirror (`/docs.md`) sits
+ * beside `basePath`, and the synthesized `/index.md`, `/changelog.md`, and
+ * `/404.md` sit at the root, as do the `.txt` files (`llms.txt`,
+ * `llms-full.txt`).
  */
-const HEADER_RULES: readonly {
-  contentType: string;
-  ext: string;
-  underBasePath: boolean;
-}[] = [
-  {
-    contentType: "text/markdown; charset=utf-8",
-    ext: "md",
-    underBasePath: true,
-  },
-  {
-    contentType: "text/markdown; charset=utf-8",
-    ext: "mdx",
-    underBasePath: true,
-  },
-  {
-    contentType: "text/plain; charset=utf-8",
-    ext: "txt",
-    underBasePath: false,
-  },
+const HEADER_RULES: readonly { contentType: string; ext: string }[] = [
+  { contentType: "text/markdown; charset=utf-8", ext: "md" },
+  { contentType: "text/markdown; charset=utf-8", ext: "mdx" },
+  { contentType: "text/plain; charset=utf-8", ext: "txt" },
 ];
 
 /** Where the generated endpoint serves content-source images from. */
-const CONTENT_ASSETS_ROOT = "/blume-assets";
+export const CONTENT_ASSETS_ROOT = "/blume-assets";
 
 /**
  * The policy a content-source SVG is served with: an opaque origin with
  * scripts off, so an uploaded SVG that carries a `<script>` stays inert when
- * opened directly. The endpoint sends it from the server and dev runtimes;
- * {@link headerRules} carries it to static hosts.
+ * opened directly.
  */
 export const SVG_ASSET_POLICY = "sandbox";
+
+/**
+ * The headers a content-source SVG is served with: the sandbox policy, and no
+ * MIME sniffing. The endpoint sends them from the dev runtime; every host
+ * gets them for the built files — static hosts through {@link headerRules},
+ * server builds through each platform's own mechanism (`deploy/platforms`).
+ */
+export const SVG_ASSET_HEADERS = {
+  "Content-Security-Policy": SVG_ASSET_POLICY,
+  "X-Content-Type-Options": "nosniff",
+} satisfies Record<string, string>;
+
+/** The served glob of content-source SVGs, under the deployment base. */
+export const svgAssetPath = (config: ResolvedConfig): string =>
+  `${normalizeBasePath(config.deployment.options.base)}${CONTENT_ASSETS_ROOT}/*.svg`;
 
 /**
  * One static-host header rule: a served path (a `*` glob spanning path
@@ -80,11 +79,9 @@ export interface HeaderRule {
 
 /**
  * The header rules every static host should apply, in `_headers` glob syntax.
- * The glob carries the served prefix (`{deployment.base}{basePath}` for the
- * Markdown mirrors, `{deployment.base}` for the root `.txt` files) so the rules
- * still match once the site is mounted under a subpath (`/docs/*.md`); the
- * wildcard spans path segments, so a nested route like `/docs/ja/intro.md`
- * matches too.
+ * The glob carries the deployment base so the rules still match once the site
+ * is mounted under a subpath (`/docs/*.md`); the wildcard spans path
+ * segments, so a nested route like `/docs/ja/intro.md` matches too.
  *
  * When a homepage `Link` header is provided (see `ai/link-headers.ts`), an
  * exact-path rule for the root page advertises the agent-discovery resources —
@@ -95,16 +92,11 @@ export const headerRules = (
   homeLinkHeader?: string | null
 ): HeaderRule[] => {
   const deployBase = normalizeBasePath(config.deployment.options.base);
-  const rules: HeaderRule[] = HEADER_RULES.map((rule) => {
-    const prefix = rule.underBasePath
-      ? `${deployBase}${config.basePath}`
-      : deployBase;
-    return {
-      name: "Content-Type",
-      path: `${prefix}/*.${rule.ext}`,
-      value: rule.contentType,
-    };
-  });
+  const rules: HeaderRule[] = HEADER_RULES.map((rule) => ({
+    name: "Content-Type",
+    path: `${deployBase}/*.${rule.ext}`,
+    value: rule.contentType,
+  }));
   if (homeLinkHeader) {
     rules.push({ name: "Link", path: `${deployBase}/`, value: homeLinkHeader });
   }
@@ -134,9 +126,8 @@ export const headerRules = (
       value: "*",
     });
   }
-  // Published skills live at the deployment base, outside `basePath` — the
-  // `.md` charset rule above misses them whenever a basePath is set, and the
-  // RFC wants archives served as application/gzip explicitly.
+  // Published skills live at the deployment base, and the RFC wants their
+  // archives served as application/gzip explicitly.
   if (config.agents.skills) {
     rules.push(
       {
@@ -155,11 +146,9 @@ export const headerRules = (
   // are served from the docs origin, and an SVG opened directly is a document
   // that can run script. A sandbox policy keeps it inert; an `<img>` that
   // embeds it is unaffected.
-  rules.push({
-    name: "Content-Security-Policy",
-    path: `${deployBase}${CONTENT_ASSETS_ROOT}/*.svg`,
-    value: SVG_ASSET_POLICY,
-  });
+  for (const [name, value] of Object.entries(SVG_ASSET_HEADERS)) {
+    rules.push({ name, path: svgAssetPath(config), value });
+  }
   return rules;
 };
 

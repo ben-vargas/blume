@@ -39,8 +39,9 @@
  *
  * Cloudflare does not apply `_headers` to worker-first routes, so the wrapper
  * also re-stamps what the static layer would otherwise add on the routes it
- * takes over: the homepage agent-discovery `Link` header and the Markdown
- * `charset=utf-8` (see `deploy/headers.ts`). The raw `.md`/`.mdx` URLs are
+ * takes over: the homepage agent-discovery `Link` header, the Markdown
+ * `charset=utf-8`, and the sandbox on the SVGs a content source downloaded
+ * (see `deploy/headers.ts`). The raw `.md`/`.mdx` URLs are
  * exempted from worker-first routing with negative rules, keeping their
  * `_headers` treatment and their zero-Worker serving path.
  *
@@ -84,6 +85,7 @@ import {
   OPENAPI_PATH,
 } from "../ai/api/paths.ts";
 import { normalizePath } from "../core/base-path.ts";
+import { CONTENT_ASSETS_ROOT, SVG_ASSET_HEADERS } from "./headers.ts";
 import type { NotFoundVariants } from "./vercel-negotiation.ts";
 
 /** Filename of the generated wrapper Worker, next to the adapter's entry. */
@@ -314,8 +316,8 @@ export const buildNegotiationWorker = (
 // request is delegated to the Astro Worker untouched — except a missing
 // page, whose HTML 404 shell is swapped for the prerendered Markdown or JSON
 // 404 twin when the client prefers one. \`_headers\` does not apply to
-// worker-first routes, so the homepage Link header and the Markdown charset
-// are re-stamped here.
+// worker-first routes, so the homepage Link header, the Markdown charset, and
+// the sandbox on downloaded SVGs are re-stamped here.
 import server from ${JSON.stringify(options.mainSpecifier)};
 
 const ROUTES = new Set(${routes});
@@ -326,6 +328,16 @@ const HOME_LINK_HEADER = ${homeLinkHeader};
 const HOME_TOKENS = ${homeTokens};
 const REDIRECTS = ${redirects};
 const NOT_FOUND = ${notFound};
+const SVG_ASSET_HEADERS = ${JSON.stringify(SVG_ASSET_HEADERS)};
+
+// An SVG a content source downloaded: a document that could run script as the
+// docs site if opened directly, so it goes out sandboxed. Matched on the
+// decoded path, ignoring case — the file the assets binding serves.
+const isSvgAsset = (pathname) => {
+  const path = safeDecode(pathname).toLowerCase();
+  const prefix = (safeDecode(BASE_PREFIX) + "${CONTENT_ASSETS_ROOT}/").toLowerCase();
+  return path.startsWith(prefix) && path.endsWith(".svg");
+};
 
 // Configured redirects live in \`_redirects\`, which only the static layer
 // reads — a worker-first route never reaches it. Answering from this baked-in
@@ -524,6 +536,13 @@ export default {
       return new Response(null, {
         headers: { location: redirectLocation(redirect[0], url.search) },
         status: redirect[1],
+      });
+    }
+    if (isSvgAsset(url.pathname)) {
+      return withHeaders(await server.fetch(request, env, context), (headers) => {
+        for (const [name, value] of Object.entries(SVG_ASSET_HEADERS)) {
+          headers.set(name, value);
+        }
       });
     }
     if (request.method !== "GET" && request.method !== "HEAD") {
