@@ -12,7 +12,7 @@ Keep content where it is — set `content.root: "src/content/docs"`.
 
 ## Config: `starlight({…})` → `blume.config.ts`
 
-**Harvest the surrounding `astro.config.*` too, not just the `starlight()` call:** top-level Astro `redirects` → Blume `redirects`; `site` → leave unset (Blume auto-detects); other integrations → report.
+**Harvest the surrounding `astro.config.*` too, not just the `starlight()` call:** top-level Astro `redirects` → Blume `redirects`; `site` → `deployment.site`, unless the target host is Vercel, Netlify, or Cloudflare Pages, which Blume auto-detects (see SKILL.md); other integrations → report.
 
 | Starlight option | Blume |
 | --- | --- |
@@ -70,7 +70,7 @@ Starlight's primary callout syntax is the `:::note`/`:::tip`/`:::caution`/`:::da
 
 ## Components
 
-- **Renames:** `<CardGrid>` → `<CardGroup>`; `<LinkCard>` → `<Card>` (its `description` prop drops — fold into the body); `<TabItem label="…">` → `<Tab title="…">`. `<Tabs>` and `<Card>` stay; a `<Tabs syncKey="…">` → strip the prop (Blume tabs sync by default).
+- **Renames:** `<CardGrid>` → `<CardGroup>`; `<LinkCard>` → `<Card>` (its `description` prop drops — fold into the body); `<TabItem label="…">` → `<Tab title="…">`. `<Tabs>` and `<Card>` stay; **keep** a `<Tabs syncKey="…">` prop as is — Blume's `Tabs` takes `syncKey` with the same scoping (only groups sharing the key switch together). One difference: Blume groups without a key also sync, page-wide, by tab title, where Starlight leaves them independent — add `sync={false}` to a keyless group whose same-titled tabs must stay unlinked.
 - **`<Badge>` needs conversion, not pass-through:** Starlight puts content in a `text` prop and uses variants `note`/`tip`/`caution`/`danger`/`success`/`default` with sizes `small`/`medium`/`large`. Blume's `<Badge>` renders **children** with variants `default`/`accent`/`success`/`warning`/`danger` and sizes `xs`/`sm`/`md`/`lg`. Move `text` into the children; remap variant (`note`→`default`, `tip`→`accent`, `caution`→`warning`, `danger`→`danger`, `success`→`success`) and size (`small`→`sm`, `medium`→`md`, `large`→`lg`).
 - **Convert yourself:** `<Steps>` → Blume `<Steps>`/`<Step>`; `<FileTree>` → Blume `<FileTree>`; `<Code code={…}>` → a fenced code block; `<LinkButton>` → a Markdown link or `<Card>`.
 - Strip `import … from "@astrojs/starlight/*"` and `astro:assets` lines.
@@ -88,8 +88,8 @@ Starlight content is full of Expressive Code fence meta; Blume understands some 
 ## Plugins — map, don't drop
 
 - `starlight-openapi` → an `openapi({ sources })` entry in Blume's `reference` list, imported from `blume/reference` (delete any generated pages; add the `navigation.tabs` entry).
-- `starlight-blog` → `type: blog` pages.
-- `starlight-versions` → `navigation.selectors` with `kind: "version"`.
+- `starlight-blog` → `type: blog` pages (RSS at `/blog/rss.xml`). Blume generates **no** blog index, tag, or author pages: write a `blog/index.mdx` whose `CardGroup` links each post (see `docs/advanced/blog.mdx` in the installed package), and report the tag and author pages as dropped.
+- `starlight-versions` → Blume's native versioning, not a `navigation.selectors` dropdown: each archived version's content goes in a top-level folder under `content.root` named for its id, listed in `versions.archived` (newest first), and Blume adds the switcher, the old-version notice, and version-scoped search. Ids must start with a letter (`1.0/` → `v1.0/`, with `redirects` from the old URLs), and a version-shaped folder left out of `versions.archived` only warns (`BLUME_VERSIONS_UNCONFIGURED_VERSION`) and publishes as current content. Full reference: `docs/content/versioning.mdx` in the installed package.
 - `starlight-image-zoom` → delete (Blume zooms content images by default).
 - `starlight-links-validator` → delete (`blume validate` covers it).
 - Anything else → report.
@@ -113,4 +113,4 @@ Remove `@astrojs/starlight` (and plugin deps) from deps, delete the Starlight bi
 
 ## Dropped — report these
 
-Non-GitHub socials, badge variants, sidebar/item `attrs` + `translations`, `customCss` beyond `theme.css`, `head` entries, `routeMiddleware`, splash/hero pages (rebuild as custom pages), aside custom icons, EC frames/collapse/text markers, prev/next toggles, unmapped plugins, any `<Icon>` name with no Lucide equivalent.
+Non-GitHub socials, badge variants, sidebar/item `attrs` + `translations`, `customCss` beyond `theme.css`, `head` entries, `routeMiddleware`, splash/hero pages (rebuild as custom pages), starlight-blog's tag and author pages, aside custom icons, EC frames/collapse/text markers, prev/next toggles, unmapped plugins, any `<Icon>` name with no Lucide equivalent.

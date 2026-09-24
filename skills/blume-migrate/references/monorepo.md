@@ -112,7 +112,7 @@ This is a **copyable template**, not prose. Three pieces:
     "preview": "blume preview"
   },
   "dependencies": {
-    "blume": "^1"
+    "blume": "^2"
   }
 }
 ```

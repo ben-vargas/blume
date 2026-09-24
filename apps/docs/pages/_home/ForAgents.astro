@@ -25,7 +25,7 @@ const features = [
     title: "llms.txt",
   },
   {
-    body: "Raw source at every `.md` URL, with `Accept: text/markdown` negotiation on Vercel and Cloudflare.",
+    body: "A Markdown twin of every page at its `.md` URL, with `Accept: text/markdown` negotiation on Vercel and Cloudflare server builds.",
     title: "Markdown at every URL",
   },
   {
@@ -58,10 +58,10 @@ const markdown = [
   {
     block: "title",
     html: [
-      tint("text-zinc-500", "---"),
+      tint("text-zinc-400", "---"),
       `${tint("text-sky-400", "title:")} Webhooks`,
       `${tint("text-sky-400", "description:")} Get notified when a message is delivered, opened, or bounced.`,
-      tint("text-zinc-500", "---"),
+      tint("text-zinc-400", "---"),
     ].join("\n"),
   },
   {
@@ -81,9 +81,9 @@ const markdown = [
   {
     block: "code",
     html: [
-      tint("text-zinc-500", "```ts route.ts"),
+      tint("text-zinc-400", "```ts route.ts"),
       escapeHtml(code.join("\n")),
-      tint("text-zinc-500", "```"),
+      tint("text-zinc-400", "```"),
     ].join("\n"),
   },
 ];
@@ -95,7 +95,7 @@ const block = "-mx-3 rounded-lg px-3 py-2";
 
 <section class="flex flex-col gap-12">
   <SectionHeading
-    tagline="Every page serves people and agents from the same URL."
+    tagline="Every page has a Markdown twin for agents to read."
     title="One page, two readers."
   >
     <TextLink href="/agents">Blume for agents</TextLink>
@@ -154,7 +154,10 @@ const block = "-mx-3 rounded-lg px-3 py-2";
               </Callout>
             </div>
             <div class:list={[block, "[&_pre]:my-0!"]} data-block="code">
-              <div class="relative">
+              <!-- Shiki makes the <pre> focusable; inert keeps keyboard focus
+                   out of this hidden mock while the pointer, passing through
+                   to the block, still lights the pair. -->
+              <div class="relative" inert>
                 <CodeBlock code={code.join("\n")} icons lang="ts" title="route.ts" />
                 <CopyGlyph />
               </div>
@@ -171,7 +174,7 @@ const block = "-mx-3 rounded-lg px-3 py-2";
               >
                 Agent
               </span>
-              <span class="text-zinc-500">text/markdown</span>
+              <span class="text-zinc-400">text/markdown</span>
             </p>
             {
               markdown.map((part, index) => (

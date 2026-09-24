@@ -4,8 +4,12 @@
 // (crossfaded per feature) and inline on mobile, so each `kind` lives in one
 // place. Unlike the theme-aware browser mock it is always dark, like a real
 // terminal, so its colors are fixed rather than design tokens. Transcripts are
-// data (lines of colored segments), mirroring the CLI's actual output — the
-// prompts from `blume init`, consola's ✔ lines, and the audit report format.
+// data (lines of colored segments), trimmed from the CLI's actual output — the
+// prompts from `blume init`, the messages Blume logs, Astro's server banner,
+// and the audit report format. Trimming drops lines, never rewords them: the
+// `[blume]` tags and timestamps, Astro's own build log, the build's summary
+// boxes, and diagnostics' docs links are left out, and `~/acme/dist` stands
+// in for the absolute path the CLI prints.
 interface Props {
   /** End on an idle prompt with a blinking cursor, as if awaiting the next command. */
   caret?: boolean;
@@ -37,6 +41,7 @@ const palette: Record<string, string> = {
 // Tiny line constructors so the transcripts below read like transcripts.
 const cmd = (t: string): Line => [{ c: "prompt", t: "❯ " }, { c: "cmd", t }];
 const ok = (t: string): Line => [{ c: "ok", t: "✔ " }, { c: "out", t }];
+const start = (t: string): Line => [{ c: "info", t: "◐ " }, { c: "out", t }];
 const dim = (t: string): Line => [{ c: "dim", t }];
 const out = (t: string): Line => [{ c: "out", t }];
 const ask = (q: string, a: string, hint?: string): Line => [
@@ -66,7 +71,7 @@ const terminals: Record<
   hero: {
     lines: [
       cmd("npx blume init"),
-      ok("Scaffolded my-docs"),
+      ok("Installed dependencies"),
       blank,
       cmd("blume dev"),
       [
@@ -74,8 +79,8 @@ const terminals: Record<
         { c: "fix", t: "http://localhost:4321/" },
       ],
       blank,
-      cmd("blume build --budget-js 120"),
-      ok("Built to dist — 40.3 kB JS, under budget"),
+      cmd("blume build --budget-js 200"),
+      ok("JavaScript budget: 151 kB / 200 kB"),
       blank,
       cmd("blume audit"),
       ok("No issues found."),
@@ -84,11 +89,11 @@ const terminals: Record<
   init: {
     lines: [
       cmd("npx blume init"),
-      ask("Where should we create your project?", "./my-docs"),
+      ask("Where should we create your project?", "my-docs"),
       ask("What's your docs site called?", "Acme"),
       ask("Which template?", "docs", "Markdown docs site"),
       ask("Where does your content live?", "filesystem", "Local .mdx files"),
-      blank,
+      ask("Content directory?", "docs"),
       ok("Installed dependencies"),
       blank,
       dim("Next steps:"),
@@ -96,12 +101,11 @@ const terminals: Record<
       out("  npm run dev"),
     ],
   },
+  // A successful reload prints nothing, so the session shows Astro's banner,
+  // then the diagnostic Blume reports when a save breaks the frontmatter.
   dev: {
     lines: [
       cmd("blume dev"),
-      ok("Generated runtime — 24 pages"),
-      ok("Indexed 24 page(s) for search"),
-      blank,
       [
         { c: "bold", t: "  Local    " },
         { c: "fix", t: "http://localhost:4321/" },
@@ -111,24 +115,22 @@ const terminals: Record<
         { c: "dim", t: "use --host to expose" },
       ],
       blank,
-      [
-        { c: "warn", t: "● " },
-        { c: "dim", t: "content/docs/quickstart.mdx changed" },
-      ],
-      ok("Reloaded in 38 ms"),
+      dim("watching for file changes..."),
       blank,
       [
-        { c: "warn", t: "● " },
-        { c: "dim", t: "blume.config.ts changed" },
+        { c: "err", t: "BLUME_FRONTMATTER_INVALID" },
+        { c: "out", t: ' Unrecognized key: "sidebar_position"' },
       ],
-      ok("Reloaded in 74 ms"),
+      dim("  at content/docs/quickstart.mdx"),
+      blank,
+      out("1 error(s)"),
     ],
   },
   // Serving the last build locally, in the dev server's banner format.
   preview: {
     lines: [
       cmd("blume build"),
-      ok("Built to dist"),
+      ok("Built to ~/acme/dist"),
       blank,
       cmd("blume preview"),
       blank,
@@ -144,33 +146,24 @@ const terminals: Record<
   },
   build: {
     lines: [
-      cmd("blume build --analyze --budget-js 120"),
-      ok("Built 24 page(s) — static output"),
-      ok("Generated sitemap.xml and robots.txt"),
-      ok("Generated agent-readability.json"),
-      ok("Indexed 24 page(s) for search"),
+      cmd("blume build --budget-js 200"),
+      start("Building 24 page(s) (static output)"),
+      dim("Generated llms.txt and llms-full.txt"),
+      dim("Generated sitemap.xml"),
+      dim("Generated robots.txt"),
+      dim("Generated agent-readability.json"),
       blank,
-      [{ c: "bold", t: "  Client bundles, largest first" }],
-      [
-        { c: "out", t: "  search.js   " },
-        { c: "dim", t: "38.2 kB" },
-      ],
-      [
-        { c: "out", t: "  theme.js    " },
-        { c: "dim", t: " 2.1 kB" },
-      ],
-      [
-        { c: "out", t: "  Total       " },
-        { c: "ok", t: "40.3 kB — under budget (120 kB)" },
-      ],
-      blank,
-      ok("Built to dist"),
+      ok("JavaScript budget: 151 kB / 200 kB"),
+      ok("Built to ~/acme/dist"),
     ],
   },
   // The audit report itself, in the reporter's real format: the header and
   // totals, then findings grouped by check under their category (worst
   // category first), each with up to three affected pages beside the source
   // file that fixes them, a collapsed remainder, and the catalog's fix line.
+  // The audit count is checks run × pages: an offline run enables only the
+  // static-tier checks in audit/catalog.ts (76 in 2.0.1), so 128 pages make
+  // 9,728 audits. Recount when the catalog grows.
   report: {
     lines: [
       cmd("blume audit"),
@@ -179,7 +172,7 @@ const terminals: Record<
         { c: "bold", t: "  blume audit  " },
         { c: "dim", t: "128 pages · dist · offline" },
       ],
-      out("  3,712 audits · 2 errors · 7 warnings · 0 notes"),
+      out("  9,728 audits · 2 errors · 7 warnings · 0 notes"),
       blank,
       [{ c: "bold", t: "  links" }],
       blank,
@@ -254,7 +247,7 @@ const terminals: Record<
         { c: "bold", t: "  blume audit  " },
         { c: "dim", t: "128 pages · dist · offline" },
       ],
-      [{ c: "out", t: "  3,712 audits · 32 errors · 56 warnings · 3 notes" }],
+      [{ c: "out", t: "  9,728 audits · 32 errors · 56 warnings · 3 notes" }],
       blank,
       [{ c: "out", t: "  Handing 91 findings to Codex…" }],
     ],

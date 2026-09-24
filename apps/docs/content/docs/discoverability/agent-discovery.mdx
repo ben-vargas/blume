@@ -86,7 +86,7 @@ Here the `alternate` link points at _that page's own_ [raw-Markdown mirror](/doc
 
 ## API catalog
 
-When the site publishes APIs, Blume generates an [RFC 9727](https://www.rfc-editor.org/rfc/rfc9727) API catalog at `/.well-known/api-catalog` — a [linkset](https://www.rfc-editor.org/rfc/rfc9264) that lets agents enumerate your APIs from the domain alone, served on every build surface with its registered `application/linkset+json` media type and the RFC's `profile="https://www.rfc-editor.org/info/rfc9727"` parameter. There's nothing to configure: the catalog is derived from what's already in `blume.config.ts`. Each [OpenAPI or AsyncAPI reference](/docs/references/openapi) becomes an entry anchored at its rendered docs route, with `service-doc` pointing at those docs and `service-desc` at the spec when it lives at a fetchable URL; the site's own [JSON API](/docs/discoverability/json-api) becomes an entry described by its `/openapi.json`; and the [MCP server](/docs/discoverability/mcp) becomes an entry with its discovery document as the service description:
+When the site publishes APIs, Blume generates an [RFC 9727](https://www.rfc-editor.org/rfc/rfc9727) API catalog at `/.well-known/api-catalog` — a [linkset](https://www.rfc-editor.org/rfc/rfc9264) that lets agents enumerate your APIs from the domain alone, served on every build surface with its registered `application/linkset+json` media type and the RFC's `profile="https://www.rfc-editor.org/info/rfc9727"` parameter. There's nothing to configure: the catalog is derived from what's already in `blume.config.ts`. Each [OpenAPI, AsyncAPI, or GraphQL reference](/docs/references/openapi) becomes an entry anchored at its rendered docs route, with `service-doc` pointing at those docs and `service-desc` at the spec when it lives at a fetchable URL; the site's own [JSON API](/docs/discoverability/json-api) becomes an entry described by its `/openapi.json`; and the [MCP server](/docs/discoverability/mcp) becomes an entry with its discovery document as the service description:
 
 ```json .well-known/api-catalog
 {
@@ -130,7 +130,7 @@ A site with no API references, no MCP server, and the [JSON API](/docs/discovera
 
 ## AI catalog
 
-The API catalog lists APIs. The **AI catalog** lists everything an agent could pick up from the site — the MCP server, each published skill, the JSON API, each rendered API reference, and `llms.txt` — in the format agent registries index: an [AI Catalog](https://github.com/Agent-Card/ai-catalog) document at `/.well-known/ai-catalog.json`, which is also the manifest [Agentic Resource Discovery (ARD)](https://agenticresourcediscovery.org/) consumers resolve. Each entry carries a domain-anchored `urn:air:<host>:<namespace>:<name>` identifier, a display name, the artifact's media type, its URL, and a handful of `representativeQueries` — sample questions the resource can answer, which registries embed for semantic search:
+The API catalog lists APIs. The **AI catalog** lists everything an agent could pick up from the site — the MCP server, each published skill, the JSON API, each rendered API reference, and `llms.txt` — in the format agent registries index: an [AI Catalog](https://github.com/Agent-Card/ai-catalog) document at `/.well-known/ai-catalog.json`, which is also the manifest [Agentic Resource Discovery (ARD)](https://agenticresourcediscovery.org/) consumers resolve. Each entry carries a domain-anchored `urn:air:<host>:<namespace>:<name>` identifier, a display name, a one-line description, the artifact's media type, its URL, and a handful of `representativeQueries` — sample questions the resource can answer, which registries embed for semantic search. Here's the catalog for a site titled "Acme" with the MCP server on and one published skill:
 
 ```json .well-known/ai-catalog.json
 {
@@ -144,6 +144,7 @@ The API catalog lists APIs. The **AI catalog** lists everything an agent could p
     {
       "identifier": "urn:air:docs.example.com:mcp:acme",
       "displayName": "Acme",
+      "description": "Model Context Protocol server over the Acme documentation: full-text search, page Markdown, the page index, and the navigation tree.",
       "type": "application/mcp-server-card+json",
       "url": "https://docs.example.com/.well-known/mcp/server-card.json",
       "capabilities": [
@@ -154,13 +155,14 @@ The API catalog lists APIs. The **AI catalog** lists everything an agent could p
       ],
       "representativeQueries": [
         "search the Acme documentation",
-        "get a Acme docs page as Markdown",
+        "get a page of the Acme docs as Markdown",
         "list every page in the Acme docs"
       ]
     },
     {
       "identifier": "urn:air:docs.example.com:skill:acme",
       "displayName": "acme",
+      "description": "Set up an Acme project and call its API.",
       "type": "application/agent-skills+md",
       "url": "https://docs.example.com/.well-known/agent-skills/acme/SKILL.md",
       "representativeQueries": [
@@ -171,12 +173,24 @@ The API catalog lists APIs. The **AI catalog** lists everything an agent could p
     {
       "identifier": "urn:air:docs.example.com:api:docs",
       "displayName": "Acme docs API",
+      "description": "REST API over the Acme documentation: the page index, each page as JSON or Markdown, and the navigation tree, described by this OpenAPI document.",
       "type": "application/vnd.oai.openapi+json",
       "url": "https://docs.example.com/openapi.json",
       "representativeQueries": [
-        "fetch a Acme docs page as JSON",
+        "fetch a page of the Acme docs as JSON",
         "list the pages in the Acme docs",
-        "get the Acme docs navigation tree"
+        "get the navigation tree of the Acme docs"
+      ]
+    },
+    {
+      "identifier": "urn:air:docs.example.com:docs:llms-txt",
+      "displayName": "Acme llms.txt",
+      "description": "llms.txt index of the Acme documentation: every page with a one-line summary, plus the agent-facing resources on this site.",
+      "type": "text/plain",
+      "url": "https://docs.example.com/llms.txt",
+      "representativeQueries": [
+        "what is Acme",
+        "overview of the Acme documentation"
       ]
     }
   ]
@@ -185,7 +199,7 @@ The API catalog lists APIs. The **AI catalog** lists everything an agent could p
 
 ARD's current revision reads the manifest from `/.well-known/ard.json` and calls `ai-catalog.json` the predecessor path, so Blume writes the same document to both, advertises it under both link relations (`ai-catalog` and `ard`) in every page's head, and lists it in `llms.txt` and `agent-readability.json`. The catalog and its `.well-known` neighbors (the API catalog, the MCP discovery files) are served with `Access-Control-Allow-Origin: *` on every build surface, so a registry reading them from another origin isn't blocked.
 
-Entry identifiers are anchored on your domain, so the catalog needs a [`deployment.site`](/docs/deployment) — without one nothing is emitted. It's on by default; `agents.catalog: false` turns it off. The generated queries are derived from the site title and each entry's own description. To write your own for an entry, key them by the identifier's tail (`<namespace>:<name>`):
+Entry identifiers are anchored on your domain, so the catalog needs a [`deployment.site`](/docs/deployment) — without one nothing is emitted. It's on by default; `agents.catalog: false` turns it off. The generated queries are derived from the site title and each entry's own name. To write your own for an entry, key them by the identifier's tail (`<namespace>:<name>`):
 
 ```ts blume.config.ts
 export default defineConfig({

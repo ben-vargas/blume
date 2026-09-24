@@ -47,6 +47,9 @@ const verdictColor = {
   pass: "text-emerald-600 dark:text-emerald-400",
   skipped: "text-muted-foreground",
 };
+// The icon and bar color are the picture; this is what a screen reader hears.
+// A skipped question already says so in its visible "skipped" label.
+const verdictLabel = { fail: "failed", pass: "passed" };
 ---
 
 <Split
@@ -89,6 +92,9 @@ const verdictColor = {
               <div class="min-w-0 text-xs">
                 <p class="truncate font-mono text-foreground leading-5">
                   {question.name}
+                  {question.verdict !== "skipped" && (
+                    <span class="sr-only">, {verdictLabel[question.verdict]}</span>
+                  )}
                 </p>
                 {"missing" in question && (
                   <p class="mt-1 text-muted-foreground">

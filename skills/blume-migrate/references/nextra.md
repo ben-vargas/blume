@@ -56,7 +56,7 @@ Most Nextra pages have **no frontmatter**; the title falls back `_meta` title �
 
 ## Code fences
 
-Nextra's fence meta differs from Blume's — rewrite it: `filename="app.js"` → a space-separated title (` ```js app.js `); `showLineNumbers` → `lineNumbers`; line highlighting `{1,4-5}` carries over unchanged; **drop** word-highlight `/word/`, `copy`/`copy=false`, and inline-code `{:lang}` suffixes. ` ```sh npm2yarn ` fences → ` ```package-install `.
+Nextra's fence meta differs from Blume's — rewrite it: `filename="app.js"` → a space-separated title (` ```js app.js `); `showLineNumbers` → `lineNumbers`; line highlighting `{1,4-5}` carries over unchanged; **drop** word-highlight `/word/` and `copy`/`copy=false`. **Keep** inline-code `{:lang}` suffixes (`` `useState(){:js}` ``) — Blume highlights them natively. ` ```sh npm2yarn ` fences → ` ```package-install `.
 
 ## Math
 

@@ -23,7 +23,7 @@ Read `themeConfig`, `presets`, and `plugins`:
 | `themeConfig.colorMode.defaultMode` | `theme.mode` (`respectPrefersColorScheme: true` → `"system"`) |
 | `themeConfig.prism.theme` / `.darkTheme` | `markdown.code.theme: { light, dark }` (map Prism theme names to Shiki themes, e.g. `github`/`github-dark`) |
 | `themeConfig.metadata` / `themeConfig.image` | per-page `seo` frontmatter / `seo.og`; report what doesn't fit |
-| `url` + `baseUrl` | **`url` → drop** (the deployment's `site` is auto-detected); `baseUrl` (when not `/`) → `deployment: { base: "/…" }`, or the `base` option of a host adapter (`vercel({ base })`) when the site also needs one |
+| `url` + `baseUrl` | **`url` → `deployment.site`**, unless the target host is Vercel, Netlify, or Cloudflare Pages, which Blume auto-detects (see SKILL.md — GitHub Pages, a common Docusaurus host, is not one of them); `baseUrl` (when not `/`) → `deployment: { base: "/…" }`, or the `base` option of a host adapter (`vercel({ base })`) when the site also needs one |
 | preset `docs.routeBasePath` — **including the default!** | Docusaurus serves docs at **`/docs/…` by default**; the "map only declared fields" rule does **not** apply here because the _URLs_ are load-bearing. Either keep them with top-level **`basePath: "/docs"`** (invisible to the sidebar), or intentionally move to root and emit a `redirects` entry per page. Decide explicitly and say which. (`routeBasePath: '/'` = docs-only mode — nothing to do.) |
 | preset `docs.editUrl` | `github` (owner/repo/branch; a path after the branch → `github.dir`; **an origin other than `https://github.com` → `github.host`** — a GitHub Enterprise repo's edit links and header mark point at the public site without it) |
 | `themeConfig.footer` | drop → Footer override (`defineComponents` layout slot) |
@@ -50,18 +50,18 @@ Every Docusaurus repo serves **`static/`** at the site root (`static/img/foo.png
 
 ## Versioned docs
 
-Docusaurus `versioned_docs/version-X/` + `versions.json` (+ `versioned_sidebars/`) → **recommend migrating the latest released version only**. Mind the URL scheme: by default the **latest release** serves at `/docs/` and the work-in-progress `docs/` folder serves at `/docs/next` (`lastVersion: 'current'` flips this) — pick the folder that matches what users see at `/docs/`. If older versions must stay, put each under its own folder and wire a `navigation.selectors` entry of `kind: "version"`.
+Docusaurus `versioned_docs/version-X/` + `versions.json` (+ `versioned_sidebars/`) → **recommend migrating the latest released version only**. Mind the URL scheme: by default the **latest release** serves at `/docs/` and the work-in-progress `docs/` folder serves at `/docs/next` (`lastVersion: 'current'` flips this) — pick the folder that matches what users see at `/docs/`. If older versions must stay, use Blume's native versioning rather than a hand-built `navigation.selectors` dropdown: move each `versioned_docs/version-X/` into a top-level folder under `content.root` named for its id, and list that id in `versions.archived` (newest first), with `versions.current` labeling the live tree. Ids must start with a letter, so `version-1.0/` becomes `v1.0/`. Blume then adds the version switcher, the old-version notice, version-scoped search, and canonicals to the latest itself. A version-shaped folder left out of `versions.archived` only warns (`BLUME_VERSIONS_UNCONFIGURED_VERSION`) and publishes as ordinary current content. Snapshot routes become `/<id>/…`, so rewrite root-absolute links inside each snapshot to stay in it (`/guides/x` → `/v1.0/guides/x`) and add `redirects` from the old version URLs. Full reference: `docs/content/versioning.mdx` in the installed package.
 
 ## Blog
 
-A Docusaurus `blog/` → Blume `type: blog` pages. **Dates come from filenames/folders** (`2024-01-31-foo.md`) — extract each into `date` frontmatter and strip the date from the filename (the old dated URLs `/blog/2024/01/31/foo` need `redirects`). Strip `<!-- truncate -->` / `{/* truncate */}` markers. `authors.yml` refs → inline author objects in each post's `authors` frontmatter. RSS stays at `/blog/rss.xml` on both sides.
+A Docusaurus `blog/` → Blume `type: blog` pages. **Dates come from filenames/folders** (`2024-01-31-foo.md`) — extract each into `date` frontmatter and strip the date from the filename (the old dated URLs `/blog/2024/01/31/foo` need `redirects`). Strip `<!-- truncate -->` / `{/* truncate */}` markers. `authors.yml` refs → inline author objects in each post's `authors` frontmatter. RSS stays at `/blog/rss.xml` on both sides. Blume generates **no** blog index, tag, author, or archive pages: write a `blog/index.mdx` whose `CardGroup` links each post (see `docs/advanced/blog.mdx` in the installed package), and report the tag, author, and archive pages as dropped.
 
 ## Content & components
 
 - **`.md` vs `.mdx` — both majors need renames, for opposite reasons.** Blume parses `.md` as plain Markdown: no directives, no JSX, no `$$` math, no mermaid/package-install fences. **v3** treats `.md` as MDX (so a `.md` with imports/JSX/`{}` renders them as literal text in Blume); **v2** content is looser MDX v1. Rule: **rename any `.md` that contains admonitions, JSX, imports, or math to `.mdx`** — for typical Docusaurus repos that is most files.
 - **Admonitions are directives — but check the version.** v3: `:::note`, `:::tip`, `:::info`, `:::warning`, `:::danger` pass through; `:::caution` → `:::warning` (or rely on Blume's alias); titles `:::note[Title]` work. **v2:** titles are space-separated (`:::note Your Title`) — rewrite to brackets or the title is silently lost; and v2's `:::warning` rendered **red/danger** — audit whether it should become `:::danger`.
 - **Tabs:** `<Tabs>`/`<TabItem label="…" value="…">` → `<Tabs>`/`<Tab title="…">`. Drop `groupId`/`queryString`/`value`; strip the `@theme/Tabs` imports.
-- **Theme JSX in content:** `<DocCardList/>` (standard on category index pages) → hand-write `Card`/`CardGroup` links or delete (a Blume group page lists its children); `<TOCInline/>` → drop (report); `<CodeBlock>` JSX → a fenced code block; `<Admonition>` → the matching directive; `<details>`/`<summary>` → `<Accordion>`/`<AccordionItem>` or leave as raw HTML.
+- **Theme JSX in content:** `<DocCardList/>` (standard on category index pages) → a `CardGroup` of `Card` links to the folder's pages, one per child (nothing in Blume lists a folder's children on its index page, so deleting it leaves the page empty); `<TOCInline/>` → drop (report); `<CodeBlock>` JSX → a fenced code block; `<Admonition>` → the matching directive; `<details>`/`<summary>` → `<Accordion>`/`<AccordionItem>` or leave as raw HTML.
 - **`@theme/*` / `@site/*` imports** — strip `@theme/*` (Blume injects components globally); rewrite `@site/` asset/module paths to `/public` URLs or inline. **MDX partials** (`_partial.mdx` imports) → inline the partial's body (Blume's default `**/_*` exclude already hides the partial files themselves).
 - **Code blocks:** `title="file.js"` → works as-is; `showLineNumbers` → `lineNumbers`; **magic comments** (`// highlight-next-line`, `highlight-start`/`end`) → `{ranges}` or `// [!code highlight]` — unconverted they ship as literal comments in every sample; ` ```bash npm2yarn ` → ` ```package-install `.
 - **MDX v1 (v2 sources) pitfalls:** unescaped `<`/`{` in prose, HTML comments `<!-- -->` (→ `{/* */}`), string `style="…"` attributes (→ objects). Fix as build errors surface.
@@ -72,7 +72,7 @@ A Docusaurus `blog/` → Blume `type: blog` pages. **Dates come from filenames/f
 | --- | --- |
 | `title` / `description` | pass through |
 | `id` | usually drop (routing is filesystem-based); use `slug` to pin a route |
-| `slug` | `slug` |
+| `slug` | `slug` as a **full path from the content root**: Blume's `slug` replaces the page's whole route, while Docusaurus resolves a relative slug (no leading `/`) against the doc's folder. So `guides/intro.md` with `slug: start` → `slug: guides/start`; an absolute slug (`/start`) is already a full path |
 | `sidebar_label` | `sidebar.label` |
 | `sidebar_position` | `sidebar.order` |
 | `unlisted` | `hidden: true` + `noindex: true` |
@@ -95,4 +95,4 @@ Remove `@docusaurus/*` and Algolia deps; delete `docusaurus.config.*`, `sidebars
 
 ## Dropped — report these
 
-Custom/swizzled theme components (layout slots or `blume eject`), footer columns, Algolia config, `sidebar_custom_props` and the other dropped frontmatter keys, `createRedirects` functions (→ host rules), React pages under `src/pages/`, `<TOCInline>`, per-category `className`/`customProps`, and any `@theme/*` component with no Blume equivalent.
+Custom/swizzled theme components (layout slots or `blume eject`), footer columns, the blog's generated tag, author, and archive pages, Algolia config, `sidebar_custom_props` and the other dropped frontmatter keys, `createRedirects` functions (→ host rules), React pages under `src/pages/`, `<TOCInline>`, per-category `className`/`customProps`, and any `@theme/*` component with no Blume equivalent.

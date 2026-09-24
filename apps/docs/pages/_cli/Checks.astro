@@ -1,8 +1,9 @@
 ---
 // "Catch it before your readers do." — the correctness commands (validate,
 // check, doctor) and the `--isolated` verify flow as a bento in the
-// homepage's style, rows 2+1 / 1+2 from `lg` up. Terminal snippets use each
-// command's real output; lines fade in as each card arrives. `blume audit`,
+// homepage's style, rows 2+1 / 1+2 from `lg` up. Terminal snippets are each
+// command's real output, trimmed the way <FeatureTerminal> trims (lines
+// dropped, never reworded); lines fade in as each card arrives. `blume audit`,
 // the biggest of the checks, follows in its own dark panel.
 import BentoCard from "../_home/BentoCard.astro";
 import SectionHeading from "../_home/SectionHeading.astro";
@@ -54,18 +55,23 @@ const doctorSummary = [
                 <span class="text-teal-400">❯</span> blume validate
               </p>
               <p class="reveal-fade mt-2 [--reveal-delay:200ms]">
-                <span class="text-red-400">✖</span> content/docs/guides/intro.mdx:12
+                <span class="font-medium text-red-400">BLUME_BROKEN_LINK</span>{" "}
+                Broken link to /guides/setup: no page resolves to /guides/setup.
               </p>
               <p class="reveal-fade pl-4 text-zinc-500 [--reveal-delay:300ms]">
-                Broken link: /guides/setup resolves to nothing
+                at content/docs/guides/intro.mdx:12:8
+              </p>
+              <p class="reveal-fade pl-4 text-cyan-300 [--reveal-delay:375ms]">
+                fix: Check the path, or create the target page.
               </p>
               <p class="reveal-fade [--reveal-delay:450ms]">
-                <span class="text-amber-300">⚠</span> content/docs/faq.mdx:31
+                <span class="font-medium text-amber-300">BLUME_BROKEN_ANCHOR</span>{" "}
+                No anchor target on /overview matches #pricing.
               </p>
               <p class="reveal-fade pl-4 text-zinc-500 [--reveal-delay:550ms]">
-                Anchor #pricing not found on /overview
+                at content/docs/faq.mdx:31:5
               </p>
-              <p class="reveal-fade mt-2 text-zinc-500 [--reveal-delay:700ms]">
+              <p class="reveal-fade mt-2 [--reveal-delay:700ms]">
                 1 error(s), 1 warning(s)
               </p>
             </div>
@@ -127,7 +133,8 @@ const doctorSummary = [
               class="reveal-fade whitespace-normal pl-4 text-cyan-300"
               style={`--reveal-delay: ${350 + doctorSummary.length * 80}ms`}
             >
-              fix: Set deployment to a host adapter from "blume/deploy"
+              fix: Set deployment to a host adapter from "blume/deploy" (e.g.
+              `deployment: vercel()`).
             </p>
             <p
               class="reveal-fade mt-2 text-zinc-500"
@@ -154,12 +161,8 @@ const doctorSummary = [
               <span class="font-medium text-zinc-100">Local</span>{" "}
               <span class="text-cyan-300">http://localhost:4321/</span>
             </p>
-            <p class="reveal-fade mt-2 [--reveal-delay:300ms]">
-              <span class="text-amber-300">●</span>{" "}
-              <span class="text-zinc-500">faq.mdx changed</span>
-            </p>
-            <p class="reveal-fade [--reveal-delay:400ms]">
-              <span class="text-emerald-400">✔</span> Reloaded in 38 ms
+            <p class="reveal-fade mt-2 text-zinc-500 [--reveal-delay:300ms]">
+              watching for file changes...
             </p>
           </div>
           <div class:list={[terminal, "reveal-rise flex flex-col gap-0.5 p-4 [--reveal-delay:150ms]"]}>
@@ -173,7 +176,8 @@ const doctorSummary = [
               <span class="text-teal-400">❯</span> blume build --isolated
             </p>
             <p class="reveal-fade [--reveal-delay:850ms]">
-              <span class="text-emerald-400">✔</span> Built to .blume-verify/dist
+              <span class="text-emerald-400">✔</span> Isolated build OK — output at
+              ~/acme/.blume-verify/dist (not published).
             </p>
           </div>
         </div>

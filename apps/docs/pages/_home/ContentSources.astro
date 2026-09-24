@@ -106,8 +106,10 @@ const items = [
 // measured to the tiles' resting centers — the dock is centered, so those sit
 // a fixed step apart around its midpoint, read once as the pointer arrives —
 // never to their live boxes, which move as the tiles grow and would feed the
-// motion back into itself. Pointer-only, from `sm` up, and never under
-// reduced motion. Delegated from `document` and bound once per session
+// motion back into itself. Pointer-only, never under reduced motion, and only
+// while the dock sits on one row (`flex-nowrap`: from `sm` up, except between
+// `lg` and `xl`, where the split's column is narrower than the dock and it
+// wraps instead). Delegated from `document` and bound once per session
 // (Astro's ClientRouter runs inline scripts once), so it survives router
 // swaps.
 const dockScript = `(() => {
@@ -140,7 +142,8 @@ const dockScript = `(() => {
     run();
   };
   document.addEventListener("pointermove", (event) => {
-    const hit = canMagnify.matches && event.target instanceof Element ? event.target.closest("[data-dock]") : null;
+    const over = canMagnify.matches && event.target instanceof Element ? event.target.closest("[data-dock]") : null;
+    const hit = over && getComputedStyle(over).flexWrap === "nowrap" ? over : null;
     if (!hit) {
       if (target.some((value) => value !== 1)) { release(); }
       return;
@@ -166,8 +169,14 @@ const dockScript = `(() => {
 })();`;
 
 // Rendered through an Astro expression so the object/array syntax auto-escapes.
+// The sources import is split across lines so every line fits the window in
+// the split's narrow column (`lg` to `xl`) without it scrolling sideways.
 const configSource = `import { defineConfig } from "blume";
-import { filesystem, notion, sanity } from "blume/sources";
+import {
+  filesystem,
+  notion,
+  sanity,
+} from "blume/sources";
 
 export default defineConfig({
   content: {
@@ -206,11 +215,13 @@ export default defineConfig({
       />
 
       <!-- Source dock: a frosted plate of a tile per built-in source, plus one
-           for a custom adapter. Tiles pop in on view, and from `sm` up the
-           dock magnifies under the pointer like the macOS Dock, each tile
-           growing up out of the plate with its name above it. -->
+           for a custom adapter. Tiles pop in on view, and wherever the dock
+           fits on one row (from `sm` up, except `lg` to `xl`, where the
+           split's column is narrower than the dock and it wraps) it magnifies
+           under the pointer like the macOS Dock, each tile growing up out of
+           the plate with its name above it. -->
       <ul
-        class="reveal-rise flex flex-wrap items-center justify-center gap-2 rounded-2xl bg-background/60 p-2 shadow-lg shadow-[rgb(28_40_64/0.08)] ring-1 ring-foreground/5 backdrop-blur-md [--reveal-delay:200ms] sm:h-14 sm:flex-nowrap sm:items-end dark:shadow-none"
+        class="reveal-rise flex flex-wrap items-center justify-center gap-2 rounded-2xl bg-background/60 p-2 shadow-lg shadow-[rgb(28_40_64/0.08)] ring-1 ring-foreground/5 backdrop-blur-md [--reveal-delay:200ms] sm:h-14 sm:flex-nowrap sm:items-end lg:h-auto lg:flex-wrap lg:items-center xl:h-14 xl:flex-nowrap xl:items-end dark:shadow-none"
         data-dock
         role="list"
       >

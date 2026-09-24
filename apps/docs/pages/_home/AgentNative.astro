@@ -146,8 +146,9 @@ const link =
                     style={arcStyle(item.score, index)}
                   />
                 </svg>
+                <!-- The <dl> below reads the score out; this is its picture. -->
                 <p
-                  aria-label={`${item.score} out of 100`}
+                  aria-hidden="true"
                   class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center font-medium text-5xl leading-none tabular-nums"
                   data-count-delay={cardDelay(index)}
                   data-count-to={item.score}
@@ -194,7 +195,7 @@ const link =
                         data-count-to={other.score}
                       >
                         {other.score}
-                      </span><span class="text-muted-foreground/60">/100</span>
+                      </span><span class="text-muted-foreground">/100</span>
                     </dd>
                   </div>
                 ))}

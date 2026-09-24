@@ -24,15 +24,18 @@ interface Props {
 const { initial = "fumadocs" } = Astro.props;
 const active = sourceById(initial);
 
-// Open/close the brand menu, then mirror the chosen option into the trigger
-// (logo + label) and reveal its panel. Click-outside / Escape close. Astro's
-// ClientRouter runs an inline script once per session, so this delegates from
-// `document` (bound once, guarded by a global flag) and looks the picker up
-// per event, which keeps it alive after router swaps replace the section.
-// Closed, the menu is `inert`, so its options leave the tab order and the
-// accessibility tree (the heading reads "Migrate from Fumadocs", not every
-// option); closing hands focus back to the trigger first.
-const migrateScript = `(()=>{if(window.__blumeMigrate){return;}window.__blumeMigrate=true;const setOpen=(root,o)=>{const trigger=root.querySelector("[data-migrate-trigger]");const menu=root.querySelector("[data-migrate-menu]");if(!o&&menu.contains(document.activeElement)){trigger.focus();}trigger.setAttribute("aria-expanded",String(o));menu.dataset.open=String(o);menu.inert=!o;};const select=(root,id)=>{const options=[...root.querySelectorAll("[data-migrate-option]")];options.forEach((o)=>o.setAttribute("aria-selected",String(o.dataset.migrateOption===id)));root.querySelectorAll("[data-migrate-panel]").forEach((p)=>{p.dataset.active=String(p.dataset.migratePanel===id);});const o=options.find((it)=>it.dataset.migrateOption===id);if(o){const trigger=root.querySelector("[data-migrate-trigger]");trigger.querySelector("[data-trigger-label]").textContent=o.dataset.label;trigger.querySelector("[data-trigger-logo]").innerHTML=o.querySelector("[data-option-logo]").innerHTML;}setOpen(root,false);};document.addEventListener("click",(e)=>{const root=document.querySelector("[data-migrate]");const t=e.target;if(!root||!(t instanceof Element)){return;}const trigger=root.querySelector("[data-migrate-trigger]");if(trigger.contains(t)){setOpen(root,trigger.getAttribute("aria-expanded")!=="true");return;}const option=t.closest("[data-migrate-option]");if(option&&root.contains(option)){select(root,option.dataset.migrateOption);return;}if(!root.contains(t)){setOpen(root,false);}});document.addEventListener("keydown",(e)=>{if(e.key==="Escape"){const root=document.querySelector("[data-migrate]");if(root){setOpen(root,false);}}});})();`;
+// The brand menu is a disclosure: the trigger's `aria-expanded` shows or hides
+// a group of plain buttons, and the current source's button carries
+// `aria-current`. Open/close it, then mirror the chosen button into the
+// trigger (logo + label) and reveal its panel. A click outside, Escape, or
+// focus tabbing out of the picker closes it. Astro's ClientRouter runs an
+// inline script once per session, so this delegates from `document` (bound
+// once, guarded by a global flag) and looks the picker up per event, which
+// keeps it alive after router swaps replace the section. Closed, the menu is
+// `inert`, so its buttons leave the tab order and the accessibility tree (the
+// heading reads "Migrate from Fumadocs", not every source); closing hands
+// focus back to the trigger first.
+const migrateScript = `(()=>{if(window.__blumeMigrate){return;}window.__blumeMigrate=true;const setOpen=(root,o)=>{const trigger=root.querySelector("[data-migrate-trigger]");const menu=root.querySelector("[data-migrate-menu]");if(!o&&menu.contains(document.activeElement)){trigger.focus();}trigger.setAttribute("aria-expanded",String(o));menu.dataset.open=String(o);menu.inert=!o;};const select=(root,id)=>{const options=[...root.querySelectorAll("[data-migrate-option]")];options.forEach((o)=>o.setAttribute("aria-current",String(o.dataset.migrateOption===id)));root.querySelectorAll("[data-migrate-panel]").forEach((p)=>{p.dataset.active=String(p.dataset.migratePanel===id);});const o=options.find((it)=>it.dataset.migrateOption===id);if(o){const trigger=root.querySelector("[data-migrate-trigger]");trigger.querySelector("[data-trigger-label]").textContent=o.dataset.label;trigger.querySelector("[data-trigger-logo]").innerHTML=o.querySelector("[data-option-logo]").innerHTML;}setOpen(root,false);};document.addEventListener("click",(e)=>{const root=document.querySelector("[data-migrate]");const t=e.target;if(!root||!(t instanceof Element)){return;}const trigger=root.querySelector("[data-migrate-trigger]");if(trigger.contains(t)){setOpen(root,trigger.getAttribute("aria-expanded")!=="true");return;}const option=t.closest("[data-migrate-option]");if(option&&root.contains(option)){select(root,option.dataset.migrateOption);return;}if(!root.contains(t)){setOpen(root,false);}});document.addEventListener("keydown",(e)=>{if(e.key==="Escape"){const root=document.querySelector("[data-migrate]");if(root){setOpen(root,false);}}});document.addEventListener("focusout",(e)=>{const root=document.querySelector("[data-migrate]");const next=e.relatedTarget;if(!root||!(next instanceof Node)){return;}const picker=root.querySelector("[data-migrate-picker]");if(picker.contains(e.target)&&!picker.contains(next)){setOpen(root,false);}});})();`;
 ---
 
 <!-- Migrate: a tray split in two — the heading itself is the interactive
@@ -50,11 +53,10 @@ const migrateScript = `(()=>{if(window.__blumeMigrate){return;}window.__blumeMig
         role="heading"
       >
         <span>Migrate from</span>
-          <div class="relative">
+          <div class="relative" data-migrate-picker>
             <button
               aria-controls="migrate-menu"
               aria-expanded="false"
-              aria-haspopup="listbox"
               class="group inline-flex cursor-pointer items-center gap-2"
               data-migrate-trigger
               type="button"
@@ -93,16 +95,15 @@ const migrateScript = `(()=>{if(window.__blumeMigrate){return;}window.__blumeMig
               data-open="false"
               id="migrate-menu"
               inert
-              role="listbox"
+              role="group"
             >
               {
                 sources.map((source) => (
                   <button
-                    aria-selected={source.id === active.id ? "true" : "false"}
-                    class="group flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-foreground text-sm transition-colors hover:bg-muted aria-selected:bg-muted"
+                    aria-current={source.id === active.id ? "true" : "false"}
+                    class="group flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-foreground text-sm transition-colors hover:bg-muted aria-[current=true]:bg-muted"
                     data-label={source.name}
                     data-migrate-option={source.id}
-                    role="option"
                     type="button"
                   >
                     <span
@@ -114,7 +115,7 @@ const migrateScript = `(()=>{if(window.__blumeMigrate){return;}window.__blumeMig
                     <span class="font-medium">{source.name}</span>
                     <svg
                       aria-hidden="true"
-                      class="ml-auto size-4 text-accent opacity-0 transition-opacity group-aria-selected:opacity-100"
+                      class="ml-auto size-4 text-accent opacity-0 transition-opacity group-aria-[current=true]:opacity-100"
                       fill="none"
                       height="16"
                       stroke="currentColor"

@@ -208,8 +208,11 @@ const toolSummary =
               >
                 app/api/webhooks/route.ts
               </p>
+              <!-- Focusable, like Shiki's blocks, so the keyboard can scroll
+                   the long lines on a phone. -->
               <pre
-                class="overflow-x-auto bg-emerald-500/10 py-2 font-mono text-xs leading-relaxed"><code>{code.map((line) => (<span class="block pr-3"><span class="inline-block w-6 select-none text-center text-emerald-600 dark:text-emerald-400">+</span>{line}</span>))}</code></pre>
+                class="overflow-x-auto bg-emerald-500/10 py-2 font-mono text-xs leading-relaxed"
+                tabindex="0"><code>{code.map((line) => (<span class="block pr-3"><span class="inline-block w-6 select-none text-center text-emerald-600 dark:text-emerald-400">+</span>{line}</span>))}</code></pre>
             </div>
           </div>
         </div>

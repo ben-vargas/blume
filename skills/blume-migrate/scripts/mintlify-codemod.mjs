@@ -177,8 +177,8 @@ const RENAME = {
 };
 
 // Keys we deliberately do NOT auto-transform — they usually mean the page is an
-// OpenAPI endpoint stub that should be deleted (Blume generates operation pages)
-// or converted to `type: api`. Flag for the human; never guess.
+// OpenAPI endpoint stub that should be deleted (Blume generates operation pages),
+// or else a normal page that just loses the key. Flag for the human; never guess.
 const FLAG = new Set(["api", "asyncapi", "openapi"]);
 
 // Which change kinds actually edit the file. Report-only kinds (flags,

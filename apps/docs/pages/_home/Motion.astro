@@ -10,6 +10,12 @@
 // transitions are switched off while the parts snap back to their start
 // state, then the container is flagged in view again on the next frame.
 //
+// A container counts as in view once its top edge rises past 80% of the
+// viewport's height. That trigger is an edge, not a share of the container, so
+// one taller than the viewport (the /compare model cards on a phone, a whole
+// terminal on a short landscape screen) reveals like any other instead of
+// waiting for a visible fraction it can never reach.
+//
 // Nothing hides without the script, a container already on screen when it's
 // armed just shows, and reduced motion never arms at all, so every path ends
 // on the static page. Bound once per session (Astro's ClientRouter runs inline
@@ -37,7 +43,7 @@ const revealScript = `(() => {
       entry.target.setAttribute("data-inview", "");
       for (const el of entry.target.querySelectorAll("[data-count-to]")) { countUp(el); }
     }
-  }, { rootMargin: "0px 0px -10% 0px", threshold: 0.3 });
+  }, { rootMargin: "0px 0px -20% 0px", threshold: 0 });
   const arm = () => {
     for (const el of document.querySelectorAll("[data-reveal]:not([data-reveal-armed], [data-inview])")) {
       const rect = el.getBoundingClientRect();

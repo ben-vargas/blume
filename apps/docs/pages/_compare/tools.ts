@@ -357,8 +357,8 @@ const docusaurus: CompareTool = {
         title: "Sidebars move into folders.",
       },
       {
-        body: "The agent migrates your latest version, keeps the blog's RSS feed at `/blog/rss.xml`, and moves translations into locale folders.",
-        title: "Versions, blog, and locales come along.",
+        body: "The agent migrates your latest version, turns blog posts into Blume blog pages with their RSS feed at `/blog/rss.xml`, and moves translations into locale folders.",
+        title: "Your latest version, posts, and locales come along.",
       },
       {
         body: "OpenAPI and GraphQL doc plugins, static client redirects, and Mermaid become built-in Blume config.",
@@ -395,12 +395,12 @@ const docusaurus: CompareTool = {
     },
     {
       answer:
-        "Posts become Blume blog pages with an RSS feed at the same `/blog/rss.xml`. The agent moves dates from filenames into frontmatter and adds redirects for the old dated URLs.",
+        "Posts become Blume blog pages with an RSS feed at the same `/blog/rss.xml`. The agent moves dates from filenames into frontmatter and adds redirects for the old dated URLs. Blume doesn't generate the blog's index, tag, author, or archive pages, so you build the index page yourself.",
       question: "What happens to my blog?",
     },
     {
       answer:
-        "Swizzled theme components, React pages under `src/pages`, footer columns, and a few frontmatter keys. The agent reports each one so you can rebuild it with a layout slot or a custom page, or leave it out.",
+        "Swizzled theme components, React pages under `src/pages`, footer columns, the blog's generated index, tag, author, and archive pages, and a few frontmatter keys. The agent reports each one so you can rebuild it with a layout slot or a custom page, or leave it out.",
       question: "What doesn't the migration carry over?",
     },
   ],
@@ -500,7 +500,7 @@ const starlight: CompareTool = {
         title: "Asides keep their names.",
       },
       {
-        body: "starlight-openapi, starlight-blog, and starlight-versions become Blume config, and link validation and image zoom are already built in.",
+        body: "starlight-openapi and starlight-versions become Blume config, starlight-blog posts become blog pages with RSS, and link validation and image zoom are already built in.",
         title: "Plugins map to built-ins.",
       },
       {
@@ -543,7 +543,7 @@ const starlight: CompareTool = {
     },
     {
       answer:
-        "Splash and hero pages, which you rebuild as custom pages, plus `head` entries, non-GitHub social links, and plugins without a Blume equivalent. The agent reports each one.",
+        "Splash and hero pages, which you rebuild as custom pages, plus `head` entries, non-GitHub social links, starlight-blog's generated index, tag, and author pages, and plugins without a Blume equivalent. The agent reports each one.",
       question: "What doesn't the migration carry over?",
     },
   ],
