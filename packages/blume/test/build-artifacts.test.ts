@@ -105,6 +105,49 @@ describe("publishBuildArtifacts", () => {
     expect(log.info).toContain("Emitted redirect files for 1 redirect(s)");
   });
 
+  it("writes no redirect files for a server build, which answers them itself", async () => {
+    const { dist, root } = await fixture({
+      "blume.config.ts":
+        'export default { deployment: { kind: "node", options: { output: "server" }, requiredSecrets: [], runtimeDeps: [] }, redirects: [{ from: "/old", to: "/new" }] };\n',
+      "docs/index.md": HOME,
+    });
+    await publish(root, dist);
+    expect(existsSync(join(dist, "_redirects"))).toBe(false);
+    expect(existsSync(join(dist, "vercel.json"))).toBe(false);
+    expect(existsSync(join(dist, "blume-redirects.json"))).toBe(false);
+  });
+
+  it("gives a named static host only its own redirect file, no manifest", async () => {
+    const { dist, root } = await fixture({
+      "blume.config.ts":
+        'export default { deployment: { kind: "netlify", options: { output: "static" }, requiredSecrets: [], runtimeDeps: [] }, redirects: [{ from: "/old", to: "/new" }] };\n',
+      "docs/index.md": HOME,
+    });
+    await publish(root, dist);
+    expect(existsSync(join(dist, "_redirects"))).toBe(true);
+    expect(existsSync(join(dist, "vercel.json"))).toBe(false);
+    expect(existsSync(join(dist, "blume-redirects.json"))).toBe(false);
+  });
+
+  it("writes vercel.json header rules for a static Vercel deploy with no redirects", async () => {
+    const { dist, root } = await fixture({
+      "blume.config.ts":
+        'export default { deployment: { kind: "vercel", options: { output: "static" }, requiredSecrets: [], runtimeDeps: [] } };\n',
+      "docs/index.md": HOME,
+    });
+    const log = await publish(root, dist);
+    const vercelJson = JSON.parse(
+      await readFile(join(dist, "vercel.json"), "utf-8")
+    );
+    expect(vercelJson.redirects).toStrictEqual([]);
+    expect(vercelJson.headers).toContainEqual({
+      headers: [{ key: "Content-Type", value: "application/linkset+json" }],
+      source: "/.well-known/api-catalog",
+    });
+    expect(existsSync(join(dist, "blume-redirects.json"))).toBe(false);
+    expect(log.info).not.toContain("Emitted redirect files for 0 redirect(s)");
+  });
+
   it("writes the sitemap once a site is configured, alongside robots and the agent manifest", async () => {
     const { dist, root } = await fixture({
       "blume.config.ts":

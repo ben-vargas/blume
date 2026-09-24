@@ -12,8 +12,15 @@ export interface UnknownFlag {
 
 /** What a declared option spelling means for the token that follows it. */
 interface KnownFlag {
-  /** The canonical `--kebab-name` shown in messages. */
+  /** Whether it's a boolean switch, which `--no-<name>` turns off. */
+  boolean: boolean;
+  /**
+   * How the flags a command takes list it: `--kebab-name`, or `--no-<name>`
+   * for a boolean that's on by default, since that's the form anyone types.
+   */
   display: string;
+  /** The canonical kebab-case name, which typos are matched against. */
+  name: string;
   /** Whether it reads the next token as its value (`--port 4000`). */
   takesValue: boolean;
 }
@@ -46,8 +53,13 @@ const knownFlags = (argsDef: ArgsDef): Map<string, KnownFlag> => {
     if (def.type === "positional") {
       continue;
     }
+    const kebab = kebabCase(name);
+    const boolean = def.type === "boolean";
+    const onByDefault = boolean && "default" in def && def.default === true;
     const flag = {
-      display: `--${kebabCase(name)}`,
+      boolean,
+      display: onByDefault ? `--no-${kebab}` : `--${kebab}`,
+      name: kebab,
       takesValue: def.type === "string" || def.type === "enum",
     };
     for (const spelling of [
@@ -153,17 +165,24 @@ const declaredWidth = (
   return grouped ? 0 : undefined;
 };
 
-/** An undeclared token as reported, with the declared flag it most resembles. */
+/**
+ * An undeclared token as reported, with the declared flag it most resembles.
+ * A mistyped negation keeps its `no-` in the suggestion (`--no-instal` →
+ * `--no-install`), so the fix doesn't flip what was asked for; negating a flag
+ * that takes a value means nothing, so those suggest the flag itself.
+ */
 const describeUnknown = (
   token: FlagToken,
-  displays: readonly string[]
+  flags: Map<string, KnownFlag>
 ): UnknownFlag => {
   const unknown: UnknownFlag = {
     flag: `${token.long ? "--" : "-"}${token.name}`,
   };
-  const suggestion = closestMatch(token.negated ?? token.name, displays);
-  if (suggestion) {
-    unknown.suggestion = `--${suggestion}`;
+  const names = [...new Set([...flags.values()].map((flag) => flag.name))];
+  const match = closestMatch(token.negated ?? token.name, names);
+  if (match) {
+    const negate = token.negated !== undefined && flags.get(match)?.boolean;
+    unknown.suggestion = negate ? `--no-${match}` : `--${match}`;
   }
   return unknown;
 };
@@ -186,9 +205,6 @@ export const unknownFlags = (
   accepted: readonly string[] = []
 ): UnknownFlag[] => {
   const flags = knownFlags(argsDef);
-  const displays = [
-    ...new Set([...flags.values()].map((flag) => flag.display.slice(2))),
-  ];
   const unknown: UnknownFlag[] = [];
   for (let index = 0; index < rawArgs.length; index += 1) {
     const arg = rawArgs[index] ?? "";
@@ -203,7 +219,7 @@ export const unknownFlags = (
     if (width !== undefined) {
       index += width;
     } else if (!accepted.includes(token.negated ?? token.name)) {
-      unknown.push(describeUnknown(token, displays));
+      unknown.push(describeUnknown(token, flags));
     }
   }
   return unknown;

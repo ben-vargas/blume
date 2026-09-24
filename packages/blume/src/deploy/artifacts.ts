@@ -28,9 +28,14 @@ import type { ResolvedConfig } from "../core/schema.ts";
 import { buildSearchIndex } from "../search/build.ts";
 import { syncSearchProvider } from "../search/sync/index.ts";
 import { readsHeaderFiles } from "./adapter-output.ts";
-import { buildNetlifyHeaders } from "./headers.ts";
+import { buildNetlifyHeaders, buildVercelHeaders } from "./headers.ts";
 import { deployPlatform } from "./platforms/index.ts";
-import { buildRedirectManifest, platformRedirects } from "./redirects.ts";
+import { VERCEL_JSON_FILE } from "./platforms/vercel.ts";
+import {
+  buildRedirectManifest,
+  buildVercelConfig,
+  platformRedirects,
+} from "./redirects.ts";
 import { buildRobots } from "./robots.ts";
 import { buildSitemapFiles, describeSitemapFiles } from "./sitemap.ts";
 
@@ -60,34 +65,62 @@ export interface ArtifactLogger {
 
 /**
  * Emit platform redirect files for a static build (a server build answers
- * redirects at request time). Always writes the manifest; writes the files
- * the deployment's platform reads (`_redirects`, `vercel.json` — every one of
- * them when no host is named) only when the user hasn't shipped one via
- * public/. Note that Vercel's git-integration builds read `vercel.json` from
- * the repository root only — the copy emitted here takes effect when the dist
- * folder itself is deployed directly via the Vercel CLI.
+ * redirects at request time): the files the deployment's platform reads
+ * (`_redirects`, `vercel.json` — every one of them when no host is named),
+ * each only when the user hasn't shipped one via public/, plus the
+ * `blume-redirects.json` manifest when no host is named. `vercel.json` also
+ * carries the header rules `_headers` gives the other hosts, since Vercel reads
+ * no `_headers`, so it is written even with no redirects. Note that Vercel's
+ * git-integration builds read `vercel.json` from the repository root only —
+ * the copy emitted here takes effect when the dist folder itself is deployed
+ * directly via the Vercel CLI.
  */
 const emitRedirectFiles = async (
-  config: ResolvedConfig,
+  project: BlumeProject,
   distDir: string,
   logger: ArtifactLogger
 ): Promise<void> => {
-  const redirects = platformRedirects(config);
-  if (redirects.length === 0 || config.deployment.options.output !== "static") {
+  const { config } = project;
+  if (config.deployment.options.output !== "static") {
     return;
   }
-  await writeFile(
-    join(distDir, "blume-redirects.json"),
-    buildRedirectManifest(redirects),
-    "utf-8"
+  const platform = deployPlatform(config.deployment);
+  const redirects = platformRedirects(config);
+  const vercelHeaders = platform.redirectFiles.includes(VERCEL_JSON_FILE)
+    ? buildVercelHeaders(
+        config,
+        buildHomeLinkHeader(config, markdownRoutePaths(project))
+      )
+    : [];
+  const files = platform.redirectFiles.filter(
+    (file) =>
+      !existsSync(join(distDir, file.name)) &&
+      (redirects.length > 0 ||
+        (file === VERCEL_JSON_FILE && vercelHeaders.length > 0))
   );
   await Promise.all(
-    deployPlatform(config.deployment).redirectFiles.map((file) =>
-      existsSync(join(distDir, file.name))
-        ? Promise.resolve()
-        : writeFile(join(distDir, file.name), file.build(redirects), "utf-8")
+    files.map((file) =>
+      writeFile(
+        join(distDir, file.name),
+        file === VERCEL_JSON_FILE
+          ? buildVercelConfig(redirects, vercelHeaders)
+          : file.build(redirects),
+        "utf-8"
+      )
     )
   );
+  if (redirects.length === 0) {
+    return;
+  }
+  // The manifest is for a host Blume can't name, where nothing reads the
+  // platform files above.
+  if (platform.kind === "static") {
+    await writeFile(
+      join(distDir, "blume-redirects.json"),
+      buildRedirectManifest(redirects),
+      "utf-8"
+    );
+  }
   logger.info(`Emitted redirect files for ${redirects.length} redirect(s)`);
 };
 
@@ -371,6 +404,6 @@ export const publishBuildArtifacts = async (
   await emitWellKnownFiles(project.config, distDir, skills, logger);
   await emitAgentSkills(project, distDir, skills, logger);
 
-  await emitRedirectFiles(project.config, distDir, logger);
+  await emitRedirectFiles(project, distDir, logger);
   await emitHeaderFiles(project, distDir, logger);
 };

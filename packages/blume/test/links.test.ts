@@ -90,6 +90,25 @@ describe(extractLinks, () => {
     ]);
   });
 
+  it("reads a component's string href, even wrapped onto its own line", () => {
+    const body = [
+      'Inline <Card title="x" href="./install" /> and <a href="./raw">a</a>.',
+      "<Card",
+      '  title="Wrapped"',
+      "  href='../setup.mdx#run'",
+      ">",
+      "</Card>",
+      '`<Card href="./code" />`, <Card href={props.target} />',
+      "```mdx",
+      '<Card href="./fenced" />',
+      "```",
+    ].join("\n");
+    expect(extractLinks(body, 4)).toStrictEqual([
+      { column: 30, line: 5, target: "./install" },
+      { column: 9, line: 8, target: "../setup.mdx#run" },
+    ]);
+  });
+
   it("skips links inside fenced code blocks", () => {
     const body = ["```md", "[x](/nope)", "```", "[y](/yes)"].join("\n");
     expect(extractLinks(body).map((l) => l.target)).toStrictEqual(["/yes"]);
@@ -861,6 +880,29 @@ describe(isIndexFileName, () => {
   });
 });
 
+describe("resolveRelativeHref — dotted page names", () => {
+  const from = { isIndex: true, route: "/guides" };
+  const routes = new Set(["/guides/node.js", "/v1.2"]);
+  const hasRoute = (route: string): boolean => routes.has(route);
+
+  it("reads a dotted name as a page where one publishes", () => {
+    expect(
+      resolveRelativeHref("./node.js#run", from, undefined, hasRoute)
+    ).toBe("/guides/node.js#run");
+    expect(resolveRelativeHref("../v1.2", from, undefined, hasRoute)).toBe(
+      "/v1.2"
+    );
+  });
+
+  it("keeps any other extension an asset", () => {
+    expect(
+      resolveRelativeHref("./diagram.png", from, undefined, hasRoute)
+    ).toBeUndefined();
+    // Without a route lookup, every extension is an asset.
+    expect(resolveRelativeHref("./node.js", from)).toBeUndefined();
+  });
+});
+
 describe("validateLinks — relative file links", () => {
   it("resolves a .md/.mdx link to the route its file publishes at", async () => {
     // The ordering prefix and the target's own `slug` are route mapping's
@@ -953,5 +995,60 @@ describe("validateLinks — relative file links", () => {
     );
     // `/shared` moves into the linking page's locale, as the rendered link does.
     expect(diagnostics).toHaveLength(0);
+  });
+
+  it("reads a sibling a locale hasn't translated from the default tree", async () => {
+    const i18n = {
+      defaultLocale: "en",
+      hideDefaultLocalePrefix: true,
+      locales: [{ code: "en" }, { code: "fr" }],
+    };
+    const diagnostics = await validateLinks(
+      makeGraph([
+        makePage({
+          id: "fr/guides/index.mdx",
+          links: [link("./setup.mdx")],
+          locale: "fr",
+          navPath: "guides/index.mdx",
+          route: "/fr/guides",
+          sourcePath: "/abs/fr/guides/index.mdx",
+        }),
+        makePage({
+          id: "guides/setup.mdx",
+          locale: "en",
+          navPath: "guides/setup.mdx",
+          route: "/getting-started",
+          sourcePath: "/abs/guides/setup.mdx",
+        }),
+        // The fallback copy the link lands on once it moves into the locale.
+        makePage({
+          fallback: true,
+          id: "fr/guides/setup.mdx",
+          locale: "fr",
+          navPath: "guides/setup.mdx",
+          route: "/fr/getting-started",
+          sourcePath: "/abs/guides/setup.mdx",
+        }),
+      ]),
+      { i18n, publicDir: null }
+    );
+    expect(diagnostics).toHaveLength(0);
+  });
+
+  it("checks a dotted page name as the page it is", async () => {
+    const diagnostics = await validate([
+      makePage({
+        id: "guides/index.mdx",
+        links: [link("./node.js"), link("./gone.js")],
+        route: "/guides",
+      }),
+      makePage({ id: "guides/node.js.mdx", route: "/guides/node.js" }),
+    ]);
+    // The page resolves; the missing one stays an (unchecked) asset.
+    expect(
+      diagnostics.filter(
+        (diagnostic) => diagnostic.code === "BLUME_BROKEN_LINK"
+      )
+    ).toHaveLength(0);
   });
 });

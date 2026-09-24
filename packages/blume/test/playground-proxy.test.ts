@@ -206,6 +206,90 @@ describe("createPlaygroundProxyHandler", () => {
     expect(response.headers.get("keep-alive")).toBeNull();
     expect(response.headers.get("set-cookie")).toBeNull();
     expect(response.headers.get("transfer-encoding")).toBeNull();
+    // Every mirrored response is sandboxed; a JSON body isn't a download.
+    expect(response.headers.get("content-security-policy")).toBe(
+      "sandbox; default-src 'none'"
+    );
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("cross-origin-resource-policy")).toBe(
+      "same-origin"
+    );
+    expect(response.headers.get("content-disposition")).toBeNull();
+  });
+
+  it("sandboxes an upstream HTML page and serves it as a download", async () => {
+    // An allowlisted API's error page that echoes its input would otherwise
+    // run script on the docs origin for anyone opening a crafted proxy link.
+    const upstream = fakeFetch(
+      new Response("<script>alert(document.domain)</script>", {
+        headers: {
+          "content-security-policy": "default-src *",
+          "content-type": "text/html; charset=utf-8",
+        },
+        status: 404,
+      })
+    );
+    const handler = createPlaygroundProxyHandler(ORIGINS, upstream.impl);
+    const response = await handler(
+      proxyRequest("https://api.example/x?name=<script>")
+    );
+    expect(response.status).toBe(404);
+    // The upstream's own, looser policy is replaced, not merged.
+    expect(response.headers.get("content-security-policy")).toBe(
+      "sandbox; default-src 'none'"
+    );
+    expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+    expect(response.headers.get("content-disposition")).toBe("attachment");
+  });
+
+  it("refuses a body declared larger than the cap with a 413, unread", async () => {
+    const upstream = fakeFetch(new Response("never"));
+    const handler = createPlaygroundProxyHandler(
+      ORIGINS,
+      upstream.impl,
+      undefined,
+      8
+    );
+    const response = await handler(
+      proxyRequest("https://api.example/pets", {
+        body: "0123456789",
+        headers: { "content-length": "10" },
+        method: "POST",
+      })
+    );
+    expect(response.status).toBe(413);
+    const { error } = await errorJson(response);
+    expect(error).toContain("8-byte limit");
+    expect(upstream.url).toBeUndefined();
+  });
+
+  it("stops reading a streamed body once it passes the cap", async () => {
+    // A chunked body declares no length, so the cap applies as it arrives.
+    const upstream = fakeFetch(new Response("never"));
+    const handler = createPlaygroundProxyHandler(
+      ORIGINS,
+      upstream.impl,
+      undefined,
+      8
+    );
+    let cancelled = false;
+    const body = new ReadableStream<Uint8Array>({
+      cancel() {
+        cancelled = true;
+      },
+      pull(controller) {
+        controller.enqueue(new TextEncoder().encode("0123456"));
+      },
+    });
+    // SAFETY: Bun's RequestInit types omit `duplex`, which a streamed request
+    // body needs; the rest of the object is a valid RequestInit.
+    const init = { body, duplex: "half", method: "POST" } as RequestInit;
+    const response = await handler(
+      proxyRequest("https://api.example/pets", init)
+    );
+    expect(response.status).toBe(413);
+    expect(cancelled).toBe(true);
+    expect(upstream.url).toBeUndefined();
   });
 
   it("forwards a POST body verbatim", async () => {
@@ -220,9 +304,9 @@ describe("createPlaygroundProxyHandler", () => {
     );
     expect(upstream.init?.method).toBe("POST");
     // SAFETY: the handler buffers a non-GET/HEAD request body with
-    // `request.arrayBuffer()`, so the forwarded body is always an ArrayBuffer.
+    // `readCappedBody`, so the forwarded body is always a Uint8Array.
     expect(
-      new TextDecoder().decode(must(upstream.init?.body) as ArrayBuffer)
+      new TextDecoder().decode(must(upstream.init?.body) as Uint8Array)
     ).toBe('{"name":"Rex"}');
     // SAFETY: the handler builds the upstream init's headers via
     // `filterHeaders`, which always returns a `Headers` instance.

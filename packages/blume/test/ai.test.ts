@@ -2506,8 +2506,16 @@ describe("askEndpointTemplate", () => {
     expect(out).toContain('import askData from "blume:ask-data";');
     expect(out).toContain("const ground = createAskContext(askData);");
     expect(out).toContain("await ground(messages, body.page)");
-    // Hardened: validates the body, caps it, and handles stream errors.
-    expect(out).toContain("await request.json().catch(() => null)");
+    // Hardened: reads the body under a size cap before parsing it, then
+    // validates it, caps it, and handles stream errors.
+    expect(out).toContain(
+      'import { readCappedText } from "blume/core/request-body.ts";'
+    );
+    expect(out).toContain("await readCappedText(request, 65536)");
+    expect(out).toContain("status: 413");
+    expect(out.indexOf("readCappedText(request")).toBeLessThan(
+      out.indexOf("JSON.parse(text)")
+    );
     expect(out).toContain("Array.isArray(raw)");
     // Only user/assistant roles pass — a caller can't inject a system prompt
     // and repurpose the endpoint as an open LLM proxy.
@@ -2566,7 +2574,7 @@ describe("askEndpointTemplate", () => {
     );
     expect(out).not.toContain("createAskContext");
     expect(out).not.toContain("ask-data.json");
-    expect(out).toContain("await request.json().catch(() => null)");
+    expect(out).toContain("await readCappedText(request, 65536)");
     expect(out).toContain("Answer using the project's documentation.");
   });
 

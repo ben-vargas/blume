@@ -161,6 +161,28 @@ export interface UseAskAIOptions {
 /** Shown as the assistant's answer when the request fails or throws. */
 const ASK_ERROR = "Something went wrong answering that. Please try again.";
 
+/** How the generated Ask AI route opens its missing-credential notice. */
+const NOT_CONFIGURED = /^Ask AI is not configured/u;
+
+/**
+ * The route's own explanation of a 503 — the generated route's "Ask AI is not
+ * configured: set AI_GATEWAY_API_KEY." — when the response is that notice, or
+ * null. It names only the variable to set, never a value, so it's safe to
+ * show, and it tells a site owner trying a fresh deploy what's missing instead
+ * of the generic failure; any other error body (an HTML error page, a proxy's
+ * message) still gets the generic notice.
+ */
+const unavailableNotice = async (
+  response: Response
+): Promise<string | null> => {
+  if (response.status !== 503) {
+    return null;
+  }
+  const body = await response.text();
+  const text = body.trim();
+  return NOT_CONFIGURED.test(text) && text.length <= 200 ? text : null;
+};
+
 /** The current route with the deployment base stripped, for page grounding. */
 const currentPath = (): string =>
   stripBase(import.meta.env.BASE_URL, window.location.pathname);
@@ -253,10 +275,11 @@ export const useAskAI = (options: UseAskAIOptions = {}): UseAskAI => {
         ({ status } = response);
         if (!response.ok) {
           // An error body (JSON, HTML error page) must not stream in as the
-          // assistant's answer.
+          // assistant's answer — only the route's own not-configured notice.
+          const notice = await unavailableNotice(response).catch(() => null);
           if (live()) {
             outcome("ask_error", { status });
-            assistant.content = errorMessage;
+            assistant.content = notice ?? errorMessage;
             setMessages([...history, { ...assistant }]);
           }
           return;

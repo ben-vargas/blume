@@ -142,4 +142,25 @@ describe("promptMarkdown", () => {
     expect(promptMarkdown("")).toBe("");
     expect(promptMarkdown("<p>   </p>")).toBe("");
   });
+
+  it("writes a table as a GFM table, keeping alignment and escaping pipes", () => {
+    const html = [
+      "<table><thead><tr>",
+      '<th align="left">Name</th><th style="text-align: center">Type</th><th>Default</th>',
+      "</tr></thead><tbody>",
+      "<tr><td><code>id</code></td><td>string</td><td>a | b</td></tr>",
+      "<tr><td>count</td><td>number<br>int</td></tr>",
+      "</tbody></table>",
+    ].join("");
+    expect(promptMarkdown(html)).toBe(
+      [
+        "| Name | Type | Default |",
+        "| :--- | :---: | --- |",
+        "| `id` | string | a \\| b |",
+        "| count | number int |  |",
+      ].join("\n")
+    );
+    // A table with no rows has nothing to write.
+    expect(promptMarkdown("<p>Before</p><table></table>")).toBe("Before");
+  });
 });

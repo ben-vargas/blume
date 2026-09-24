@@ -43,11 +43,69 @@ const COOKIE_MESSAGE =
   "from a terminal instead.";
 
 /**
+ * A fetch that fails before any response when the API couldn't be reached at
+ * all — a mistyped host, a refused connection, no network — rather than
+ * answering behind the CORS wall.
+ */
+const UNREACHABLE_MESSAGE =
+  "Couldn't reach the API. Check the server URL, and that the API is up and " +
+  "reachable from this network.";
+
+/**
+ * A server the send can't target: a bare relative value like `api.example.com`
+ * or `v1`, which fetch would resolve against the docs site itself.
+ */
+const SERVER_URL_MESSAGE =
+  "Enter the server as an absolute URL, like https://api.example.com, or a " +
+  "path on this site, like /api.";
+
+/**
  * How long a live send waits before giving up. Without a deadline a request
  * that never answers leaves the panel on "Sending…" and the Send button
  * disabled for the rest of the page's life.
  */
 const REQUEST_TIMEOUT_MS = 30_000;
+
+/** How long the reachability probe after a failed send waits for an answer. */
+const PROBE_TIMEOUT_MS = 5000;
+
+/**
+ * Whether a request URL is one a live send can target: an absolute http(s)
+ * URL, or a root-relative path — a spec's `servers: [{ url: "/api" }]` for an
+ * API served beside the docs. A bare relative value (`v1/pets`) would resolve
+ * against the docs page's own URL instead.
+ */
+export const isSendableUrl = (url: string): boolean => {
+  if (url.startsWith("/") && !url.startsWith("//")) {
+    return true;
+  }
+  try {
+    const { protocol } = new URL(url);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * A fetch that fails with a TypeError before any response is either the
+ * browser's CORS wall or a host that never answered. A `no-cors` request to
+ * the target's origin tells them apart: the browser sends it without a
+ * preflight and hides the response, so it resolves whenever the host answered
+ * at all — the send reached the API and CORS withheld the answer — and
+ * rejects only when nothing answered.
+ */
+const reachable = async (url: string): Promise<boolean> => {
+  try {
+    await fetch(new URL(url).origin, {
+      mode: "no-cors",
+      signal: AbortSignal.timeout(PROBE_TIMEOUT_MS),
+    });
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 /** Convention used across the OpenAPI components for error-severity text. */
 const ERROR_TEXT = "text-red-600 text-xs dark:text-red-400";
@@ -423,6 +481,13 @@ export const initPlayground = (root: HTMLElement): void => {
       response.append(line(ERROR_TEXT, `Request failed: ${String(error)}`));
       return;
     }
+    if (!isSendableUrl(sample.url)) {
+      response.textContent = "";
+      response.append(line(ERROR_TEXT, SERVER_URL_MESSAGE));
+      serverCustom?.setAttribute("aria-invalid", "true");
+      return;
+    }
+    serverCustom?.removeAttribute("aria-invalid");
     response.textContent = "Sending\u2026";
     sending = true;
     if (sendButton) {
@@ -447,15 +512,19 @@ export const initPlayground = (root: HTMLElement): void => {
       const ms = Math.round(performance.now() - start);
       renderResponse(response, res, ms, await res.text());
     } catch (error) {
-      response.textContent = "";
-      response.append(
-        line(
-          ERROR_TEXT,
-          error instanceof TypeError
+      // A pre-response TypeError is the CORS wall only for a cross-origin
+      // send to a host that answers: a proxied or same-site request never
+      // meets CORS, and a host that doesn't answer isn't blocked, just down.
+      let message = `Request failed: ${String(error)}`;
+      if (error instanceof TypeError) {
+        const crossOrigin = !proxy && !sample.url.startsWith("/");
+        message =
+          crossOrigin && (await reachable(sample.url))
             ? CORS_MESSAGE
-            : `Request failed: ${String(error)}`
-        )
-      );
+            : UNREACHABLE_MESSAGE;
+      }
+      response.textContent = "";
+      response.append(line(ERROR_TEXT, message));
     } finally {
       sending = false;
       if (sendButton) {

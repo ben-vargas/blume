@@ -7,6 +7,7 @@ import stringWidth from "string-width";
 
 import matter from "../frontmatter.ts";
 import { PUBLIC_API_URL } from "../github.ts";
+import { neutralizeUnsafeLinks } from "../safe-links.ts";
 import { columnsPrefix } from "../text-width.ts";
 import {
   hashText,
@@ -201,8 +202,11 @@ const releaseToEntry = (release: GithubRelease): SourceEntry => {
   const title = release.name?.trim() || release.tag_name;
   const date = release.published_at ?? release.created_at;
   const category = release.prerelease ? "Prerelease" : "Release";
+  // Release notes are the repository's content, not the site author's, so a
+  // link whose destination isn't a web, mail, or relative address
+  // (`javascript:`, `data:`) keeps only its label (see `safe-links.ts`).
   const body = liftHeadings(
-    (release.body ?? "").replaceAll("\r\n", "\n").trim()
+    neutralizeUnsafeLinks((release.body ?? "").replaceAll("\r\n", "\n")).trim()
   );
   // A summary in `seo.description` gives each release page a unique meta
   // description (instead of the site-wide fallback) without also rendering the

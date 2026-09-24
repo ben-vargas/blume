@@ -106,6 +106,38 @@ describe("relative page links on the agent surfaces", () => {
     expect(rewrite("[x](install)", page)).not.toBe("[x](install)");
   });
 
+  it("rewrites dotted page names and component hrefs, not assets", async () => {
+    const project = await scanFixture({
+      "docs/guides/index.mdx": [
+        "# Guides",
+        "",
+        "See [Node](./node.js) and [the diagram](./diagram.png).",
+        "",
+        '<Card title="Install" href="./install" />',
+        "",
+      ].join("\n"),
+      "docs/guides/install.md": "# Install\n",
+      "docs/guides/node.js.mdx": "# Node\n",
+    });
+    const raw = await buildRawMarkdown(project);
+    const guides = raw["/guides"]?.mdx ?? "";
+    expect(guides).toContain("See [Node](/guides/node.js)");
+    expect(guides).toContain("[the diagram](./diagram.png)");
+    expect(guides).toContain('<Card title="Install" href="/guides/install" />');
+  });
+
+  it("reads a sibling a locale hasn't translated from the default tree", async () => {
+    const project = await scanFixture({
+      "blume.config.ts":
+        'export default { i18n: { defaultLocale: "en", locales: [{ code: "en", label: "English" }, { code: "fr", label: "Français" }] } };',
+      "docs/fr/guides/index.mdx": "# Guides\n\nSee [Setup](./setup.mdx).\n",
+      "docs/guides/index.mdx": "# Guides\n",
+      "docs/guides/setup.mdx": "---\nslug: getting-started\n---\n# Setup\n",
+    });
+    const raw = await buildRawMarkdown(project);
+    expect(raw["/fr/guides"]?.mdx).toContain("See [Setup](/getting-started).");
+  });
+
   it("leaves a page with no source file as written", async () => {
     const project = await scanFixture(FILES);
     const rewrite = relativeLinkRewriter(project);

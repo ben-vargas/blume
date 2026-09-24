@@ -4,6 +4,7 @@ import {
   withComposedBasePath,
 } from "../core/base-path.ts";
 import type { ResolvedConfig } from "../core/schema.ts";
+import type { VercelHeader } from "./headers.ts";
 
 /**
  * Platform redirect files for a static build. Astro already emits redirect HTML
@@ -87,24 +88,35 @@ export const buildNetlifyRedirects = (redirects: Redirect[]): string =>
     .map((redirect) => `${redirect.from} ${redirect.to} ${redirect.status}`)
     .join("\n")}\n`;
 
+/** The `vercel.json` Blume writes for a static deploy of `dist/`. */
+interface VercelConfig {
+  headers?: readonly VercelHeader[];
+  redirects: { destination: string; source: string; statusCode: number }[];
+}
+
 /**
- * `vercel.json` contents with a `redirects` array. Uses `statusCode` (Vercel's
+ * `vercel.json` contents with a `redirects` array, and a `headers` array when
+ * header rules are given (see `buildVercelHeaders`). Uses `statusCode` (Vercel's
  * alternative to the boolean `permanent`) so the configured code ships exactly:
  * `permanent` would silently coerce a 301 to 308 and a 302 to 307, diverging
  * from the `_redirects` file, which preserves exact codes.
  */
-export const buildVercelConfig = (redirects: Redirect[]): string =>
-  `${JSON.stringify(
-    {
-      redirects: redirects.map((redirect) => ({
-        destination: redirect.to,
-        source: redirect.from,
-        statusCode: redirect.status,
-      })),
-    },
-    null,
-    2
-  )}\n`;
+export const buildVercelConfig = (
+  redirects: Redirect[],
+  headers: readonly VercelHeader[] = []
+): string => {
+  const config: VercelConfig = {
+    redirects: redirects.map((redirect) => ({
+      destination: redirect.to,
+      source: redirect.from,
+      statusCode: redirect.status,
+    })),
+  };
+  if (headers.length > 0) {
+    config.headers = headers;
+  }
+  return `${JSON.stringify(config, null, 2)}\n`;
+};
 
 /** Structured manifest for hosts that need manual wiring. */
 export const buildRedirectManifest = (redirects: Redirect[]): string =>

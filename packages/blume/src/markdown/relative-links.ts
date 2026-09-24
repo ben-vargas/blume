@@ -6,15 +6,31 @@ import { dirname, normalize, relative, resolve } from "pathe";
 import { readRuntimeModule } from "../astro/runtime-modules.ts";
 import { isIndexFileName, resolveRelativeHref } from "../core/links.ts";
 import type { RelativeLinkBase } from "../core/links.ts";
-import type { MdastNode } from "./mdast.ts";
+import type { MdastNode, MdastValue } from "./mdast.ts";
 
 interface UrlNode extends MdastNode {
   url?: string | null;
 }
 
+/** An MDX JSX attribute, as the plugin reads it. */
+interface JsxAttribute {
+  [key: string]: MdastValue;
+  name?: string;
+  type?: string;
+  value?: MdastValue;
+}
+
+/** An MDX JSX element (`<Card href="./install" />`), as the plugin reads it. */
+interface JsxNode extends MdastNode {
+  attributes?: JsxAttribute[];
+  children?: MdastValue[];
+  name?: string | null;
+}
+
 /** The visitor-context slice this plugin uses (see `mdast.ts` for the model). */
 interface RelativeLinksContext {
   fileURL: URL | undefined;
+  replaceNode: (node: MdastNode, replacement: MdastNode) => void;
   setProperty: (node: MdastNode, key: "url", value: string) => void;
 }
 
@@ -36,15 +52,28 @@ interface RouteData {
 interface RouteIndex {
   /** `collection` + NUL + `entryId` → the route that entry publishes at. */
   routes: Map<string, string>;
+  /** Every route the site serves, fallback copies included. */
+  paths: Set<string>;
   /** Tokens an index file name may carry before its extension. */
   localeTokens: string[];
+  /** The locale folders beside the default tree (every locale but the default). */
+  localeFolders: string[];
 }
 
 /** A content file, located: its page, and how to find the files beside it. */
 interface LocatedPage extends RelativeLinkBase {
   /** The route a sibling file publishes at, from its path relative to `file`. */
   routeOf: (path: string) => string | undefined;
+  /** Every route the site serves, for dotted page names (`./node.js`). */
+  routes: ReadonlySet<string>;
 }
+
+/** A JSX component name (`Card`, `Tree.File`), as opposed to an HTML tag. */
+const COMPONENT_NAME = /^[A-Z]/u;
+
+/** A plain string attribute value; an expression value isn't a link target. */
+const isStringValue = (value: MdastValue): value is string =>
+  typeof value === "string";
 
 const entryKey = (collection: string, entryId: string): string =>
   `${collection}\0${entryId}`;
@@ -70,9 +99,28 @@ const indexRoutes = (data: RouteData): RouteIndex => {
   }
   const locales = data.config.i18n?.locales.map((locale) => locale.code) ?? [];
   return {
+    localeFolders: locales.filter((code) => code !== defaultLocale),
     localeTokens: data.config.i18n ? ["$", ...locales] : [],
+    paths: new Set(data.routes.map((route) => route.path)),
     routes,
   };
+};
+
+/**
+ * The same entry path in the default tree: a page in a locale folder that
+ * links a sibling not translated yet (`fr/guides/setup.mdx` missing) means
+ * the default tree's file (`guides/setup.mdx`), whose route — its own `slug`
+ * included — moves into the reader's locale afterwards, onto the fallback
+ * copy (see `LocaleLinks.astro`).
+ */
+const defaultTreePath = (
+  entryId: string,
+  localeFolders: readonly string[]
+): string | undefined => {
+  const slash = entryId.indexOf("/");
+  return slash !== -1 && localeFolders.includes(entryId.slice(0, slash))
+    ? entryId.slice(slash + 1)
+    : undefined;
 };
 
 export interface RelativeLinksPluginOptions {
@@ -160,10 +208,17 @@ export const relativeLinksPlugin = (
       return {
         isIndex: isIndexFileName(entryId, index.localeTokens),
         route,
-        routeOf: (path) =>
-          index.routes.get(
-            entryKey(collection, relative(base, resolve(dirname(file), path)))
-          ),
+        routeOf: (path) => {
+          const target = relative(base, resolve(dirname(file), path));
+          const inDefaultTree = defaultTreePath(target, index.localeFolders);
+          return (
+            index.routes.get(entryKey(collection, target)) ??
+            (inDefaultTree === undefined
+              ? undefined
+              : index.routes.get(entryKey(collection, inDefaultTree)))
+          );
+        },
+        routes: index.paths,
       };
     };
     if (contentRoot && !relative(contentRoot, file).startsWith("../")) {
@@ -184,25 +239,75 @@ export const relativeLinksPlugin = (
     return undefined;
   };
 
-  const rewrite = (node: UrlNode, ctx: RelativeLinksContext): void => {
-    const { url } = node;
-    if (url === undefined || url === null || !ctx.fileURL) {
-      return;
-    }
-    // Cheap first: most links aren't relative, and those never need the index.
+  /** The route `url` means on the page at `fileURL`, when it's relative. */
+  const resolveUrl = (
+    url: string,
+    fileURL: URL | undefined
+  ): string | undefined => {
+    // Cheap first: a target that can't be relative never needs the index. A
+    // dotted name (`./node.js`) passes, since only the index knows its route.
     if (
-      resolveRelativeHref(url, { isIndex: false, route: "/" }) === undefined
+      !fileURL ||
+      resolveRelativeHref(
+        url,
+        { isIndex: false, route: "/" },
+        undefined,
+        () => true
+      ) === undefined
     ) {
-      return;
+      return undefined;
     }
     const index = routeIndex();
-    const page = index && locate(normalize(fileURLToPath(ctx.fileURL)), index);
+    const page = index && locate(normalize(fileURLToPath(fileURL)), index);
     if (!page) {
+      return undefined;
+    }
+    const next = resolveRelativeHref(url, page, page.routeOf, (route) =>
+      page.routes.has(route)
+    );
+    return next === url ? undefined : next;
+  };
+
+  const rewrite = (node: UrlNode, ctx: RelativeLinksContext): void => {
+    const { url } = node;
+    const next = isStringValue(url) ? resolveUrl(url, ctx.fileURL) : undefined;
+    if (next !== undefined) {
+      ctx.setProperty(node, "url", next);
+    }
+  };
+
+  // A component's string `href` (`<Card href="./install">`) is the same kind
+  // of link, and `blume validate` reads it as one. Lowercase elements are
+  // raw HTML in a `.md` page, which neither rewrites nor checks, so only
+  // components are rewritten; an expression-valued `href={…}` is left alone.
+  const rewriteHref = (node: JsxNode, ctx: RelativeLinksContext): void => {
+    if (!node.name || !COMPONENT_NAME.test(node.name)) {
       return;
     }
-    const next = resolveRelativeHref(url, page, page.routeOf);
-    if (next !== undefined && next !== url) {
-      ctx.setProperty(node, "url", next);
+    const attributes = node.attributes ?? [];
+    const at = attributes.findIndex(
+      (attribute) =>
+        attribute.type === "mdxJsxAttribute" &&
+        attribute.name === "href" &&
+        isStringValue(attribute.value)
+    );
+    const value = attributes[at]?.value;
+    const next = isStringValue(value)
+      ? resolveUrl(value, ctx.fileURL)
+      : undefined;
+    if (next !== undefined) {
+      // Sätteri can't set a JSX element's attributes in place, so the element
+      // is swapped for a copy; its children carry over and are still visited.
+      ctx.replaceNode(node, {
+        attributes: attributes.map((attribute, position) =>
+          position === at
+            ? { name: attribute.name, type: attribute.type, value: next }
+            : attribute
+        ),
+        children: node.children ?? [],
+        name: node.name,
+        type: node.type,
+      });
     }
   };
 
@@ -212,6 +317,8 @@ export const relativeLinksPlugin = (
   return {
     definition: rewrite,
     link: rewrite,
+    mdxJsxFlowElement: rewriteHref,
+    mdxJsxTextElement: rewriteHref,
     name: "blume-relative-links",
   };
 };

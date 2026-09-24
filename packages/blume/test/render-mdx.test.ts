@@ -42,3 +42,19 @@ describe("operationMdx", () => {
     expect(page.data).not.toHaveProperty("deprecated");
   });
 });
+
+describe("operationMdx descriptions", () => {
+  it("keeps only the label of a spec link that isn't a web address", () => {
+    const page = operationMdx(spec, {
+      ...operation,
+      description:
+        "See [the guide](https://x.dev/g), [a trap](javascript:alert(1)), <javascript:alert(2)>, and [`code` {x}](data:text/html,hi). Code `[k](javascript:no)` stays.",
+    });
+    expect(page.body).toContain(
+      String.raw`See [the guide](https://x.dev/g), a trap, javascript:alert(2), and code \{x\}.`
+    );
+    expect(page.body).not.toContain("data:text/html");
+    // Code outside a link stays verbatim, even when it reads like one.
+    expect(page.body).toContain("Code `[k](javascript:no)` stays.");
+  });
+});

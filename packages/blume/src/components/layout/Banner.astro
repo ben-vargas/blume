@@ -34,7 +34,9 @@ const b = { ...EN_UI.banner, ...strings };
       data-banner-key={banner.key}
       data-blume-banner
     >
-      <span>{banner.content}</span>
+      {/* The message is authored in one language, whatever the page's
+          direction: `dir="auto"` keeps its punctuation where it was typed. */}
+      <span dir="auto">{banner.content}</span>
       {banner.link && (
         <a
           class="inline-flex items-center gap-1 font-medium underline underline-offset-2"

@@ -165,6 +165,13 @@ interface Props {
    * article so prose punctuation reads correctly; the chrome still mirrors.
    */
   contentDir?: "ltr" | "rtl";
+  /**
+   * Language of the page content itself — the fallback locale on a fallback
+   * page (English content at `/ar/…`). Set as the article's `lang` when it
+   * differs from the page locale, so assistive tech reads the text in its own
+   * language rather than the chrome's.
+   */
+  contentLocale?: string;
   /** Resolved UI dictionary; English baseline when omitted. */
   ui?: UIStrings;
   /** `hreflang` alternates (absolute URLs) for this page's translations. */
@@ -257,6 +264,7 @@ const {
   locale: localeProp,
   dir: dirProp,
   contentDir,
+  contentLocale,
   ui,
   localeAlternates,
   xDefault,
@@ -344,7 +352,16 @@ if (isBare) {
 } else if (isApiOperation) {
   articleClass = "prose max-w-none";
 }
-const pageTitle = page.title ? `${page.title} - ${site.title}` : site.title;
+// A page titled like the site (a home page often is) takes the bare site title
+// rather than repeating it ("Acme Docs - Acme Docs").
+const pageTitle =
+  page.title && page.title !== site.title
+    ? `${page.title} - ${site.title}`
+    : site.title;
+// The article's own language, when a fallback page renders another locale's
+// content under this one.
+const articleLang =
+  contentLocale && contentLocale !== locale ? contentLocale : undefined;
 const description = page.description ?? site.description;
 // Blog posts and changelog entries are dated writing, so they take `og:type:
 // article` — the same split JSON-LD makes when it picks an article @type. Docs
@@ -725,7 +742,18 @@ createIconSprite(Astro.locals);
           )
         }
         <PageHeaderSlot headings={tocHeadings} page={page} route={page.route} />
-        <article class:list={[articleClass]} dir={contentDir}>
+        {/* `data-pagefind-body` scopes Pagefind to the page's own text: without
+            it Pagefind indexes the whole <body>, so the header, sidebar, and
+            skip link lead every excerpt and match every query. Once any page
+            carries it, pages without it (landing pages, the 404, the
+            changelog index — none are content routes, which is what site
+            search indexes) drop out of the index entirely. */}
+        <article
+          class:list={[articleClass]}
+          data-pagefind-body={indexable && !isBare ? "" : undefined}
+          dir={contentDir}
+          lang={articleLang}
+        >
           <slot />
         </article>
         {

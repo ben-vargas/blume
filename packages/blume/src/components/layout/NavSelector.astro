@@ -33,6 +33,12 @@ const active =
     .toSorted((a, b) => b.path.length - a.path.length)[0] ??
   selector.items[0];
 
+// The active label rides in the trigger on every screen when it's short (a
+// version like "v2" or "Latest"): on a phone a bare chevron doesn't say what
+// it switches. Longer product names still collapse to the icon there.
+const label = active?.label ?? selector.label;
+const labelClass = label.length <= 6 ? undefined : "max-sm:hidden";
+
 const iconButton =
   "inline-flex h-9 cursor-pointer items-center gap-1.5 rounded-full border border-border bg-background px-3 text-muted-foreground text-sm transition-colors hover:border-foreground hover:text-foreground";
 const menuRowClass =
@@ -47,7 +53,7 @@ const menuRowClass =
         class={`${iconButton} list-none [&::-webkit-details-marker]:hidden`}
       >
         {active?.icon && <Icon name={active.icon} size={16} />}
-        <span class="max-sm:hidden">{active?.label ?? selector.label}</span>
+        <span class={labelClass}>{label}</span>
         <Icon
           class="transition-transform group-open:rotate-180"
           name="chevron-down"
@@ -55,7 +61,8 @@ const menuRowClass =
         />
       </summary>
       <div
-        class={`absolute z-50 mt-2 min-w-56 rounded-blume border border-border bg-background p-1 shadow-xl ${align === "end" ? "end-0" : "start-0"}`}
+        class={`absolute z-50 mt-2 min-w-56 max-w-[calc(100vw-1rem)] rounded-blume border border-border bg-background p-1 shadow-xl ${align === "end" ? "end-0" : "start-0"}`}
+        data-blume-dropdown-panel
       >
         {selector.items.map((item) => (
           <a
@@ -89,8 +96,12 @@ const menuRowClass =
 
 <script>
   import { installDropdownDismiss } from "../dropdown-dismiss.ts";
+  import { installDropdownClamp } from "./dropdown-clamp.ts";
 
   // Outside-click / Escape / focus-out dismissal, shared with the language
   // switcher and the page actions.
   installDropdownDismiss();
+  // On a phone the trigger sits mid-header, so an edge-anchored panel can
+  // run off the screen; shift it back inside when it opens.
+  installDropdownClamp();
 </script>

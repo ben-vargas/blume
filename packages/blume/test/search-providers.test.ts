@@ -471,6 +471,16 @@ describe("mixedbreadSearchEndpointTemplate", () => {
     expect(endpoint).toContain('const OPTIONS = {"storeId":"store-123"};');
     expect(endpoint).toContain("export const prerender = false;");
   });
+
+  it("reads the request body under a cap before parsing it", () => {
+    const endpoint = mixedbreadSearchEndpointTemplate({ storeId: "store-123" });
+    expect(endpoint).toContain(
+      'import { readCappedText } from "blume/core/request-body.ts";'
+    );
+    expect(endpoint).toContain("await readCappedText(request, 16_384)");
+    expect(endpoint).toContain("status: 413");
+    expect(endpoint).not.toContain("request.json()");
+  });
 });
 
 describe("serverFeatures", () => {

@@ -84,8 +84,11 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
   >
     <Icon name="search" size={16} />
     <span class="flex-1 text-start max-lg:hidden">{s.button}</span>
-    <kbd class="font-mono text-[0.7rem] max-lg:hidden" data-blume-search-kbd
-      >⌘K</kbd
+    {/* A key chord reads left to right in every locale ("⌘K", never "K⌘"). */}
+    <kbd
+      class="font-mono text-[0.7rem] max-lg:hidden"
+      data-blume-search-kbd
+      dir="ltr">⌘K</kbd
     >
   </button>
 
@@ -195,8 +198,10 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
           {s.open}
         </span>
         <span class="flex items-center gap-1 max-md:hidden">
-          <kbd class={`${kbd} text-[0.65rem]`} data-blume-search-preview-kbd
-            >⌘J</kbd
+          <kbd
+            class={`${kbd} text-[0.65rem]`}
+            data-blume-search-preview-kbd
+            dir="ltr">⌘J</kbd
           >
           {s.preview}
         </span>

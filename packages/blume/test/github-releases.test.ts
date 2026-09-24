@@ -263,6 +263,24 @@ describe("githubReleasesSource", () => {
     expect(entries[2]?.body.text).toBe("Setext\n======\n\n### Detail");
   });
 
+  it("keeps only the label of a release-note link that isn't a web address", async () => {
+    // Release notes are the repository's content, not the site author's, so a
+    // `javascript:` link would run as the docs site when a reader clicked it.
+    const body =
+      "Fixes [the bug](https://x.dev/1) and [a trap](javascript:alert(1)).\n\n[ref]: data:text/html,hi";
+    const { fetchImpl } = releasesFetch({
+      1: [makeRelease({ body, id: 1, tag_name: "v1.0.0" })],
+    });
+    const source = githubReleasesSource(
+      { fetchImpl, name: "changelog", owner: "acme", repo: "sdk" },
+      ctxFor(await tempDir())
+    );
+    const { entries } = await source.load();
+    expect(entries[0]?.body.text).toBe(
+      "Fixes [the bug](https://x.dev/1) and a trap."
+    );
+  });
+
   it("never splits a surrogate pair at the description cut", async () => {
     // One unbroken 158-unit token, then an astral emoji straddling the
     // 159-unit cut: a UTF-16 slice would keep only the high surrogate,

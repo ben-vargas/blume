@@ -62,6 +62,18 @@ describe("unknown flags", () => {
     expect(existsSync(join(root, "dist"))).toBe(false);
   });
 
+  it("keeps a mistyped negation negated, and lists on-by-default switches as --no-", async () => {
+    const root = await makeProject(PAGE);
+    const { exitCode, stderr } = await run(root, ["build", "--no-strcit"]);
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("(did you mean --no-strict?)");
+    // `blume build` is strict unless told otherwise, so the list names the
+    // switch that does something.
+    expect(stderr).toContain("--no-strict");
+    expect(stderr).not.toContain(", --strict,");
+    expect(existsSync(join(root, ".blume"))).toBe(false);
+  });
+
   it("names the flags a command takes", async () => {
     const root = await makeProject(PAGE);
     const { exitCode, stderr } = await run(root, ["validate", "--strcit"]);

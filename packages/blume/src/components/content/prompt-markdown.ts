@@ -169,6 +169,57 @@ const listBlock = (list: HTMLElement): string => {
   return items.join("\n");
 };
 
+/** A GFM delimiter cell per column alignment; unaligned columns get `---`. */
+const DELIMITERS = new Map([
+  ["center", ":---:"],
+  ["left", ":---"],
+  ["right", "---:"],
+]);
+
+const TEXT_ALIGN = /text-align:\s*(?<align>center|left|right)/u;
+
+/** A cell's alignment, from the `align` attribute or an inline style. */
+const cellAlign = (cell: HTMLElement | undefined): string =>
+  cell?.getAttribute("align") ??
+  TEXT_ALIGN.exec(cell?.getAttribute("style") ?? "")?.groups?.align ??
+  "";
+
+/** A cell's inline Markdown on one line, its pipes escaped. */
+const tableCell = (cell: HTMLElement | undefined): string =>
+  cell
+    ? collapse(inline(cell).replaceAll("\n", " ")).replaceAll(
+        "|",
+        String.raw`\|`
+      )
+    : "";
+
+const isCell = (node: Node): node is HTMLElement =>
+  isElement(node) && (node.tagName === "TD" || node.tagName === "TH");
+
+/**
+ * A table as a GFM table: its first row as the header (GFM requires one), a
+ * delimiter row carrying each column's alignment, then the body rows, padded
+ * to the widest row.
+ */
+const tableBlock = (table: HTMLElement): string => {
+  const rows = table
+    .querySelectorAll("tr")
+    .filter((row) => !isSkipped(row))
+    .map((row) => row.childNodes.filter(isCell));
+  const [head, ...body] = rows;
+  if (!head) {
+    return "";
+  }
+  const width = Math.max(...rows.map((row) => row.length));
+  const columns = Array.from({ length: width }, (_, index) => index);
+  const row = (cells: HTMLElement[]): string =>
+    `| ${columns.map((index) => tableCell(cells[index])).join(" | ")} |`;
+  const delimiter = `| ${columns
+    .map((index) => DELIMITERS.get(cellAlign(head[index])) ?? "---")
+    .join(" | ")} |`;
+  return [row(head), delimiter, ...body.map(row)].join("\n");
+};
+
 const block = (element: HTMLElement): string[] => {
   const heading = HEADING.exec(element.tagName)?.groups?.level;
   if (heading) {
@@ -197,6 +248,9 @@ const block = (element: HTMLElement): string[] => {
     }
     case "PRE": {
       return [codeBlock(element)];
+    }
+    case "TABLE": {
+      return [tableBlock(element)];
     }
     default: {
       // oxlint-disable-next-line no-use-before-define -- mutual recursion: a container holds blocks

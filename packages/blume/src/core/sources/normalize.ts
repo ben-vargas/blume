@@ -675,17 +675,66 @@ const scanLinkLine = (
   return next;
 };
 
+/**
+ * A component's string `href` (`<Card href="./install" />`): the attribute
+ * may sit on a later line than the tag name, where a formatter wraps a long
+ * element, so the gap between them spans lines. An expression-valued
+ * `href={…}` isn't a literal target, and a lowercase tag is raw HTML in a
+ * `.md` page, so neither is matched.
+ */
+const COMPONENT_HREF =
+  /<[A-Z][\w.]*(?=[\s/>])[^<>]*?\shref=(?:"(?<double>[^"]*)"|'(?<single>[^']*)')/gu;
+
+/** The body with fenced blocks and inline code blanked, shape preserved. */
+const maskCode = (lines: readonly string[]): string => {
+  let fence: FenceState = null;
+  const masked = lines.map((line) => {
+    const next = nextFenceState(line, fence);
+    const inFence = fence !== null || next !== null;
+    fence = next;
+    return inFence
+      ? " ".repeat(line.length)
+      : line.replaceAll(INLINE_CODE, (span) => " ".repeat(span.length));
+  });
+  return masked.join("\n");
+};
+
+/** Every component `href` target in `body`, with its 1-based position. */
+const componentHrefs = (
+  lines: readonly string[],
+  lineOffset: number
+): PageLink[] => {
+  const links: PageLink[] = [];
+  const text = maskCode(lines);
+  for (const match of text.matchAll(COMPONENT_HREF)) {
+    const target = match.groups?.double ?? match.groups?.single ?? "";
+    // The value ends one character (its closing quote) before the match does.
+    const at = match.index + match[0].length - target.length - 1;
+    const before = text.slice(0, at);
+    const lineStart = before.lastIndexOf("\n") + 1;
+    links.push({
+      column: at - lineStart + 1,
+      line: lineOffset + before.split("\n").length,
+      target,
+    });
+  }
+  return links;
+};
+
 export const extractLinks = (body: string, lineOffset = 0): PageLink[] => {
   const links: PageLink[] = [];
   let fence: FenceState = null;
   let lineNumber = lineOffset;
 
-  for (const line of body.split("\n")) {
+  const lines = body.split("\n");
+  for (const line of lines) {
     lineNumber += 1;
     fence = scanLinkLine(line, lineNumber, fence, links);
   }
 
-  return links;
+  return body.includes("href=")
+    ? [...links, ...componentHrefs(lines, lineOffset)]
+    : links;
 };
 
 // Double-quoted strings hold JSX attribute values and JSON in `{...}` props; a

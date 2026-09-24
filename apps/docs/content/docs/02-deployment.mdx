@@ -109,7 +109,7 @@ deployment: vercel({
 | `node()` | `@astrojs/node` | Self-hosted Node servers, containers |
 | `cloudflare()` | `@astrojs/cloudflare` | Cloudflare Workers and Pages |
 
-`vercel()` and `node()` ship with Blume — choosing one just works. `netlify()` and `cloudflare()` need their package installed in your project (e.g. `bun add -d @astrojs/netlify`). If it's missing, `blume build` stops with the install command for your package manager, `blume dev` warns, and [`blume doctor`](/docs/cli/doctor) reports it.
+`vercel()` and `node()` ship with Blume — choosing one just works. `netlify()` and `cloudflare()` need their package installed in your project (e.g. `bun add -d @astrojs/netlify`). If it's missing, `blume build` stops with the install command for your package manager, `blume dev` warns, and [`blume doctor`](/docs/cli/doctor) reports it. With pnpm 10 or later, also approve the build scripts those packages bring (`sharp`, and `workerd` for Cloudflare) under `allowBuilds` in `pnpm-workspace.yaml`, or pnpm stops the install.
 
 Naming an adapter switches the build to server output. To keep a static build on that host — with its site detection and the platform files it reads — pass `output: "static"`:
 
@@ -117,7 +117,9 @@ Naming an adapter switches the build to server output. To keep a static build on
 deployment: netlify({ output: "static" }),
 ```
 
-A server build includes everything a static build does, plus any Astro endpoints or middleware you add. The `node()` adapter produces a standalone server you can run directly with `node dist/server/entry.mjs`. Blume puts a small wrapper in front of Astro's entry (moved to `astro-entry.mjs` beside it) so the `.well-known` discovery files go out with their media types and CORS headers, which the standalone server's static handler can't set on its own.
+A server build includes everything a static build does, plus any Astro endpoints or middleware you add. The `node()` adapter produces a standalone server you can run directly with `node dist/server/entry.mjs`. The server resolves its packages through links into your project's `node_modules`, so deploy the project with its installed dependencies, not `dist/` alone. When the site publishes discovery files, Blume puts a small wrapper in front of Astro's entry (moved to `astro-entry.mjs` beside it) so the `.well-known` discovery files go out with their media types and CORS headers, which the standalone server's static handler can't set on its own.
+
+A `cloudflare()` server build deploys with `npx wrangler deploy` from the project root after `blume build`: Blume writes the redirected Wrangler config to `.wrangler/deploy/` (and adds `.wrangler/` to `.gitignore`), and names the Worker after your project — the `package.json` `name`, else the site's hostname, else the folder — unless a `wrangler.jsonc` of your own at the project root sets `name`.
 
 On Vercel and Cloudflare, a server build also turns on [`Accept: text/markdown` content negotiation](/docs/discoverability/markdown#content-negotiation), so an agent requesting any content page with that header receives its raw-Markdown mirror at the same URL. On Vercel, Blume splices header-conditional rewrites into the deploy's routing config; on Cloudflare, it generates a small Worker in front of the Astro one and points `assets.run_worker_first` at every path except the fingerprinted build assets and the raw `.md`, `.txt`, `.json`, and `.well-known` files, since the platform would otherwise serve the prerendered pages — and its `404.html` for a URL no page backs — before any server code runs; those exempted files keep their zero-Worker fast path. That Worker also answers the prerendered per-page JSON documents (`/api/docs/pages/{route}.json`) from the asset binding when a request for one reaches it, because Astro would otherwise route it to the `/api/` catch-all.
 
@@ -140,7 +142,7 @@ redirects: [{ from: "/old", to: "/new", status: 301 }],
 `status` accepts `301`, `302`, `307`, or `308` (default `301`). Server builds handle redirects at request time. Static builds emit redirect pages **and** the platform files your host reads, so it issues a real HTTP redirect: `_redirects` for `netlify()` and `cloudflare()`, `vercel.json` for `vercel()`, and — when no host is named — both of those plus `blume-redirects.json`, a structured manifest for anything else (nginx/Apache rules, an edge worker). A `_redirects` or `vercel.json` you ship in `public/` is left untouched.
 
 :::note
-`from` is matched as an exact path — wildcards and pattern matching (e.g. `/blog/:slug` or `/old/*`) aren't supported. If you need pattern-based rules, handle them in an infrastructure file like `vercel.json` (which supports wildcard `source` patterns) or your host's redirect config instead. A `vercel.json` you ship in `public/` is preserved as-is.
+`from` and `to` are exact paths — a `:param` segment or `*` wildcard (e.g. `/blog/:slug` or `/old/*`) fails config validation, since hosts disagree on patterns. If you need pattern-based rules, handle them in an infrastructure file like `vercel.json` (which supports wildcard `source` patterns) or your host's redirect config instead. A `vercel.json` you ship in `public/` is preserved as-is.
 :::
 
 :::note

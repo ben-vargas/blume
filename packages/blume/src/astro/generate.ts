@@ -13,15 +13,7 @@ import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
 import pMap from "p-map";
-import {
-  basename,
-  dirname,
-  isAbsolute,
-  join,
-  normalize,
-  relative,
-  resolve,
-} from "pathe";
+import { dirname, isAbsolute, join, normalize, relative, resolve } from "pathe";
 import { glob } from "tinyglobby";
 
 import { hasAiCatalog } from "../ai/ai-catalog.ts";
@@ -128,6 +120,7 @@ import {
   hasGeneratedChangelog,
   routeIsTaken,
 } from "./pages.ts";
+import { candidateHolding } from "./render-deps.ts";
 import { missingDependencyDiagnostic } from "./runtime-deps.ts";
 import { publishRuntimeModules } from "./runtime-modules.ts";
 import type { RuntimeModuleId } from "./runtime-modules.ts";
@@ -169,6 +162,11 @@ import {
   stagedContentDir,
 } from "./templates.ts";
 import type { ClientFeatures } from "./templates.ts";
+
+// The render-deps plugin and the dependency-directory probe live in
+// `render-deps.ts`; `blume/astro` and existing callers import them from here.
+export { blumeDepsDir, prerenderDepsPlugin } from "./render-deps.ts";
+export type { PrerenderDepsPlugin } from "./render-deps.ts";
 
 /** Absolute path to the Blume package `src` directory. */
 const BLUME_SRC = join(packageRoot(), "src");
@@ -270,62 +268,6 @@ export const sameRealDir = (a: string, b: string): boolean => {
   } catch {
     return false;
   }
-};
-
-/**
- * The two places an installer can put Blume's dependencies:
- *   - `<blume>/node_modules` — deps nested under the package (workspace source,
- *     or npm nesting them away from a conflicting hoisted copy)
- *   - `dirname(<blume>)`     — deps as siblings in the store (isolated/pnpm)
- *
- * `packageRoot()` resolves to Blume's real on-disk path (Node follows the
- * install symlink), so its parent is the store's package directory where the
- * isolated linker places the siblings.
- */
-const depsCandidates = (pkgDir: string): string[] => [
-  join(pkgDir, "node_modules"),
-  dirname(pkgDir),
-];
-
-/** First dependency candidate containing the package dir `segments`, or null. */
-const candidateHolding = (
-  pkgDir: string,
-  ...segments: string[]
-): string | null =>
-  depsCandidates(pkgDir).find((dir) => existsSync(join(dir, ...segments))) ??
-  null;
-
-/**
- * Locate the directory that holds Blume's installed dependencies (Astro and its
- * integrations).
- *
- * With a clean hoisted install this is moot — the deps sit in a `node_modules`
- * the generated `.blume/` already walks up into, and {@link ensureDepsLink}
- * short-circuits before we need it. But under isolated linkers (Bun's
- * `isolated` mode, pnpm) Blume's deps are NOT hoisted into the project; they
- * live beside the Blume package in a virtual store, invisible to the upward
- * walk from `.blume/` — so probe the {@link depsCandidates}.
- *
- * Astro alone is a bad probe: an npm split install (an `overrides` pin plus an
- * incremental install) hoists `astro` to the project root while Blume's other
- * deps stay nested, and probing for astro then picks the root directory — one
- * that holds none of them. Prefer a candidate with the full set (astro beside
- * `@astrojs/mdx`, the integration every generated runtime declares), then one
- * with the integrations (astro hoisted away — the rest of Blume's deps sit
- * there too), then one with astro alone.
- */
-const holdsAstro = (dir: string): boolean => existsSync(join(dir, "astro"));
-const holdsMdx = (dir: string): boolean =>
-  existsSync(join(dir, "@astrojs", "mdx"));
-
-export const blumeDepsDir = (pkgDir: string = packageRoot()): string | null => {
-  const candidates = depsCandidates(pkgDir);
-  return (
-    candidates.find((dir) => holdsAstro(dir) && holdsMdx(dir)) ??
-    candidates.find(holdsMdx) ??
-    candidates.find(holdsAstro) ??
-    null
-  );
 };
 
 /**
@@ -544,50 +486,6 @@ export const ensureDepsLink = async (
   // root pin fixes this — surface it.
   return astroConflictWarning(blumeAstro, outDirHit?.pkg ?? null);
 };
-
-/**
- * Vite plugin that makes Blume's externalized runtime deps (zod, shiki, sharp,
- * `takumi-js`, …) resolvable when Astro executes the static prerender
- * bundle under an isolated linker (Bun's `isolated` mode, pnpm).
- *
- * Astro's static build emits a self-contained SSR bundle to
- * `<outDir>/.prerender/` and `import()`s it in-process to generate the HTML.
- * That bundle externalizes Blume's render-time deps, so Node resolves them at
- * prerender time by walking up from `.prerender/chunks/*.mjs`. {@link
- * ensureDepsLink} only repairs resolution rooted at `.blume/`; `.prerender/`
- * lives under `dist/`, a separate tree an isolated linker never hoists Blume's
- * deps into — so the import dies with `Cannot find package 'zod'`. We drop the
- * same `node_modules` junction into the prerender root, mirroring
- * `.blume/node_modules`, so every externalized specifier — native bindings
- * included, which can't be bundled — resolves. Astro deletes `.prerender/` once
- * generation finishes (and the junction with it: `fs.rm` unlinks symlinks, it
- * never follows them), so nothing leaks into the published `dist/`.
- *
- * Keyed off the output dir's basename (`.prerender`) — the name Astro 7 gives
- * the prerender build for both static (`<outDir>/.prerender/`) and server
- * (`<build.server>/.prerender/`) output — so it fires for exactly that build.
- * Inert in dev, where there is no build and `writeBundle` never runs.
- */
-export interface PrerenderDepsPlugin {
-  name: string;
-  writeBundle: (options: { dir?: string }) => Promise<void>;
-}
-
-export const prerenderDepsPlugin = (
-  pkgDir: string = packageRoot()
-): PrerenderDepsPlugin => ({
-  name: "blume:prerender-deps",
-  writeBundle: async (options) => {
-    if (!options.dir || basename(options.dir) !== ".prerender") {
-      return;
-    }
-    const depsDir = blumeDepsDir(pkgDir);
-    if (!depsDir) {
-      return;
-    }
-    await linkDepsJunction(join(options.dir, "node_modules"), depsDir);
-  },
-});
 
 /** Absolute path to the configured `examples.css`, or null when unset. */
 const examplesCssFile = (

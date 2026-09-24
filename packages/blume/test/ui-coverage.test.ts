@@ -1017,6 +1017,33 @@ describe("layout chrome sources", () => {
       expect(source).not.toContain('locale = "en",');
     }
   });
+
+  it("scopes Pagefind to indexable articles and marks a fallback article's language", async () => {
+    const root = await layoutSource("RootLayout.astro");
+    // Only a content page's article is indexed; the chrome, the changelog
+    // index (bare), and every page without the attribute drop out.
+    expect(root).toContain(
+      'data-pagefind-body={indexable && !isBare ? "" : undefined}'
+    );
+    expect(root).toContain(
+      "contentLocale && contentLocale !== locale ? contentLocale : undefined"
+    );
+    expect(root).toContain("lang={articleLang}");
+    // A page titled like the site isn't suffixed with it again.
+    expect(root).toContain("page.title && page.title !== site.title");
+  });
+
+  it("keeps the header's bidi-neutral text and dropdown panels readable", async () => {
+    expect(await layoutSource("Banner.astro")).toContain(
+      '<span dir="auto">{banner.content}</span>'
+    );
+    const search = await layoutSource("Search.astro");
+    expect(search.match(/dir="ltr">⌘[JK]<\/kbd/gu)).toHaveLength(2);
+    const selector = await layoutSource("NavSelector.astro");
+    expect(selector).toContain("data-blume-dropdown-panel");
+    expect(selector).toContain("max-w-[calc(100vw-1rem)]");
+    expect(selector).toContain("installDropdownClamp();");
+  });
 });
 
 describe("searchLocaleFor", () => {

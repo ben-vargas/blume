@@ -5,6 +5,8 @@
  * with blank lines; these helpers keep that Markdown identical across them.
  */
 
+import { isSafeHref } from "../safe-href.ts";
+
 // Markdown/raw-HTML structure characters. Rich-text leaves are *plain text* —
 // formatting arrives as marks, never as syntax in the text — so a literal
 // `*`, `_`, `[`, backtick, `~`, or `<` typed in the CMS must render as
@@ -128,9 +130,14 @@ const UNSAFE_DESTINATION = /[\s()]/u;
 export const destination = (url: string): string =>
   UNSAFE_DESTINATION.test(url) ? `<${url}>` : url;
 
-/** A Markdown link, or the label alone when the target is missing. */
+/**
+ * A Markdown link, or the label alone when the target is missing — or unsafe:
+ * CMS content is the editor's, not the site author's, so a destination that
+ * isn't a web, mail, or relative address (`javascript:`, `data:`) never
+ * becomes a clickable link on the docs site (see `safe-links.ts`).
+ */
 export const renderLink = (label: string, href?: string): string =>
-  href ? `[${label}](${destination(href)})` : label;
+  href && isSafeHref(href) ? `[${label}](${destination(href)})` : label;
 
 /** The ATX prefix for a heading level, clamped to Markdown's six. */
 export const headingPrefix = (level: number): string =>

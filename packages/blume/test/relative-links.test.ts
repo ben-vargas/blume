@@ -49,6 +49,7 @@ const snapshot = (
 
 const ROUTES: Route[] = [
   { entryId: "guides/index.md", path: "/guides" },
+  { entryId: "guides/index.mdx", path: "/guides" },
   { entryId: "guides/install.md", path: "/guides/install" },
   { entryId: "guides/01-setup.mdx", path: "/getting-started" },
   { entryId: "guides/page.md", path: "/guides/page" },
@@ -294,5 +295,91 @@ describe("relative page links", () => {
     expect(await renderIndex("[Install](./install)")).toContain(
       'href="./install"'
     );
+  });
+
+  it("rewrites a dotted page name, but leaves an asset alone", async () => {
+    publishData(
+      snapshot([
+        ...ROUTES,
+        { entryId: "guides/node.js.mdx", path: "/guides/node.js" },
+        { entryId: "v1.2.mdx", path: "/v1.2" },
+      ])
+    );
+    const html = await render(
+      "[Node](./node.js#run) [v1.2](../v1.2) [Diagram](./diagram.png)",
+      `${ROOT}/guides/index.md`
+    );
+    expect(html).toContain('href="/guides/node.js#run"');
+    expect(html).toContain('href="/v1.2"');
+    expect(html).toContain('href="./diagram.png"');
+  });
+
+  it("rewrites a component's string href, leaving expressions and HTML", async () => {
+    publishData(snapshot(ROUTES));
+    // The MDX compile path `@astrojs/mdx` runs: JSX elements are only
+    // visited there, not in the `.md`-style HTML renderer above.
+    const processor = blumeMdxProcessor({ contentRoot: ROOT });
+    if (!processor.createMdxRenderer) {
+      throw new Error("The satteri processor has no MDX renderer.");
+    }
+    const renderer = await processor.createMdxRenderer({}, { optimize: false });
+    const { code } = await renderer.process(
+      [
+        '<Card title="Install" href="./install">',
+        '  Nested [link](./page) and <Tile href="./page" />',
+        "</Card>",
+        "",
+        "<Card href={props.target} />",
+        "",
+        'Inline <Tile href="../about">About</Tile> tile.',
+        "",
+        '<a href="./install">raw</a>',
+      ].join("\n"),
+      `${ROOT}/guides/index.mdx`,
+      {}
+    );
+    const compiled = String(code);
+    expect(compiled).toContain('href: "/guides/install"');
+    expect(compiled).toContain('href: "/guides/page"');
+    expect(compiled).toContain('href: "/about"');
+    expect(compiled).toContain("href: props.target");
+    expect(compiled).toContain('href: "./install"');
+  });
+
+  it("falls back to the default tree for a sibling a locale hasn't translated", async () => {
+    publishData(
+      snapshot(
+        [
+          {
+            entryId: "guides/setup.mdx",
+            locale: "en",
+            path: "/getting-started",
+          },
+          {
+            entryId: "guides/install.md",
+            locale: "en",
+            path: "/guides/install",
+          },
+          { entryId: "fr/guides/index.md", locale: "fr", path: "/fr/guides" },
+          {
+            entryId: "fr/guides/install.md",
+            locale: "fr",
+            path: "/fr/guides/install",
+          },
+        ],
+        { defaultLocale: "en", locales: [{ code: "en" }, { code: "fr" }] }
+      )
+    );
+    const html = await render(
+      "[Setup](./setup.mdx) [Install](./install.md) [Gone](./gone.mdx)",
+      `${ROOT}/fr/guides/index.md`
+    );
+    // The default tree's file, its slug included; the page moves it into the
+    // reader's locale afterwards (LocaleLinks), onto the fallback copy.
+    expect(html).toContain('href="/getting-started"');
+    // A translated sibling keeps its own route.
+    expect(html).toContain('href="/fr/guides/install"');
+    // Neither tree has it: route-relative, as before.
+    expect(html).toContain('href="/fr/guides/gone"');
   });
 });

@@ -87,6 +87,7 @@ export default defineConfig({
 
 - `netlify()`, `cloudflare()`, and `node()` work the same way. Naming a host adapter switches to server output; pass `output: "static"` to keep a static build with that host's platform files.
 - A config that only sets `site` or `base` stays as it is: `deployment: { site, base }` is still the static form.
+- `redirects` take exact paths. A `from` or `to` with a `:param` segment or a `*` wildcard now fails validation; Blume 1 never supported patterns, and hosts treated them differently. Move pattern rules into your host's own config (`vercel.json`, `_redirects`).
 - The `--adapter`, `--output`, and `--base` flags on `blume build` are gone, and passing one stops the build with an error naming the `deployment` setting that replaces it. Set the adapter in `blume.config.ts`, and name it explicitly: server output is no longer inferred from the platform's environment.
 
 See [Deployment](/docs/deployment) for each adapter's options.
@@ -333,6 +334,10 @@ An app you [ejected](/docs/configuration/customization#eject) on Blume 1 no long
 </Steps>
 
 Until the fresh copy is ready, keep the ejected app on Blume 1 (`"blume": "^1"`) and don't run `blume upgrade` in it: nothing changes until you bump it.
+
+## Command-line flags
+
+Every `blume` command now rejects a flag it doesn't take, where Blume 1 ignored it. A script or CI step that passes a stray or misspelled flag fails, naming the flag it didn't recognize and the ones the command accepts. `blume upgrade` reports only the three removed `blume build` flags (`--adapter`, `--output`, `--base`), so check your other `blume` scripts too.
 
 ## Check your work
 

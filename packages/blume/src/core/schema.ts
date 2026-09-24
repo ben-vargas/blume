@@ -1140,12 +1140,28 @@ const versionsConfigSchema = z
     }
   });
 
+/**
+ * A pattern segment in a redirect path: a named `:param` segment or a `*`
+ * splat. `from` is matched as an exact path, and hosts disagree on patterns —
+ * a static build would even write a literal `:slug` folder — so both ends are
+ * checked. An absolute `to` URL's own scheme and host are skipped.
+ */
+const REDIRECT_PATTERN = /(?:^|\/):[A-Za-z_]|\*/u;
+const URL_ORIGIN = /^[a-z][\d+.a-z-]*:\/\/[^/]*/iu;
+
+const exactRedirectPath = (end: "from" | "to") =>
+  z
+    .string()
+    .refine((path) => !REDIRECT_PATTERN.test(path.replace(URL_ORIGIN, "")), {
+      message: `redirects take exact paths: \`${end}\` can't hold a \`:param\` segment or a \`*\` wildcard. Add one redirect per path, or put pattern rules in your host's redirect config (vercel.json, _redirects).`,
+    });
+
 const redirectSchema = z.strictObject({
-  from: z.string(),
+  from: exactRedirectPath("from"),
   status: z
     .union([z.literal(301), z.literal(302), z.literal(307), z.literal(308)])
     .default(301),
-  to: z.string(),
+  to: exactRedirectPath("to"),
 });
 
 /**

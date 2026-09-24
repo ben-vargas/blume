@@ -104,6 +104,14 @@ export class FakeEl {
     this.attributes.set(name, value);
   }
 
+  getAttribute(name: string): string | null {
+    return this.attributes.get(name) ?? null;
+  }
+
+  removeAttribute(name: string): void {
+    this.attributes.delete(name);
+  }
+
   append(...nodes: FakeEl[]): void {
     for (const node of nodes) {
       node.parent = this;

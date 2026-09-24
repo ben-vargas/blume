@@ -55,6 +55,17 @@ describe("unknownFlags", () => {
     ]);
   });
 
+  it("keeps a mistyped negation negated in its suggestion", () => {
+    expect(
+      unknownFlags(["--no-strcit", "--no-isolatd", "--no-portt"], args)
+    ).toEqual([
+      { flag: "--no-strcit", suggestion: "--no-strict" },
+      { flag: "--no-isolatd", suggestion: "--no-isolated" },
+      // Negating a flag that takes a value means nothing: suggest the flag.
+      { flag: "--no-portt", suggestion: "--port" },
+    ]);
+  });
+
   it("reports an unknown negation and short flag, without a far-fetched suggestion", () => {
     expect(unknownFlags(["--no-colour", "-x", "-xz"], args)).toEqual([
       { flag: "--no-colour" },
@@ -109,8 +120,9 @@ describe("unknownFlagsDiagnostic", () => {
     expect(diagnostic.message).toBe(
       "blume build doesn't know the option --isolatd (did you mean --isolated?)."
     );
+    // `strict` is on by default, so the form worth listing is `--no-strict`.
     expect(diagnostic.suggestion).toBe(
-      "It takes --budget-js, --force, --isolated, --list-checks, --port, --strict, --template, --verbose. Run `blume build --help` for what each does."
+      "It takes --budget-js, --force, --isolated, --list-checks, --no-strict, --port, --template, --verbose. Run `blume build --help` for what each does."
     );
   });
 

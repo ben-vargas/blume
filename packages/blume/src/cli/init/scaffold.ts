@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 
 import { detect } from "package-manager-detector/detect";
@@ -88,7 +88,7 @@ export const STARTERS = {
       {
         content: page(
           "API Reference",
-          "Explore the API.",
+          "Reference documentation for the API, generated from its OpenAPI spec, with every endpoint, its parameters, request bodies, and responses.",
           "Your OpenAPI spec renders at [`/api`](/api). Point `openapi()` at your own spec in `blume.config.ts`."
         ),
         path: join(dir, "index.mdx"),
@@ -108,13 +108,13 @@ export const STARTERS = {
       {
         content: page(
           "Introduction",
-          "Welcome to your new Blume docs.",
-          "Write your docs here, and log releases under `changelog/`."
+          "Welcome to your new documentation site. Write guides as Markdown pages here, and log each release as an entry in the changelog folder.",
+          "Write your docs here, and log releases under `changelog/`: each entry joins the [changelog](/changelog), newest first."
         ),
         path: join(dir, "index.mdx"),
       },
       {
-        content: `---\ntitle: v1.0.0\ntype: changelog\ndate: 2026-01-01\n---\n\nThe first release. Edit \`${dir}/changelog/v1-0-0.mdx\` or add new entries beside it.\n`,
+        content: `---\ntitle: v1.0.0\ndescription: The first release of the project. Replace this entry with your own release notes, and add a new file beside it for every version.\ntype: changelog\ndate: 2026-01-01\n---\n\nThe first release. Edit \`${dir}/changelog/v1-0-0.mdx\` or add new entries beside it.\n`,
         path: join(dir, "changelog", "v1-0-0.mdx"),
       },
     ],
@@ -126,8 +126,8 @@ export const STARTERS = {
       {
         content: page(
           "Introduction",
-          "Welcome to your new Blume docs.",
-          `Welcome to **Blume** — markdown-first docs powered by Astro and Vite.\n\nEdit \`${dir}/index.mdx\` and save: this page reloads with your changes.`
+          "Welcome to your new documentation site. Edit this page or add Markdown files beside it, and Blume turns each file into a page.",
+          `Welcome to **Blume**, the open-source docs framework for humans and agents.\n\nEdit \`${dir}/index.mdx\` and save: this page reloads with your changes.`
         ),
         path: join(dir, "index.mdx"),
       },
@@ -140,7 +140,7 @@ export const STARTERS = {
       {
         content: page(
           "Introduction",
-          "Get started with the SDK.",
+          "Get started with the SDK. Install the package, configure a client, and make your first call in a few lines of code in your own app.",
           "Install the SDK and make your first call. See [Installation](/installation)."
         ),
         path: join(dir, "index.mdx"),
@@ -148,7 +148,7 @@ export const STARTERS = {
       {
         content: page(
           "Installation",
-          "Install the SDK.",
+          "Install the SDK with the package manager your project already uses, then import it into your code to start making requests to the API.",
           "```package-install\nyour-sdk\n```"
         ),
         path: join(dir, "installation.mdx"),
@@ -482,43 +482,145 @@ const PNPM_WORKSPACE = `allowBuilds:
 `;
 
 /**
- * Whether `root` already sits inside a pnpm workspace: a `pnpm-workspace.yaml`
- * at or above it, up to the repository root (only `root` itself outside a
- * repository). A nested one would split the new package off into a workspace
- * of its own.
+ * `.yarnrc.yml` for a new Yarn Berry project. Berry installs with Plug'n'Play
+ * by default, which writes no `node_modules`; Blume's generated Astro project
+ * resolves its packages from one. Yarn Classic never reads this file.
  */
-const insidePnpmWorkspace = (root: string): boolean => {
-  const stop = repositoryRootOf(root) ?? root;
+const YARNRC = `# Blume's generated Astro project resolves packages from node_modules, which
+# Yarn's default Plug'n'Play install doesn't create.
+nodeLinker: node-modules
+`;
+
+/**
+ * The nearest directory at or above `root` where `found` holds, searching up
+ * to the repository root — or to the filesystem root outside a repository,
+ * where a workspace can still enclose the project.
+ */
+const nearestAncestor = (
+  root: string,
+  found: (dir: string) => boolean
+): string | null => {
+  const stop = repositoryRootOf(root);
   let dir = root;
-  while (!existsSync(join(dir, "pnpm-workspace.yaml"))) {
+  while (!found(dir)) {
     const parent = dirname(dir);
     if (dir === stop || parent === dir) {
-      return false;
+      return null;
     }
     dir = parent;
   }
-  return true;
+  return dir;
+};
+
+/** Read a file, or `""` when it can't be read. */
+const readText = (path: string): string => {
+  try {
+    return readFileSync(path, "utf-8");
+  } catch {
+    return "";
+  }
+};
+
+/** The pnpm workspace enclosing `root`: the directory of its `pnpm-workspace.yaml`. */
+const pnpmWorkspaceRoot = (root: string): string | null =>
+  nearestAncestor(root, (dir) => existsSync(join(dir, "pnpm-workspace.yaml")));
+
+/**
+ * The Yarn project enclosing `root`: a directory holding a lockfile, a
+ * `.yarnrc.yml`, or a `package.json` that declares workspaces.
+ */
+const yarnProjectRoot = (root: string): string | null =>
+  nearestAncestor(
+    root,
+    (dir) =>
+      existsSync(join(dir, "yarn.lock")) ||
+      existsSync(join(dir, ".yarnrc.yml")) ||
+      /"workspaces"\s*:/u.test(readText(join(dir, "package.json")))
+  );
+
+/**
+ * The major version of the Yarn that ran `init`, read off the npm user agent
+ * (`yarn/4.5.1 npm/? node/v22…`), or undefined when something else ran it.
+ */
+export const yarnMajor = (userAgent?: string): number | undefined => {
+  const match = /^yarn\/(?<major>\d+)\./u.exec(userAgent ?? "");
+  return match?.groups?.major === undefined
+    ? undefined
+    : Number(match.groups.major);
+};
+
+/** Environment `buildPlan` and `workspaceNote` read, injectable for tests. */
+export interface PlanEnvironment {
+  /** `npm_config_user_agent` of the process that ran `init`. */
+  userAgent?: string;
+}
+
+/**
+ * The package-manager config file a project `init` creates from scratch
+ * needs: pnpm's build approvals, or Yarn Berry's `node_modules` linker. An
+ * existing package.json, or a workspace the project joins, already owns that
+ * decision (see {@link workspaceNote}); Yarn Classic ignores `.yarnrc.yml`, so
+ * a user agent naming Yarn 1 skips it.
+ */
+const packageManagerConfigFor = (
+  root: string,
+  answers: InitAnswers,
+  env: PlanEnvironment
+): ScaffoldFile[] => {
+  if (existsSync(join(root, "package.json"))) {
+    return [];
+  }
+  if (answers.packageManager === "pnpm" && pnpmWorkspaceRoot(root) === null) {
+    return [
+      { content: PNPM_WORKSPACE, path: join(root, "pnpm-workspace.yaml") },
+    ];
+  }
+  if (
+    answers.packageManager === "yarn" &&
+    yarnMajor(env.userAgent) !== 1 &&
+    yarnProjectRoot(root) === null
+  ) {
+    return [{ content: YARNRC, path: join(root, ".yarnrc.yml") }];
+  }
+  return [];
 };
 
 /**
- * The pnpm build approvals, planned only for a pnpm project `init` creates
- * from scratch — an existing package.json, or a workspace it joins, already
- * owns that decision.
+ * What the project still needs from a workspace it joins, when `init` left
+ * that workspace's config alone: pnpm's approval for esbuild's build script
+ * (pnpm 10 and later fail the install without it), or Yarn Berry's
+ * `node_modules` linker. Undefined when the workspace already has it, or the
+ * project doesn't sit in one.
  */
-const pnpmWorkspaceFor = (
+export const workspaceNote = (
   root: string,
-  answers: InitAnswers
-): ScaffoldFile[] =>
-  answers.packageManager === "pnpm" &&
-  !existsSync(join(root, "package.json")) &&
-  !insidePnpmWorkspace(root)
-    ? [{ content: PNPM_WORKSPACE, path: join(root, "pnpm-workspace.yaml") }]
-    : [];
+  answers: InitAnswers,
+  env: PlanEnvironment = {}
+): string | undefined => {
+  if (answers.packageManager === "pnpm") {
+    const workspace = pnpmWorkspaceRoot(root);
+    const file = workspace && join(workspace, "pnpm-workspace.yaml");
+    if (!file || readText(file).includes("esbuild")) {
+      return;
+    }
+    return `This project joins the pnpm workspace at ${file}. Approve esbuild's build script there before installing, or pnpm 10 and later stop the install:\n\n  allowBuilds:\n    esbuild: true`;
+  }
+  if (answers.packageManager !== "yarn" || yarnMajor(env.userAgent) === 1) {
+    return;
+  }
+  const project = yarnProjectRoot(root);
+  const rc = project && join(project, ".yarnrc.yml");
+  if (!rc || /^nodeLinker:\s*["']?(?:node-modules|pnpm)/mu.test(readText(rc))) {
+    return;
+  }
+  return `This project joins the Yarn project at ${project}. With Yarn 2 or later, set its linker in ${rc} so installs write the node_modules Blume's generated Astro project resolves packages from:\n\n  nodeLinker: node-modules`;
+};
 
 /** Every file `init` should write for the given answers, package.json first. */
 export const buildPlan = (
   root: string,
-  answers: InitAnswers
+  answers: InitAnswers,
+  env: PlanEnvironment = {}
 ): ScaffoldFile[] => {
   const files: ScaffoldFile[] = [
     {
@@ -528,7 +630,7 @@ export const buildPlan = (
       ),
       path: join(root, "package.json"),
     },
-    ...pnpmWorkspaceFor(root, answers),
+    ...packageManagerConfigFor(root, answers, env),
     { content: buildConfig(answers), path: join(root, "blume.config.ts") },
   ];
   // Seed pages only make sense when a local filesystem source will read them.
@@ -657,12 +759,14 @@ export const readExistingPackage = async (
  * package.json — which `init` never edits — it first adds whatever of `blume`
  * and the sources' SDKs isn't listed yet (or installs, when everything is
  * listed but `blume` was never installed), then starts the dev server through
- * the package runner unless its `dev` script already runs Blume.
+ * the package runner unless its `dev` script already runs Blume. A `note` —
+ * what a workspace the project joins still needs — closes the message.
  */
 export const nextSteps = (
   answers: InitAnswers,
   needsInstall: boolean,
-  existing?: ExistingPackage
+  existing?: ExistingPackage,
+  note?: string
 ): string => {
   const commands = commandsFor(answers.packageManager);
   const lines: string[] = [];
@@ -693,5 +797,6 @@ export const nextSteps = (
     envVars.length > 0
       ? `\nSet ${envVars.join(" and ")} in .env.local so your sources can authenticate.\n`
       : "";
-  return `Next steps:\n\n  ${lines.join("\n  ")}\n${auth}`;
+  const workspace = note ? `\n${note}\n` : "";
+  return `Next steps:\n\n  ${lines.join("\n  ")}\n${auth}${workspace}`;
 };

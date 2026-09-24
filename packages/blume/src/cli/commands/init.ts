@@ -18,6 +18,7 @@ import {
   readExistingPackage,
   TEMPLATES,
   validateContentDir,
+  workspaceNote,
 } from "../init/scaffold.ts";
 import type { InitAnswers } from "../init/scaffold.ts";
 import { logger } from "../log.ts";
@@ -103,6 +104,41 @@ const ejectScaffold = async (
     );
     const steps = [...cd, ...install, `${commands.exec} blume eject --yes`];
     logger.box(`Next steps:\n\n  ${steps.join("\n  ")}`);
+  }
+};
+
+/**
+ * Print the closing next steps. An existing package.json was left alone, so
+ * the steps add what it lacks; a workspace `note` already printed ahead of an
+ * install that ran, so it closes the steps only when the install is still the
+ * user's to run.
+ */
+const printNextSteps = async (
+  root: string,
+  answers: InitAnswers,
+  outcome: {
+    createdPackage: boolean;
+    interactive: boolean;
+    needsInstall: boolean;
+    note: string | undefined;
+  }
+): Promise<void> => {
+  const existing = outcome.createdPackage
+    ? undefined
+    : await readExistingPackage(root);
+  const steps = nextSteps(
+    answers,
+    outcome.needsInstall,
+    existing,
+    outcome.needsInstall ? outcome.note : undefined
+  );
+  if (outcome.interactive) {
+    clack.note(steps.trimEnd());
+    clack.outro("You're all set.");
+  } else {
+    // consola's box pads its content itself; a trailing newline would add
+    // blank rows at the bottom.
+    logger.box(steps.trimEnd());
   }
 };
 
@@ -220,7 +256,14 @@ export const initCommand = defineCommand({
     }
 
     const sink = interactive ? clack.log : logger;
-    const { createdPackage } = await applyPlan(buildPlan(root, answers), sink);
+    const env = { userAgent: process.env.npm_config_user_agent };
+    const { createdPackage } = await applyPlan(
+      buildPlan(root, answers, env),
+      sink
+    );
+    // A workspace the project joins keeps its own package-manager config,
+    // which `init` leaves alone; say what it still needs before installing.
+    const note = workspaceNote(root, answers, env);
 
     // Keep installed dependencies, Blume's generated runtime (`.blume/`), and
     // build output (`dist/`) out of version control. Idempotent: creates
@@ -238,6 +281,9 @@ export const initCommand = defineCommand({
     // A newly written package.json is the only one `init` knows lists blume;
     // an existing one is left alone, and so are its dependencies.
     const shouldInstall = createdPackage && args.install;
+    if (note) {
+      (interactive ? clack.log : logger).warn(note);
+    }
     if (shouldInstall) {
       await installScaffold(root, answers, interactive);
     }
@@ -248,18 +294,11 @@ export const initCommand = defineCommand({
       return;
     }
 
-    // An existing package.json was left alone, so the steps add what it lacks.
-    const existing = createdPackage
-      ? undefined
-      : await readExistingPackage(root);
-    const steps = nextSteps(answers, needsInstall, existing);
-    if (interactive) {
-      clack.note(steps.trimEnd());
-      clack.outro("You're all set.");
-    } else {
-      // consola's box pads its content itself; a trailing newline would add
-      // blank rows at the bottom.
-      logger.box(steps.trimEnd());
-    }
+    await printNextSteps(root, answers, {
+      createdPackage,
+      interactive,
+      needsInstall,
+      note,
+    });
   },
 });

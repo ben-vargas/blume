@@ -38,6 +38,33 @@ const routeSignature = (
     .toSorted()
     .join("\n");
 
+/**
+ * The port the dev server actually bound. Astro snapshots `address` when the
+ * server first listens, but a config restart that lands during startup leaves
+ * that snapshot null: the `astro.config.mjs` written just before the server
+ * started can reach Astro's watcher late, and Astro restarts in place before
+ * it ever listens. The live resolved URLs follow the restarted server, so read
+ * the port from those, then fall back to the one that was asked for.
+ */
+const boundPortOf = (
+  server: Awaited<ReturnType<typeof dev>>,
+  requested: number
+): number => {
+  // SAFETY: Astro types `address` as always set, but it is null at runtime
+  // when a restart replaced the server before its first listen (see above).
+  const address = server.address as typeof server.address | null;
+  if (address) {
+    return address.port;
+  }
+  for (const url of server.resolvedUrls.local) {
+    const port = Number(new URL(url).port);
+    if (port > 0) {
+      return port;
+    }
+  }
+  return requested;
+};
+
 export const devCommand = defineCommand({
   args: {
     "content-dir": {
@@ -120,7 +147,7 @@ export const devCommand = defineCommand({
     // second invocation tells its caller to reuse. The site fallback baked
     // into the runtime also carries the port, so it must follow suit (below,
     // once the regeneration closure exists).
-    const boundPort = server.address.port;
+    const boundPort = boundPortOf(server, port);
     if (boundPort !== port) {
       updateDevLockPort(outDir, boundPort);
       devServerUrl = `http://localhost:${boundPort}`;

@@ -203,6 +203,27 @@ describe("agentArgs", () => {
     expect(args.at(-1)).toBe("-");
   });
 
+  it("leaves a codex run no shell, exec, or local-image tool, and no inherited env", () => {
+    // `--sandbox read-only` still lets the shell tool read any local file, so
+    // a planted instruction in remote docs could pull a secret into the
+    // transcript; both roles get only their prompt and the docs MCP tools.
+    for (const args of [
+      agentArgs("codex", { lastMessagePath: "/work/answer.txt", mcp }),
+      agentArgs("codex", { lastMessagePath: "/work/verdict.txt" }),
+    ]) {
+      const overrides = args.filter((_, index) => args[index - 1] === "-c");
+      expect(overrides).toEqual(
+        expect.arrayContaining([
+          "features.shell_tool=false",
+          "features.unified_exec=false",
+          "tools.view_image=false",
+          'shell_environment_policy.inherit="none"',
+        ])
+      );
+      expect(args).toEqual(expect.arrayContaining(["--sandbox", "read-only"]));
+    }
+  });
+
   it("builds the codex judge argv without MCP overrides", () => {
     const args = agentArgs("codex", { lastMessagePath: "/work/verdict.txt" });
     expect(args.join(" ")).not.toContain("mcp_servers");

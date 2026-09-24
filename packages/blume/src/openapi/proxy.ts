@@ -8,9 +8,11 @@
  * upstream and mirrors the response back, so the browser only ever talks
  * same-origin.
  *
- * Kept dependency-free and `fetch`-injectable so it unit-tests without a
+ * Kept dependency-light and `fetch`-injectable so it unit-tests without a
  * network and stays safe to bundle into the generated endpoint file.
  */
+
+import { readCappedBody } from "../core/request-body.ts";
 
 /**
  * Request headers never forwarded upstream: hop-by-hop headers describe this
@@ -61,6 +63,38 @@ const MAX_REDIRECTS = 20;
  */
 const UPSTREAM_TIMEOUT_MS = 30_000;
 
+/**
+ * Largest request body the proxy forwards: 4 MiB, under Vercel's 4.5 MB
+ * function limit, so a request that works on one host works on the others.
+ * The body is buffered before it's replayed, and a self-hosted Node server
+ * has no platform cap of its own, so without this one oversized POST could
+ * allocate its whole size in the server's memory.
+ */
+const MAX_BODY_BYTES = 4 * 1024 * 1024;
+
+/**
+ * Headers every proxied response carries. The proxy serves another host's
+ * bytes from the docs origin, so an upstream HTML page — an error page that
+ * echoes its input, say — would otherwise run script as the docs site for
+ * anyone who opens a crafted `/_api-proxy?url=…` link. `sandbox` gives such a
+ * page an opaque origin with scripts off, `nosniff` stops a mistyped body
+ * being rendered as HTML, and `same-origin` keeps other sites from embedding
+ * the responses. None of them affect the playground's own `fetch`.
+ */
+const RESPONSE_SECURITY_HEADERS = {
+  "Content-Security-Policy": "sandbox; default-src 'none'",
+  "Cross-Origin-Resource-Policy": "same-origin",
+  "X-Content-Type-Options": "nosniff",
+} satisfies Record<string, string>;
+
+/**
+ * Media types a browser would render as a document when the proxy URL is
+ * opened directly. Their responses are also marked as downloads, so even a
+ * browser that ignores the sandbox saves the page instead of showing it.
+ */
+const DOCUMENT_TYPE =
+  /^\s*(?:text\/html|application\/xhtml\+xml|image\/svg\+xml)\b/iu;
+
 /** A 400 the playground client can render verbatim. */
 const badRequest = (error: string): Response =>
   Response.json({ error }, { status: 400 });
@@ -100,7 +134,7 @@ const forbidden = (origin: string): Response =>
  */
 const followUpstream = async (args: {
   allowed: ReadonlySet<string>;
-  body: ArrayBuffer | undefined;
+  body: Uint8Array<ArrayBuffer> | undefined;
   fetchImpl: typeof fetch;
   headers: Headers;
   /** Hops already followed; the chain is bounded by {@link MAX_REDIRECTS}. */
@@ -167,12 +201,15 @@ const followUpstream = async (args: {
  *
  * `timeoutMs` bounds the upstream exchange (see {@link UPSTREAM_TIMEOUT_MS});
  * an upstream that doesn't answer in time is the same 502 as an unreachable
- * one. Injectable so tests don't wait out the real deadline.
+ * one. Injectable so tests don't wait out the real deadline. A request body
+ * over `maxBodyBytes` (see {@link MAX_BODY_BYTES}) is a 413, and every
+ * mirrored response carries {@link RESPONSE_SECURITY_HEADERS}.
  */
 export const createPlaygroundProxyHandler = (
   origins: readonly string[],
   fetchImpl: typeof fetch = fetch,
-  timeoutMs = UPSTREAM_TIMEOUT_MS
+  timeoutMs = UPSTREAM_TIMEOUT_MS,
+  maxBodyBytes = MAX_BODY_BYTES
 ) => {
   const allowed = new Set(origins);
   return async (request: Request): Promise<Response> => {
@@ -195,11 +232,19 @@ export const createPlaygroundProxyHandler = (
 
     // Buffer the body instead of streaming it: GET/HEAD must not carry one
     // (fetch rejects it), and a buffered body avoids the `duplex` requirement
-    // streaming request bodies have in Node.
-    const body =
-      request.method === "GET" || request.method === "HEAD"
-        ? undefined
-        : await request.arrayBuffer();
+    // streaming request bodies have in Node. The buffer is capped.
+    const bodyless = request.method === "GET" || request.method === "HEAD";
+    const body = bodyless
+      ? undefined
+      : await readCappedBody(request, maxBodyBytes);
+    if (!bodyless && body === undefined) {
+      return Response.json(
+        {
+          error: `The request body is larger than the ${maxBodyBytes}-byte limit the docs proxy forwards.`,
+        },
+        { status: 413 }
+      );
+    }
 
     let upstream: Response;
     try {
@@ -234,6 +279,12 @@ export const createPlaygroundProxyHandler = (
     // Marks proxied responses so the client (and debugging humans) can tell
     // them apart from direct responses.
     headers.set("x-blume-proxy", "1");
+    for (const [name, value] of Object.entries(RESPONSE_SECURITY_HEADERS)) {
+      headers.set(name, value);
+    }
+    if (DOCUMENT_TYPE.test(headers.get("content-type") ?? "")) {
+      headers.set("Content-Disposition", "attachment");
+    }
     return new Response(upstream.body, {
       headers,
       status: upstream.status,

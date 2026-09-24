@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 
-import { join, relative } from "pathe";
+import { basename, dirname, join, relative, resolve } from "pathe";
 
 import { pageJsonPath } from "../../ai/api/paths.ts";
 import { buildHomeLinkHeader } from "../../ai/link-headers.ts";
@@ -139,6 +139,135 @@ export const emitCloudflareNegotiation = async (
 };
 
 /**
+ * Where Cloudflare's deploy tooling looks for the redirect to the built
+ * config, relative to the directory `wrangler deploy` runs in (or any parent).
+ */
+const DEPLOY_CONFIG = join(".wrangler", "deploy", "config.json");
+
+/** The redirect file the Cloudflare Vite plugin writes. */
+interface DeployConfig {
+  auxiliaryWorkers?: { configPath: string }[];
+  configPath: string;
+  prerenderWorkerConfigPath?: string;
+}
+
+/**
+ * Point `wrangler deploy` run from the project root at the built Worker.
+ * The adapter's Vite plugin writes its redirect beside the Astro root — the
+ * hidden `.blume` runtime, where nobody runs wrangler — and wrangler only
+ * looks in the working directory and its parents, so from the project root it
+ * finds no config and fails with "Could not detect a directory containing
+ * static files". This writes the same redirect at the project root, its paths
+ * rebased there. A user wrangler config at the project root stays compatible:
+ * wrangler accepts a redirect in the same directory's `.wrangler/deploy/`.
+ */
+export const emitCloudflareDeployConfig = async (
+  context: ProjectContext
+): Promise<void> => {
+  const builtConfig = join(distDir(context), "server", "wrangler.json");
+  if (!existsSync(builtConfig)) {
+    return;
+  }
+  const source = join(context.outDir, DEPLOY_CONFIG);
+  const target = join(context.root, DEPLOY_CONFIG);
+  const rebase = (path: string): string =>
+    relative(dirname(target), resolve(dirname(source), path));
+  const deployConfig: DeployConfig = existsSync(source)
+    ? JSON.parse(await readFile(source, "utf-8"))
+    : { configPath: relative(dirname(source), builtConfig) };
+  const rebased: DeployConfig = {
+    auxiliaryWorkers: (deployConfig.auxiliaryWorkers ?? []).map((worker) => ({
+      configPath: rebase(worker.configPath),
+    })),
+    configPath: rebase(deployConfig.configPath),
+  };
+  if (deployConfig.prerenderWorkerConfigPath) {
+    rebased.prerenderWorkerConfigPath = rebase(
+      deployConfig.prerenderWorkerConfigPath
+    );
+  }
+  await mkdir(dirname(target), { recursive: true });
+  await writeFile(target, `${JSON.stringify(rebased)}\n`, "utf-8");
+};
+
+/**
+ * The name the Worker gets when the build names it: the generated runtime's
+ * package name, which every Blume site shares. Left as is, two sites deployed
+ * to one account would overwrite each other's Worker.
+ */
+const RUNTIME_WORKER_NAME = "blume-runtime";
+
+/**
+ * A Worker name from free text: lowercase letters, digits, and dashes, no
+ * leading or trailing dash, at most 63 characters (a Worker name is also a
+ * `workers.dev` hostname label).
+ */
+const toWorkerName = (text: string): string =>
+  text
+    .toLowerCase()
+    .replaceAll(/[^\da-z]+/gu, "-")
+    .slice(0, 63)
+    .replaceAll(/^-+|-+$/gu, "");
+
+/**
+ * The Worker name for a project that doesn't name its own: the project's
+ * `package.json` name (a scope folded in, `@acme/docs` → `acme-docs`), else the
+ * site's hostname, else the project folder's name.
+ */
+const projectWorkerName = async (
+  project: BlumeProject
+): Promise<string | undefined> => {
+  const { config, context } = project;
+  const packageFile = join(context.root, "package.json");
+  const manifest: { name?: string } = existsSync(packageFile)
+    ? JSON.parse(await readFile(packageFile, "utf-8"))
+    : {};
+  const { site } = config.deployment.options;
+  return [
+    String(manifest.name ?? ""),
+    site ? new URL(site).hostname : "",
+    basename(context.root),
+  ]
+    .map(toWorkerName)
+    .find((name) => name.length > 0);
+};
+
+/**
+ * Name the built Worker after the project when it still carries the shared
+ * runtime name. A name set in the project's own wrangler config reaches the
+ * built config instead, and is left alone.
+ */
+export const nameCloudflareWorker = async (
+  project: BlumeProject,
+  log: BuildLog
+): Promise<void> => {
+  const wranglerPath = join(
+    distDir(project.context),
+    "server",
+    "wrangler.json"
+  );
+  if (!existsSync(wranglerPath)) {
+    return;
+  }
+  // Only the two name fields are read; every other key rides through as parsed.
+  const wrangler: { name?: string; topLevelName?: string } = JSON.parse(
+    await readFile(wranglerPath, "utf-8")
+  );
+  const name = await projectWorkerName(project);
+  if (wrangler.name !== RUNTIME_WORKER_NAME || name === undefined) {
+    return;
+  }
+  wrangler.name = name;
+  if (wrangler.topLevelName === RUNTIME_WORKER_NAME) {
+    wrangler.topLevelName = name;
+  }
+  await writeFile(wranglerPath, JSON.stringify(wrangler), "utf-8");
+  log.info(
+    `Named the Cloudflare Worker "${name}"; set "name" in a wrangler.jsonc at the project root to choose another.`
+  );
+};
+
+/**
  * Cloudflare Workers and Pages. A server build emits the Worker into
  * `dist/server` and serves `dist/client` through the ASSETS binding, which
  * honors `_headers` from that directory exactly as Pages does — so the file
@@ -158,14 +287,19 @@ export const cloudflarePlatform: DeployPlatform = {
     site: (env) => toSiteUrl(env.CF_PAGES_URL),
   },
   finalizeBuild: async ({ isolated, log, project }) => {
-    // The wrapper Worker is a deploy artifact; an isolated verify skips it.
+    // The Worker's name, the wrapper Worker, and the deploy redirect are
+    // deploy artifacts; an isolated verify skips them.
     if (!isolated) {
+      await nameCloudflareWorker(project, log);
       await emitCloudflareNegotiation(project, log);
+      await emitCloudflareDeployConfig(project.context);
     }
     return true;
   },
   hiddenRuntime: {
-    ignoreDir: null,
+    // The redirected deploy config `wrangler deploy` reads from the project
+    // root lands in `.wrangler/`, a build artifact like Vercel's `.vercel/`.
+    ignoreDir: ".wrangler/",
     showProjectRoot: false,
     surfacePath: null,
   },

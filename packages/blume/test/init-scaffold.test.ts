@@ -6,7 +6,9 @@ import { tmpdir } from "node:os";
 
 import { join } from "pathe";
 import { intersects, minVersion, satisfies } from "semver";
+import stringWidth from "string-width";
 
+import { DEFAULT_THRESHOLDS } from "../src/audit/types.ts";
 import {
   applyPlan,
   buildConfig,
@@ -18,9 +20,12 @@ import {
   readExistingPackage,
   titleize,
   validateContentDir,
+  workspaceNote,
+  yarnMajor,
 } from "../src/cli/init/scaffold.ts";
 import type { InitAnswers, ScaffoldLog } from "../src/cli/init/scaffold.ts";
 import type { BlumeConfig } from "../src/core/config-input.ts";
+import matter from "../src/core/frontmatter.ts";
 import { blumePackageJson, toPackageName } from "../src/core/package-json.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
 import { getBlumeVersion } from "../src/core/version.ts";
@@ -519,6 +524,66 @@ describe("buildPlan", () => {
     ).toBe(true);
   });
 
+  it("finds an enclosing pnpm workspace outside a git repository", async () => {
+    // No `.git` anywhere: the walk runs to the filesystem root rather than
+    // stopping at the new package, which would split it off the workspace.
+    const workspace = await makeTempDir();
+    await writeFile(join(workspace, "pnpm-workspace.yaml"), "packages: []\n");
+    expect(
+      buildPlan(
+        join(workspace, "apps", "docs"),
+        answersWith({ packageManager: "pnpm" })
+      ).some((file) => file.path.endsWith("pnpm-workspace.yaml"))
+    ).toBe(false);
+  });
+
+  it("switches a new Yarn 2+ project to the node_modules linker", async () => {
+    const root = await makeTempDir();
+    const yarnrc = (userAgent?: string) =>
+      buildPlan(root, answersWith({ packageManager: "yarn" }), {
+        userAgent,
+      }).find((file) => file.path.endsWith(".yarnrc.yml"));
+    expect(yarnrc("yarn/4.5.1 npm/? node/v22.12.0 darwin arm64")).toEqual({
+      content: expect.stringContaining("nodeLinker: node-modules"),
+      path: join(root, ".yarnrc.yml"),
+    });
+    // Run through npx with --package-manager yarn: the Yarn version is
+    // unknown, and Classic ignores the file, so it's written.
+    expect(yarnrc("npm/10.9.0 node/v22.12.0 darwin arm64")).toBeDefined();
+    expect(yarnrc()).toBeDefined();
+    // Yarn Classic never reads it.
+    expect(yarnrc("yarn/1.22.22 npm/? node/v22.12.0")).toBeUndefined();
+    // Other package managers don't get one.
+    expect(
+      buildPlan(root, answersWith()).some((file) =>
+        file.path.endsWith(".yarnrc.yml")
+      )
+    ).toBe(false);
+  });
+
+  it("leaves the Yarn linker to an existing package or Yarn project", async () => {
+    const existing = await makeTempDir();
+    await writeFile(join(existing, "package.json"), "{}\n");
+    const locked = await makeTempDir();
+    await writeFile(join(locked, "yarn.lock"), "");
+    const declared = await makeTempDir();
+    await writeFile(
+      join(declared, "package.json"),
+      '{ "workspaces": ["apps/*"] }\n'
+    );
+    for (const root of [
+      existing,
+      join(locked, "apps", "docs"),
+      join(declared, "apps", "docs"),
+    ]) {
+      expect(
+        buildPlan(root, answersWith({ packageManager: "yarn" })).some((file) =>
+          file.path.endsWith(".yarnrc.yml")
+        )
+      ).toBe(false);
+    }
+  });
+
   it("skips seed pages when no filesystem source is selected", () => {
     const paths = buildPlan("/proj", answersWith({ sources: ["notion"] })).map(
       (file) => file.path
@@ -566,6 +631,46 @@ describe("applyPlan", () => {
 });
 
 describe("starter pages", () => {
+  const starterPages = () =>
+    (["docs", "api", "sdk", "changelog"] as const).flatMap((template) =>
+      buildPlan("/proj", answersWith({ template })).filter((file) =>
+        file.path.endsWith(".mdx")
+      )
+    );
+
+  it("give every page a description blume audit accepts", () => {
+    // The audit measures rendered columns against these thresholds, so an
+    // untouched scaffold carries no finding of Blume's own making.
+    const { descriptionMax, descriptionMin } = DEFAULT_THRESHOLDS;
+    for (const file of starterPages()) {
+      const { description } = matter(file.content).data;
+      expect(description).toEqual(expect.any(String));
+      const width = stringWidth(String(description));
+      expect(width).toBeGreaterThanOrEqual(descriptionMin);
+      expect(width).toBeLessThanOrEqual(descriptionMax);
+    }
+  });
+
+  it("link the changelog index from the changelog template's intro", () => {
+    // Without a content link the generated index is reachable only from the
+    // header tab, which the audit reports as an orphan page.
+    const intro = buildPlan(
+      "/proj",
+      answersWith({ template: "changelog" })
+    ).find((file) => file.path.endsWith("docs/index.mdx"));
+    expect(intro?.content).toContain("](/changelog)");
+  });
+
+  it("carry the current tagline", () => {
+    const intro = buildPlan("/proj", answersWith()).find((file) =>
+      file.path.endsWith("docs/index.mdx")
+    );
+    expect(intro?.content).toContain(
+      "the open-source docs framework for humans and agents"
+    );
+    expect(intro?.content).not.toContain("markdown-first");
+  });
+
   it("leave the heading to the frontmatter title", () => {
     for (const template of ["docs", "api", "sdk", "changelog"] as const) {
       for (const file of buildPlan("/proj", answersWith({ template }))) {
@@ -691,5 +796,65 @@ describe("nextSteps", () => {
       "Set GITHUB_TOKEN and SANITY_TOKEN in .env.local so your sources can authenticate."
     );
     expect(nextSteps(answersWith(), true)).not.toContain(".env.local");
+  });
+});
+
+describe("yarnMajor", () => {
+  it("reads the Yarn major off the npm user agent", () => {
+    expect(yarnMajor("yarn/4.5.1 npm/? node/v22.12.0 darwin arm64")).toBe(4);
+    expect(yarnMajor("yarn/1.22.22 npm/? node/v22.12.0")).toBe(1);
+    expect(yarnMajor("npm/10.9.0 node/v22.12.0")).toBeUndefined();
+    expect(yarnMajor()).toBeUndefined();
+  });
+});
+
+describe("workspaceNote", () => {
+  it("asks a pnpm workspace the project joins to approve esbuild", async () => {
+    const workspace = await makeTempDir();
+    const file = join(workspace, "pnpm-workspace.yaml");
+    await writeFile(file, "packages:\n  - apps/*\n");
+    const member = join(workspace, "apps", "docs");
+    const pnpm = answersWith({ packageManager: "pnpm" });
+    const note = workspaceNote(member, pnpm);
+    expect(note).toContain(`joins the pnpm workspace at ${file}`);
+    expect(note).toContain("allowBuilds:\n    esbuild: true");
+    // Already approved: nothing to add.
+    await writeFile(file, "allowBuilds:\n  esbuild: true\n");
+    expect(workspaceNote(member, pnpm)).toBeUndefined();
+    // Outside any workspace, and for npm and bun, there's nothing to say.
+    expect(workspaceNote(await makeTempDir(), pnpm)).toBeUndefined();
+    expect(workspaceNote(member, answersWith())).toBeUndefined();
+  });
+
+  it("asks a Yarn 2+ project the package joins for the node_modules linker", async () => {
+    const project = await makeTempDir();
+    const rc = join(project, ".yarnrc.yml");
+    await writeFile(rc, "enableTelemetry: false\n");
+    const member = join(project, "apps", "docs");
+    const yarn = answersWith({ packageManager: "yarn" });
+    const note = workspaceNote(member, yarn, {
+      userAgent: "yarn/4.5.1 npm/? node/v22.12.0",
+    });
+    expect(note).toContain(`joins the Yarn project at ${project}`);
+    expect(note).toContain("nodeLinker: node-modules");
+    // Yarn Classic writes node_modules regardless.
+    expect(
+      workspaceNote(member, yarn, { userAgent: "yarn/1.22.22 npm/? node/v22" })
+    ).toBeUndefined();
+    // A project already on the node_modules (or pnpm) linker needs nothing.
+    await writeFile(rc, "nodeLinker: node-modules\n");
+    expect(workspaceNote(member, yarn)).toBeUndefined();
+    await writeFile(rc, 'nodeLinker: "pnpm"\n');
+    expect(workspaceNote(member, yarn)).toBeUndefined();
+    // Not inside a Yarn project at all.
+    expect(workspaceNote(await makeTempDir(), yarn)).toBeUndefined();
+  });
+});
+
+describe("nextSteps with a workspace note", () => {
+  it("closes the steps with what the workspace still needs", () => {
+    expect(nextSteps(answersWith(), true, undefined, "Approve esbuild.")).toBe(
+      "Next steps:\n\n  npm install\n  npm run dev\n\nApprove esbuild.\n"
+    );
   });
 });

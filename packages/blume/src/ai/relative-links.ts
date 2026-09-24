@@ -1,9 +1,14 @@
-import { basename, dirname, resolve } from "pathe";
+import { basename } from "pathe";
 
 import { normalizeBasePath, withBasePath } from "../core/base-path.ts";
 import { nextFenceState } from "../core/code-fences.ts";
 import type { FenceState } from "../core/code-fences.ts";
-import { isIndexFileName, resolveRelativeHref } from "../core/links.ts";
+import {
+  buildFileRouteIndex,
+  isIndexFileName,
+  resolveRelativeHref,
+  routeOfLinkedFile,
+} from "../core/links.ts";
 import type { RelativeLinkBase } from "../core/links.ts";
 import type { BlumeProject } from "../core/project-graph.ts";
 import { extractLinks } from "../core/sources/normalize.ts";
@@ -34,13 +39,13 @@ const DEFINITION =
   /^(?<lead> {0,3}\[(?:[^\]\\]|\\.)+\]:[\t ]*)(?:<(?<angled>[^>]*)>|(?<bare>\S+))/u;
 
 /**
- * Whether a text could hold a relative page link at all: an inline link or a
- * reference definition whose target isn't a URL with a scheme, a root path, or
- * a fragment. Most pages hold none, and those skip the link parse and the
- * line-by-line fence scan entirely.
+ * Whether a text could hold a relative page link at all: an inline link, a
+ * reference definition, or a component `href` whose target isn't a URL with
+ * a scheme, a root path, or a fragment. Most pages hold none, and those skip
+ * the link parse and the line-by-line fence scan entirely.
  */
 const MAYBE_RELATIVE =
-  /\]\([\t ]*<?(?![a-z][\d+.a-z-]*:|\/|#)|^ {0,3}\[[^\]\n]+\]:[\t ]*<?(?![a-z][\d+.a-z-]*:|\/|#)/imu;
+  /\]\([\t ]*<?(?![a-z][\d+.a-z-]*:|\/|#)|^ {0,3}\[[^\]\n]+\]:[\t ]*<?(?![a-z][\d+.a-z-]*:|\/|#)|\shref=["'](?![a-z][\d+.a-z-]*:|\/|#)/imu;
 
 interface Splice {
   column: number;
@@ -60,6 +65,56 @@ const spliceLine = (line: string, splices: readonly Splice[]): string => {
   return out;
 };
 
+/** One line's reference-definition splice, when it defines a routed target. */
+const definitionSplice = (
+  line: string,
+  routed: (target: string) => string | undefined
+): Splice | undefined => {
+  const groups = DEFINITION.exec(line)?.groups;
+  const lead = groups?.lead;
+  const target = groups?.angled ?? groups?.bare;
+  const route = target === undefined ? undefined : routed(target);
+  if (lead === undefined || target === undefined || route === undefined) {
+    return undefined;
+  }
+  // An angle-bracketed target starts one past its `<`.
+  const angled = groups?.angled === undefined ? 0 : 1;
+  return { column: lead.length + angled, length: target.length, text: route };
+};
+
+/** Every routed splice in `text`, by 0-based line: links, then definitions. */
+const collectSplices = (
+  text: string,
+  lines: readonly string[],
+  routed: (target: string) => string | undefined
+): Map<number, Splice[]> => {
+  const splices = new Map<number, Splice[]>();
+  const add = (index: number, splice: Splice): void => {
+    splices.set(index, [...(splices.get(index) ?? []), splice]);
+  };
+  for (const link of extractLinks(text)) {
+    const route = link.image ? undefined : routed(link.target);
+    if (route !== undefined) {
+      add(link.line - 1, {
+        column: link.column - 1,
+        length: link.target.length,
+        text: route,
+      });
+    }
+  }
+  let fence: FenceState = null;
+  for (const [index, line] of lines.entries()) {
+    const next = nextFenceState(line, fence);
+    const inFence = fence !== null || next !== null;
+    fence = next;
+    const splice = inFence ? undefined : definitionSplice(line, routed);
+    if (splice !== undefined) {
+      add(index, splice);
+    }
+  }
+  return splices;
+};
+
 /**
  * Build the rewriter for a project: the file → route lookup a `.md`/`.mdx`
  * link resolves through is built once. A file shared by every locale
@@ -74,16 +129,14 @@ export const relativeLinkRewriter = (
   const localeTokens = i18n
     ? ["$", ...i18n.locales.map((locale) => locale.code)]
     : [];
-  const routeByFile = new Map<string, string>();
-  for (const route of project.manifest.routes) {
-    if (route.fallback || !route.sourcePath) {
-      continue;
-    }
-    const file = resolve(route.sourcePath);
-    if (!routeByFile.has(file) || route.locale === i18n?.defaultLocale) {
-      routeByFile.set(file, route.path);
-    }
-  }
+  const fileRoutes = buildFileRouteIndex(project.graph.pages, i18n ?? null);
+  const navPathBySource = new Map(
+    project.graph.pages.map((graphPage) => [
+      graphPage.sourcePath,
+      graphPage.navPath,
+    ])
+  );
+  const routes = new Set(project.manifest.routes.map((route) => route.path));
 
   return (text, page) => {
     const { sourcePath } = page;
@@ -94,49 +147,18 @@ export const relativeLinkRewriter = (
       isIndex: isIndexFileName(basename(sourcePath), localeTokens),
       route: page.route,
     };
+    const navPath = navPathBySource.get(sourcePath) ?? basename(sourcePath);
     const resolveFile = (path: string): string | undefined =>
-      routeByFile.get(resolve(dirname(sourcePath), path));
+      routeOfLinkedFile(fileRoutes, { navPath, sourcePath }, path);
     const routed = (target: string): string | undefined => {
-      const route = resolveRelativeHref(target, from, resolveFile);
+      const route = resolveRelativeHref(target, from, resolveFile, (path) =>
+        routes.has(path)
+      );
       return route === undefined ? undefined : withBasePath(deployBase, route);
     };
 
     const lines = text.split("\n");
-    const splices = new Map<number, Splice[]>();
-    const add = (index: number, splice: Splice): void => {
-      splices.set(index, [...(splices.get(index) ?? []), splice]);
-    };
-
-    for (const link of extractLinks(text)) {
-      const route = link.image ? undefined : routed(link.target);
-      if (route !== undefined) {
-        add(link.line - 1, {
-          column: link.column - 1,
-          length: link.target.length,
-          text: route,
-        });
-      }
-    }
-
-    let fence: FenceState = null;
-    for (const [index, line] of lines.entries()) {
-      const next = nextFenceState(line, fence);
-      const inFence = fence !== null || next !== null;
-      fence = next;
-      const groups = inFence ? undefined : DEFINITION.exec(line)?.groups;
-      const lead = groups?.lead;
-      const target = groups?.angled ?? groups?.bare;
-      const route = target === undefined ? undefined : routed(target);
-      if (lead !== undefined && target !== undefined && route !== undefined) {
-        // An angle-bracketed target starts one past its `<`.
-        const angled = groups?.angled === undefined ? 0 : 1;
-        add(index, {
-          column: lead.length + angled,
-          length: target.length,
-          text: route,
-        });
-      }
-    }
+    const splices = collectSplices(text, lines, routed);
 
     return lines
       .map((line, index) => {

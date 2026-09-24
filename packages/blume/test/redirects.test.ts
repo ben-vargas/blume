@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
+import { blumeConfigSchema } from "../src/core/schema.ts";
 import type { ResolvedConfig } from "../src/core/schema.ts";
 import {
   applyBaseToAstroRedirects,
@@ -32,6 +33,22 @@ describe("redirect emitters", () => {
     // A 302 must ship as 302 — the boolean `permanent` would coerce it to 307.
     expect(parsed.redirects[1].statusCode).toBe(302);
     expect(parsed.redirects[1]).not.toHaveProperty("permanent");
+  });
+
+  it("adds a headers array to vercel.json only when there are rules", () => {
+    const headers = [
+      {
+        headers: [{ key: "Content-Type", value: "text/plain; charset=utf-8" }],
+        source: "/(.*).txt",
+      },
+    ];
+    expect(JSON.parse(buildVercelConfig([], headers))).toStrictEqual({
+      headers,
+      redirects: [],
+    });
+    expect(JSON.parse(buildVercelConfig(redirects))).not.toHaveProperty(
+      "headers"
+    );
   });
 
   it("prepends the base path to internal from/to routes", () => {
@@ -142,5 +159,36 @@ describe("redirect emitters", () => {
       { from: "/old", status: 301, to: "/new" },
       { from: "/tmp", status: 302, to: "/temp" },
     ]);
+  });
+});
+
+/** The config paths a single redirect fails validation at. */
+const redirectIssues = (redirect: { from: string; to: string }): string[] => {
+  const result = blumeConfigSchema.safeParse({ redirects: [redirect] });
+  return result.success
+    ? []
+    : result.error.issues.map((issue) => issue.path.join("."));
+};
+
+describe("redirect paths", () => {
+  it("rejects a `:param` segment or a `*` wildcard at either end", () => {
+    expect(
+      redirectIssues({ from: "/legacy/:slug", to: "/guides/:slug" })
+    ).toEqual(["redirects.0.from", "redirects.0.to"]);
+    expect(redirectIssues({ from: "/old/*", to: "/new" })).toEqual([
+      "redirects.0.from",
+    ]);
+    expect(
+      redirectIssues({ from: "/old", to: "https://example.com/a/:b" })
+    ).toEqual(["redirects.0.to"]);
+  });
+
+  it("accepts exact paths, dotted routes, and absolute URLs with a port", () => {
+    expect(
+      redirectIssues({ from: "/releases/v1.0", to: "/v1/releases" })
+    ).toEqual([]);
+    expect(
+      redirectIssues({ from: "/a:b", to: "https://example.com:8080/new" })
+    ).toEqual([]);
   });
 });

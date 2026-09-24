@@ -621,19 +621,71 @@ describe("send + response rendering", () => {
     expect(again.response.textContent).toStartWith("Request failed:");
   });
 
-  it("explains the CORS wall on a rejected fetch, naming the proxy option", async () => {
+  it("refuses a bare relative server before sending", async () => {
     const fixture = createFixture(bearerModel());
     init(fixture);
-    fetchImpl = () => Promise.reject(new TypeError("Failed to fetch"));
+    fixture.custom.value = "api.example.com";
+    await clickSend(fixture);
+    expect(fetchCalls).toHaveLength(0);
+    expect(fixture.response.textContent).toContain(
+      "Enter the server as an absolute URL"
+    );
+    expect(fixture.custom.getAttribute("aria-invalid")).toBe("true");
+
+    // A path on the docs site (an API served beside it) sends, and clears the
+    // flag.
+    fixture.custom.value = "/api";
+    await clickSend(fixture);
+    expect(must(fetchCalls[0]).url).toBe("/api/pets/42");
+    expect(fixture.custom.getAttribute("aria-invalid")).toBeNull();
+  });
+
+  it("explains the CORS wall only when the API answered", async () => {
+    const fixture = createFixture(bearerModel());
+    init(fixture);
+    // The send fails before any response, but a no-cors probe of the API's
+    // origin gets an answer: the request reached the API and CORS blocked it.
+    let calls = 0;
+    fetchImpl = () => {
+      calls += 1;
+      return calls === 1
+        ? Promise.reject(new TypeError("Failed to fetch"))
+        : Promise.resolve(new Response(null));
+    };
     await clickSend(fixture);
     expect(fixture.response.textContent).toContain("cross-origin");
     expect(fixture.response.textContent).toContain(
       "`playground: { proxy: true }` on the `openapi()` reference"
     );
+    expect(must(fetchCalls[1]).url).toBe("https://api.example.com");
+    expect(must(fetchCalls[1]).init.mode).toBe("no-cors");
+
+    // Nothing answers the probe either: the host is down or mistyped.
+    fetchImpl = () => Promise.reject(new TypeError("Failed to fetch"));
+    await clickSend(fixture);
+    expect(fixture.response.textContent).toStartWith("Couldn't reach the API.");
 
     fetchImpl = () => Promise.reject(new Error("boom"));
     await clickSend(fixture);
     expect(fixture.response.textContent).toBe("Request failed: Error: boom");
+  });
+
+  it("never blames CORS for a proxied or same-site send", async () => {
+    const proxied = createFixture(bearerModel(), "/_api-proxy");
+    init(proxied);
+    fetchImpl = () => Promise.reject(new TypeError("Failed to fetch"));
+    await clickSend(proxied);
+    expect(proxied.response.textContent).toStartWith("Couldn't reach the API.");
+    // No reachability probe: the proxy is the docs site itself.
+    expect(fetchCalls).toHaveLength(1);
+
+    const sameSite = createFixture(bearerModel());
+    init(sameSite);
+    sameSite.custom.value = "/api";
+    await clickSend(sameSite);
+    expect(sameSite.response.textContent).toStartWith(
+      "Couldn't reach the API."
+    );
   });
 
   it("refuses to send a cookie credential the browser would drop", async () => {

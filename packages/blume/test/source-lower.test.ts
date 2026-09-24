@@ -158,6 +158,10 @@ describe("lowering primitives", () => {
   it("renders links, headings, quotes, items, and fences", () => {
     expect(renderLink("label", "https://x.dev")).toBe("[label](https://x.dev)");
     expect(renderLink("label")).toBe("label");
+    // CMS content isn't the site author's: a script link keeps its label only.
+    // oxlint-disable-next-line no-script-url -- the link must be refused
+    expect(renderLink("label", "javascript:alert(1)")).toBe("label");
+    expect(renderLink("label", "/guides/a")).toBe("[label](/guides/a)");
     expect(headingPrefix(0)).toBe("# ");
     expect(headingPrefix(9)).toBe("###### ");
     expect(headingPrefix(2.7)).toBe("## ");

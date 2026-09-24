@@ -23,7 +23,7 @@ Go from an empty folder to a running docs site in a few commands. Blume needs **
     npx blume init
     ```
 
-    On pnpm 12, add `--allow-build=esbuild` after `pnpm dlx` (`pnpm dlx --allow-build=esbuild blume init`): pnpm 12 refuses to run the install script of esbuild, which Astro depends on, unless you approve it.
+    On pnpm 12, add `--allow-build=esbuild` after `pnpm dlx` (`pnpm dlx --allow-build=esbuild blume init`): pnpm 12 refuses to run the install script of esbuild, which Astro depends on, unless you approve it. Inside an existing pnpm workspace, add `allowBuilds: { esbuild: true }` to the workspace's `pnpm-workspace.yaml`; `init` reminds you. With Yarn 2 or later, `init` writes a `.yarnrc.yml` that switches Yarn to a `node_modules` install, which Blume needs; on Yarn 1, run `npx blume init`.
 
     ```txt
     docs/

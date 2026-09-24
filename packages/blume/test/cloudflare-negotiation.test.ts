@@ -856,8 +856,13 @@ const ROOT_RULES = [
   "!/*.md",
   "!/*.mdx",
   "!/*.txt",
-  "!/*.json",
   "!/.well-known/*",
+  "!/404.json",
+  "!/agent-readability.json",
+  "!/blume-search.json",
+  "!/openapi.json",
+  "!/api/docs/pages.json",
+  "!/api/docs/navigation.json",
 ];
 
 describe("buildRunWorkerFirstRules", () => {
@@ -871,6 +876,19 @@ describe("buildRunWorkerFirstRules", () => {
     expect(buildRunWorkerFirstRules("/")).toStrictEqual(ROOT_RULES);
   });
 
+  it("claims JSON under /api so a missing page JSON reaches the API's 404", () => {
+    // A negative rule outranks every positive one, so a blanket `*.json`
+    // exemption would answer `/api/docs/pages/nope.json` from the static
+    // layer (an empty 404) instead of the `PAGE_NOT_FOUND` problem document.
+    // Only the JSON Blume writes at fixed paths stays on the static layer.
+    const rules = buildRunWorkerFirstRules();
+    expect(rules).not.toContain("!/*.json");
+    expect(rules.filter((rule) => rule.startsWith("!/api/"))).toStrictEqual([
+      "!/api/docs/pages.json",
+      "!/api/docs/navigation.json",
+    ]);
+  });
+
   it("claims the whole base, in both spellings, on a subpath deploy", () => {
     expect(buildRunWorkerFirstRules("/site/")).toStrictEqual([
       "/site",
@@ -879,8 +897,13 @@ describe("buildRunWorkerFirstRules", () => {
       "!/site/*.md",
       "!/site/*.mdx",
       "!/site/*.txt",
-      "!/site/*.json",
       "!/site/.well-known/*",
+      "!/site/404.json",
+      "!/site/agent-readability.json",
+      "!/site/blume-search.json",
+      "!/site/openapi.json",
+      "!/site/api/docs/pages.json",
+      "!/site/api/docs/navigation.json",
     ]);
   });
 

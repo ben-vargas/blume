@@ -11,6 +11,7 @@ import { loadEnvFiles } from "./env.ts";
 import { reportInternalError } from "./internal-error.ts";
 import { logger, reportDiagnostics } from "./log.ts";
 import { checkRequiredSecrets } from "./required-secrets.ts";
+import { yarnPnpDiagnostic } from "./yarn-pnp.ts";
 
 export interface PrepareOptions {
   root: string;
@@ -42,6 +43,14 @@ export interface PrepareOptions {
 export const prepareProject = async (
   options: PrepareOptions
 ): Promise<BlumeProject> => {
+  // Under Yarn Plug'n'Play the generated runtime can't resolve anything; say
+  // so before scanning, instead of failing inside Astro's config load.
+  const pnp = yarnPnpDiagnostic(options.root);
+  if (pnp) {
+    reportDiagnostics([pnp], options.root);
+    process.exit(1);
+  }
+
   // Load `.env` files from the project root before the scan: remote sources
   // read their tokens from `process.env` during `scanProject`, and
   // `loadEnvFiles` never overrides variables that are already set.

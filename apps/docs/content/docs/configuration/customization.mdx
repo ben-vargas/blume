@@ -184,7 +184,7 @@ npx blume eject --yes
 
 Eject is a one-way step: the hidden `.blume/` runtime becomes a normal Astro app you own and can modify directly. The `blume` package stays importable, so you keep its components, theme, and Markdown processors.
 
-Eject points your `package.json` scripts at `astro dev` and `astro build`, and adds the packages the Astro app imports by name — `astro`, `@tailwindcss/vite`, the integrations and adapter the config wires in, React when an island or Ask AI uses it, `ai` for the Ask AI route, and `epub-gen-memory` for EPUB export — at the ranges Blume itself uses. Run an install before `dev` or `build`; eject lists what it added. Every path in the ejected app is relative, so it builds from any checkout, CI included.
+Eject points your `package.json` scripts at `astro dev` and `astro build`, and adds the packages the Astro app imports by name — `astro`, `@tailwindcss/vite`, the search client, integrations, and adapter the config wires in, React when an island, example, or Ask AI uses it, `ai` for the Ask AI route, and `epub-gen-memory` for EPUB export — at the ranges Blume itself uses. Run an install before `dev` or `build`; eject lists what it added. Every path in the ejected app is relative, so it builds from any checkout, CI included.
 
 From then on, run the app through its own scripts (`npm run dev`, `npm run build`): `blume dev` and `blume build` stop in an ejected project and point you there. Running `blume eject` again refuses too, since it would overwrite your edits; pass `--force` to regenerate the app anyway.
 

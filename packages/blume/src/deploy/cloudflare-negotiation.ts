@@ -33,9 +33,9 @@
  * they sit in the manifest's asset set, which the handler serves from the
  * binding first. So whenever a worker-first rule claims a page JSON URL, the
  * wrapper answers it from the binding itself, keyed by the exact set of
- * documents the build emitted. The generated rule set exempts `*.json`
- * outright, keeping those files on the zero-Worker path; the wrapper branch
- * covers the claims user-configured rules (or a bare `true`) make.
+ * documents the build emitted. The generated rule set claims them (a miss
+ * must reach the API's `PAGE_NOT_FOUND` answer, see `STATIC_EXEMPTIONS`), and
+ * so do user-configured rules or a bare `true`.
  *
  * Cloudflare does not apply `_headers` to worker-first routes, so the wrapper
  * also re-stamps what the static layer would otherwise add on the routes it
@@ -73,11 +73,16 @@
  * 404 status either way — the counterpart of the miss-phase routes in
  * `deploy/vercel-negotiation.ts`. A raw `.md` or `.json` URL no file backs
  * asks for the same twin implicitly, but on this platform such a request only
- * reaches the Worker under a user-configured rule (the generated set keeps
- * those extensions on the static layer for their `_headers`). Only an HTML 404
- * is swapped, so an API endpoint's own problem document is never overwritten.
+ * reaches the Worker for `.json` (the generated set keeps `.md` on the static
+ * layer for its `_headers`). Only an HTML 404 is swapped, so an API endpoint's
+ * own problem document is never overwritten.
  */
 
+import {
+  API_NAVIGATION_PATH,
+  API_PAGES_PATH,
+  OPENAPI_PATH,
+} from "../ai/api/paths.ts";
 import { normalizePath } from "../core/base-path.ts";
 import type { NotFoundVariants } from "./vercel-negotiation.ts";
 
@@ -98,19 +103,31 @@ const MAX_RULE_LENGTH = 100;
  * deployment base: the fingerprinted build assets, and the files whose
  * response headers come from `_headers` — which Cloudflare does not apply to
  * a response the Worker produced — and which never negotiate. Those are the
- * raw AI-ready endpoints (`charset=utf-8` on `.md`/`.mdx`/`.txt`), the
- * prerendered `.json` documents (the Astro Worker would also hand the
- * per-page ones to the `/api/` catch-all, see the module comment), and the
+ * raw AI-ready endpoints (`charset=utf-8` on `.md`/`.mdx`/`.txt`) and the
  * `.well-known` discovery documents (the extensionless api-catalog's content
  * type, the CORS headers).
+ *
+ * The JSON Blume writes at fixed paths stays there too, but JSON as a whole
+ * does not: a negative rule outranks every positive one, so a `*.json`
+ * exemption would keep a request for a page JSON that doesn't exist
+ * (`/api/docs/pages/nope.json`) off the Worker, and the platform would answer
+ * it with an empty 404 instead of the API's `PAGE_NOT_FOUND` problem document.
+ * The per-page documents themselves reach the wrapper, which serves them from
+ * the binding (see the module comment); any other JSON goes through the Astro
+ * Worker, which serves a static file from the binding as well.
  */
 const STATIC_EXEMPTIONS = [
   "/_astro/*",
   "/*.md",
   "/*.mdx",
   "/*.txt",
-  "/*.json",
   "/.well-known/*",
+  "/404.json",
+  "/agent-readability.json",
+  "/blume-search.json",
+  OPENAPI_PATH,
+  API_PAGES_PATH,
+  API_NAVIGATION_PATH,
 ];
 
 /**

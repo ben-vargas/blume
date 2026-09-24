@@ -290,7 +290,7 @@ export default defineConfig({
 
 ### Options every adapter takes
 
-**`apiKeyEnv`** points an adapter at a different env var than its default — `gateway({ apiKeyEnv: "DOCS_GATEWAY_KEY" })` reads that variable instead of `AI_GATEWAY_API_KEY`, and the missing-secret warning at `blume dev`/`build` checks it too. Until the key is set, the deployed route answers `503` with a message naming the variable.
+**`apiKeyEnv`** points an adapter at a different env var than its default — `gateway({ apiKeyEnv: "DOCS_GATEWAY_KEY" })` reads that variable instead of `AI_GATEWAY_API_KEY`, and the missing-secret warning at `blume dev`/`build` checks it too. Until the key is set, the deployed route answers `503` with a message naming the variable. The route reads a request body only up to 64 KB and answers anything larger with `413`.
 
 **`headers`** sends static request headers with every call — a caller-identifying header for a shared backend, say, so its own observability or rate limiting can tell your docs apart from other traffic:
 

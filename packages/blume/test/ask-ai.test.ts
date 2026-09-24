@@ -927,6 +927,47 @@ describe("AskAI conversation", () => {
     expect(answerHtml(offline)).toContain("Sorry, something went wrong.");
   });
 
+  it("shows the route's not-configured notice for a 503, and only that", async () => {
+    const ask = async (response: () => Response): Promise<string> => {
+      setFetch(() => Promise.resolve(response()));
+      let tree = fresh();
+      setComposer(tree, "configured?");
+      tree = render();
+      submit(tree);
+      await settle();
+      tree = render();
+      const [answer] = answers(tree);
+      return answerHtml(answer);
+    };
+    // The generated route's missing-key notice names the variable to set.
+    expect(
+      await ask(
+        () =>
+          new Response("Ask AI is not configured: set AI_GATEWAY_API_KEY.", {
+            status: 503,
+          })
+      )
+    ).toContain("Ask AI is not configured: set AI_GATEWAY_API_KEY.");
+    // Any other 503 body (a host's error page) keeps the generic notice.
+    expect(
+      await ask(
+        () => new Response("<html>Service Unavailable</html>", { status: 503 })
+      )
+    ).toContain("Sorry, something went wrong.");
+    // So does a body that can't be read.
+    expect(
+      await ask(
+        () =>
+          new Response(
+            new ReadableStream({
+              start: (controller) => controller.error(new Error("reset")),
+            }),
+            { status: 503 }
+          )
+      )
+    ).toContain("Sorry, something went wrong.");
+  });
+
   it("copies the conversation as You/AI lines", async () => {
     setFetch(() => Promise.resolve(streamResponse(["The answer."])));
     let tree = fresh();

@@ -98,7 +98,7 @@ reference: [
 ],
 ```
 
-The built-in proxy only forwards requests to the origins your specs declare in `servers` — including across redirects — so a public docs deployment can't be aimed at other hosts on its network. A **Custom base URL** typed into the panel isn't a documented server: with the proxy enabled, requests to it are refused with a 403.
+The built-in proxy only forwards requests to the origins your specs declare in `servers` — including across redirects — so a public docs deployment can't be aimed at other hosts on its network. A **Custom base URL** typed into the panel isn't a documented server: with the proxy enabled, requests to it are refused with a 403. It reads a request body only up to 4 MB (anything larger gets a `413`), and every response it relays carries `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff`, and `Cross-Origin-Resource-Policy: same-origin` — plus `Content-Disposition: attachment` for HTML or SVG — so an API error page that echoes its input can't run script on the docs origin.
 
 ## Multiple specs
 

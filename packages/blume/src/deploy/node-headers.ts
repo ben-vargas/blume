@@ -16,6 +16,7 @@ import {
 import { normalizeBasePath } from "../core/base-path.ts";
 import type { BlumeProject } from "../core/project-graph.ts";
 import type { ResolvedConfig } from "../core/schema.ts";
+import { SVG_ASSET_POLICY } from "./headers.ts";
 import { distDir } from "./platforms/paths.ts";
 import type { BuildLog } from "./platforms/types.ts";
 
@@ -65,6 +66,32 @@ export const nodeHeaderRules = (config: ResolvedConfig): NodeHeaderRule[] => {
   }));
 };
 
+/** Exact-path rules, as `[path, headers]` pairs for the wrapper's lookup. */
+const exactRules = (
+  rules: readonly NodeHeaderRule[]
+): [string, Record<string, string>][] =>
+  rules
+    .filter((rule) => !rule.path.includes("*"))
+    .map((rule) => [rule.path, rule.headers]);
+
+/**
+ * Glob rules (`/blume-assets/*.svg`), as `[prefix, suffix, headers]` — the
+ * text before and after the one `*`, which spans path segments.
+ */
+const patternRules = (
+  rules: readonly NodeHeaderRule[]
+): [string, string, Record<string, string>][] =>
+  rules
+    .filter((rule) => rule.path.includes("*"))
+    .map((rule) => {
+      const star = rule.path.indexOf("*");
+      return [
+        rule.path.slice(0, star),
+        rule.path.slice(star + 1),
+        rule.headers,
+      ];
+    });
+
 /**
  * The entry that replaces Astro's: it stamps the rules' headers on the
  * response, then hands the request to Astro's handler. `send` leaves a
@@ -82,9 +109,13 @@ export const nodeEntryWrapper = (rules: readonly NodeHeaderRule[]): string =>
 // This wrapper sets the media types and CORS headers of the .well-known
 // discovery files, which the standalone server's static handler can't, then
 // hands every request to Astro.
-const RULES = new Map(${JSON.stringify(rules.map((rule) => [rule.path, rule.headers]))});
+const RULES = new Map(${JSON.stringify(exactRules(rules))});
+const PATTERNS = ${JSON.stringify(patternRules(rules))};
 const applyHeaders = (req, res) => {
-  const headers = RULES.get((req.url ?? "").split("?")[0]);
+  const path = (req.url ?? "").split("?")[0];
+  const headers =
+    RULES.get(path) ??
+    PATTERNS.find(([prefix, suffix]) => path.startsWith(prefix) && path.endsWith(suffix))?.[2];
   if (headers) {
     for (const [name, value] of Object.entries(headers)) {
       res.setHeader(name, value);
@@ -121,15 +152,29 @@ if (options.mode === "standalone" && previous !== "disabled") {
 `;
 
 /**
- * Put the header wrapper in front of a Node server build's entry. A config
- * with no rule (no API catalog, AI catalog, MCP server, or signatures
- * directory) leaves Astro's entry alone.
+ * Put the header wrapper in front of a Node server build's entry. A build
+ * with no rule (no API catalog, AI catalog, MCP server, signatures directory,
+ * or downloaded content assets) leaves Astro's entry alone.
  */
 export const wrapNodeEntry = async (
   project: BlumeProject,
   log: BuildLog
 ): Promise<void> => {
-  const rules = nodeHeaderRules(project.config);
+  // Content assets a CMS source downloaded ship as static files, which the
+  // standalone server serves without the SVG sandbox static hosts get from
+  // `_headers`; only a build that has them needs the rule.
+  const assetsDir = join(distDir(project.context), "client", "blume-assets");
+  const rules = [
+    ...nodeHeaderRules(project.config),
+    ...(existsSync(assetsDir)
+      ? [
+          {
+            headers: { "Content-Security-Policy": SVG_ASSET_POLICY },
+            path: `${normalizeBasePath(project.config.deployment.options.base)}/blume-assets/*.svg`,
+          },
+        ]
+      : []),
+  ];
   if (rules.length === 0) {
     return;
   }

@@ -206,6 +206,27 @@ const claudeArgs = (context: InvocationContext): string[] => {
   ];
 };
 
+/**
+ * Codex config overrides that leave an eval run nothing but its prompt and the
+ * docs MCP tools. `--sandbox read-only` blocks writes and the network but still
+ * lets the shell tool read any file the user can, and the docs a reader
+ * searches — or the answer a judge grades — can come from a remote source, so
+ * an instruction planted there could otherwise pull a local secret into the
+ * transcript sent to the model provider. With both command tools and the
+ * local-image tool off, and any subprocess started with no inherited
+ * environment, there is nothing on the machine for a run to read.
+ */
+const CODEX_LOCKDOWN = [
+  "-c",
+  "features.shell_tool=false",
+  "-c",
+  "features.unified_exec=false",
+  "-c",
+  "tools.view_image=false",
+  "-c",
+  'shell_environment_policy.inherit="none"',
+];
+
 const codexArgs = (context: InvocationContext): string[] => {
   const base = [
     "exec",
@@ -214,6 +235,7 @@ const codexArgs = (context: InvocationContext): string[] => {
     "--ephemeral",
     "--sandbox",
     "read-only",
+    ...CODEX_LOCKDOWN,
     "--output-last-message",
     context.lastMessagePath,
   ];

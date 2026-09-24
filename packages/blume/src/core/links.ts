@@ -1,6 +1,6 @@
 import { existsSync } from "node:fs";
 
-import { basename, dirname, join, relative, resolve } from "pathe";
+import { basename, dirname, join, normalize, relative, resolve } from "pathe";
 
 import { stripBasePath, withBasePath } from "./base-path.ts";
 import {
@@ -80,13 +80,13 @@ interface LinkContext {
   /** Servable routes outside the graph (custom pages, generated routes); their
    * headings are unknown, so anchors there are accepted unchecked. */
   extraRoutes: Set<string>;
+  /** Where content files publish, for file links (`./setup.mdx`). */
+  fileRoutes: FileRouteIndex;
   /** Locale routing, when the site is multi-locale; drives served-route resolution. */
   i18n: LocaleRouting | null;
   publicDir: string | null;
   /** Normalized `redirect.from` paths — valid targets that resolve at runtime. */
   redirects: Set<string>;
-  /** Absolute source path → the route that file publishes at, for file links. */
-  routeBySource: Map<string, string>;
   routes: Set<string>;
 }
 
@@ -187,11 +187,16 @@ const NOT_RELATIVE = /^(?:[#?/]|[a-z][a-z0-9+.-]*:)/iu;
  * lands on its page instead of on its raw Markdown source. Without
  * `resolveFile`, or for a file it doesn't know, the target resolves
  * route-relative with the extension dropped.
+ *
+ * Any other extension (`./diagram.png`) marks an asset, except where a page
+ * publishes at the resolved path: `hasRoute` answers that, so a dotted page
+ * name (`./node.js` for `node.js.mdx`, `./v1.2`) is still a page link.
  */
 export const resolveRelativeHref = (
   href: string,
   from: RelativeLinkBase,
-  resolveFile?: (path: string) => string | undefined
+  resolveFile?: (path: string) => string | undefined,
+  hasRoute?: (route: string) => boolean
 ): string | undefined => {
   if (href === "" || NOT_RELATIVE.test(href)) {
     return undefined;
@@ -200,7 +205,8 @@ export const resolveRelativeHref = (
   const path = suffixAt === -1 ? href : href.slice(0, suffixAt);
   const suffix = suffixAt === -1 ? "" : href.slice(suffixAt);
   if (FILE_EXT.test(path) && !DOC_EXT.test(path)) {
-    return undefined;
+    const route = toRoute(resolveRelative(from.route, path, from.isIndex));
+    return hasRoute?.(decodePercent(route)) ? `${route}${suffix}` : undefined;
   }
   const fileRoute = DOC_EXT.test(path)
     ? resolveFile?.(decodePercent(path))
@@ -400,6 +406,67 @@ const checkExternalLinks = async (
   return diagnostics;
 };
 
+/** Where content files publish, for resolving file links (`./setup.mdx`). */
+export interface FileRouteIndex {
+  /**
+   * Absolute source path → the route that file publishes at. A file shared by
+   * every locale publishes once per locale; the default locale's route stands
+   * for it (a link from a localized page moves into that locale afterwards,
+   * exactly as the rendered link does). Fallback copies render another
+   * locale's file, so they never stand for it.
+   */
+  bySource: Map<string, string>;
+  /**
+   * A default-locale page's locale-stripped path (`navPath`) → its route. A
+   * page in a locale folder that links a sibling not translated yet
+   * (`fr/guides/setup.mdx` missing) means the default tree's file
+   * (`guides/setup.mdx`), whose route — its own `slug` included — then moves
+   * into the reader's locale onto the fallback copy.
+   */
+  byDefaultNavPath: Map<string, string>;
+}
+
+/** The linking side of a file link: where the page's source lives. */
+export interface FileLinkBase {
+  navPath: string;
+  sourcePath: string;
+}
+
+export const buildFileRouteIndex = (
+  pages: readonly PageRecord[],
+  i18n: LocaleRouting | null
+): FileRouteIndex => {
+  const bySource = new Map<string, string>();
+  const byDefaultNavPath = new Map<string, string>();
+  for (const page of pages) {
+    const { sourcePath } = page;
+    if (!sourcePath || page.fallback) {
+      continue;
+    }
+    const isDefault = page.locale === i18n?.defaultLocale;
+    if (!bySource.has(sourcePath) || isDefault) {
+      bySource.set(sourcePath, page.route);
+    }
+    if (isDefault) {
+      byDefaultNavPath.set(normalize(page.navPath), page.route);
+    }
+  }
+  return { byDefaultNavPath, bySource };
+};
+
+/**
+ * The route a file link written on `from` lands on: the linked file's own
+ * route, or — when a locale folder doesn't have that file yet — the default
+ * tree's file at the same place.
+ */
+export const routeOfLinkedFile = (
+  index: FileRouteIndex,
+  from: FileLinkBase,
+  path: string
+): string | undefined =>
+  index.bySource.get(resolve(dirname(from.sourcePath), path)) ??
+  index.byDefaultNavPath.get(normalize(join(dirname(from.navPath), path)));
+
 /**
  * The path a relative link on `page` resolves to — the same reading the
  * Markdown pipeline rewrites the rendered `href` to (see
@@ -413,39 +480,16 @@ const relativeTarget = (
   ctx: LinkContext
 ): string => {
   const base = { isIndex: isIndexPage(page), route: page.route };
-  const { sourcePath } = page;
+  const { navPath, sourcePath } = page;
   const resolveFile = sourcePath
     ? (path: string) =>
-        ctx.routeBySource.get(resolve(dirname(sourcePath), path))
+        routeOfLinkedFile(ctx.fileRoutes, { navPath, sourcePath }, path)
     : undefined;
   return (
-    resolveRelativeHref(rawPath, base, resolveFile) ??
-    resolveRelative(page.route, rawPath, base.isIndex)
+    resolveRelativeHref(rawPath, base, resolveFile, (route) =>
+      ctx.routes.has(route)
+    ) ?? resolveRelative(page.route, rawPath, base.isIndex)
   );
-};
-
-/**
- * Absolute source path → the route that file publishes at, for resolving file
- * links. A file shared by every locale publishes once per locale; the default
- * locale's route stands for it (a link from a localized page moves into that
- * locale afterwards, exactly as the rendered link does). Fallback copies
- * render another locale's file, so they never stand for it.
- */
-const buildRouteBySource = (
-  pages: PageRecord[],
-  i18n: LocaleRouting | null
-): Map<string, string> => {
-  const bySource = new Map<string, string>();
-  for (const page of pages) {
-    const { sourcePath } = page;
-    if (!sourcePath || page.fallback) {
-      continue;
-    }
-    if (!bySource.has(sourcePath) || page.locale === i18n?.defaultLocale) {
-      bySource.set(sourcePath, page.route);
-    }
-  }
-  return bySource;
 };
 
 /** Classify a single link, queueing external refs via `onExternal`. */
@@ -535,6 +579,7 @@ export const validateLinks = async (
     anchors: buildAnchorIndex(graph.pages),
     basePath,
     extraRoutes: new Set((options.extraRoutes ?? []).map(toRoute)),
+    fileRoutes: buildFileRouteIndex(graph.pages, options.i18n ?? null),
     i18n: options.i18n ?? null,
     publicDir: options.publicDir,
     redirects: new Set(
@@ -542,7 +587,6 @@ export const validateLinks = async (
         toRoute(withBasePath(basePath, redirect.from))
       )
     ),
-    routeBySource: buildRouteBySource(graph.pages, options.i18n ?? null),
     routes: new Set(graph.routes.keys()),
   };
   const diagnostics: Diagnostic[] = [];

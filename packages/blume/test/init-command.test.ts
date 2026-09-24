@@ -105,6 +105,46 @@ describe("blume init", () => {
     expect(await exists(join(project, "installed.marker"))).toBe(false);
   });
 
+  it("names what a pnpm workspace the project joins still needs", async () => {
+    const workspace = await tempDir("blume-init-command-");
+    await writeFile(
+      join(workspace, "pnpm-workspace.yaml"),
+      "packages:\n  - apps/*\n"
+    );
+
+    const { exitCode, stderr, stdout } = await runInit(workspace, [
+      "apps/docs",
+      "--yes",
+      "--no-install",
+      "--package-manager",
+      "pnpm",
+    ]);
+
+    expect(exitCode).toBe(0);
+    // The workspace keeps its own config: no nested file splits the package off.
+    expect(
+      await exists(join(workspace, "apps", "docs", "pnpm-workspace.yaml"))
+    ).toBe(false);
+    const output = stdout + stderr;
+    expect(output).toContain("joins the pnpm workspace at");
+    expect(output).toContain("esbuild: true");
+  });
+
+  it("switches a new Yarn Berry project to the node_modules linker", async () => {
+    const root = await tempDir("blume-init-command-");
+
+    const { exitCode } = await runInit(
+      root,
+      ["site", "--yes", "--no-install", "--package-manager", "yarn"],
+      { npm_config_user_agent: "yarn/4.5.1 npm/? node/v22.12.0 darwin arm64" }
+    );
+
+    expect(exitCode).toBe(0);
+    expect(
+      await readFile(join(root, "site", ".yarnrc.yml"), "utf-8")
+    ).toContain("nodeLinker: node-modules");
+  });
+
   it("installs dependencies with the chosen package manager by default", async () => {
     const root = await tempDir("blume-init-command-");
 

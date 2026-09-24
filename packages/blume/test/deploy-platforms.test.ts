@@ -20,7 +20,9 @@ import type { DeployAdapterKind } from "../src/deploy/adapters/index.ts";
 import { NEGOTIATION_WORKER_FILE } from "../src/deploy/cloudflare-negotiation.ts";
 import {
   cloudflarePlatform,
+  emitCloudflareDeployConfig,
   emitCloudflareNegotiation,
+  nameCloudflareWorker,
 } from "../src/deploy/platforms/cloudflare.ts";
 import {
   DEPLOY_PLATFORMS,
@@ -508,6 +510,14 @@ describe("cloudflare platform", () => {
     ).toBe(true);
     expect(isolated.recorded.success).toEqual([]);
 
+    const deployConfig = join(
+      built.context.root,
+      ".wrangler",
+      "deploy",
+      "config.json"
+    );
+    expect(existsSync(deployConfig)).toBe(false);
+
     const real = recorder();
     expect(
       await cloudflarePlatform.finalizeBuild?.({
@@ -517,5 +527,121 @@ describe("cloudflare platform", () => {
       })
     ).toBe(true);
     expect(real.recorded.success).toHaveLength(1);
+    expect(existsSync(deployConfig)).toBe(true);
+  });
+});
+
+/** The adapter's wrangler config when the project names no Worker. */
+const RUNTIME_WRANGLER = JSON.stringify({
+  assets: { binding: "ASSETS", directory: "../client" },
+  main: "index.js",
+  name: "blume-runtime",
+  topLevelName: "blume-runtime",
+});
+
+const builtWrangler = async (built: BlumeProject) =>
+  JSON.parse(
+    await readFile(
+      join(built.context.root, "dist", "server", "wrangler.json"),
+      "utf-8"
+    )
+  );
+
+describe("nameCloudflareWorker", () => {
+  it("names the Worker after the project's package, scope folded in", async () => {
+    const built = await project(JSON.stringify(cloudflare()), {
+      "dist/server/wrangler.json": RUNTIME_WRANGLER,
+      "package.json": JSON.stringify({ name: "@Acme/Docs Site" }),
+    });
+    const { log, recorded } = recorder();
+    await nameCloudflareWorker(built, log);
+    const wrangler = await builtWrangler(built);
+    expect(wrangler.name).toBe("acme-docs-site");
+    expect(wrangler.topLevelName).toBe("acme-docs-site");
+    expect(wrangler.main).toBe("index.js");
+    expect(recorded.info[0]).toContain('"acme-docs-site"');
+  });
+
+  it("falls back to the site's hostname, then the project folder", async () => {
+    const hosted = await project(
+      JSON.stringify(cloudflare({ site: "https://docs.example.com" })),
+      { "dist/server/wrangler.json": RUNTIME_WRANGLER }
+    );
+    await nameCloudflareWorker(hosted, recorder().log);
+    const hostedWrangler = await builtWrangler(hosted);
+    expect(hostedWrangler.name).toBe("docs-example-com");
+
+    const bare = await project(JSON.stringify(cloudflare()), {
+      "dist/server/wrangler.json": JSON.stringify({ name: "blume-runtime" }),
+    });
+    await nameCloudflareWorker(bare, recorder().log);
+    const wrangler = await builtWrangler(bare);
+    expect(wrangler.name).toMatch(/^blume-platform-[\da-z-]+$/u);
+    expect(wrangler.topLevelName).toBeUndefined();
+  });
+
+  it("keeps a name the project's own wrangler config set", async () => {
+    const built = await project(JSON.stringify(cloudflare()), {
+      "dist/server/wrangler.json": WRANGLER_CONFIG,
+      "package.json": JSON.stringify({ name: "acme" }),
+    });
+    const { log, recorded } = recorder();
+    await nameCloudflareWorker(built, log);
+    const wrangler = await builtWrangler(built);
+    expect(wrangler.name).toBe("docs");
+    expect(recorded.info).toEqual([]);
+  });
+
+  it("does nothing without a built wrangler config", async () => {
+    const built = await project(JSON.stringify(cloudflare()));
+    const { log, recorded } = recorder();
+    await nameCloudflareWorker(built, log);
+    expect(recorded.info).toEqual([]);
+  });
+});
+
+const rootDeployConfig = async (built: BlumeProject) =>
+  JSON.parse(
+    await readFile(
+      join(built.context.root, ".wrangler", "deploy", "config.json"),
+      "utf-8"
+    )
+  );
+
+describe("emitCloudflareDeployConfig", () => {
+  it("rebases the Vite plugin's redirect onto the project root", async () => {
+    const built = await project(JSON.stringify(cloudflare()), {
+      ".blume/.wrangler/deploy/config.json": JSON.stringify({
+        auxiliaryWorkers: [{ configPath: "../../../dist/aux/wrangler.json" }],
+        configPath: "../../../dist/server/wrangler.json",
+        prerenderWorkerConfigPath: "../../../dist/prerender/wrangler.json",
+      }),
+      "dist/server/wrangler.json": WRANGLER_CONFIG,
+    });
+    await emitCloudflareDeployConfig(built.context);
+    expect(await rootDeployConfig(built)).toStrictEqual({
+      auxiliaryWorkers: [{ configPath: "../../dist/aux/wrangler.json" }],
+      configPath: "../../dist/server/wrangler.json",
+      prerenderWorkerConfigPath: "../../dist/prerender/wrangler.json",
+    });
+  });
+
+  it("points at the built config when the plugin wrote no redirect", async () => {
+    const built = await project(JSON.stringify(cloudflare()), {
+      "dist/server/wrangler.json": WRANGLER_CONFIG,
+    });
+    await emitCloudflareDeployConfig(built.context);
+    expect(await rootDeployConfig(built)).toStrictEqual({
+      auxiliaryWorkers: [],
+      configPath: "../../dist/server/wrangler.json",
+    });
+  });
+
+  it("writes nothing without a server build", async () => {
+    const built = await project(JSON.stringify(cloudflare()));
+    await emitCloudflareDeployConfig(built.context);
+    expect(
+      existsSync(join(built.context.root, ".wrangler", "deploy", "config.json"))
+    ).toBe(false);
   });
 });

@@ -318,6 +318,45 @@ describe("wrapNodeEntry", () => {
     expect(recorded.warn).toStrictEqual([]);
   });
 
+  it("sandboxes downloaded SVG assets when the build has them", async () => {
+    const root = await scratch();
+    const serverDir = join(root, "dist", "server");
+    await mkdir(serverDir, { recursive: true });
+    await mkdir(join(root, "dist", "client", "blume-assets"), {
+      recursive: true,
+    });
+    await writeFile(
+      join(serverDir, NODE_ENTRY_FILE),
+      FAKE_ASTRO_ENTRY,
+      "utf-8"
+    );
+    const { log } = recorder();
+    // No discovery rule applies, so the asset rule alone brings the wrapper.
+    await wrapNodeEntry(
+      projectAt(root, { agents: { api: false }, deployment: node() }),
+      log
+    );
+    const wrapper = await readFile(join(serverDir, NODE_ENTRY_FILE), "utf-8");
+    expect(wrapper).toContain('["/blume-assets/",".svg"');
+    process.env.ASTRO_NODE_AUTOSTART = "disabled";
+    try {
+      // SAFETY: the wrapper's exports are the Astro entry contract above.
+      const module = (await import(
+        pathToFileURL(join(serverDir, NODE_ENTRY_FILE)).href
+      )) as WrapperModule;
+      const svg = response();
+      module.handler({ url: "/blume-assets/sanity/abc.svg?v=1" }, svg.res);
+      expect(svg.headers).toStrictEqual({
+        "Content-Security-Policy": "sandbox",
+      });
+      const png = response();
+      module.handler({ url: "/blume-assets/sanity/abc.png" }, png.res);
+      expect(png.headers).toStrictEqual({});
+    } finally {
+      delete process.env.ASTRO_NODE_AUTOSTART;
+    }
+  });
+
   it("runs from the platform on a real build, not an isolated one", async () => {
     const root = await scratch();
     const serverDir = join(root, "dist", "server");

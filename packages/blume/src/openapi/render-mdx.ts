@@ -1,9 +1,10 @@
-import type { Nodes } from "mdast";
+import type { Nodes, Root } from "mdast";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { toString as mdastToString } from "mdast-util-to-string";
 import stringWidth from "string-width";
 
 import { apiNamePhrase } from "../core/api-name.ts";
+import { unsafeLinkSpans } from "../core/safe-links.ts";
 import { columnsPrefix } from "../core/text-width.ts";
 import type { GraphqlMember } from "./graphql.ts";
 import { isGraphqlOperationKind } from "./graphql.ts";
@@ -61,7 +62,7 @@ const escapeProse = (text: string): string =>
  * whose braces genuinely need escaping; fence-or-backtick is told apart from
  * indentation by the construct's first character.
  */
-const codeSpans = (text: string): [number, number][] => {
+const codeSpans = (text: string, tree: Root): [number, number][] => {
   const spans: [number, number][] = [];
   const collect = (node: Nodes): void => {
     if (node.type === "inlineCode" || node.type === "code") {
@@ -85,18 +86,33 @@ const codeSpans = (text: string): [number, number][] => {
       }
     }
   };
-  collect(fromMarkdown(text));
+  collect(tree);
   return spans;
 };
 
-/** Escape MDX-special syntax in prose while leaving code verbatim. */
+/**
+ * Escape MDX-special syntax in prose while leaving code verbatim. A spec is
+ * someone else's content, so a link whose destination isn't a web, mail, or
+ * relative address (`javascript:`, `data:`) is reduced to its label rather
+ * than rendered clickable on the docs site (see `core/safe-links.ts`).
+ */
 const mdxSafe = (text: string): string => {
+  const tree = fromMarkdown(text);
+  const unsafe = unsafeLinkSpans(tree);
+  const insideUnsafe = (offset: number): boolean =>
+    unsafe.some((span) => offset >= span.start && offset < span.end);
+  const segments = [
+    ...codeSpans(text, tree)
+      .filter(([start]) => !insideUnsafe(start))
+      .map(([start, end]) => ({ end, start, text: text.slice(start, end) })),
+    ...unsafe,
+  ].toSorted((a, b) => a.start - b.start);
   let out = "";
   let cursor = 0;
-  for (const [start, end] of codeSpans(text)) {
-    out += escapeProse(text.slice(cursor, start));
-    out += text.slice(start, end);
-    cursor = end;
+  for (const segment of segments) {
+    out += escapeProse(text.slice(cursor, segment.start));
+    out += segment.text;
+    cursor = segment.end;
   }
   return out + escapeProse(text.slice(cursor));
 };

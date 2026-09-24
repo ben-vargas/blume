@@ -2,7 +2,10 @@ import { describe, expect, it } from "bun:test";
 
 import { blumeConfigSchema } from "../src/core/schema.ts";
 import type { ResolvedConfig } from "../src/core/schema.ts";
-import { buildNetlifyHeaders } from "../src/deploy/headers.ts";
+import {
+  buildNetlifyHeaders,
+  buildVercelHeaders,
+} from "../src/deploy/headers.ts";
 
 // A real zero-config parse, with the slices these tests vary layered on raw —
 // `base`/`basePath` stay unnormalized so the builder's own handling is tested.
@@ -49,8 +52,16 @@ describe("buildNetlifyHeaders", () => {
         "  Content-Type: text/markdown; charset=utf-8",
         "/*.txt",
         "  Content-Type: text/plain; charset=utf-8",
+        "/blume-assets/*.svg",
+        "  Content-Security-Policy: sandbox",
         "",
       ].join("\n")
+    );
+  });
+
+  it("sandboxes content-source SVGs under the deployment base", () => {
+    expect(buildNetlifyHeaders(configWith({ base: "/docs" }))).toContain(
+      "/docs/blume-assets/*.svg\n  Content-Security-Policy: sandbox"
     );
   });
 
@@ -80,8 +91,8 @@ describe("buildNetlifyHeaders", () => {
 
   it("appends a homepage Link rule when a link header is provided", () => {
     const link = '</llms.txt>; rel="describedby"; type="text/plain"';
-    expect(buildNetlifyHeaders(configWith({ api: false }), link)).toEndWith(
-      `/\n  Link: ${link}\n`
+    expect(buildNetlifyHeaders(configWith({ api: false }), link)).toContain(
+      `\n/\n  Link: ${link}\n`
     );
     // The homepage rule sits at the deployment base, not under basePath.
     const based = buildNetlifyHeaders(
@@ -153,5 +164,48 @@ describe("buildNetlifyHeaders", () => {
     expect(buildNetlifyHeaders(configWith({}))).not.toContain(
       "http-message-signatures-directory"
     );
+  });
+});
+
+describe("buildVercelHeaders", () => {
+  it("carries the same rules as vercel.json sources", () => {
+    const sources = buildVercelHeaders(
+      configWith({ base: "/docs", basePath: "/guide" }),
+      '</llms.txt>; rel="describedby"'
+    );
+    const bySource = new Map(
+      sources.map((entry) => [entry.source, entry.headers])
+    );
+    // A `*` glob becomes the segment-spanning `(.*)` group.
+    expect(bySource.get("/docs/guide/(.*).md")).toStrictEqual([
+      { key: "Content-Type", value: "text/markdown; charset=utf-8" },
+    ]);
+    expect(bySource.get("/docs/(.*).txt")).toStrictEqual([
+      { key: "Content-Type", value: "text/plain; charset=utf-8" },
+    ]);
+    // The homepage rule drops its trailing slash, the URL Vercel serves.
+    expect(bySource.get("/docs")).toStrictEqual([
+      { key: "Link", value: '</llms.txt>; rel="describedby"' },
+    ]);
+    // Each header is its own entry, so a path with two (the API catalog's
+    // media type and CORS) gets both.
+    expect(
+      sources
+        .filter((entry) => entry.source === "/docs/.well-known/api-catalog")
+        .map((entry) => entry.headers[0]?.key)
+    ).toStrictEqual(["Content-Type", "Access-Control-Allow-Origin"]);
+  });
+
+  it("keeps the root homepage rule at / and escapes path syntax", () => {
+    const sources = buildVercelHeaders(
+      configWith({ api: false, base: "/v:1" }),
+      "<x>"
+    ).map((entry) => entry.source);
+    expect(sources).toContain(String.raw`/v\:1`);
+    expect(
+      buildVercelHeaders(configWith({ api: false }), "<x>").map(
+        (entry) => entry.source
+      )
+    ).toContain("/");
   });
 });
