@@ -14,7 +14,6 @@ export interface Crumb {
   route?: string;
 }
 
-/** Flatten the sidebar tree into ordered internal page links. */
 /**
  * Whether a group's header row reads as the current page. A routed group links
  * to its folder's index page; when that index is also listed as one of the
@@ -32,6 +31,7 @@ export const isGroupRowCurrent = (
     (child) => child.kind === "page" && child.route === currentRoute
   );
 
+/** Flatten the sidebar tree into ordered internal page links. */
 export const flattenPages = (nodes: NavNode[]): FlatPage[] => {
   const out: FlatPage[] = [];
   const seen = new Set<string>();

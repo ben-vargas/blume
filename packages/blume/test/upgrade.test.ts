@@ -8,7 +8,11 @@ import {
   UPGRADE_GUIDE_URL,
   bumpBlumeDependency,
   collectUpgradeFindings,
+  flagList,
+  isOutsideBlumeProject,
   rangeMajor,
+  removedBuildFlags,
+  removedBuildFlagsAdvice,
   upgradePrompt,
 } from "../src/upgrade/upgrade.ts";
 
@@ -101,6 +105,33 @@ describe("bumpBlumeDependency", () => {
     );
   });
 
+  it("changes only the range, keeping inline objects and key order", async () => {
+    const text =
+      '{"name":"docs","dependencies":{"react":"^19.2.0","blume":"^1.7.3"},\n  "peerDependencies": { "blume": "^1.7.3" }}\n';
+    const root = await project({ "package.json": text });
+    expect(await bumpBlumeDependency(root, "2.0.0")).toMatchObject({
+      field: "dependencies",
+      status: "bumped",
+    });
+    expect(await readFile(join(root, "package.json"), "utf-8")).toBe(
+      text.replace('"blume":"^1.7.3"', '"blume":"^2.0.0"')
+    );
+  });
+
+  it("rewrites the file when the entry is escaped past an in-place edit", async () => {
+    const root = await project({
+      "package.json":
+        '{\n  "devDependencies": { "blume": "\\u005e1.0.0" }\n}\n',
+    });
+    expect(await bumpBlumeDependency(root, "2.0.0")).toMatchObject({
+      from: "^1.0.0",
+      status: "bumped",
+    });
+    expect(
+      JSON.parse(await readFile(join(root, "package.json"), "utf-8"))
+    ).toEqual({ devDependencies: { blume: "^2.0.0" } });
+  });
+
   it("leaves a range already on the major alone", async () => {
     const root = await project({
       "package.json": packageJson({ dependencies: { blume: "^2.1.0" } }),
@@ -131,7 +162,7 @@ describe("collectUpgradeFindings", () => {
     expect(await collectUpgradeFindings(root)).toEqual([]);
   });
 
-  it("reports a Blume 1 config with each replacement", async () => {
+  it("reports each Blume 1 field on its own, at its own line", async () => {
     const root = await project({
       "blume.config.ts": `export default {
   search: { provider: "pagefind" },
@@ -140,11 +171,57 @@ describe("collectUpgradeFindings", () => {
 `,
     });
     const findings = await collectUpgradeFindings(root);
-    expect(findings).toHaveLength(1);
-    const [finding] = findings;
-    expect(finding?.code).toBe("BLUME_CONFIG_INVALID");
-    expect(finding?.message).toContain('adapter from "blume/search"');
-    expect(finding?.message).toContain('`true` became "git"');
+    expect(
+      findings.map((finding) => [finding.code, finding.line])
+    ).toStrictEqual([
+      ["BLUME_CONFIG_INVALID", 2],
+      ["BLUME_CONFIG_INVALID", 3],
+    ]);
+    expect(findings[0]?.message).toContain('adapter from "blume/search"');
+    expect(findings[1]?.message).toContain('`true` became "git"');
+  });
+
+  it("reports a package.json script that passes a removed build flag", async () => {
+    const root = await project({
+      "blume.config.ts": "export default {};\n",
+      "package.json": `${JSON.stringify(
+        {
+          dependencies: { blume: "^2.0.0" },
+          scripts: {
+            build: "blume build --adapter vercel --output=server",
+            "build:docs": "cd docs && npx blume@2 build --base /docs --strict",
+            dev: "blume dev --port 3000",
+            lint: "eslint . --output report.json",
+          },
+        },
+        null,
+        2
+      )}\n`,
+    });
+    const findings = await collectUpgradeFindings(root);
+    expect(
+      findings.map((finding) => [finding.code, finding.line, finding.message])
+    ).toStrictEqual([
+      [
+        "BLUME_BUILD_FLAG_REMOVED",
+        6,
+        'The "build" script passes --adapter, --output to `blume build`, which Blume 2 removed.',
+      ],
+      [
+        "BLUME_BUILD_FLAG_REMOVED",
+        7,
+        'The "build:docs" script passes --base to `blume build`, which Blume 2 removed.',
+      ],
+    ]);
+    expect(findings[1]?.suggestion).toBe(removedBuildFlagsAdvice(["base"]));
+  });
+
+  it("ignores scripts that aren't all strings", async () => {
+    const root = await project({
+      "blume.config.ts": "export default {};\n",
+      "package.json": JSON.stringify({ scripts: { build: ["blume build"] } }),
+    });
+    expect(await collectUpgradeFindings(root)).toEqual([]);
   });
 
   it("reports a components.ts entry Blume can't plan", async () => {
@@ -165,6 +242,58 @@ describe("collectUpgradeFindings", () => {
     const root = await project({ "blume.config.ts": "export default {};\n" });
     await mkdir(join(root, "components.ts"));
     await expect(collectUpgradeFindings(root)).rejects.toThrow();
+  });
+});
+
+describe("isOutsideBlumeProject", () => {
+  it("is true with neither a config nor a blume dependency", async () => {
+    const root = await project({});
+    expect(isOutsideBlumeProject(root, { status: "missing" })).toBeTrue();
+  });
+
+  it("is false for a zero-config project that lists blume", async () => {
+    const root = await project({});
+    expect(
+      isOutsideBlumeProject(root, { range: "^2.0.0", status: "current" })
+    ).toBeFalse();
+  });
+
+  it("is false for a config without a blume dependency", async () => {
+    const root = await project({ "blume.config.ts": "export default {};\n" });
+    expect(isOutsideBlumeProject(root, { status: "missing" })).toBeFalse();
+  });
+});
+
+describe("removed build flags", () => {
+  it("finds each removed flag once, bare or with a value", () => {
+    expect(
+      removedBuildFlags([
+        "--output=server",
+        "--adapter",
+        "vercel",
+        "--output",
+        "--strict",
+        "--base-url",
+        "--base",
+      ])
+    ).toEqual(["output", "adapter", "base"]);
+    expect(removedBuildFlags(["--isolated", "--no-strict"])).toEqual([]);
+  });
+
+  it("lists the flags as typed", () => {
+    expect(flagList(["adapter", "base"])).toBe("--adapter, --base");
+  });
+
+  it("points each flag at the deployment config that replaced it", () => {
+    expect(removedBuildFlagsAdvice(["output"])).toBe(
+      'Drop --output and name the host in blume.config.ts with `deployment: vercel()` (or `netlify()`, `cloudflare()`, `node()`) from "blume/deploy" — a host adapter builds for the server, and `output: "static"` keeps it static.'
+    );
+    expect(removedBuildFlagsAdvice(["base"])).toBe(
+      'Drop --base and set the subpath with `deployment: { base: "/docs" }`, or the host adapter\'s `base` option.'
+    );
+    expect(removedBuildFlagsAdvice(["adapter", "base"])).toContain(
+      "keeps it static; set the subpath"
+    );
   });
 });
 

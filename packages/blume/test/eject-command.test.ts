@@ -112,6 +112,45 @@ describe("blume eject", () => {
     expect(output).toContain("npm run build");
   });
 
+  it("adds the Astro app's packages to package.json and asks for an install", async () => {
+    const root = await fixture({
+      "docs/index.md": "---\ntitle: Home\n---\n# Home\n",
+      "package.json": JSON.stringify({
+        dependencies: { blume: "^2.0.0" },
+        name: "docs",
+        scripts: { build: "blume build", dev: "blume dev" },
+      }),
+    });
+    const { exitCode, output } = await runEject(
+      root,
+      "pnpm/9.1.0 npm/? node/v20.0.0",
+      "--yes"
+    );
+    expect(exitCode).toBe(0);
+    // SAFETY: the package.json this test wrote, rewritten by eject.
+    const pkg = JSON.parse(
+      await readFile(join(root, "package.json"), "utf-8")
+    ) as { dependencies: Record<string, string> };
+    // `astro build` needs `astro` resolvable from the project itself — under
+    // pnpm nothing else puts it there.
+    // (`@orama/orama` is the default search adapter's client.)
+    expect(Object.keys(pkg.dependencies)).toEqual([
+      "@astrojs/mdx",
+      "@orama/orama",
+      "@tailwindcss/vite",
+      "astro",
+      "blume",
+    ]);
+    expect(pkg.dependencies.blume).toBe("^2.0.0");
+    expect(output).toContain(
+      "Added to package.json: astro, @tailwindcss/vite, @astrojs/mdx, @orama/orama."
+    );
+    expect(output.indexOf("pnpm install")).toBeGreaterThan(-1);
+    expect(output.indexOf("pnpm install")).toBeLessThan(
+      output.indexOf("pnpm dev")
+    );
+  });
+
   it("keeps the deploy artifacts through the integration's build hook", async () => {
     const root = await fixture({
       "blume.config.ts":

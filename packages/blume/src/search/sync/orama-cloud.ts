@@ -1,3 +1,6 @@
+import type * as OramaCloudSdk from "@oramacloud/client";
+
+import { nodeRequire } from "../../core/node-require.ts";
 import type { OramaCloudOptions } from "../adapters/orama-cloud.ts";
 import type { SearchRecord } from "../documents.ts";
 
@@ -20,7 +23,10 @@ export const syncOramaCloud = async (
   if (!privateKey) {
     throw new Error("ORAMA_PRIVATE_API_KEY is not set.");
   }
-  const { CloudManager } = await import("@oramacloud/client");
+  // `require`, not `import()`: this runs in `astro:build:done` (see
+  // `core/node-require.ts`).
+  const { CloudManager }: typeof OramaCloudSdk =
+    nodeRequire("@oramacloud/client");
   const manager = new CloudManager({ api_key: privateKey });
   const index = manager.index(config.indexId);
   await index.snapshot(

@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 
 import { dirname, join } from "pathe";
 
-import { sourceAdapterWarnings } from "../src/astro/generate.ts";
+import { sourceAdapterDependencies } from "../src/astro/runtime-deps.ts";
 import { runtimeDependencies } from "../src/astro/templates.ts";
 import { checkRequiredSecrets } from "../src/cli/required-secrets.ts";
 import { scanProject } from "../src/core/project-graph.ts";
@@ -560,15 +560,20 @@ describe("descriptor consumers", () => {
     expect(checkRequiredSecrets(config)).toStrictEqual([]);
   });
 
-  it("warns when an adapter's SDK cannot be resolved", async () => {
+  it("reports an adapter's SDK that cannot be resolved", async () => {
     const root = await makeProject({});
     const config = parse([filesystem(), notion({ database: "db" })]);
-    const warnings = sourceAdapterWarnings(config.content.sources, root, root);
-    expect(warnings).toStrictEqual([
-      'Content source "notion" needs "@notionhq/client", which isn\'t installed. Run `npm install @notionhq/client` (or your package manager\'s equivalent).',
+    expect(
+      sourceAdapterDependencies(config.content.sources, root, root)
+    ).toStrictEqual([
+      {
+        dep: "@notionhq/client",
+        install: ["@notionhq/client"],
+        owner: 'Content source "notion"',
+      },
     ]);
     expect(
-      sourceAdapterWarnings(
+      sourceAdapterDependencies(
         blumeConfigSchema.parse({}).content.sources,
         root,
         root

@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 
 import { detect } from "package-manager-detector/detect";
 import { basename, dirname, isAbsolute, join, relative } from "pathe";
@@ -89,7 +89,7 @@ export const STARTERS = {
         content: page(
           "API Reference",
           "Explore the API.",
-          "# API Reference\n\nYour OpenAPI spec renders at [`/api`](/api). Point `openapi()` at your own spec in `blume.config.ts`."
+          "Your OpenAPI spec renders at [`/api`](/api). Point `openapi()` at your own spec in `blume.config.ts`."
         ),
         path: join(dir, "index.mdx"),
       },
@@ -109,7 +109,7 @@ export const STARTERS = {
         content: page(
           "Introduction",
           "Welcome to your new Blume docs.",
-          "# Introduction\n\nWrite your docs here, and log releases under `changelog/`."
+          "Write your docs here, and log releases under `changelog/`."
         ),
         path: join(dir, "index.mdx"),
       },
@@ -127,7 +127,7 @@ export const STARTERS = {
         content: page(
           "Introduction",
           "Welcome to your new Blume docs.",
-          `# Introduction\n\nWelcome to **Blume** — markdown-first docs powered by Astro and Vite.\n\nEdit \`${dir}/index.mdx\` to get started, then run \`blume dev\`.`
+          `Welcome to **Blume** — markdown-first docs powered by Astro and Vite.\n\nEdit \`${dir}/index.mdx\` and save: this page reloads with your changes.`
         ),
         path: join(dir, "index.mdx"),
       },
@@ -141,7 +141,7 @@ export const STARTERS = {
         content: page(
           "Introduction",
           "Get started with the SDK.",
-          "# Introduction\n\nInstall the SDK and make your first call. See [Installation](/installation)."
+          "Install the SDK and make your first call. See [Installation](/installation)."
         ),
         path: join(dir, "index.mdx"),
       },
@@ -149,7 +149,7 @@ export const STARTERS = {
         content: page(
           "Installation",
           "Install the SDK.",
-          "# Installation\n\n```package-install\nyour-sdk\n```"
+          "```package-install\nyour-sdk\n```"
         ),
         path: join(dir, "installation.mdx"),
       },
@@ -158,11 +158,13 @@ export const STARTERS = {
 } satisfies Record<Template, Starter>;
 
 /**
- * Install + dev commands to print for the chosen package manager, plus the
+ * Add, install, and dev commands to print for the chosen package manager, plus the
  * prefix that runs a locally installed bin (`exec`, e.g. `npx blume eject`) —
  * dependency bins aren't on PATH, so a bare `blume …` hint would not run.
  */
 export const commandsFor = (pm: PackageManager) => ({
+  // Adds a dependency: npm spells the verb `install`, the others `add`.
+  add: pm === "npm" ? "npm install" : `${pm} add`,
   // `bun build` invokes Bun's bundler, not the package.json `build` script —
   // unlike `bun dev`, the script name is shadowed by a builtin subcommand.
   build: pm === "npm" || pm === "bun" ? `${pm} run build` : `${pm} build`,
@@ -447,7 +449,7 @@ export default defineConfig({
 /** The version range `init` pins for each SDK an adapter declares. */
 const SDK_VERSIONS = new Map([
   ["@notionhq/client", "^5.26.0"],
-  ["@sanity/client", "^7.25.0"],
+  ["@sanity/client", "^8.6.1"],
 ]);
 
 /** The scaffolded descriptors for the selected remote source kinds. */
@@ -467,6 +469,52 @@ const extraDepsFor = (sources: SourceKind[]) => {
   return deps;
 };
 
+/**
+ * `pnpm-workspace.yaml` for a new pnpm project. pnpm runs a dependency's
+ * build script only once it's approved, and fails the install over any it
+ * wasn't told about. esbuild's postinstall checks its platform binary;
+ * `@scarf/scarf` is a telemetry postinstall a transitive dependency pulls in,
+ * and Blume doesn't need it to run.
+ */
+const PNPM_WORKSPACE = `allowBuilds:
+  esbuild: true
+  "@scarf/scarf": false
+`;
+
+/**
+ * Whether `root` already sits inside a pnpm workspace: a `pnpm-workspace.yaml`
+ * at or above it, up to the repository root (only `root` itself outside a
+ * repository). A nested one would split the new package off into a workspace
+ * of its own.
+ */
+const insidePnpmWorkspace = (root: string): boolean => {
+  const stop = repositoryRootOf(root) ?? root;
+  let dir = root;
+  while (!existsSync(join(dir, "pnpm-workspace.yaml"))) {
+    const parent = dirname(dir);
+    if (dir === stop || parent === dir) {
+      return false;
+    }
+    dir = parent;
+  }
+  return true;
+};
+
+/**
+ * The pnpm build approvals, planned only for a pnpm project `init` creates
+ * from scratch — an existing package.json, or a workspace it joins, already
+ * owns that decision.
+ */
+const pnpmWorkspaceFor = (
+  root: string,
+  answers: InitAnswers
+): ScaffoldFile[] =>
+  answers.packageManager === "pnpm" &&
+  !existsSync(join(root, "package.json")) &&
+  !insidePnpmWorkspace(root)
+    ? [{ content: PNPM_WORKSPACE, path: join(root, "pnpm-workspace.yaml") }]
+    : [];
+
 /** Every file `init` should write for the given answers, package.json first. */
 export const buildPlan = (
   root: string,
@@ -480,6 +528,7 @@ export const buildPlan = (
       ),
       path: join(root, "package.json"),
     },
+    ...pnpmWorkspaceFor(root, answers),
     { content: buildConfig(answers), path: join(root, "blume.config.ts") },
   ];
   // Seed pages only make sense when a local filesystem source will read them.
@@ -541,13 +590,54 @@ const envVarsFor = (sources: SourceKind[]): string[] => [
   ),
 ];
 
+/** What an existing package.json — one `init` left alone — already wires up. */
+export interface ExistingPackage {
+  /** Every package it lists in `dependencies` or `devDependencies`. */
+  dependencies: string[];
+  /** Whether its `dev` script runs Blume. */
+  devRunsBlume: boolean;
+}
+
+/**
+ * Read the package.json `init` didn't write. An unreadable or malformed one
+ * reads as wiring nothing up, so the next steps list everything to add.
+ */
+export const readExistingPackage = async (
+  root: string
+): Promise<ExistingPackage> => {
+  try {
+    // SAFETY: only the two dependency maps and the `dev` script are read, all
+    // optional; `String()` absorbs a script that isn't a string.
+    const pkg = JSON.parse(
+      await readFile(join(root, "package.json"), "utf-8")
+    ) as {
+      dependencies?: Record<string, string>;
+      devDependencies?: Record<string, string>;
+      scripts?: Record<string, string>;
+    };
+    return {
+      dependencies: Object.keys({
+        ...pkg.dependencies,
+        ...pkg.devDependencies,
+      }),
+      devRunsBlume: String(pkg.scripts?.dev ?? "").includes("blume"),
+    };
+  } catch {
+    return { dependencies: [], devRunsBlume: false };
+  }
+};
+
 /**
  * The next-steps message: `cd` hint, the install command when `init` did not
- * run it itself, the dev command, and token setup.
+ * run it itself, the dev command, and token setup. With an `existing`
+ * package.json — which `init` never edits — it first adds whatever of `blume`
+ * and the sources' SDKs isn't listed yet, then starts the dev server through
+ * the package runner unless its `dev` script already runs Blume.
  */
 export const nextSteps = (
   answers: InitAnswers,
-  needsInstall: boolean
+  needsInstall: boolean,
+  existing?: ExistingPackage
 ): string => {
   const commands = commandsFor(answers.packageManager);
   const lines: string[] = [];
@@ -557,7 +647,20 @@ export const nextSteps = (
   if (needsInstall) {
     lines.push(commands.install);
   }
-  lines.push(commands.dev);
+  if (existing) {
+    const missing = [
+      "blume",
+      ...Object.keys(extraDepsFor(answers.sources)),
+    ].filter((dep) => !existing.dependencies.includes(dep));
+    if (missing.length > 0) {
+      lines.push(`${commands.add} ${missing.join(" ")}`);
+    }
+  }
+  lines.push(
+    existing && !existing.devRunsBlume
+      ? `${commands.exec} blume dev`
+      : commands.dev
+  );
   const envVars = envVarsFor(answers.sources);
   const auth =
     envVars.length > 0

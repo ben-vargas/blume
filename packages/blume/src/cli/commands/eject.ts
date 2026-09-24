@@ -19,14 +19,14 @@ export const ejectCommand = defineCommand({
 
     if (!args.yes) {
       logger.warn(
-        "Eject is one-way: it writes astro.config.mjs, src/, and (if absent) tsconfig.json, rewrites your package.json scripts, and removes .blume. An existing tsconfig.json is left untouched."
+        "Eject is one-way: it writes astro.config.mjs, src/, and (if absent) tsconfig.json, rewrites your package.json scripts, adds the packages the Astro app imports to its dependencies, and removes .blume. An existing tsconfig.json is left untouched."
       );
       logger.info("Re-run with --yes to proceed.");
       return;
     }
 
-    const { files, warnings } = await eject(root);
-    await updatePackageScripts(root);
+    const { dependencies, files, warnings } = await eject(root);
+    const added = await updatePackageScripts(root, dependencies);
 
     // The same surface as the generated-runtime path (prepare.ts): one warn
     // per generation warning, e.g. a Scalar reference spec that wasn't found.
@@ -41,9 +41,13 @@ export const ejectCommand = defineCommand({
     // Print run commands matching the project's package manager (lockfile
     // detection, since eject runs inside an existing project).
     const pm = await detectProjectPackageManager(root);
-    const { build, dev } = commandsFor(pm);
+    const { build, dev, install } = commandsFor(pm);
+    // Newly added dependencies aren't installed yet, so install comes first.
+    const run = added.length > 0 ? [install, dev, build] : [dev, build];
+    const addedNote =
+      added.length > 0 ? `Added to package.json: ${added.join(", ")}.\n\n` : "";
     logger.box(
-      `Your project is now a standalone Astro app.\n\n  ${dev}\n  ${build}\n\nThe blume package remains importable.`
+      `Your project is now a standalone Astro app.\n\n${addedNote}${run.map((command) => `  ${command}`).join("\n")}\n\nThe blume package remains importable.`
     );
   },
 });

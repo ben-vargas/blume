@@ -815,7 +815,8 @@ describe("dot parser and shared files", () => {
     // single divergence must not repeat for each configured locale.
     const resolved = config({ parser: "dot" });
     const contentRoot = await tempContent({
-      "guides/index.mdx": "---\ntitle: Guide Home\n---\n# Guide Home\n",
+      "guides/index.mdx":
+        "---\ntitle: Guide Home\nsidebar:\n  hidden: true\n---\n# Guide Home\n",
       "guides/intro.fr.mdx": "---\ntitle: Intro fr\n---\n# Intro fr\n",
       "guides/intro.mdx": "---\ntitle: Intro\n---\n# Intro\n",
       "guides/meta.ts": 'export default { title: "Guides" };\n',
@@ -844,7 +845,8 @@ describe("dot parser and shared files", () => {
     const resolved = config();
     const contentRoot = await tempContent({
       "fr/guides/meta.ts": 'export default { title: "Guides FR" };\n',
-      "guides/index.mdx": "---\ntitle: Guides\n---\n# Guides\n",
+      "guides/index.mdx":
+        "---\ntitle: Guides\nsidebar:\n  hidden: true\n---\n# Guides\n",
       "guides/meta.ts": 'export default { title: "Guides" };\n',
     });
     const { pages } = await discoverIn(contentRoot, resolved);
@@ -864,9 +866,11 @@ describe("dot parser and shared files", () => {
   it("flags a translated index page drifting from its locale's meta", async () => {
     const resolved = config();
     const contentRoot = await tempContent({
-      "fr/guides/index.mdx": "---\ntitle: Accueil\n---\n# Accueil\n",
+      "fr/guides/index.mdx":
+        "---\ntitle: Accueil\nsidebar:\n  hidden: true\n---\n# Accueil\n",
       "fr/guides/meta.ts": 'export default { title: "Guides FR" };\n',
-      "guides/index.mdx": "---\ntitle: Guides\n---\n# Guides\n",
+      "guides/index.mdx":
+        "---\ntitle: Guides\nsidebar:\n  hidden: true\n---\n# Guides\n",
       "guides/meta.ts": 'export default { title: "Guides" };\n',
     });
     const { pages } = await discoverIn(contentRoot, resolved);

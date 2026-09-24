@@ -136,6 +136,15 @@ describe("blume upgrade", () => {
     expect(stderr).toContain("No `blume` dependency");
   });
 
+  it("refuses a folder with neither a config nor a blume dependency", async () => {
+    // A monorepo root, say: the defaults would always pass and report ready.
+    const root = await fixture({ "README.md": "# Monorepo\n" });
+    const { exitCode, stderr } = await upgrade(root, {});
+    expect(exitCode).toBe(1);
+    expect(stderr).toContain("No blume.config.ts or `blume` dependency here.");
+    expect(stderr).not.toContain("Ready for Blume");
+  });
+
   it("installs after the bump, and keeps going when the install fails", async () => {
     const root = await fixture({
       "blume.config.ts": 'export default { title: "Docs" };\n',

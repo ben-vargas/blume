@@ -29,6 +29,7 @@ import {
   renderInline,
   renderLink,
   unsupported,
+  writesMdx,
 } from "../src/core/sources/lower.ts";
 import {
   documentEntry,
@@ -86,6 +87,8 @@ describe("lowering primitives", () => {
     expect(renderInline("a*b", { code: true })).toBe("`a*b`");
     expect(renderInline("x", { bold: true, code: true })).toBe("**`x`**");
     expect(renderInline("a*b_c<d", {})).toBe(String.raw`a\*b\_c\<d`);
+    // Braces would open an expression once the entry is written as MDX.
+    expect(renderInline("use {id}", {})).toBe(String.raw`use \{id\}`);
   });
 
   it("keeps a run that starts like block syntax as prose", () => {
@@ -139,6 +142,7 @@ describe("lowering primitives", () => {
     expect(codeFence("a ``` b")).toBe("````\na ``` b\n````");
     expect(image("a]b", "/x.png")).toBe(String.raw`![a\]b](/x.png)`);
     expect(unsupported("thing")).toBe("<!-- unsupported thing -->");
+    expect(unsupported("thing", true)).toBe("{/* unsupported thing */}");
     expect(joinBlocks(["a", "", "b"])).toBe("a\n\nb");
     expect(markdownDocument(["a"])).toBe("a\n");
   });
@@ -158,6 +162,14 @@ describe("lowering primitives", () => {
 });
 
 const lower = (): string => "lowered\n";
+
+describe("writesMdx", () => {
+  it("switches to MDX only when a serializer is configured", () => {
+    expect(writesMdx()).toBe(false);
+    expect(writesMdx({})).toBe(false);
+    expect(writesMdx({ callout: () => "<Callout />" })).toBe(true);
+  });
+});
 
 describe("remote helpers", () => {
   const fields: Required<RemoteFieldMap> = {

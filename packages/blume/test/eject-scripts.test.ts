@@ -5,7 +5,11 @@ import { tmpdir } from "node:os";
 
 import { join } from "pathe";
 
-import { updatePackageScripts } from "../src/cli/eject-scripts.ts";
+import {
+  blumeDependencyRanges,
+  updatePackageScripts,
+} from "../src/cli/eject-scripts.ts";
+import { packageRoot } from "../src/core/package-root.ts";
 
 const dirs: string[] = [];
 
@@ -24,6 +28,7 @@ afterAll(async () => {
 /** The package.json fields these tests write and read back. */
 interface TestPackageManifest {
   dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
   name?: string;
   scripts?: Record<string, string>;
 }
@@ -89,5 +94,70 @@ describe("updatePackageScripts", () => {
     expect(await readFile(join(root, "package.json"), "utf-8")).toBe(
       "not json"
     );
+  });
+
+  it("adds the packages the ejected app imports, at Blume's ranges", async () => {
+    const root = await makeRoot();
+    await writeFile(
+      join(root, "package.json"),
+      JSON.stringify({
+        dependencies: { blume: "^2.0.0", zod: "^4.0.0" },
+        devDependencies: { "@tailwindcss/vite": "^4.0.0" },
+        name: "docs",
+      })
+    );
+    const added = await updatePackageScripts(
+      root,
+      ["astro", "@tailwindcss/vite", "blume", "@astrojs/mdx", "left-pad"],
+      { "@astrojs/mdx": "^8.0.1", astro: "^7.3.2" }
+    );
+    // Already-listed packages (in any dependency field) are left as they are.
+    expect(added).toEqual(["astro", "@astrojs/mdx", "left-pad"]);
+    const pkg = await readPkg(root);
+    // Sorted like a package manager writes it; a name Blume has no range for
+    // falls back to any version.
+    expect(Object.entries(pkg.dependencies ?? {})).toEqual([
+      ["@astrojs/mdx", "^8.0.1"],
+      ["astro", "^7.3.2"],
+      ["blume", "^2.0.0"],
+      ["left-pad", "*"],
+      ["zod", "^4.0.0"],
+    ]);
+    expect(pkg.devDependencies).toEqual({ "@tailwindcss/vite": "^4.0.0" });
+  });
+
+  it("leaves the dependencies alone when nothing is missing", async () => {
+    const root = await makeRoot();
+    await writeFile(
+      join(root, "package.json"),
+      JSON.stringify({ dependencies: { astro: "^7.0.0" }, name: "docs" })
+    );
+    expect(await updatePackageScripts(root, ["astro"])).toEqual([]);
+    const pkg = await readPkg(root);
+    expect(pkg.dependencies).toEqual({ astro: "^7.0.0" });
+  });
+
+  it("returns nothing for a project without a package.json", async () => {
+    const root = await makeRoot();
+    expect(await updatePackageScripts(root, ["astro"])).toEqual([]);
+  });
+});
+
+describe("blumeDependencyRanges", () => {
+  it("reads Blume's own dependency and peer ranges, and pins blume", async () => {
+    // SAFETY: blume's own package.json, which declares these maps.
+    const manifest = JSON.parse(
+      await readFile(join(packageRoot(), "package.json"), "utf-8")
+    ) as {
+      dependencies: Record<string, string>;
+      peerDependencies: Record<string, string>;
+      version: string;
+    };
+    const ranges = blumeDependencyRanges();
+    expect(ranges.astro).toBe(manifest.dependencies.astro);
+    expect(ranges["@astrojs/cloudflare"]).toBe(
+      manifest.peerDependencies["@astrojs/cloudflare"]
+    );
+    expect(ranges.blume).toBe(`^${manifest.version}`);
   });
 });

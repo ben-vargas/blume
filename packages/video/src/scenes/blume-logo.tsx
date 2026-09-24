@@ -8,7 +8,7 @@ import {
   useVideoConfig,
 } from "remotion";
 
-// The Blume mark (apps/docs/logo.svg): seven dots — a center plus six around
+// The Blume mark (apps/docs/public/logo.svg): seven dots — a center plus six around
 // it. Each `d` is paired with a bloom `order` so the center pops first and the
 // ring sweeps in clockwise. Paths use `currentColor`, so the mark takes its
 // color from the svg's `color`.

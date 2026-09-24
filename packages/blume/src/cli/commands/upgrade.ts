@@ -11,6 +11,7 @@ import {
   UPGRADE_GUIDE_URL,
   bumpBlumeDependency,
   collectUpgradeFindings,
+  isOutsideBlumeProject,
   upgradePrompt,
 } from "../../upgrade/upgrade.ts";
 import { commandMeta } from "../command-meta.ts";
@@ -62,6 +63,14 @@ export const upgradeCommand = defineCommand({
 
     try {
       const bump = await bumpBlumeDependency(root, version);
+      // With neither a config nor a `blume` dependency there is nothing to
+      // check: the defaults would always pass and report the folder ready.
+      if (isOutsideBlumeProject(root, bump)) {
+        logger.error(
+          "No blume.config.ts or `blume` dependency here. Run `blume upgrade` from the folder with blume.config.ts — in a monorepo, the package that depends on blume."
+        );
+        process.exit(1);
+      }
       if (bump.status === "bumped") {
         process.stderr.write(
           `  Bumped blume ${bump.from} → ${bump.to} in package.json.\n`

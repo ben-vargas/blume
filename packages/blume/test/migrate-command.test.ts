@@ -145,12 +145,33 @@ describe("blume migrate", () => {
     expect(exitCode).toBe(2);
   });
 
-  it("explains how to run it without an agent flag", async () => {
+  it("points any other agent at the skill without an agent flag", async () => {
     const root = await fixture(FUMADOCS);
     const { exitCode, stderr } = await migrate(root, {});
-    expect(exitCode).toBe(1);
+    expect(exitCode).toBe(0);
     expect(stderr).toContain("rerun with --claude or --codex");
     expect(stderr).toContain("Point it at");
+    expect(stderr).toContain(join("skills", "blume-migrate", "SKILL.md"));
+    expect(stderr).toContain(
+      "npx skills add haydenbleasel/blume --skill blume-migrate"
+    );
+  });
+
+  it("warns when the named source disagrees with the repo", async () => {
+    const root = await fixture(FUMADOCS);
+    const { exitCode, stderr } = await migrate(root, {}, "docusaurus");
+    expect(exitCode).toBe(0);
+    expect(stderr).toContain("Migrating from Docusaurus.");
+    expect(stderr).toContain(
+      "Warning: this looks like a Fumadocs project (fumadocs-core in package.json); migrating from Docusaurus as named."
+    );
+  });
+
+  it("stays quiet when the named source matches the repo", async () => {
+    const root = await fixture(FUMADOCS);
+    const { stderr } = await migrate(root, {}, "fumadocs");
+    expect(stderr).toContain("Migrating from Fumadocs.");
+    expect(stderr).not.toContain("Warning:");
   });
 
   it("rejects an unknown source", async () => {

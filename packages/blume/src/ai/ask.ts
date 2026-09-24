@@ -1,7 +1,8 @@
 import { z } from "zod";
 
-import type { AdapterDescriptor } from "../core/adapter.ts";
+import type { AdapterDescriptor, JsonValue } from "../core/adapter.ts";
 import { adapterDescriptorSchema } from "../core/adapter.ts";
+import { unrecognizedKeysMessage } from "../core/unrecognized-keys.ts";
 
 /**
  * The `reasoning` levels the adapters accept: the AI SDK's top-level
@@ -19,15 +20,6 @@ export const askReasoningLevels = [
 
 /** How much the model reasons before answering (an adapter's `reasoning`). */
 export type AskReasoning = (typeof askReasoningLevels)[number];
-
-/** A JSON value, the only kind the generated route can inline as a literal. */
-type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | JsonValue[]
-  | { [key: string]: JsonValue };
 
 /**
  * The AI SDK's `providerOptions` shape, forwarded to `streamText` verbatim:
@@ -337,17 +329,110 @@ export type AskAdapter =
   | AskInkeepAdapter
   | AskOpenAICompatibleAdapter;
 
+// ---------------------------------------------------------------------------
+// Blume 1 hints
+// ---------------------------------------------------------------------------
+
+/**
+ * The 1.x `ai.ask.provider` names — also the adapters' `kind`s — each with the
+ * `blume/ai` factory that replaced it.
+ */
+const FACTORY_BY_PROVIDER = new Map([
+  ["gateway", "gateway"],
+  ["inkeep", "inkeep"],
+  ["llmgateway", "llmgateway"],
+  ["openai-compatible", "openaiCompatible"],
+  ["openrouter", "openrouter"],
+]);
+
+/** The 1.x flat `ai.ask` fields: each is now an option of the provider adapter. */
+const MOVED_TO_PROVIDER: ReadonlySet<string> = new Set([
+  "apiKeyEnv",
+  "baseUrl",
+  "headers",
+  "model",
+  "reasoning",
+]);
+
+/** The provider an `ai.ask` object names: a 1.x string or a descriptor's `kind`. */
+const askProviderNameProbe = z.looseObject({
+  provider: z.union([
+    z.string(),
+    z.looseObject({ kind: z.string() }).transform(({ kind }) => kind),
+  ]),
+});
+
+/** The factory a failing `ai.ask` object's provider names, or the gateway. */
+const providerFactory = (issue: z.core.$ZodRawIssue): string => {
+  const probe = askProviderNameProbe.safeParse(issue.input);
+  return (
+    (probe.success && FACTORY_BY_PROVIDER.get(probe.data.provider)) || "gateway"
+  );
+};
+
+/**
+ * Error params for `ai.ask`: a 1.x flat provider field (`model`, `apiKeyEnv`,
+ * `baseUrl`, `headers`, `reasoning`) names the adapter call it moves into —
+ * the one the object's `provider` picks, 1.x string or descriptor — instead
+ * of Zod's bare "Unrecognized key"; any other unknown key keeps its wording.
+ */
+export const askMovedFieldsHint = {
+  error: (issue: z.core.$ZodRawIssue): string | undefined => {
+    if (issue.code !== "unrecognized_keys") {
+      return;
+    }
+    const moved = issue.keys.filter((key) => MOVED_TO_PROVIDER.has(key));
+    if (moved.length === 0) {
+      return;
+    }
+    const fields = moved.map((key) => `ai.ask.${key}`).join(", ");
+    const hint = `${fields} moved into the provider adapter: \`provider: ${providerFactory(issue)}({ ${moved.join(", ")} })\`, imported from "blume/ai".`;
+    const others = issue.keys.filter((key) => !MOVED_TO_PROVIDER.has(key));
+    return others.length > 0
+      ? `${hint} ${unrecognizedKeysMessage(others)}`
+      : hint;
+  },
+};
+
+/** A value that is a 1.x provider name, for the `ai.ask.provider` hint. */
+const providerNameProbe = z.string();
+
+/**
+ * The message for an `ai.ask.provider` that isn't a descriptor: a 1.x
+ * provider name names the factory that replaced it; anything else lists them.
+ */
+const providerNotAdapterMessage = (issue: z.core.$ZodRawIssue): string => {
+  const name = providerNameProbe.safeParse(issue.input);
+  const factory = name.success ? FACTORY_BY_PROVIDER.get(name.data) : undefined;
+  return factory
+    ? `ai.ask.provider takes an adapter from "blume/ai", not a provider name: \`provider: ${factory}({ model })\`. The 1.x model, apiKeyEnv, baseUrl, headers, and reasoning fields move into the call.`
+    : 'ai.ask.provider takes an adapter from "blume/ai": gateway(), openrouter(), llmgateway(), inkeep(), or openaiCompatible().';
+};
+
 /**
  * `ai.ask.provider`: the descriptor an adapter factory returned, validated
- * against that adapter's own option schema.
+ * against that adapter's own option schema. A value that isn't a descriptor
+ * at all (a 1.x provider name) names the factory that replaced it.
  */
-export const askAdapterSchema = z.discriminatedUnion("kind", [
-  gatewayAdapterSchema,
-  openrouterAdapterSchema,
-  llmgatewayAdapterSchema,
-  inkeepAdapterSchema,
-  openaiCompatibleAdapterSchema,
-]);
+export const askAdapterSchema = z.discriminatedUnion(
+  "kind",
+  [
+    gatewayAdapterSchema,
+    openrouterAdapterSchema,
+    llmgatewayAdapterSchema,
+    inkeepAdapterSchema,
+    openaiCompatibleAdapterSchema,
+  ],
+  {
+    // A non-object (a 1.x provider name) fails before any discriminator is
+    // read — `invalid_type` at runtime, though Zod types the union's own
+    // issues as `invalid_union` only; a bad `kind` keeps Zod's message.
+    error: (issue) =>
+      issue.code === "invalid_union"
+        ? undefined
+        : providerNotAdapterMessage(issue),
+  }
+);
 
 /** A resolved (post-defaults) `ai.ask.provider` descriptor. */
 export type AskAdapterConfig = z.output<typeof askAdapterSchema>;

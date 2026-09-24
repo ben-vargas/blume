@@ -2,11 +2,12 @@ import { existsSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 
 import { join, relative } from "pathe";
+import { z } from "zod";
 
 import { analyzeComponentOverrides } from "../core/component-overrides.ts";
-import { loadConfig } from "../core/config.ts";
+import { ConfigValidationError, loadConfig } from "../core/config.ts";
 import { BlumeError } from "../core/diagnostics.ts";
-import { findComponentsFile } from "../core/project.ts";
+import { findComponentsFile, findConfigFile } from "../core/project.ts";
 import type { Diagnostic } from "../core/types.ts";
 
 /**
@@ -59,15 +60,42 @@ export const rangeMajor = (range: string): number | null => {
   return major === undefined ? null : Number(major);
 };
 
-// The file's own indentation (two spaces, four, or a tab), so the rewrite
-// doesn't reformat a package.json the user keeps differently.
+// The file's own indentation (two spaces, four, or a tab), so a fallback
+// rewrite doesn't reformat a package.json the user keeps differently.
 const INDENT = /^(?<indent>[ \t]+)"/mu;
+
+const REGEXP_SPECIAL = /[$()*+.?[\\\]^{|}]/gu;
+const escapeRegExp = (value: string): string =>
+  value.replaceAll(REGEXP_SPECIAL, String.raw`\$&`);
+
+/**
+ * `text` with the `blume` range under `field` replaced in place, so the file
+ * keeps its own formatting, key order, and inline objects; null when the entry
+ * isn't written the plain way (an escaped key or value).
+ */
+const replaceRange = (
+  text: string,
+  field: DependencyField,
+  from: string,
+  to: string
+): string | null => {
+  const value = JSON.stringify(from);
+  const entry = new RegExp(`"blume"\\s*:\\s*${escapeRegExp(value)}`, "gu");
+  entry.lastIndex = Math.max(text.indexOf(JSON.stringify(field)), 0);
+  const match = entry.exec(text);
+  if (!match) {
+    return null;
+  }
+  const end = match.index + match[0].length;
+  return `${text.slice(0, end - value.length)}${JSON.stringify(to)}${text.slice(end)}`;
+};
 
 /**
  * Point `package.json`'s `blume` dependency at `^version` when it pins an
  * older major. A range already on this major, or one that names no version
  * (`workspace:*`, `latest`), is reported as current and left alone; a
  * project with no `package.json`, or none that lists `blume`, is `missing`.
+ * Only the range changes: the rest of the file is kept byte for byte.
  */
 export const bumpBlumeDependency = async (
   root: string,
@@ -96,20 +124,133 @@ export const bumpBlumeDependency = async (
   const to = `^${version}`;
   const indent = INDENT.exec(text)?.groups?.indent ?? "  ";
   const updated = { ...pkg, [field]: { ...pkg[field], blume: to } };
-  await writeFile(path, `${JSON.stringify(updated, null, indent)}\n`);
+  await writeFile(
+    path,
+    replaceRange(text, field, from, to) ??
+      `${JSON.stringify(updated, null, indent)}\n`
+  );
   return { field, from, status: "bumped", to };
 };
 
-/** Run one check, turning the {@link BlumeError} it throws into its finding. */
-const findingOf = async (
+/**
+ * Whether `root` is no Blume project at all: no config file and no `blume`
+ * dependency, so the upgrade would only check the defaults and report the
+ * folder ready. A zero-config project still lists `blume`.
+ */
+export const isOutsideBlumeProject = (
+  root: string,
+  bump: DependencyBump
+): boolean => bump.status === "missing" && findConfigFile(root) === null;
+
+// ---------------------------------------------------------------------------
+// Removed `blume build` flags
+// ---------------------------------------------------------------------------
+
+/** A `blume build` flag Blume 2 removed, bare or with an `=value`. */
+const REMOVED_BUILD_FLAG = /^--(?<flag>adapter|base|output)(?:=|$)/u;
+
+/** The removed `blume build` flags among `args`, in order, each once. */
+export const removedBuildFlags = (args: readonly string[]): string[] => [
+  ...new Set(
+    args.flatMap((arg) => {
+      const flag = REMOVED_BUILD_FLAG.exec(arg)?.groups?.flag;
+      return flag ? [flag] : [];
+    })
+  ),
+];
+
+/** The flags as the reader typed them: `--adapter, --output`. */
+export const flagList = (flags: string[]): string =>
+  flags.map((flag) => `--${flag}`).join(", ");
+
+/** What replaces each removed flag: the `deployment` config. */
+export const removedBuildFlagsAdvice = (flags: string[]): string => {
+  const advice: string[] = [];
+  if (flags.includes("adapter") || flags.includes("output")) {
+    advice.push(
+      'name the host in blume.config.ts with `deployment: vercel()` (or `netlify()`, `cloudflare()`, `node()`) from "blume/deploy" — a host adapter builds for the server, and `output: "static"` keeps it static'
+    );
+  }
+  if (flags.includes("base")) {
+    advice.push(
+      'set the subpath with `deployment: { base: "/docs" }`, or the host adapter\'s `base` option'
+    );
+  }
+  return `Drop ${flagList(flags)} and ${advice.join("; ")}.`;
+};
+
+// A command that runs the Blume CLI: the bare bin, a versioned package
+// (`blume@2`), or a path to it (`./node_modules/.bin/blume`).
+const BLUME_BIN = /(?:^|[/\\])blume(?:@\S+)?$/u;
+const COMMAND_SEPARATOR = /&&|\|\||[;|]/u;
+const WHITESPACE = /\s+/u;
+
+/** The arguments each `blume build` in a script passes, flattened. */
+const buildArgs = (script: string): string[] =>
+  script.split(COMMAND_SEPARATOR).flatMap((command) => {
+    const words = command.trim().split(WHITESPACE);
+    const at = words.findIndex(
+      (word, index) => BLUME_BIN.test(word) && words[index + 1] === "build"
+    );
+    return at === -1 ? [] : words.slice(at + 2);
+  });
+
+/** The slice of package.json the script check reads. */
+const scriptsSchema = z.looseObject({
+  scripts: z.record(z.string(), z.string()).default({}),
+});
+
+const lineOf = (text: string, index: number): number =>
+  text.slice(0, index).split("\n").length;
+
+/**
+ * A finding for each package.json script that still passes a removed flag to
+ * `blume build` — it would otherwise build a static site without a word.
+ */
+const scriptFindings = async (root: string): Promise<Diagnostic[]> => {
+  const path = join(root, "package.json");
+  if (!existsSync(path)) {
+    return [];
+  }
+  const text = await readFile(path, "utf-8");
+  const pkg = scriptsSchema.safeParse(JSON.parse(text));
+  const scripts = pkg.success ? pkg.data.scripts : {};
+  const scriptsAt = text.indexOf('"scripts"');
+  return Object.entries(scripts).flatMap(([name, script]) => {
+    const flags = removedBuildFlags(buildArgs(script));
+    if (flags.length === 0) {
+      return [];
+    }
+    const at = text.indexOf(JSON.stringify(name), scriptsAt);
+    return [
+      {
+        code: "BLUME_BUILD_FLAG_REMOVED",
+        file: path,
+        line: at === -1 ? undefined : lineOf(text, at),
+        message: `The "${name}" script passes ${flagList(flags)} to \`blume build\`, which Blume 2 removed.`,
+        severity: "error",
+        suggestion: removedBuildFlagsAdvice(flags),
+      } satisfies Diagnostic,
+    ];
+  });
+};
+
+/**
+ * Run one check, turning the {@link BlumeError} it throws into its findings:
+ * each config issue on its own, or the one diagnostic any other check has.
+ */
+const findingsOf = async (
   check: () => Promise<void>
-): Promise<Diagnostic | null> => {
+): Promise<Diagnostic[]> => {
   try {
     await check();
-    return null;
+    return [];
   } catch (error) {
+    if (error instanceof ConfigValidationError) {
+      return error.issues;
+    }
     if (error instanceof BlumeError) {
-      return error.diagnostic;
+      return [error.diagnostic];
     }
     throw error;
   }
@@ -117,28 +258,29 @@ const findingOf = async (
 
 /**
  * Check a project against this version of Blume: its config through the
- * loader (one diagnostic that lists every invalid field with its replacement)
- * and its `components.ts` through the static override planner. Returns the
- * failures; an empty list means the project is ready.
+ * loader (every invalid field, each with its line and replacement), its
+ * `components.ts` through the static override planner, and its package.json
+ * scripts for `blume build` flags that no longer exist. Returns the failures;
+ * an empty list means the project is ready.
  */
 export const collectUpgradeFindings = async (
   root: string
 ): Promise<Diagnostic[]> => {
   const componentsFile = findComponentsFile(root);
-  const findings = [
-    await findingOf(async () => {
+  return [
+    ...(await findingsOf(async () => {
       await loadConfig(root);
-    }),
-    componentsFile
-      ? await findingOf(async () => {
+    })),
+    ...(componentsFile
+      ? await findingsOf(async () => {
           analyzeComponentOverrides(
             await readFile(componentsFile, "utf-8"),
             componentsFile
           );
         })
-      : null,
+      : []),
+    ...(await scriptFindings(root)),
   ];
-  return findings.filter((finding) => finding !== null);
 };
 
 /** A finding as plain text for the agent: where, what, and the fix. */

@@ -54,7 +54,7 @@ Your text is **appended to** the built-in instructions rather than replacing the
 
 Ask AI is **grounded in your docs**. For each question it retrieves the most relevant pages — using the same lexical [Orama](/docs/configuration/search) index that powers on-page search — and injects them into the model's system prompt, so answers come from your content instead of the model's own knowledge. The assistant is told to answer only from the retrieved pages, to say when something isn't covered, and to cite the pages it drew from.
 
-The page the reader is currently on is added to the context first and used to scope retrieval to that page's language, so answers stay relevant to where they are in the docs. Retrieval runs at request time from a snapshot baked into the build, so it works regardless of your [search](/docs/configuration/search) provider — even when search is set to `none` — and needs no configuration.
+The page the reader is currently on is added to the context first and used to scope retrieval to that page's language, so answers stay relevant to where they are in the docs. Retrieval runs at request time from a snapshot baked into the build, so it works regardless of your [search](/docs/configuration/search) provider — even with `search: false` — and needs no configuration.
 
 Grounding is on for every adapter except **[Inkeep](#inkeep)**, which runs its own retrieval over the content you've indexed in its dashboard.
 
@@ -180,7 +180,7 @@ export default defineConfig({
 | [`inkeep()`](#inkeep) | an [Inkeep](https://inkeep.com) QA model | `INKEEP_API_KEY` | `@ai-sdk/openai-compatible` |
 | [`openaiCompatible()`](#openai-compatible-endpoints) | whatever your endpoint serves | the `apiKeyEnv` you name | `@ai-sdk/openai-compatible` |
 
-The SDKs are optional peer dependencies, so add the one your adapter needs to your project (`npm install @openrouter/ai-sdk-provider`, say). If it's missing, the build warns with the exact package name before Vite would fail to resolve the import.
+The SDKs are optional peer dependencies, so add the one your adapter needs to your project (`npm install @openrouter/ai-sdk-provider`, say). If it's missing, `blume build` stops before Vite runs, naming the package and the command that installs it, and [`blume doctor`](/docs/cli/doctor) reports it too.
 
 The descriptor an adapter returns is plain data — its kind, its options, the env vars it reads, and the SDK it needs — so the generated route (and the [ejected](/docs/configuration/customization#eject) one) inlines it as literals and imports the provider SDK by name. Nothing reads `blume.config.ts` at request time, and no secret is ever written into a route: adapters take the **name** of the env var holding the key, and the route reads the value through Astro's [`getSecret()`](https://docs.astro.build/en/guides/environment-variables/#retrieving-secrets-programmatically), so each deployment adapter supplies it its own way — environment variables on Node, Vercel, and Netlify, and the Worker's [bindings](https://docs.astro.build/en/guides/integrations-guide/cloudflare/#environment-variables-and-secrets) on Cloudflare.
 

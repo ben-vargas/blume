@@ -9,10 +9,11 @@
 // formatting arrives as marks, never as syntax in the text — so a literal
 // `*`, `_`, `[`, backtick, `~`, or `<` typed in the CMS must render as
 // itself. Unescaped, it opened emphasis or a code span mid-paragraph, and `<`
-// let CMS prose inject raw HTML into the rendered page. CommonMark
+// let CMS prose inject raw HTML into the rendered page. `{` and `}` open an
+// expression once an entry is written as MDX (see {@link writesMdx}). CommonMark
 // backslash-escapes every ASCII punctuation character, so `\*` is always the
-// literal asterisk.
-const MARKDOWN_SPECIALS = /[\\`*_[\]~<]/gu;
+// literal asterisk, in `.md` and `.mdx` alike.
+const MARKDOWN_SPECIALS = /[\\`*_{}[\]~<]/gu;
 
 // Block syntax is only syntax at the start of a line: `# `, `- `, `+ ` and
 // `1. `/`1) ` need the space (or line end) to become a heading or list item,
@@ -147,9 +148,23 @@ export const codeFence = (code: string, language = ""): string => {
 export const image = (alt: string, url: string): string =>
   `![${escapeMarkdownText(alt)}](${destination(url)})`;
 
-/** A comment marking a node the lowerer has no Markdown for. */
-export const unsupported = (what: string): string =>
-  `<!-- unsupported ${what} -->`;
+/**
+ * Whether a lowerer's output is written as MDX. Serializers are how a CMS
+ * block becomes a Blume component, and components (like directives) only
+ * render in MDX, so configuring any serializer switches the source's
+ * rich-text bodies to `.mdx`. The escaping above keeps the rest of the
+ * lowered text valid there.
+ */
+export const writesMdx = <Node>(
+  serializers?: Record<string, (node: Node) => string>
+): boolean => serializers !== undefined && Object.keys(serializers).length > 0;
+
+/**
+ * A comment marking a node the lowerer has no Markdown for — an MDX comment
+ * when the output is MDX, which rejects `<!-- -->`.
+ */
+export const unsupported = (what: string, mdx = false): string =>
+  mdx ? `{/* unsupported ${what} */}` : `<!-- unsupported ${what} -->`;
 
 /** Blocks separated by blank lines; empty blocks are dropped. */
 export const joinBlocks = (blocks: string[]): string =>

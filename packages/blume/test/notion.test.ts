@@ -237,6 +237,83 @@ describe("notionSource", () => {
     expect(entry?.lastModified).toBe("2024-05-01T00:00:00Z");
   });
 
+  it("keeps literal braces, tags, and marks from reaching the MDX as syntax", async () => {
+    const page = {
+      ...PAGE,
+      id: "esc",
+      properties: {
+        ...PAGE.properties,
+        Name: {
+          title: [rich("Use "), rich("{x}", { bold: true })],
+          type: "title",
+        },
+      },
+    };
+    const lists = new Map<string, BlockList>([
+      [
+        "esc",
+        [
+          {
+            id: "p",
+            paragraph: {
+              rich_text: [
+                rich("Set {x} or <b>tags</b> "),
+                {
+                  ...rich("the docs", { italic: true }),
+                  href: "https://x.dev/a b",
+                },
+                rich(" and "),
+                rich("a`b", { code: true }),
+              ],
+            },
+            type: "paragraph",
+          },
+          {
+            code: { language: "ts", rich_text: [rich("const s = `x`;\n{y}")] },
+            id: "code",
+            type: "code",
+          },
+          {
+            id: "toggle",
+            toggle: {
+              rich_text: [rich("More "), rich("info", { bold: true })],
+            },
+            type: "toggle",
+          },
+          {
+            id: "img",
+            image: {
+              caption: [rich("A <chart>")],
+              file: { url: "https://notion.so/signed/chart.png" },
+            },
+            type: "image",
+          },
+        ],
+      ],
+    ]);
+    const source = notionSource(
+      {
+        client: clientFor(lists, [page]),
+        database: "db1",
+        fetchImpl,
+        name: "handbook",
+      },
+      await ctxFor()
+    );
+    const { entries } = await source.load();
+    const [entry] = entries;
+    const body = entry?.body.text ?? "";
+    expect(body).toContain(
+      "Set \\{x\\} or \\<b>tags\\</b> [*the docs*](<https://x.dev/a b>) and ``a`b``"
+    );
+    // Code keeps its text verbatim, fenced past its own backticks.
+    expect(body).toContain("```ts\nconst s = `x`;\n{y}\n```");
+    // Titles and captions that render as text carry no Markdown.
+    expect(body).toContain('<AccordionItem title={"More info"}>');
+    expect(body).toContain(String.raw`![A \<chart>](/blume-assets/handbook/`);
+    expect(entry?.data.title).toBe("Use {x}");
+  });
+
   it("retries a rate-limited query and recovers", async () => {
     let calls = 0;
     const flaky = {
@@ -764,7 +841,7 @@ describe("notionSource (video blocks)", () => {
     // whole page: a quoted JSX attribute decodes no escapes. The expression
     // form is a JSON string literal, which does.
     expect(body).toContain(
-      `<Frame caption={"Click the \\"Deploy\\"\\nbutton** now**"}>`
+      `<Frame caption={"Click the \\"Deploy\\"\\nbutton **now**"}>`
     );
     expect(body).toContain(
       `<YouTube title={"Click the \\"Deploy\\"\\nbutton now"}`

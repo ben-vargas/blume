@@ -1,3 +1,4 @@
+import type { Heading, Nodes } from "mdast";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { gfmFromMarkdown } from "mdast-util-gfm";
 import { toString as mdastToString } from "mdast-util-to-string";
@@ -121,6 +122,47 @@ const releaseDescription = (body: string): string | undefined => {
   return `${head}…`;
 };
 
+/** Every heading in a tree, in document order (lists and quotes included). */
+const headingsIn = (node: Nodes): Heading[] => {
+  if (node.type === "heading") {
+    return [node];
+  }
+  const found: Heading[] = [];
+  if ("children" in node) {
+    for (const child of node.children) {
+      found.push(...headingsIn(child));
+    }
+  }
+  return found;
+};
+
+/**
+ * Lift the notes' headings so the shallowest is an h2. The release page's
+ * title is its h1, and changesets opens every section at `### Patch Changes`,
+ * which would skip a level on every page. Only ATX headings can sit deeper
+ * than h2, so each lift drops leading `#`s; headings are read from the parsed
+ * tree, so a `#` inside a code fence is never touched.
+ */
+const liftHeadings = (body: string): string => {
+  const headings = headingsIn(
+    fromMarkdown(body, {
+      extensions: [gfm()],
+      mdastExtensions: [gfmFromMarkdown()],
+    })
+  );
+  const lift = Math.min(...headings.map((heading) => heading.depth)) - 2;
+  if (headings.length === 0 || lift <= 0) {
+    return body;
+  }
+  let lifted = body;
+  // Back to front, so each cut leaves the earlier offsets valid.
+  for (const heading of headings.toReversed()) {
+    const marker = lifted.indexOf("#", heading.position?.start.offset);
+    lifted = lifted.slice(0, marker) + lifted.slice(marker + lift);
+  }
+  return lifted;
+};
+
 /** Slugify a tag into a stable, URL-safe source ref (`v1.2.0` -> `v1-2-0`). */
 const slugifyTag = (tag: string): string =>
   tag.toLowerCase().replaceAll(NON_SLUG, "-").replaceAll(EDGE_DASHES, "");
@@ -159,7 +201,9 @@ const releaseToEntry = (release: GithubRelease): SourceEntry => {
   const title = release.name?.trim() || release.tag_name;
   const date = release.published_at ?? release.created_at;
   const category = release.prerelease ? "Prerelease" : "Release";
-  const body = (release.body ?? "").replaceAll("\r\n", "\n").trim();
+  const body = liftHeadings(
+    (release.body ?? "").replaceAll("\r\n", "\n").trim()
+  );
   // A summary in `seo.description` gives each release page a unique meta
   // description (instead of the site-wide fallback) without also rendering the
   // visible lede paragraph a top-level `description` would add.

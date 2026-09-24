@@ -302,6 +302,43 @@ describe("buildNavigation — filesystem sidebar", () => {
     expect(nav.tabs[0]?.href).toBe("/changelog");
   });
 
+  it("links a based tab to an outside route served without the basePath", () => {
+    // Outside routes (the generated changelog index, custom pages) are served
+    // at their own path, while the tab path is rebased under `/docs`.
+    const nav = buildNavigation(
+      [
+        page("changelog/v2.mdx", "/docs/changelog/v2", "v2"),
+        page("changelog/v1.mdx", "/docs/changelog/v1", "v1"),
+      ],
+      {
+        basePath: "/docs",
+        extraRoutes: new Set(["/changelog"]),
+        folderMeta: empty,
+        tabs: [{ label: "Changelog", path: "/changelog" }],
+      }
+    );
+    expect(nav.tabs[0]?.path).toBe("/docs/changelog");
+    expect(nav.tabs[0]?.href).toBe("/changelog");
+  });
+
+  it("keeps a based tab on its section's own page over an outside route", () => {
+    // The tab path is a real page in the tree, so it wins over the base-less
+    // outside route that happens to share its name.
+    const nav = buildNavigation(
+      [
+        page("changelog/index.mdx", "/docs/changelog", "Changelog"),
+        page("changelog/v1.mdx", "/docs/changelog/v1", "v1"),
+      ],
+      {
+        basePath: "/docs",
+        extraRoutes: new Set(["/changelog"]),
+        folderMeta: empty,
+        tabs: [{ label: "Changelog", path: "/changelog" }],
+      }
+    );
+    expect(nav.tabs[0]?.href).toBeUndefined();
+  });
+
   it("links a tab straight to its path when that route is served outside the tree", () => {
     // The generated changelog index isn't a content page, so without being
     // told about it resolution would land on the newest entry.
@@ -761,8 +798,67 @@ describe("buildNavigation — explicit config sidebar", () => {
   });
 });
 
+describe("buildNavigation — page icons", () => {
+  const withIcons = (
+    id: string,
+    route: string,
+    meta: PageMetaInput
+  ): PageRecord => ({
+    ...page(id, route, id),
+    meta: pageMetaSchema.parse(meta),
+  });
+
+  it("falls back to the top-level icon shorthand when sidebar.icon is unset", () => {
+    const nav = buildNavigation(
+      [withIcons("install.md", "/install", { icon: "download" })],
+      { folderMeta: empty }
+    );
+    expect(asPage(nav.sidebar[0]).icon).toBe("download");
+  });
+
+  it("prefers sidebar.icon over the top-level icon", () => {
+    const nav = buildNavigation(
+      [
+        withIcons("install.md", "/install", {
+          icon: "download",
+          sidebar: { icon: "rocket" },
+        }),
+      ],
+      { folderMeta: empty }
+    );
+    expect(asPage(nav.sidebar[0]).icon).toBe("rocket");
+  });
+
+  it("reads the top-level icon for an explicit-config sidebar page ref", () => {
+    const nav = buildNavigation(
+      [withIcons("install.md", "/install", { icon: "download" })],
+      { folderMeta: empty, sidebar: ["install"] }
+    );
+    expect(asPage(nav.sidebar[0]).icon).toBe("download");
+  });
+});
+
 describe("buildNavigation — index title / folder meta title diagnostics", () => {
-  it("warns when an index page's title diverges from its folder's meta.title", () => {
+  it("warns when a hidden index page's title diverges from its folder's meta.title", () => {
+    // With its own row hidden, the linked group header is the page's only
+    // sidebar label, so the header and the page's own <title> disagree.
+    const folderMeta = new Map<string, FolderMeta>([
+      ["guide", { title: "Guides" }],
+    ]);
+    const diagnostics: Diagnostic[] = [];
+    buildNavigation(
+      [page("guide/index.md", "/guide", "Guide Home", { hidden: true })],
+      { diagnostics, folderMeta }
+    );
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]?.code).toBe("BLUME_NAV_INDEX_TITLE_MISMATCH");
+    expect(diagnostics[0]?.message).toContain('"Guide Home"');
+    expect(diagnostics[0]?.message).toContain('"Guides"');
+  });
+
+  it("does not warn when the index page's own row is visible", () => {
+    // The row shows the page's own label beneath the linked header ("CLI"
+    // over "Overview"), so the sidebar already carries both titles.
     const folderMeta = new Map<string, FolderMeta>([
       ["guide", { title: "Guides" }],
     ]);
@@ -771,10 +867,7 @@ describe("buildNavigation — index title / folder meta title diagnostics", () =
       diagnostics,
       folderMeta,
     });
-    expect(diagnostics).toHaveLength(1);
-    expect(diagnostics[0]?.code).toBe("BLUME_NAV_INDEX_TITLE_MISMATCH");
-    expect(diagnostics[0]?.message).toContain('"Guide Home"');
-    expect(diagnostics[0]?.message).toContain('"Guides"');
+    expect(diagnostics).toHaveLength(0);
   });
 
   it("does not warn when the index page's title already matches", () => {
@@ -782,19 +875,19 @@ describe("buildNavigation — index title / folder meta title diagnostics", () =
       ["guide", { title: "Guides" }],
     ]);
     const diagnostics: Diagnostic[] = [];
-    buildNavigation([page("guide/index.md", "/guide", "Guides")], {
-      diagnostics,
-      folderMeta,
-    });
+    buildNavigation(
+      [page("guide/index.md", "/guide", "Guides", { hidden: true })],
+      { diagnostics, folderMeta }
+    );
     expect(diagnostics).toHaveLength(0);
   });
 
   it("does not warn when the folder has no explicit meta.title", () => {
     const diagnostics: Diagnostic[] = [];
-    buildNavigation([page("guide/index.md", "/guide", "Guide Home")], {
-      diagnostics,
-      folderMeta: empty,
-    });
+    buildNavigation(
+      [page("guide/index.md", "/guide", "Guide Home", { hidden: true })],
+      { diagnostics, folderMeta: empty }
+    );
     expect(diagnostics).toHaveLength(0);
   });
 
@@ -803,10 +896,10 @@ describe("buildNavigation — index title / folder meta title diagnostics", () =
       ["guide", { title: "Guides" }],
     ]);
     const diagnostics: Diagnostic[] = [];
-    buildNavigation([page("guide/setup.md", "/guide/setup", "Setup")], {
-      diagnostics,
-      folderMeta,
-    });
+    buildNavigation(
+      [page("guide/setup.md", "/guide/setup", "Setup", { hidden: true })],
+      { diagnostics, folderMeta }
+    );
     expect(diagnostics).toHaveLength(0);
   });
 
@@ -830,7 +923,7 @@ describe("buildNavigation — index title / folder meta title diagnostics", () =
           id: "guide/index.md",
           links: [],
           locale: "",
-          meta: pageMetaSchema.parse({}),
+          meta: pageMetaSchema.parse({ sidebar: { hidden: true } }),
           navPath: "guide/index.md",
           route: "/guide",
           segments: [],
@@ -850,7 +943,7 @@ describe("buildNavigation — index title / folder meta title diagnostics", () =
   it("does not warn about the root group's meta.title (never rendered as a label)", () => {
     const folderMeta = new Map<string, FolderMeta>([["", { title: "Home" }]]);
     const diagnostics: Diagnostic[] = [];
-    buildNavigation([page("index.md", "/", "Welcome")], {
+    buildNavigation([page("index.md", "/", "Welcome", { hidden: true })], {
       diagnostics,
       folderMeta,
     });
@@ -878,7 +971,12 @@ describe("buildNavigation — index title / folder meta title diagnostics", () =
     ]);
     const diagnostics: Diagnostic[] = [];
     buildNavigation(
-      [{ ...page("guide/index.md", "/guide", "Guide Home"), fallback: true }],
+      [
+        {
+          ...page("guide/index.md", "/guide", "Guide Home", { hidden: true }),
+          fallback: true,
+        },
+      ],
       { diagnostics, folderMeta }
     );
     expect(diagnostics).toHaveLength(0);
@@ -1215,5 +1313,33 @@ describe("scanProject changelog tab", () => {
     const [tab] = project.graph.navigation.tabs;
     expect(tab?.path).toBe("/changelog");
     expect(tab?.href).toBeUndefined();
+  });
+
+  it("points a /changelog tab at the generated index under a basePath", async () => {
+    // The generated index is served at `/changelog` whatever the basePath,
+    // while the tab path is rebased to `/docs/changelog`, which no page backs.
+    const root = await mkdtemp(join(tmpdir(), "blume-nav-"));
+    dirs.push(root);
+    await mkdir(join(root, "docs", "changelog"), { recursive: true });
+    await writeFile(
+      join(root, "docs", "index.mdx"),
+      "---\ntitle: Home\n---\n# Home\n"
+    );
+    await writeFile(
+      join(root, "docs", "changelog", "v1.mdx"),
+      "---\ntitle: v1.0.0\ntype: changelog\ndate: 2026-06-20\n---\nFirst release.\n"
+    );
+    await writeFile(
+      join(root, "blume.config.ts"),
+      `export default {
+        basePath: "/docs",
+        navigation: { tabs: [{ label: "Changelog", path: "/changelog" }] },
+      };\n`
+    );
+
+    const project = await scanProject(root, { mode: "build" });
+    const [tab] = project.graph.navigation.tabs;
+    expect(tab?.path).toBe("/docs/changelog");
+    expect(tab?.href).toBe("/changelog");
   });
 });

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { unrecognizedKeysMessage } from "../core/unrecognized-keys.ts";
 import { asyncapiAdapterSchema } from "./asyncapi.ts";
 import type { AsyncApiAdapter, ResolvedAsyncApiAdapter } from "./asyncapi.ts";
 import { graphqlAdapterSchema } from "./graphql.ts";
@@ -59,14 +60,16 @@ export const referenceConfigSchema = z
   .default([]);
 
 /** The top-level keys the `reference` list replaced. */
-const REMOVED_KEYS = ["asyncapi", "graphql", "openapi"] as const;
+const REMOVED_KEYS: readonly string[] = ["asyncapi", "graphql", "openapi"];
 
 /**
  * The hint for a config still carrying the 1.x `openapi`/`asyncapi`/`graphql`
  * blocks, or `undefined` when none of the unrecognized keys is one of them
- * (so the default "unrecognized key" message applies). Wired into the config
- * object's error hook: the keys are gone from the schema, so without this a
- * migrating site would see only "Unrecognized key".
+ * (so the default "unrecognized key" message applies). Wired into the root
+ * config object's error hook: the keys are gone from the schema, so without
+ * this a migrating site would see only "Unrecognized key". Any other unknown
+ * key keeps Zod's wording beside the hint, and the rest of the config is
+ * still validated in the same run.
  */
 export const removedReferenceKeysHint = (
   keys: string[]
@@ -77,5 +80,9 @@ export const removedReferenceKeysHint = (
   }
   const list = removed.map((key) => `\`${key}\``).join(", ");
   const factories = removed.map((key) => `${key}({ … })`).join(", ");
-  return `The top-level ${list} config was replaced by \`reference\`, a list of adapters imported from "blume/reference": \`reference: [${factories}]\`. Each block's options move onto its factory unchanged (\`enabled\` is gone — an adapter in the list is enabled), and a block with \`renderer: "scalar"\` becomes its own \`scalar({ spec, theme, …scalar })\` adapter in the list.`;
+  const hint = `The top-level ${list} config was replaced by \`reference\`, a list of adapters imported from "blume/reference": \`reference: [${factories}]\`. Each block's options move onto its factory unchanged (\`enabled\` is gone — an adapter in the list is enabled), and a block with \`renderer: "scalar"\` becomes its own \`scalar({ spec, theme, …scalar })\` adapter in the list.`;
+  const others = keys.filter((key) => !REMOVED_KEYS.includes(key));
+  return others.length > 0
+    ? `${hint} ${unrecognizedKeysMessage(others)}`
+    : hint;
 };

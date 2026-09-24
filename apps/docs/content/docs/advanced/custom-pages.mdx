@@ -1,5 +1,5 @@
 ---
-title: Custom Pages
+title: Custom pages
 description: Mount fully custom .astro routes alongside your docs and read your site's config, navigation, and content from the blume:data module.
 ---
 
@@ -33,6 +33,8 @@ Each file's path under the pages folder becomes its route. `index` maps to the p
 | `pages/changelog.astro`   | `/changelog`  |
 
 A custom page **wins** over a generated route at the same path. Adding `pages/changelog.astro`, for example, replaces Blume's [generated changelog timeline](/docs/advanced/changelog) with your own.
+
+Blume can't enumerate the paths a dynamic `[param]` route serves, so those pages are left out of the [sitemap](/docs/discoverability/sitemap-and-robots), get no generated [Open Graph card](/docs/discoverability/open-graph), and are unknown to [`blume validate`](/docs/cli/validate), which reports a link to one as broken. Pass `ogImage` to `PageLayout` for their share image, or give each path its own static file (`pages/compare/mintlify.astro` rather than `pages/compare/[tool].astro`) to get all three.
 
 ## Reading site data
 
@@ -228,7 +230,7 @@ The [agent-discovery head links](/docs/discoverability/agent-discovery#discovery
 
 Pass `transparentHeader` to start the header see-through with its chrome in white, so it can sit over a dark hero at the top of the page; it becomes the usual frosted bar as soon as the page scrolls, and the search dialog keeps the page's own colors throughout. The hero has to run under the header for this to show — pull it up by the header's height (`-mt-16`) and pad its top to compensate.
 
-Passing `siteUrl` (and `ogEnabled`) derives the page's `canonical` and a generated `og:image` automatically: Blume renders an Open Graph card for every static custom page — the home included, the most-shared URL — served at `/og/<route>.png` (`/og/index.png` for `/`). The home card uses the site title with the description as its eyebrow; a deeper page is titled from its last path segment. Set `ogImage` or `canonical` explicitly to override either. `ogImage` takes a root-relative path — a file in `public/`, resolved against [`deployment.site`](/docs/deployment) to the absolute URL crawlers need — or an external URL, which passes through untouched:
+Passing `siteUrl` (and `ogEnabled`) derives the page's `canonical` and a generated `og:image` automatically: Blume renders an Open Graph card for every static custom page (not a dynamic `[param]` one) — the home included, the most-shared URL — served at `/og/<route>.png` (`/og/index.png` for `/`). The home card uses the site title with the description as its eyebrow; a deeper page is titled from its last path segment. Set `ogImage` or `canonical` explicitly to override either. `ogImage` takes a root-relative path — a file in `public/`, resolved against [`deployment.site`](/docs/deployment) to the absolute URL crawlers need — or an external URL, which passes through untouched:
 
 ```astro pages/index.astro lineNumbers
 <PageLayout

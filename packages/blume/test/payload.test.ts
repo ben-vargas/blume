@@ -132,7 +132,7 @@ describe("lexicalToMarkdown", () => {
     expect(md).toBe(`### Title
 
 plain **bold** *em* ~~gone~~ under \`a*b\` ***both***
-\t[site](https://x.dev) [old](https://old.dev) internal [auto](https://a.dev) <Badge>New</Badge> <!-- unsupported Lexical block: unknown --> kept
+\t[site](https://x.dev) [old](https://old.dev) internal [auto](https://a.dev) <Badge>New</Badge> {/* unsupported Lexical block: unknown */} kept
 
 > q1
 > q2
@@ -155,17 +155,17 @@ plain **bold** *em* ~~gone~~ under \`a*b\` ***both***
 
 ![b.png](https://cdn/b.png)
 
-<!-- unsupported Lexical upload (fetch with depth 1 to populate it) -->
+{/* unsupported Lexical upload (fetch with depth 1 to populate it) */}
 
 \`\`\`
 x
 \`\`\`
 
-<!-- unsupported Lexical block: video -->
+{/* unsupported Lexical block: video */}
 
-<!-- unsupported Lexical block -->
+{/* unsupported Lexical block */}
 
-<!-- unsupported Lexical node: mystery -->
+{/* unsupported Lexical node: mystery */}
 `);
   });
 
@@ -253,6 +253,38 @@ describe("payloadSource", () => {
     });
     expect(calls[1]?.url.searchParams.get("page")).toBe("2");
     expect(calls[0]?.headers.get("authorization")).toBe("users API-Key key");
+  });
+
+  it("writes lowered bodies as MDX when serializers render blocks", async () => {
+    const { fetchImpl } = recordingFetch((): JsonValue => ({
+      docs: [
+        doc("a", {
+          content: {
+            root: el("root", [
+              el("block", [], { fields: { blockType: "banner", text: "Hi" } }),
+            ]),
+          },
+          slug: "rich",
+        }),
+        doc("b", { content: "# Markdown\n", slug: "plain" }),
+      ],
+      hasNextPage: false,
+    }));
+    const source = payloadSource(
+      {
+        collection: "docs",
+        fetchImpl,
+        name: "cms",
+        serializers: { banner: () => "<Banner />" },
+        url: "https://cms.test",
+      },
+      ctxFor(await tempDir("payload-mdx"))
+    );
+    const { entries } = await source.load();
+    expect(entries.map((e) => [e.ref, e.body.text])).toStrictEqual([
+      ["rich.mdx", "<Banner />\n"],
+      ["plain.md", "# Markdown\n"],
+    ]);
   });
 
   it("keeps drafts under --preview and names the auth collection", async () => {

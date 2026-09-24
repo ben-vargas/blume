@@ -7,10 +7,10 @@ import type { ResolvedConfig } from "../core/schema.ts";
 
 /**
  * Platform redirect files for a static build. Astro already emits redirect HTML
- * (meta-refresh) pages for `deployment.output: "static"`, but that's a soft
- * client redirect. These give the host a real HTTP 3xx: Netlify/Cloudflare read
- * `_redirects`, Vercel reads `vercel.json`, and `blume-redirects.json` is a
- * structured manifest for anything else (Apache/nginx rules, an edge worker).
+ * (meta-refresh) pages for static output, but that's a soft client redirect.
+ * These give the host a real HTTP 3xx: Netlify/Cloudflare read `_redirects`,
+ * Vercel reads `vercel.json`, and `blume-redirects.json` is a structured
+ * manifest for anything else (Apache/nginx rules, an edge worker).
  */
 
 type Redirect = ResolvedConfig["redirects"][number];

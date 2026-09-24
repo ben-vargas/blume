@@ -21,7 +21,7 @@ export default defineConfig({
 A broader example touching the most common options (see each feature's guide for the rest):
 
 ```ts blume.config.ts lineNumbers
-import sitemap from "@astrojs/sitemap";
+import partytown from "@astrojs/partytown";
 import { defineConfig } from "blume";
 import { orama } from "blume/search";
 
@@ -32,7 +32,7 @@ export default defineConfig({
   logo: "/logo.svg",
 
   // Astro integrations — installed and versioned by this site
-  integrations: [sitemap()],
+  integrations: [partytown()],
 
   // Content
   content: {
@@ -84,9 +84,8 @@ export default defineConfig({
     structuredData: true,
   },
 
-  // Deployment — see the Deployment guide
+  // Deployment — a static build here; see the Deployment guide for host adapters
   deployment: {
-    output: "static",
     site: "https://docs.example.com",
   },
 });
@@ -115,13 +114,13 @@ The SVG can live at your project root or in `public/`. The brand is a mark (`ima
 logo: {
   image: "/logo.svg", // string, or { light, dark, alt } for themed raster art
   text: "Acme",       // wordmark beside the mark
-  href: "/",          // overrides the brand link (defaults to "/"; follows the reader's locale)
+  href: "/",          // overrides the brand link (defaults to "/")
 },
 ```
 
 `image` takes the same value as the shorthand — a single path, or `{ light, dark, alt }` for separate light/dark artwork (raster images must live in `public/`).
 
-`href` is a default-locale path like a tab path: on a [multi-locale site](/docs/content/i18n) the brand link moves into the reader's locale (`/` becomes `/en` under `/en/…`), so clicking the logo never leaves the language they were reading. An absolute URL is used as-is.
+`href` is a default-locale path like a tab path: on a [multi-locale site](/docs/content/i18n) the brand link moves into the reader's locale (`/` becomes `/en` under `/en/…`) whenever that locale serves the route, so clicking the logo doesn't leave the language they were reading. A route only the default locale serves — a [custom page](/docs/advanced/custom-pages) or the generated changelog index — keeps its own path instead of pointing at a localized URL that would 404. An absolute URL is used as-is.
 
 `text` controls the wordmark independently of the mark:
 
@@ -177,10 +176,10 @@ banner: "Docs are in beta — expect changes.",
 
 ```ts blume.config.ts lineNumbers
 banner: {
-  content: "Blume v1 is here!",
-  link: { text: "Read more", href: "/blog/v1" },
+  content: "Version 2.0 is here!",
+  link: { text: "Read the release notes", href: "/changelog" },
   dismissible: true,
-  id: "v1",
+  id: "v2",
 },
 ```
 
@@ -409,6 +408,18 @@ export default defineConfig({
 });
 ```
 
+## Page feedback
+
+Each docs page ends with a "Was this page helpful?" rating. It's on by default; set `feedback` to `false` to hide it everywhere:
+
+```ts blume.config.ts
+export default defineConfig({
+  feedback: false,
+});
+```
+
+A reader's answer is sent as a `feedback` [custom event](/docs/configuration/analytics#custom-events) — with `helpful` (`"yes"` or `"no"`), `path`, and `title` — through every configured analytics adapter that has an event API, and as a `blume:track` event on `window`. Without an analytics adapter, the answer isn't recorded anywhere. The question and thank-you text are UI strings you can translate with [`i18n.ui`](/docs/content/i18n#translated-ui).
+
 ## Feature options
 
 Each of these has its own guide. The config field is the entry point:
@@ -427,6 +438,13 @@ Each of these has its own guide. The config field is the entry point:
 | `deployment` | A host adapter from `blume/deploy`, or `{ site, base }` for a static build | [Deployment](/docs/deployment) |
 | `redirects` | Permanent and temporary redirects | [Deployment](/docs/deployment#redirects) |
 | `integrations` | Astro integrations appended after Blume's built-ins | [Customization](/docs/configuration/customization#astro-integrations) |
+| `basePath` | A path every generated route mounts under (e.g. `/docs`), invisible to the sidebar | [Deployment](/docs/deployment#mount-the-docs-under-a-path) |
+| `i18n` | Locales, the default locale, and translated UI strings | [Internationalization](/docs/content/i18n) |
+| `versions` | Frozen snapshots of older docs with a version switcher | [Versioning](/docs/content/versioning) |
+| `export` | Reader-facing PDF and EPUB downloads | [Export](/docs/configuration/export) |
+| `examples` | Where `<Component path>` example previews live, and the CSS injected into their frames | [Component](/docs/content/components#component) |
+| `react` | React island behavior — the React Compiler's auto-memoization | [Islands](/docs/content/islands#frameworks) |
+| `feedback` | The "Was this page helpful?" rating at the foot of each page (default `true`) | [Page feedback](#page-feedback) |
 
 ## Precedence
 

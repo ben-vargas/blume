@@ -66,14 +66,19 @@ export const prepareProject = async (
   ) {
     const features = serverFeatures(project.config);
     if (features.length > 0) {
+      // A host adapter already names the target, so only its
+      // `output: "static"` stands in the way; otherwise name one.
+      const { kind } = project.config.deployment;
       reportDiagnostics(
         [
           {
             code: "BLUME_SERVER_FEATURE_REQUIRED",
-            message: `${features.join(", ")} require server output, but deployment.output is "static".`,
+            message: `${features.join(", ")} ${features.length === 1 ? "requires" : "require"} server output, but this is a static build.`,
             severity: "error",
             suggestion:
-              'Set deployment to a host adapter from "blume/deploy" in blume.config.ts, e.g. `deployment: vercel()`.',
+              kind === "static"
+                ? 'Set deployment to a host adapter from "blume/deploy" in blume.config.ts, e.g. `deployment: vercel()`.'
+                : `Drop \`output: "static"\` from \`deployment: ${kind}()\` in blume.config.ts to build for the server.`,
           },
         ],
         options.root

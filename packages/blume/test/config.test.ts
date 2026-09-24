@@ -5,7 +5,11 @@ import { tmpdir } from "node:os";
 import type { AstroIntegration } from "astro";
 import { join } from "pathe";
 
-import { defineConfig, loadConfig } from "../src/core/config.ts";
+import {
+  ConfigValidationError,
+  defineConfig,
+  loadConfig,
+} from "../src/core/config.ts";
 import { BlumeError } from "../src/core/diagnostics.ts";
 
 const dirs: string[] = [];
@@ -378,6 +382,44 @@ describe("reference config", () => {
     expect(error.diagnostic.code).toBe("BLUME_CONFIG_INVALID");
     expect(error.diagnostic.message).toContain("`asyncapi`, `openapi`");
     expect(error.diagnostic.message).toContain('"blume/reference"');
+  });
+
+  it("reports the 1.x blocks beside every other issue, each at its own line", async () => {
+    // A `theme` without `fonts` used to fail the pre-schema probe and drop the
+    // hint; now the hint rides in the schema with the rest.
+    const dir = await makeDir(`export default {
+  theme: { radius: "md" },
+  lastModified: true,
+  openapi: { enabled: true, spec: "./openapi.json" },
+};
+`);
+    const error = await loadError(dir);
+    expect(error).toBeInstanceOf(ConfigValidationError);
+    // SAFETY: asserted to be a ConfigValidationError on the line above.
+    const { issues } = error as ConfigValidationError;
+    expect(issues.map((issue) => issue.line)).toEqual([4, 3]);
+    expect(issues[0]?.message).toContain("replaced by `reference`");
+    expect(issues[0]?.column).toBe(3);
+    expect(issues[1]?.message).toContain('`true` became "git"');
+    // The printed diagnostic folds both, the hint first.
+    expect(error.diagnostic.line).toBe(4);
+    expect(error.diagnostic.message).toContain("1 more config issue(s):");
+    expect(error.diagnostic.message).toContain('`true` became "git"');
+  });
+
+  it("locates a removed nested key at its own line", async () => {
+    const dir = await makeDir(`export default {
+  ai: {
+    ask: { enabled: true },
+    llmsTxt: true,
+  },
+};
+`);
+    const error = await loadError(dir);
+    expect(error.diagnostic.message).toContain(
+      "ai.llmsTxt moved to agents.llmsTxt."
+    );
+    expect(error.diagnostic.line).toBe(4);
   });
 
   it("keeps the schema's own wording for any other unrecognized key", async () => {

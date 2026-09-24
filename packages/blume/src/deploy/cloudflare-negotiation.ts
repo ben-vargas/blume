@@ -1,8 +1,8 @@
 /**
  * `Accept: text/markdown` content negotiation for Cloudflare server builds.
  *
- * Blume prerenders every content page — even under `deployment.output:
- * "server"` — and on Cloudflare the ASSETS binding serves those files before
+ * Blume prerenders every content page — even in a server build (`deployment:
+ * cloudflare()`) — and on Cloudflare the ASSETS binding serves those files before
  * the Worker script runs, so no server-side code (Astro middleware included)
  * ever sees a content-page request. Worse, even a content-page request that
  * does reach the Worker is answered by `@astrojs/cloudflare`'s handler

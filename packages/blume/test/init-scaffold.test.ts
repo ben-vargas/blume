@@ -5,6 +5,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 
 import { join } from "pathe";
+import { intersects, minVersion, satisfies } from "semver";
 
 import {
   applyPlan,
@@ -14,6 +15,7 @@ import {
   detectPackageManager,
   detectProjectPackageManager,
   nextSteps,
+  readExistingPackage,
   titleize,
   validateContentDir,
 } from "../src/cli/init/scaffold.ts";
@@ -247,12 +249,14 @@ describe("titleize", () => {
 describe("commandsFor", () => {
   it("uses `run` for npm, and for bun's shadowed `build` script", () => {
     expect(commandsFor("npm")).toEqual({
+      add: "npm install",
       build: "npm run build",
       dev: "npm run dev",
       exec: "npx",
       install: "npm install",
     });
     expect(commandsFor("pnpm")).toEqual({
+      add: "pnpm add",
       build: "pnpm build",
       dev: "pnpm dev",
       exec: "pnpm exec",
@@ -261,6 +265,7 @@ describe("commandsFor", () => {
     // `bun build` is Bun's bundler ("Missing entrypoints"), not the script;
     // `bun dev` has no builtin and falls through to the script.
     expect(commandsFor("bun")).toEqual({
+      add: "bun add",
       build: "bun run build",
       dev: "bun dev",
       exec: "bunx",
@@ -450,7 +455,68 @@ describe("buildPlan", () => {
       answersWith({ sources: ["filesystem", "notion", "sanity"] })
     );
     expect(pkg?.content).toContain('"@notionhq/client": "^5.26.0"');
-    expect(pkg?.content).toContain('"@sanity/client": "^7.25.0"');
+    expect(pkg?.content).toContain('"@sanity/client": "^8.6.1"');
+  });
+
+  it("scaffolds only SDK ranges that admit the versions Blume tests against", () => {
+    const manifest = JSON.parse(
+      readFileSync(join(import.meta.dir, "..", "package.json"), "utf-8")
+    );
+    const [pkg] = buildPlan(
+      "/proj",
+      answersWith({ sources: ["notion", "sanity"] })
+    );
+    const { dependencies } = JSON.parse(pkg?.content ?? "{}");
+    for (const sdk of ["@notionhq/client", "@sanity/client"]) {
+      const tested = minVersion(manifest.devDependencies[sdk]);
+      expect(tested && satisfies(tested, dependencies[sdk])).toBe(true);
+      expect(
+        intersects(dependencies[sdk], manifest.peerDependencies[sdk])
+      ).toBe(true);
+    }
+  });
+
+  it("approves pnpm's dependency builds in a new pnpm project", async () => {
+    const root = await makeTempDir();
+    const plan = buildPlan(root, answersWith({ packageManager: "pnpm" }));
+    const workspace = plan.find((file) =>
+      file.path.endsWith("pnpm-workspace.yaml")
+    );
+    expect(workspace).toEqual({
+      content: 'allowBuilds:\n  esbuild: true\n  "@scarf/scarf": false\n',
+      path: join(root, "pnpm-workspace.yaml"),
+    });
+    // Other package managers read nothing from it.
+    expect(
+      buildPlan(root, answersWith()).some((file) =>
+        file.path.endsWith("pnpm-workspace.yaml")
+      )
+    ).toBe(false);
+  });
+
+  it("leaves pnpm build approvals to an existing package or workspace", async () => {
+    const existing = await makeTempDir();
+    await writeFile(join(existing, "package.json"), "{}\n");
+    const workspace = await makeTempDir();
+    await mkdir(join(workspace, ".git"));
+    await writeFile(join(workspace, "pnpm-workspace.yaml"), "packages: []\n");
+    const member = join(workspace, "apps", "docs");
+    for (const root of [existing, member]) {
+      expect(
+        buildPlan(root, answersWith({ packageManager: "pnpm" })).some((file) =>
+          file.path.endsWith("pnpm-workspace.yaml")
+        )
+      ).toBe(false);
+    }
+    // A repository with no pnpm workspace gets one for the new package.
+    const repo = await makeTempDir();
+    await mkdir(join(repo, ".git"));
+    expect(
+      buildPlan(
+        join(repo, "docs"),
+        answersWith({ packageManager: "pnpm" })
+      ).some((file) => file.path.endsWith("pnpm-workspace.yaml"))
+    ).toBe(true);
   });
 
   it("skips seed pages when no filesystem source is selected", () => {
@@ -478,9 +544,8 @@ describe("applyPlan", () => {
     expect(readFileSync(join(root, "blume.config.ts"), "utf-8")).toContain(
       "defineConfig"
     );
-    expect(readFileSync(join(root, "docs", "index.mdx"), "utf-8")).toContain(
-      "# Introduction"
-    );
+    const start = readFileSync(join(root, "docs", "index.mdx"), "utf-8");
+    expect(start).toContain("title: Introduction");
     expect(lines).toHaveLength(3);
     expect(lines.every((line) => line.startsWith("success:Created "))).toBe(
       true
@@ -500,6 +565,50 @@ describe("applyPlan", () => {
   });
 });
 
+describe("starter pages", () => {
+  it("leave the heading to the frontmatter title", () => {
+    for (const template of ["docs", "api", "sdk", "changelog"] as const) {
+      for (const file of buildPlan("/proj", answersWith({ template }))) {
+        if (file.path.endsWith(".mdx")) {
+          expect(file.content).not.toMatch(/^# /mu);
+        }
+      }
+    }
+  });
+});
+
+describe("readExistingPackage", () => {
+  it("lists the dependencies and whether `dev` runs Blume", async () => {
+    const root = await makeTempDir();
+    await writeFile(
+      join(root, "package.json"),
+      JSON.stringify({
+        dependencies: { react: "^19.0.0" },
+        devDependencies: { blume: "^2.0.0" },
+        scripts: { dev: "blume dev" },
+      })
+    );
+    expect(await readExistingPackage(root)).toEqual({
+      dependencies: ["react", "blume"],
+      devRunsBlume: true,
+    });
+  });
+
+  it("reads a package with no dependencies or scripts as wiring nothing up", async () => {
+    const root = await makeTempDir();
+    await writeFile(join(root, "package.json"), '{ "name": "site" }\n');
+    expect(await readExistingPackage(root)).toEqual({
+      dependencies: [],
+      devRunsBlume: false,
+    });
+    await writeFile(join(root, "package.json"), "{ not json");
+    expect(await readExistingPackage(root)).toEqual({
+      dependencies: [],
+      devRunsBlume: false,
+    });
+  });
+});
+
 describe("nextSteps", () => {
   it("matches the legacy default message", () => {
     expect(nextSteps(answersWith(), true)).toBe(
@@ -507,10 +616,34 @@ describe("nextSteps", () => {
     );
   });
 
-  it("drops the install line when package.json already existed", () => {
+  it("drops the install line once init installed", () => {
     expect(nextSteps(answersWith(), false)).toBe(
       "Next steps:\n\n  npm run dev\n"
     );
+  });
+
+  it("adds what an existing package.json lacks and runs Blume through the runner", () => {
+    expect(
+      nextSteps(
+        answersWith({
+          packageManager: "pnpm",
+          sources: ["filesystem", "notion"],
+        }),
+        false,
+        { dependencies: ["react"], devRunsBlume: false }
+      )
+    ).toBe(
+      "Next steps:\n\n  pnpm add blume @notionhq/client\n  pnpm exec blume dev\n\nSet NOTION_TOKEN in .env.local so your sources can authenticate.\n"
+    );
+  });
+
+  it("uses an existing dev script that already runs Blume", () => {
+    expect(
+      nextSteps(answersWith(), false, {
+        dependencies: ["blume"],
+        devRunsBlume: true,
+      })
+    ).toBe("Next steps:\n\n  npm run dev\n");
   });
 
   it("adds a cd hint for non-cwd targets and honors the package manager", () => {

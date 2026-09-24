@@ -6,6 +6,7 @@ import { join } from "pathe";
 import { parseYouTubeId } from "../../components/content/youtube.ts";
 import { BlumeError } from "../diagnostics.ts";
 import matter from "../frontmatter.ts";
+import { nodeRequire } from "../node-require.ts";
 import type { Diagnostic } from "../types.ts";
 import { materializeAssets } from "./assets.ts";
 import {
@@ -14,6 +15,7 @@ import {
   pollingWatch,
   snapshotCache,
 } from "./cache.ts";
+import { codeFence, image, renderInline, renderLink } from "./lower.ts";
 import { slugifyPath } from "./normalize.ts";
 import type {
   ContentSource,
@@ -152,24 +154,25 @@ interface NotionFrontmatter {
   [key: string]: boolean | string | { order: number } | undefined;
 }
 
+/**
+ * Rich text as Markdown for an MDX body. Each run goes through the shared
+ * lowering, so a literal `{`, `<`, `*`, or `[` typed in Notion renders as
+ * itself instead of opening a JSX expression, a tag, or emphasis, and a code
+ * run keeps its text verbatim inside a long-enough code span.
+ */
 const richToMarkdown = (rich: NotionRichText[] = []): string =>
   rich
-    .map((node) => {
-      let text = node.plain_text;
-      if (node.annotations?.code) {
-        text = `\`${text}\``;
-      }
-      if (node.annotations?.bold) {
-        text = `**${text}**`;
-      }
-      if (node.annotations?.italic) {
-        text = `*${text}*`;
-      }
-      if (node.annotations?.strikethrough) {
-        text = `~~${text}~~`;
-      }
-      return node.href ? `[${text}](${node.href})` : text;
-    })
+    .map(({ annotations = {}, href, plain_text: text }) =>
+      renderLink(
+        renderInline(text, {
+          bold: annotations.bold,
+          code: annotations.code,
+          italic: annotations.italic,
+          strike: annotations.strikethrough,
+        }),
+        href ?? undefined
+      )
+    )
     .join("");
 
 const isBlockPayload = (
@@ -334,11 +337,12 @@ const renderLeaf = (block: NotionBlock): string | null => {
       return "---";
     }
     case "code": {
-      return `\`\`\`${data.language ?? ""}\n${text}\n\`\`\``;
+      // The code's own text, verbatim: escapes would show inside the fence.
+      return codeFence(richToPlain(blockField(block)), data.language ?? "");
     }
     case "image": {
       const url = data.external?.url ?? data.file?.url;
-      return url ? `![${richToMarkdown(data.caption)}](${url})` : "";
+      return url ? image(richToPlain(data.caption), url) : "";
     }
     case "video": {
       return renderVideo(data);
@@ -383,16 +387,18 @@ export const notionSource = (
   const assetsBaseUrl = ctx?.assetsBaseUrl ?? `/blume-assets/${options.name}`;
   let snapshot = new Map<string, SourceEntry>();
 
-  const resolveClient = async (): Promise<NotionClientLike> => {
+  const resolveClient = (): NotionClientLike => {
     if (options.client) {
       return options.client;
     }
     let Client: new (config: { auth?: string }) => NotionClientLike;
     try {
-      // The module is widened first because the SDK's response unions are
-      // broader than the NotionClientLike slice, so a direct assertion is
-      // rejected as non-overlapping.
-      const sdk: unknown = await import("@notionhq/client");
+      // `require`, not `import()`: an ejected app scans in
+      // `astro:build:done` (see `core/node-require.ts`). The module is
+      // widened first because the SDK's response unions are broader than the
+      // NotionClientLike slice, so a direct assertion is rejected as
+      // non-overlapping.
+      const sdk: unknown = nodeRequire("@notionhq/client");
       // SAFETY: `@notionhq/client` exports a `Client` class constructable with
       // an `auth` token whose instances cover the NotionClientLike slice; the
       // local type keeps the SDK mockable without importing its types.
@@ -440,7 +446,8 @@ export const notionSource = (
       return `<Callout>\n${body}\n</Callout>`;
     }
     if (block.type === "toggle") {
-      const title = jsxString(richToMarkdown(blockField(block)));
+      // The item's title renders as text, not Markdown.
+      const title = jsxString(richToPlain(blockField(block)));
       return `<Accordion>\n<AccordionItem title=${title}>\n${await children(block)}\n</AccordionItem>\n</Accordion>`;
     }
     if (block.type === "column_list") {
@@ -534,11 +541,12 @@ export const notionSource = (
 
   const frontmatter = (page: NotionPage) => {
     const data: NotionFrontmatter = {};
-    const title = richToMarkdown(titleProperty(page)?.title);
+    // Frontmatter holds plain text: Markdown marks or escapes would show.
+    const title = richToPlain(titleProperty(page)?.title);
     if (title) {
       data.title = title;
     }
-    const description = richToMarkdown(
+    const description = richToPlain(
       page.properties[props.description ?? "Description"]?.rich_text
     );
     if (description) {
@@ -551,7 +559,7 @@ export const notionSource = (
     if (order !== undefined) {
       data.sidebar = { order };
     }
-    const slugProp = richToMarkdown(
+    const slugProp = richToPlain(
       page.properties[props.slug ?? "Slug"]?.rich_text
     );
     // Path-aware: a `guides/setup` slug keeps its `/` (per-segment slugging)
@@ -628,7 +636,7 @@ export const notionSource = (
       options.name,
       cache,
       async () => {
-        const client = await resolveClient();
+        const client = resolveClient();
         const dataSourceId = await resolveDataSource(client);
         const pages = await collectAll((cursor) =>
           queryDataSource(client, dataSourceId, cursor)

@@ -1,13 +1,20 @@
 import type { AstroIntegration } from "astro";
 import { z } from "zod";
 
-import { askAdapterSchema, DEFAULT_ASK_PROVIDER } from "../ai/ask.ts";
+import {
+  askAdapterSchema,
+  askMovedFieldsHint,
+  DEFAULT_ASK_PROVIDER,
+} from "../ai/ask.ts";
 import type { ComponentMarkdown } from "../ai/component-markdown.ts";
 import { analyticsConfigSchema } from "../analytics/schema.ts";
 import { resolvedDeploymentSchema } from "../deploy/adapters/registry.ts";
 import type { CodeTheme } from "../markdown/themes.ts";
 import { normalizeRoute } from "../openapi/references.ts";
-import { referenceConfigSchema } from "../reference/schema.ts";
+import {
+  referenceConfigSchema,
+  removedReferenceKeysHint,
+} from "../reference/schema.ts";
 import { orama } from "../search/adapters/orama.ts";
 import {
   NONE_SEARCH_ADAPTER,
@@ -28,6 +35,7 @@ import { openInChatProviders } from "./open-in-chat.ts";
 import { isStandardSchema } from "./standard-schema.ts";
 import type { StandardSchema } from "./standard-schema.ts";
 import { trimEnd } from "./trim.ts";
+import { unrecognizedKeysMessage } from "./unrecognized-keys.ts";
 
 /**
  * An absolute HTTP(S) URL, for any field that lands verbatim in an `href` —
@@ -83,11 +91,7 @@ const removedKeysHint = (hints: Record<string, string>) => ({
     // latter so it isn't silently dropped from the diagnostic.
     const others = issue.keys.filter((key) => !Object.hasOwn(hints, key));
     if (others.length > 0) {
-      messages.push(
-        `Unrecognized key${others.length > 1 ? "s" : ""}: ${others
-          .map((key) => JSON.stringify(key))
-          .join(", ")}`
-      );
+      messages.push(unrecognizedKeysMessage(others));
     }
     return messages.join(" ");
   },
@@ -151,11 +155,16 @@ const seoMetaSchema = z.strictObject({
   x: z.strictObject({ creator: xHandleSchema }).optional(),
 });
 
-const searchMetaSchema = z.strictObject({
-  boost: z.number().optional(),
-  exclude: z.boolean().default(false),
-  tags: z.array(z.string()).optional(),
-});
+const searchMetaSchema = z.strictObject(
+  {
+    exclude: z.boolean().default(false),
+    tags: z.array(z.string()).optional(),
+  },
+  removedKeysHint({
+    boost:
+      "search.boost was removed: search never read it, so the page ranked the same without it. Delete the field.",
+  })
+);
 
 const aiMetaSchema = z.strictObject({
   /** Exclude this page from llms.txt and llms-full.txt. */
@@ -815,61 +824,64 @@ const movedToAgentsHints = (from: string): Record<string, string> =>
 /** Model-facing config: the Ask AI assistant and the "Open in chat" action. */
 const aiConfigFields = {
   ask: z
-    .strictObject({
-      // Origins allowed to call the generated `/api/ask` from another site (a
-      // marketing page that embeds an ask box, say), or `"*"` for every
-      // origin. Each URL is reduced to its origin so a trailing slash or path
-      // can't defeat the exact match the route performs. Read by the
-      // generated route only; an external `endpoint` owns its own CORS.
-      cors: z
-        .array(
-          z.union([
-            z.literal("*"),
-            z
-              .url({ protocol: /^https?$/u })
-              .transform((value) => new URL(value).origin),
-          ])
-        )
-        .optional(),
-      enabled: z.boolean().default(false),
-      // Optional external endpoint for projects that keep their docs static
-      // and host Ask AI in an existing backend. Absolute URLs and root-relative
-      // paths are both valid; the built-in request/stream contract is unchanged.
-      endpoint: askEndpointSchema.optional(),
-      // Extra system-prompt text (identity, language, tone) appended to the
-      // built-in instructions, so the grounding contract — answer from the
-      // retrieved excerpts, cite pages as Markdown links — stays intact.
-      instructions: z.string().trim().min(1).optional(),
-      // The adapter descriptor a `gateway()`/`openrouter()`/... factory
-      // returns; each adapter validates its own options (model, key env var,
-      // reasoning mapping, `providerOptions` passthrough) in `ai/ask.ts`.
-      // Unset means the gateway with its default model, so zero-config Ask AI
-      // is unchanged.
-      provider: askAdapterSchema.prefault(DEFAULT_ASK_PROVIDER),
-      // How much documentation each question carries. Injected characters are
-      // the dominant term in time-to-first-token on a self-hosted backend, so
-      // these trade recall for latency. No zod defaults here: only what the
-      // user set reaches the generated (and ejected) endpoint, so omitted
-      // fields keep tracking the installed package's built-in defaults in
-      // `ai/ask-context.ts` instead of pinning today's numbers as literals.
-      retrieval: z
-        .strictObject({
-          contextBudget: z.number().int().positive().optional(),
-          excerptChars: z.number().int().positive().optional(),
-          maxResults: z.number().int().positive().optional(),
-        })
-        .optional(),
-      // Empty-state prompts shown before the first question. Each renders as a
-      // clickable suggestion; `icon` is an optional Lucide name beside it.
-      suggestions: z
-        .array(
-          z.strictObject({
-            icon: iconName.optional(),
-            label: z.string().min(1),
+    .strictObject(
+      {
+        // Origins allowed to call the generated `/api/ask` from another site (a
+        // marketing page that embeds an ask box, say), or `"*"` for every
+        // origin. Each URL is reduced to its origin so a trailing slash or path
+        // can't defeat the exact match the route performs. Read by the
+        // generated route only; an external `endpoint` owns its own CORS.
+        cors: z
+          .array(
+            z.union([
+              z.literal("*"),
+              z
+                .url({ protocol: /^https?$/u })
+                .transform((value) => new URL(value).origin),
+            ])
+          )
+          .optional(),
+        enabled: z.boolean().default(false),
+        // Optional external endpoint for projects that keep their docs static
+        // and host Ask AI in an existing backend. Absolute URLs and root-relative
+        // paths are both valid; the built-in request/stream contract is unchanged.
+        endpoint: askEndpointSchema.optional(),
+        // Extra system-prompt text (identity, language, tone) appended to the
+        // built-in instructions, so the grounding contract — answer from the
+        // retrieved excerpts, cite pages as Markdown links — stays intact.
+        instructions: z.string().trim().min(1).optional(),
+        // The adapter descriptor a `gateway()`/`openrouter()`/... factory
+        // returns; each adapter validates its own options (model, key env var,
+        // reasoning mapping, `providerOptions` passthrough) in `ai/ask.ts`.
+        // Unset means the gateway with its default model, so zero-config Ask AI
+        // is unchanged.
+        provider: askAdapterSchema.prefault(DEFAULT_ASK_PROVIDER),
+        // How much documentation each question carries. Injected characters are
+        // the dominant term in time-to-first-token on a self-hosted backend, so
+        // these trade recall for latency. No zod defaults here: only what the
+        // user set reaches the generated (and ejected) endpoint, so omitted
+        // fields keep tracking the installed package's built-in defaults in
+        // `ai/ask-context.ts` instead of pinning today's numbers as literals.
+        retrieval: z
+          .strictObject({
+            contextBudget: z.number().int().positive().optional(),
+            excerptChars: z.number().int().positive().optional(),
+            maxResults: z.number().int().positive().optional(),
           })
-        )
-        .default([]),
-    })
+          .optional(),
+        // Empty-state prompts shown before the first question. Each renders as a
+        // clickable suggestion; `icon` is an optional Lucide name beside it.
+        suggestions: z
+          .array(
+            z.strictObject({
+              icon: iconName.optional(),
+              label: z.string().min(1),
+            })
+          )
+          .default([]),
+      },
+      askMovedFieldsHint
+    )
     .superRefine((value, ctx) => {
       // `cors` configures the generated route, which an external `endpoint`
       // replaces; accepting both would silently do nothing.
@@ -1758,67 +1770,77 @@ const tocConfigSchema = z
   });
 
 export const blumeConfigSchema = z
-  .strictObject({
-    agents: agentsConfigSchema.prefault({}),
-    ai: aiConfigSchema.prefault({}),
-    // Adapters from `blume/analytics`, each a serializable descriptor.
-    analytics: analyticsConfigSchema,
-    banner: bannerConfigSchema.optional(),
-    /**
-     * Site-wide mount point prepended to every generated route (e.g. `/docs`),
-     * while staying invisible to the sidebar/nav tree. Distinct from a per-source
-     * `prefix` (which creates a group) and from `deployment.base` (Astro's
-     * host-subdirectory base); the two compose. Normalized to `""` or `/seg`.
-     */
-    basePath: z
-      .string()
-      .optional()
-      .transform((value) => normalizeBasePath(value)),
-    content: contentConfigSchema.prefault({}),
-    /**
-     * Date presentation for the "last updated" stamp and the changelog timeline.
-     * Pass-through `Intl.DateTimeFormat` options; defaults to `{ dateStyle: "long" }`.
-     */
-    dateFormat: dateFormatConfigSchema.default({ dateStyle: "long" }),
-    /**
-     * A host adapter from `blume/deploy` (`vercel()`, `netlify()`,
-     * `cloudflare()`, `node()`) for a server build on that host, or the plain
-     * `{ site, base }` form for a static build anywhere. Resolves to the
-     * adapter's descriptor with `output` filled in; `static` when unset.
-     */
-    deployment: resolvedDeploymentSchema.prefault({}),
-    description: z.string().optional(),
-    /**
-     * Where `<Component path>` resolves live previews and their source from.
-     * A string is shorthand for `{ source }` — the directory (or glob, for
-     * colocated registry layouts) under the project root that holds example
-     * files. The object form adds `css`: a stylesheet injected into every
-     * preview frame (design tokens, shadcn variables, `@theme` mappings).
-     */
-    examples: examplesConfigSchema.prefault("examples"),
-    export: exportConfigSchema.prefault(false),
-    feedback: z.boolean().default(true),
-    /** Opt-in custom frontmatter keys, validated by user-supplied schemas. */
-    frontmatter: frontmatterConfigSchema.prefault({}),
-    github: githubConfigSchema.optional(),
-    i18n: i18nConfigSchema.optional(),
-    image: imageConfigSchema.prefault({}),
-    integrations: z.array(z.custom<AstroIntegration>()).default([]),
-    lastModified: lastModifiedConfigSchema.default(false),
-    logo: logoConfigSchema.optional(),
-    markdown: markdownConfigSchema.prefault({}),
-    navigation: navigationConfigSchema.prefault({}),
-    react: reactConfigSchema.prefault({}),
-    redirects: z.array(redirectSchema).default([]),
-    /** API references: adapters from `blume/reference`, each a serializable descriptor. */
-    reference: referenceConfigSchema,
-    search: searchConfigSchema.prefault({}),
-    seo: seoConfigSchema.prefault({}),
-    theme: themeConfigSchema.prefault({}),
-    title: z.string().default("Documentation"),
-    toc: tocConfigSchema,
-    versions: versionsConfigSchema.optional(),
-  })
+  .strictObject(
+    {
+      agents: agentsConfigSchema.prefault({}),
+      ai: aiConfigSchema.prefault({}),
+      // Adapters from `blume/analytics`, each a serializable descriptor.
+      analytics: analyticsConfigSchema,
+      banner: bannerConfigSchema.optional(),
+      /**
+       * Site-wide mount point prepended to every generated route (e.g. `/docs`),
+       * while staying invisible to the sidebar/nav tree. Distinct from a per-source
+       * `prefix` (which creates a group) and from `deployment.base` (Astro's
+       * host-subdirectory base); the two compose. Normalized to `""` or `/seg`.
+       */
+      basePath: z
+        .string()
+        .optional()
+        .transform((value) => normalizeBasePath(value)),
+      content: contentConfigSchema.prefault({}),
+      /**
+       * Date presentation for the "last updated" stamp and the changelog timeline.
+       * Pass-through `Intl.DateTimeFormat` options; defaults to `{ dateStyle: "long" }`.
+       */
+      dateFormat: dateFormatConfigSchema.default({ dateStyle: "long" }),
+      /**
+       * A host adapter from `blume/deploy` (`vercel()`, `netlify()`,
+       * `cloudflare()`, `node()`) for a server build on that host, or the plain
+       * `{ site, base }` form for a static build anywhere. Resolves to the
+       * adapter's descriptor with `output` filled in; `static` when unset.
+       */
+      deployment: resolvedDeploymentSchema.prefault({}),
+      description: z.string().optional(),
+      /**
+       * Where `<Component path>` resolves live previews and their source from.
+       * A string is shorthand for `{ source }` — the directory (or glob, for
+       * colocated registry layouts) under the project root that holds example
+       * files. The object form adds `css`: a stylesheet injected into every
+       * preview frame (design tokens, shadcn variables, `@theme` mappings).
+       */
+      examples: examplesConfigSchema.prefault("examples"),
+      export: exportConfigSchema.prefault(false),
+      feedback: z.boolean().default(true),
+      /** Opt-in custom frontmatter keys, validated by user-supplied schemas. */
+      frontmatter: frontmatterConfigSchema.prefault({}),
+      github: githubConfigSchema.optional(),
+      i18n: i18nConfigSchema.optional(),
+      image: imageConfigSchema.prefault({}),
+      integrations: z.array(z.custom<AstroIntegration>()).default([]),
+      lastModified: lastModifiedConfigSchema.default(false),
+      logo: logoConfigSchema.optional(),
+      markdown: markdownConfigSchema.prefault({}),
+      navigation: navigationConfigSchema.prefault({}),
+      react: reactConfigSchema.prefault({}),
+      redirects: z.array(redirectSchema).default([]),
+      /** API references: adapters from `blume/reference`, each a serializable descriptor. */
+      reference: referenceConfigSchema,
+      search: searchConfigSchema.prefault({}),
+      seo: seoConfigSchema.prefault({}),
+      theme: themeConfigSchema.prefault({}),
+      title: z.string().default("Documentation"),
+      toc: tocConfigSchema,
+      versions: versionsConfigSchema.optional(),
+    },
+    {
+      // The 1.x `openapi`/`asyncapi`/`graphql` blocks name the `reference` list
+      // that replaced them, alongside every other issue in the config.
+      error: (issue) =>
+        issue.code === "unrecognized_keys"
+          ? removedReferenceKeysHint(issue.keys)
+          : undefined,
+    }
+  )
   .superRefine((config, ctx) => {
     // A version id that is also a configured locale code would make a leading
     // `<id>/` directory ambiguous between the two axes — refuse it outright so

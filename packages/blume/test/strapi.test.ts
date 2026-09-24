@@ -187,16 +187,24 @@ describe("strapiSource", () => {
     expect(calls[0]?.headers.get("authorization")).toBe("Bearer tok");
   });
 
-  it("flattens the Strapi 4 envelope and marks drafts under --preview", async () => {
-    const { calls, fetchImpl } = recordingFetch((): JsonValue => ({
-      data: [
-        {
-          attributes: { publishedAt: null, slug: "draft", title: "Draft" },
-          id: 12,
-        },
-        { attributes: { title: "Live" }, id: 13 },
-        { publishedAt: null, title: "No id" },
-      ],
+  it("flattens the Strapi 4 envelope and previews with publicationState", async () => {
+    const live = { attributes: { title: "Live" }, id: 13 };
+    const { calls, fetchImpl } = recordingFetch(({ url }): JsonValue => ({
+      data:
+        url.searchParams.get("publicationState") === "preview"
+          ? [
+              {
+                attributes: {
+                  publishedAt: null,
+                  slug: "draft",
+                  title: "Draft",
+                },
+                id: 12,
+              },
+              live,
+              { publishedAt: null, title: "No id" },
+            ]
+          : [live],
       meta: { pagination: { page: 1, pageCount: 1 } },
     }));
     const source = strapiSource(
@@ -211,8 +219,77 @@ describe("strapiSource", () => {
     ]);
     expect(entries[0]?.data).toStrictEqual({ draft: true, title: "Draft" });
     expect(entries[1]?.data).toStrictEqual({ title: "Live" });
-    expect(calls[0]?.url.searchParams.get("status")).toBe("draft");
-    expect(calls[0]?.url.searchParams.get("populate")).toBe("*");
+    // The published listing names the version; Strapi 4 never sees `status`.
+    expect(
+      calls.map((call) => call.url.searchParams.get("status"))
+    ).toStrictEqual([null, null]);
+    expect(calls[1]?.url.searchParams.get("populate")).toBe("*");
+  });
+
+  it("marks only never-published Strapi 5 documents as drafts under --preview", async () => {
+    const { calls, fetchImpl } = recordingFetch(({ url }): JsonValue => {
+      if (url.searchParams.get("status") === "draft") {
+        // Every document's draft version carries a null `publishedAt`.
+        return {
+          data: [
+            { documentId: "pub", publishedAt: null, title: "Edited draft" },
+            { documentId: "new", publishedAt: null, title: "New" },
+          ],
+        };
+      }
+      return {
+        data: [
+          { documentId: "pub", publishedAt: "2026-04-01", title: "Live" },
+          { documentId: "plain", publishedAt: "2026-04-01", title: "No D&P" },
+        ],
+      };
+    });
+    const source = strapiSource(
+      { contentType: "docs", fetchImpl, name: "cms", url: "https://cms.test" },
+      ctxFor(await tempDir("strapi-preview-v5"), { preview: true })
+    );
+    const { entries } = await source.load();
+    expect(entries.map((e) => [e.ref, e.data])).toStrictEqual([
+      ["pub.md", { title: "Edited draft" }],
+      ["new.md", { draft: true, title: "New" }],
+      ["plain.md", { title: "No D&P" }],
+    ]);
+    expect(
+      calls.map((call) => call.url.searchParams.get("status"))
+    ).toStrictEqual([null, "draft"]);
+  });
+
+  it("asks Strapi 4 for drafts when a preview finds nothing published", async () => {
+    const { calls, fetchImpl } = recordingFetch(({ url }): JsonValue => ({
+      data:
+        url.searchParams.get("publicationState") === "preview"
+          ? [{ attributes: { publishedAt: null, title: "Only draft" }, id: 7 }]
+          : [],
+    }));
+    const source = strapiSource(
+      { contentType: "docs", fetchImpl, name: "cms", url: "https://cms.test" },
+      ctxFor(await tempDir("strapi-preview-empty"), { preview: true })
+    );
+    const { entries } = await source.load();
+    expect(entries.map((e) => [e.ref, e.data])).toStrictEqual([
+      ["7.md", { draft: true, title: "Only draft" }],
+    ]);
+    expect(calls).toHaveLength(3);
+  });
+
+  it("previews an empty Strapi 5 content type that rejects publicationState", async () => {
+    const { calls, fetchImpl } = recordingFetch(({ url }) =>
+      url.searchParams.has("publicationState")
+        ? Response.json({ error: "Invalid key" }, { status: 400 })
+        : { data: [] }
+    );
+    const source = strapiSource(
+      { contentType: "docs", fetchImpl, name: "cms", url: "https://cms.test" },
+      ctxFor(await tempDir("strapi-preview-strict"), { preview: true })
+    );
+    const { entries } = await source.load();
+    expect(entries).toStrictEqual([]);
+    expect(calls).toHaveLength(3);
   });
 
   it("reads the API token from the environment, else sends no auth header", async () => {

@@ -45,6 +45,7 @@ import {
   ogEndpointTemplate,
   rawMarkdownEndpointTemplate,
   rssEndpointTemplate,
+  runtimeDependencies,
   runtimeTsconfigTemplate,
   searchClientTemplate,
   searchEndpointTemplate,
@@ -306,6 +307,26 @@ const examplesPreviewFiles = (
       ]
     : [];
 
+/**
+ * The packages the ejected app imports by bare name: Astro, Tailwind's Vite
+ * plugin, `blume` itself, the integrations the config wires in, whatever the
+ * configured adapters declare, and React when islands, examples, or Ask AI
+ * render with it (Blume ships React, so projects rarely list it). They have
+ * to be the project's own dependencies after eject — under a strict linker
+ * such as pnpm nothing else makes them resolvable, and `astro build` fails.
+ */
+const ejectDependencies = (
+  options: Parameters<typeof runtimeDependencies>[0]
+): string[] => [
+  ...new Set([
+    "astro",
+    "@tailwindcss/vite",
+    "blume",
+    ...runtimeDependencies(options),
+    ...(options.needsReact ? ["react", "react-dom"] : []),
+  ]),
+];
+
 const ejectIntegrationBridge = (
   config: BlumeProject["config"],
   root: string,
@@ -322,11 +343,12 @@ const ejectIntegrationBridge = (
  *
  * Returns the written files plus non-fatal warnings, mirroring the generated
  * runtime (e.g. a Scalar reference spec that wasn't found, or a reference
- * route colliding with a content page).
+ * route colliding with a content page), and the packages the ejected app
+ * imports by bare name, for the caller to add to package.json.
  */
 export const eject = async (
   root: string
-): Promise<{ files: string[]; warnings: string[] }> => {
+): Promise<{ dependencies: string[]; files: string[]; warnings: string[] }> => {
   const project = await scanProject(root, { mode: "build" });
   const { context, config } = project;
 
@@ -364,9 +386,11 @@ export const eject = async (
     analyzeComponentsFile(context.componentsFile),
   ]);
   // The `islands/` convention and `components.ts` share the same static plan
-  // the CLI uses, so hydration wrappers eject as-is (the source paths are
-  // absolute, like the example wrappers below).
-  const slotPlan = planComponentSlots(islands.islands, overrideAnalysis);
+  // the CLI uses, with every import written relative to its generated file so
+  // the ejected app builds from any checkout (like the example wrappers below).
+  const slotPlan = planComponentSlots(islands.islands, overrideAnalysis, {
+    relativeTo: genDir,
+  });
   // Island/example/override frameworks drive which Astro renderers the ejected
   // config wires in; React also switches on for project `.tsx`/`.jsx` and Ask AI.
   const frameworks = new Set<string>([
@@ -382,7 +406,11 @@ export const eject = async (
   const relContext: ProjectContext = {
     ...context,
     contentRoot: toPosix(relative(root, context.contentRoot)),
+    distDir: "./dist",
     outDir: ".",
+    pagesRoot: context.pagesRoot
+      ? `./${toPosix(relative(root, context.pagesRoot))}`
+      : null,
     root: ".",
   };
   // The `docs` collection resolves its base against the real project root and
@@ -657,7 +685,7 @@ export const eject = async (
       path: join(genDir, "component-slots", `${wrapper.name}.astro`),
     })),
     ...examples.examples.map((example) => ({
-      content: exampleWrapperTemplate(example),
+      content: exampleWrapperTemplate(example, join(genDir, "examples")),
       path: join(genDir, "examples", `${exampleSlug(example.path)}.astro`),
     })),
     ...examplesPreviewFiles(
@@ -696,5 +724,14 @@ export const eject = async (
   // The hidden runtime is no longer the source of truth.
   await rm(context.outDir, { force: true, recursive: true });
 
-  return { files: written.map((file) => file.path), warnings };
+  return {
+    dependencies: ejectDependencies({
+      config,
+      needsReact,
+      needsSvelte,
+      needsVue,
+    }),
+    files: written.map((file) => file.path),
+    warnings,
+  };
 };

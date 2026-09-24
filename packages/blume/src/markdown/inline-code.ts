@@ -7,11 +7,14 @@
  * marker and replaces the code's text with Shiki tokens (dual github-light/dark
  * via CSS variables, like fenced blocks).
  *
- * Shiki is imported lazily, so it loads only on pages that actually use inline
+ * Shiki is loaded lazily, so it loads only on pages that actually use inline
  * highlighting — and never when `markdown.code.inline` is off (the plugin is not
  * added to the pipeline at all).
  */
 
+import type * as ShikiModule from "shiki";
+
+import { nodeRequire } from "../core/node-require.ts";
 import { DEFAULT_CODE_THEMES } from "./themes.ts";
 import type { CodeThemes } from "./themes.ts";
 
@@ -77,13 +80,16 @@ type InlineHighlighter = (
   }
 ) => Promise<{ children: HastNode[] }>;
 
-// `import()` caches the module, so this dedupes Shiki across calls on its own.
-const loadHighlighter = async (): Promise<InlineHighlighter> => {
-  const mod = await import("shiki");
+// `require` caches the module, so this dedupes Shiki across calls on its own.
+// Not `import()`: the plugin runs after Astro has closed the module runner an
+// installed Blume's config was evaluated in (see `core/node-require.ts`), so
+// every inline snippet would silently lose its highlighting.
+const loadHighlighter = (): InlineHighlighter => {
+  const { codeToHast }: typeof ShikiModule = nodeRequire("shiki");
   // SAFETY: Shiki accepts arbitrary lang/theme strings at runtime (an unknown
   // one rejects the promise, which the caller catches); only its bundled types
   // constrain them to known ids, so the loose signature narrows nothing real.
-  return mod.codeToHast as InlineHighlighter;
+  return codeToHast as InlineHighlighter;
 };
 
 /** Build the plugin. Highlights inline `` `code{:lang}` `` snippets. */
@@ -102,7 +108,7 @@ export const inlineCodeHighlightPlugin = (
         return;
       }
       try {
-        const codeToHast = await loadHighlighter();
+        const codeToHast = loadHighlighter();
         const root = await codeToHast(parsed.code, {
           defaultColor: false,
           lang: parsed.lang,

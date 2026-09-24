@@ -4,12 +4,15 @@ import { defineCommand } from "citty";
 import { join } from "pathe";
 import { satisfies } from "semver";
 
+import { discoverIslands } from "../../astro/islands.ts";
+import { missingDependencyDiagnostic } from "../../astro/runtime-deps.ts";
 import { BlumeError } from "../../core/diagnostics.ts";
 import { packageRoot } from "../../core/package-root.ts";
 import { scanProject } from "../../core/project-graph.ts";
 import { serverFeatures } from "../../core/server-features.ts";
 import type { Diagnostic } from "../../core/types.ts";
 import { commandMeta } from "../command-meta.ts";
+import { loadEnvFiles } from "../env.ts";
 import { reportInternalError } from "../internal-error.ts";
 import {
   flushStdout,
@@ -17,6 +20,7 @@ import {
   reportDiagnostics,
   reportDiagnosticsJson,
 } from "../log.ts";
+import { checkRequiredSecrets } from "../required-secrets.ts";
 
 const FALLBACK_NODE_RANGE = ">=22.12.0";
 
@@ -56,22 +60,44 @@ export const doctorCommand = defineCommand({
       });
     }
 
+    // Read `.env` files first, as `blume dev`/`build` do: remote sources read
+    // their tokens during the scan, and the secrets check below reads them too.
+    loadEnvFiles(root);
+
     try {
       const project = await scanProject(root, { mode: "build" });
       diagnostics.push(...project.diagnostics);
 
       const { config } = project;
+      // The packages and secrets a build would need: an adapter's missing SDK
+      // fails the build, and a missing secret fails at the first request.
+      const { islands } = await discoverIslands(root);
+      const dependencies = await missingDependencyDiagnostic(
+        config,
+        root,
+        "error",
+        islands.map((island) => island.framework)
+      );
+      if (dependencies) {
+        diagnostics.push(dependencies);
+      }
+      diagnostics.push(...checkRequiredSecrets(config));
       const features = serverFeatures(config);
       if (
         features.length > 0 &&
         config.deployment.options.output === "static"
       ) {
+        // A host adapter already names the target, so only its
+        // `output: "static"` stands in the way; otherwise name one.
+        const { kind } = config.deployment;
         diagnostics.push({
           code: "BLUME_SERVER_FEATURE_REQUIRED",
-          message: `${features.join(", ")} require server output.`,
+          message: `${features.join(", ")} ${features.length === 1 ? "requires" : "require"} server output.`,
           severity: "error",
           suggestion:
-            'Set deployment to a host adapter from "blume/deploy" (e.g. `deployment: vercel()`).',
+            kind === "static"
+              ? 'Set deployment to a host adapter from "blume/deploy" (e.g. `deployment: vercel()`).'
+              : `Drop \`output: "static"\` from \`deployment: ${kind}()\` to build for the server.`,
         });
       }
 

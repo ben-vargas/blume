@@ -87,23 +87,28 @@ export interface RemoteFrontmatter {
   title?: string;
 }
 
-/** A staged entry: Markdown body plus the frontmatter it was mapped from. */
+/**
+ * A staged entry: Markdown body plus the frontmatter it was mapped from,
+ * written as `.mdx` when the body carries serializer output (see
+ * `writesMdx`).
+ */
 export const stagedEntry = (
   slug: string,
   data: RemoteFrontmatter,
   markdown: string,
-  lastModified: string | undefined
+  lastModified: string | undefined,
+  format: "md" | "mdx" = "md"
 ): SourceEntry => {
   const raw = matter.stringify(markdown, data);
   return {
-    body: { format: "md", text: markdown },
+    body: { format, text: markdown },
     // Spread into a fresh literal: `SourceEntry.data` wants an
     // index-signature type, which the named interface lacks.
     data: { ...data },
     hash: hashText(raw),
     lastModified,
     raw,
-    ref: `${slug}.md`,
+    ref: `${slug}.${format}`,
   };
 };
 
@@ -176,15 +181,17 @@ export interface RemoteFieldMap {
  * Map a document to a staged entry. The slug falls back to the document's id
  * when the slug field is missing or slugifies to nothing (pure punctuation),
  * so distinct documents never collapse onto one `untitled.md`; a slashed
- * slug keeps its segments. A string body is Markdown and passes through; any
- * other shape goes to the CMS's lowerer.
+ * slug keeps its segments. A string body is Markdown and passes through as
+ * `.md`; any other shape goes to the CMS's lowerer, and is written as `.mdx`
+ * when `lowersToMdx` (the source has serializers, see `writesMdx`).
  */
 export const documentEntry = (
   doc: JsonObject,
   fields: Required<RemoteFieldMap>,
   id: string,
   lower: (body: JsonValue) => string,
-  draft = false
+  draft = false,
+  lowersToMdx = false
 ): SourceEntry => {
   const slugValue = asString(getPath(doc, fields.slug)) ?? id;
   const slug = slugifyPath(slugValue) || slugify(id) || "untitled";
@@ -202,15 +209,18 @@ export const documentEntry = (
   }
   const body = getPath(doc, fields.body);
   let markdown = "";
+  let format: "md" | "mdx" = "md";
   if (isStringValue(body)) {
     markdown = `${body.trimEnd()}\n`;
   } else if (body !== undefined) {
     markdown = lower(body);
+    format = lowersToMdx ? "mdx" : "md";
   }
   return stagedEntry(
     slug,
     data,
     markdown,
-    asString(getPath(doc, fields.lastModified))
+    asString(getPath(doc, fields.lastModified)),
+    format
   );
 };

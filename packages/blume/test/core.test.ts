@@ -1040,14 +1040,17 @@ describe("content graph", () => {
     ).toBeTruthy();
   });
 
-  it("flags an index page whose title diverges from its folder's meta.title", () => {
+  it("flags a hidden index page whose title diverges from its folder's meta.title", () => {
     const graph = buildContentGraph(
       [
         makePage({
           id: "guide/index.mdx",
           // An explicit frontmatter title, not a derived default — only an
           // authored title is compared against the folder's meta.title.
-          meta: pageMetaSchema.parse({ title: "Guide Home" }),
+          meta: pageMetaSchema.parse({
+            sidebar: { hidden: true },
+            title: "Guide Home",
+          }),
           route: "/guide",
           title: "Guide Home",
         }),

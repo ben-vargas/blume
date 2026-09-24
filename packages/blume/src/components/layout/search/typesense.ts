@@ -1,5 +1,6 @@
 import { Client } from "typesense";
 
+import type { TypesenseOptions } from "../../../search/adapters/typesense.ts";
 import { excerptFor, highlight, SEARCH_LIMIT } from "./types.ts";
 import type { SearchFn } from "./types.ts";
 
@@ -13,28 +14,21 @@ interface TypesenseRecord extends Record<string, unknown> {
 
 /**
  * Typesense: the browser queries the collection directly with the search-only
- * key. Documents are imported at build time by the sync step.
+ * key. Documents are imported at build time by the sync step. Every adapter
+ * option Blume doesn't read (`connectionTimeoutSeconds`, `numRetries`, …) is
+ * the site's own client option and goes to the `Client` untouched; the named
+ * connection options still decide `apiKey` and `nodes`.
  */
-export const createSearch = (opts: {
-  apiKey: string;
-  collection: string;
-  host: string;
-  port?: number;
-  protocol?: string;
-}): SearchFn => {
+export const createSearch = (opts: TypesenseOptions): SearchFn => {
+  const { apiKey, collection, host, port, protocol, ...clientOptions } = opts;
   const client = new Client({
-    apiKey: opts.apiKey,
-    nodes: [
-      {
-        host: opts.host,
-        port: opts.port ?? 443,
-        protocol: opts.protocol ?? "https",
-      },
-    ],
+    ...clientOptions,
+    apiKey,
+    nodes: [{ host, port: port ?? 443, protocol: protocol ?? "https" }],
   });
   return async (query, options) => {
     const response = await client
-      .collections<TypesenseRecord>(opts.collection)
+      .collections<TypesenseRecord>(collection)
       .documents()
       .search(
         {

@@ -2294,6 +2294,7 @@ describe("ai.ask schema", () => {
         },
       })
     ).toThrow(/Invalid discriminator value/u);
+    // Each 1.x flat prop names the adapter option it moved into.
     for (const flat of [
       { model: "x" },
       { apiKeyEnv: "K" },
@@ -2303,7 +2304,7 @@ describe("ai.ask schema", () => {
     ]) {
       expect(() =>
         blumeConfigSchema.parse({ ai: { ask: { enabled: true, ...flat } } })
-      ).toThrow(/Unrecognized key/u);
+      ).toThrow(/moved into the provider adapter/u);
     }
     // Inkeep runs its own QA pipeline with no reasoning control, so its
     // adapter has no such option to accept.

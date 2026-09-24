@@ -1,4 +1,4 @@
-// The Blume mark (apps/docs/logo.svg), black, for the center of the
+// The Blume mark (apps/docs/public/logo.svg), black, for the center of the
 // content-sources constellation. width/height 100% so it fills its box.
 export const BLUME_MARK_SVG = `<svg width="100%" height="100%" viewBox="0 0 288 320" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M143.797 1.01514C168.964 1.01514 189.366 21.4172 189.366 46.5845C189.366 71.7519 168.964 92.1548 143.797 92.1548C118.63 92.1547 98.2275 71.7518 98.2275 46.5845C98.2277 21.4173 118.63 1.01525 143.797 1.01514Z" fill="#000000" stroke="#000000" stroke-width="2.02532"/>

@@ -1,3 +1,6 @@
+import type * as TypesenseSdk from "typesense";
+
+import { nodeRequire } from "../../core/node-require.ts";
 import type { TypesenseOptions } from "../adapters/typesense.ts";
 import type { SearchRecord } from "../documents.ts";
 
@@ -24,7 +27,9 @@ export const syncTypesense = async (
   if (!adminKey) {
     throw new Error("TYPESENSE_ADMIN_API_KEY is not set.");
   }
-  const { Client } = await import("typesense");
+  // `require`, not `import()`: this runs in `astro:build:done` (see
+  // `core/node-require.ts`).
+  const { Client }: typeof TypesenseSdk = nodeRequire("typesense");
   const client = new Client({
     apiKey: adminKey,
     nodes: [

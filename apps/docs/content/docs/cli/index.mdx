@@ -53,14 +53,14 @@ blume <command> [options]
 - `blume check --isolated` — type-check in a throwaway `.blume-verify/` runtime so a running `blume dev` server is left untouched. See [Verifying while the dev server runs](#verifying-while-the-dev-server-runs).
 - `blume eject --yes` — skip the confirmation prompt.
 
-The commands with a page of their own list every flag there: [`blume doctor`](/docs/cli/doctor), [`blume validate`](/docs/cli/validate), [`blume audit`](/docs/cli/audit), [`blume eval`](/docs/cli/evals), [`blume translate`](/docs/cli/translate), and [`blume version`](/docs/cli/version). Every command that reports diagnostics takes `--json` to emit them on stdout for CI and editor integrations; see [Validate](/docs/cli/validate#json-output) for the shape.
+The commands with a page of their own list every flag there: [`blume doctor`](/docs/cli/doctor), [`blume validate`](/docs/cli/validate), [`blume audit`](/docs/cli/audit), [`blume eval`](/docs/cli/evals), [`blume translate`](/docs/cli/translate), and [`blume version`](/docs/cli/version). `blume validate`, `blume doctor`, `blume audit`, `blume eval`, and `blume translate` take `--json` to print machine-readable results on stdout for CI and editor integrations (see [Validate](/docs/cli/validate#json-output) for the diagnostics shape); `build`, `check`, and `dev` report to the terminal only.
 
 ## Verifying while the dev server runs
 
 `blume dev` serves a live Astro server rooted at the generated `.blume/` runtime and regenerates it on every change. `blume build` and `blume check` regenerate the _same_ `.blume/`, so running either while the dev server is live would corrupt it — both refuse with an error and exit non-zero:
 
 ```
-A `blume dev` server is running at http://localhost:3000; building would
+A `blume dev` server is running at http://localhost:4321; building would
 corrupt its .blume runtime. Reuse that server, stop it first, or re-run with
 --isolated to build/verify against .blume-verify without touching it.
 ```

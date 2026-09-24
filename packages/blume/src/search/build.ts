@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from "node:fs/promises";
 
+import { close, createIndex } from "pagefind";
 import { dirname, join } from "pathe";
 
 /**
@@ -7,6 +8,11 @@ import { dirname, join } from "pathe";
  * every rendered page except those whose `<html>` carries
  * `data-pagefind-ignore`, which Blume stamps on non-indexable pages
  * (search-excluded, or hidden without the opt-in), so those stay out.
+ *
+ * Pagefind is imported statically, not with `import()`: this runs in the
+ * `astro:build:done` hook, after Astro has closed the module runner an
+ * installed Blume's config was evaluated in (see `core/node-require.ts`), and
+ * Pagefind ships only an `import` export, so `require` can't load it either.
  *
  * The index files are fetched with `getFiles()` and written here rather than
  * with Pagefind's `writeFiles()`: in service mode Pagefind acknowledges
@@ -20,9 +26,7 @@ import { dirname, join } from "pathe";
  * Returns the number of pages indexed.
  */
 export const buildSearchIndex = async (outDir: string): Promise<number> => {
-  const pagefind = await import("pagefind");
-
-  const { index } = await pagefind.createIndex({});
+  const { index } = await createIndex({});
   if (!index) {
     throw new Error("Failed to create Pagefind index.");
   }
@@ -32,7 +36,7 @@ export const buildSearchIndex = async (outDir: string): Promise<number> => {
   // oxlint-disable-next-line react-doctor/async-parallel
   const result = await index.addDirectory({ path: outDir });
   const { files } = await index.getFiles();
-  await pagefind.close();
+  await close();
 
   const searchDir = join(outDir, "pagefind");
   const directories = new Set(

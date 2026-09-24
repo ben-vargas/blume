@@ -1,10 +1,12 @@
 import { afterEach, beforeAll, describe, expect, it, mock } from "bun:test";
 import { mkdtemp, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 
 import { join } from "pathe";
 
+import type { JsonValue } from "../src/core/adapter.ts";
 import type { BlumeProject } from "../src/core/project-graph.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
 import { algolia } from "../src/search/adapters/index.ts";
@@ -79,6 +81,13 @@ interface CapturedOramaSync {
   deployed?: boolean;
   snapshot?: SyncedRecord[];
 }
+/** The options a hosted SDK client was last constructed with. */
+type ClientConfig = Record<string, JsonValue>;
+interface ConstructedClients {
+  algolia?: [appId: string, apiKey: string, options?: ClientConfig];
+  oramaCloud?: ClientConfig;
+  typesense?: ClientConfig;
+}
 interface CapturedTypesenseSync {
   created?: boolean;
   deleted?: boolean;
@@ -87,6 +96,7 @@ interface CapturedTypesenseSync {
 }
 
 // --- Mutable SDK behaviors the module mocks delegate to (set per test) ---
+const constructed: ConstructedClients = {};
 let algoliaSearch: (
   params: AlgoliaSearchParams
 ) => Promise<{ results: { hits: HostedRecord[] }[] }>;
@@ -112,35 +122,56 @@ let typesenseDelete: () => Promise<Record<string, never>>;
 // Turn an object factory into a `new`-able constructor — the SDKs are used as
 // `new Client(...)` etc., and a function invoked with `new` that returns an
 // object yields that object.
-const asConstructor = <T extends object>(make: () => T): new () => T => {
-  const construct = function construct() {
-    return make();
+const asConstructor = <T extends object>(
+  make: (config: ClientConfig) => T
+): new (config: ClientConfig) => T => {
+  const construct = function construct(config: ClientConfig) {
+    return make(config);
   };
   // SAFETY: `new construct()` returns the object `make` builds, so the
   // callable behaves exactly as the `new () => T` constructor it is used as.
   return construct as never;
 };
 
+// The hosted syncs load their SDK with Node's `require` (see
+// `core/node-require.ts`), which resolves a dual ESM/CommonJS package to its
+// CommonJS build rather than the ESM entry a bare `mock.module` specifier maps
+// to, so each synced SDK is mocked under both.
+const resolveRequired = createRequire(import.meta.url).resolve;
+const mockSdk = (
+  specifier: string,
+  factory: Parameters<typeof mock.module>[1]
+): void => {
+  mock.module(specifier, factory);
+  mock.module(resolveRequired(specifier), factory);
+};
+
 mock.module("algoliasearch/lite", () => ({
-  liteClient: () => ({
-    search: (params: AlgoliaSearchParams) => algoliaSearch(params),
-  }),
+  liteClient: (appId: string, apiKey: string, options?: ClientConfig) => {
+    constructed.algolia = [appId, apiKey, options];
+    return {
+      search: (params: AlgoliaSearchParams) => algoliaSearch(params),
+    };
+  },
 }));
-mock.module("algoliasearch", () => ({
+mockSdk("algoliasearch", () => ({
   algoliasearch: () => ({
     replaceAllObjects: (args: SaveObjectsArgs) => algoliaSave(args),
   }),
 }));
-mock.module("@oramacloud/client", () => ({
+mockSdk("@oramacloud/client", () => ({
   CloudManager: asConstructor(() => ({
     index: () => ({
       deploy: () => cloudDeploy(),
       snapshot: (data: SyncedRecord[]) => cloudSnapshot(data),
     }),
   })),
-  OramaClient: asConstructor(() => ({
-    search: (query: OramaCloudSearchParams) => oramaCloudSearch(query),
-  })),
+  OramaClient: asConstructor((config) => {
+    constructed.oramaCloud = config;
+    return {
+      search: (query: OramaCloudSearchParams) => oramaCloudSearch(query),
+    };
+  }),
 }));
 // Hoisted out of the mock factory so its inner methods don't nest past the
 // four-level depth limit (mock.module → constructor → collections → documents).
@@ -149,15 +180,18 @@ const typesenseDocuments = () => ({
     typesenseImport(docs, options),
   search: (params: TypesenseSearchParams) => typesenseSearch(params),
 });
-mock.module("typesense", () => ({
-  Client: asConstructor(() => ({
-    collections: (_name?: string) => ({
-      create: (schema: TypesenseCollectionSchema) => typesenseCreate(schema),
-      delete: () => typesenseDelete(),
-      documents: typesenseDocuments,
-      retrieve: () => typesenseRetrieve(),
-    }),
-  })),
+mockSdk("typesense", () => ({
+  Client: asConstructor((config) => {
+    constructed.typesense = config;
+    return {
+      collections: (_name?: string) => ({
+        create: (schema: TypesenseCollectionSchema) => typesenseCreate(schema),
+        delete: () => typesenseDelete(),
+        documents: typesenseDocuments,
+        retrieve: () => typesenseRetrieve(),
+      }),
+    };
+  }),
 }));
 
 const INDEX = [
@@ -346,6 +380,55 @@ describe("client loaders", () => {
 
     await search("q", { locale: "fr" });
     expect(captured.value?.filter_by).toBe("locale:=fr");
+  });
+
+  it("hosted clients hand the options Blume doesn't read to their SDK", async () => {
+    const algoliaClient =
+      await import("../src/components/layout/search/algolia.ts");
+    algoliaClient.createSearch({
+      apiKey: "key",
+      appId: "app",
+      indexName: "docs",
+      timeouts: { connect: 2, read: 5 },
+    });
+    expect(constructed.algolia).toStrictEqual([
+      "app",
+      "key",
+      { timeouts: { connect: 2, read: 5 } },
+    ]);
+
+    const oramaCloudClient =
+      await import("../src/components/layout/search/orama-cloud.ts");
+    oramaCloudClient.createSearch({
+      apiKey: "k",
+      endpoint: "https://x",
+      // The sync's option, never the browser client's.
+      indexId: "i",
+      telemetry: false,
+    });
+    expect(constructed.oramaCloud).toStrictEqual({
+      api_key: "k",
+      endpoint: "https://x",
+      telemetry: false,
+    });
+
+    const typesenseClient =
+      await import("../src/components/layout/search/typesense.ts");
+    typesenseClient.createSearch({
+      apiKey: "k",
+      collection: "docs",
+      connectionTimeoutSeconds: 5,
+      host: "h",
+      // The named connection options decide the node list.
+      nodes: [{ host: "other", port: 80, protocol: "http" }],
+      port: 8108,
+      protocol: "http",
+    });
+    expect(constructed.typesense).toStrictEqual({
+      apiKey: "k",
+      connectionTimeoutSeconds: 5,
+      nodes: [{ host: "h", port: 8108, protocol: "http" }],
+    });
   });
 
   it("pagefind imports the built bundle and maps its results", async () => {

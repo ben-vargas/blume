@@ -152,17 +152,17 @@ The copy imports the rest of the framework from `blume/*`, so it renders exactly
 Add any Astro integration from the top-level `integrations` array in `blume.config.ts`. Install the integration in your site first; Blume does not add it to the generated runtime's dependencies or manage its Astro compatibility.
 
 ```bash
-npm install @astrojs/sitemap
+npm install @astrojs/partytown
 ```
 
 ```ts blume.config.ts lineNumbers
-import sitemap from "@astrojs/sitemap";
+import partytown from "@astrojs/partytown";
 import { defineConfig } from "blume";
 
 export default defineConfig({
   integrations: [
-    sitemap({
-      filter: (page) => !page.includes("/drafts/"),
+    partytown({
+      config: { forward: ["dataLayer.push"] },
     }),
   ],
 });
@@ -179,10 +179,12 @@ The same integrations run in `blume dev` and `blume build`. Editing `blume.confi
 When you want full control, eject the generated runtime into a standalone Astro project:
 
 ```bash
-blume eject --yes
+npx blume eject --yes
 ```
 
 Eject is a one-way step: the hidden `.blume/` runtime becomes a normal Astro app you own and can modify directly. The `blume` package stays importable, so you keep its components, theme, and Markdown processors.
+
+Eject points your `package.json` scripts at `astro dev` and `astro build`, and adds the packages the Astro app imports by name — `astro`, `@tailwindcss/vite`, the integrations and adapter the config wires in, and React when an island or Ask AI uses it — at the ranges Blume itself uses. Run an install before `dev` or `build`; eject lists what it added. Every path in the ejected app is relative, so it builds from any checkout, CI included.
 
 ### What eject keeps
 

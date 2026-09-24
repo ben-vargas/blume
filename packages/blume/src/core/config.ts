@@ -2,10 +2,13 @@ import { existsSync, readFileSync } from "node:fs";
 
 import { z } from "zod";
 
-import { removedReferenceKeysHint } from "../reference/schema.ts";
 import type { BlumeConfig } from "./config-input.ts";
 import { applyDeploymentEnv } from "./deployment-env.ts";
-import { BlumeError, diagnosticsFromZod } from "./diagnostics.ts";
+import {
+  BlumeError,
+  diagnosticsFromIssues,
+  diagnosticsFromZod,
+} from "./diagnostics.ts";
 import { createModuleLoader } from "./load-module.ts";
 import { findConfigFile } from "./project.ts";
 import { blumeConfigSchema } from "./schema.ts";
@@ -73,27 +76,31 @@ import type { Diagnostic } from "./types.ts";
  * - `export` — reader-facing PDF/EPUB export actions (off by default).
  *
  * **Reference docs**
- * - `openapi` — native OpenAPI reference: one real page per operation, woven
- *   into the sidebar and search. Point `sources`/`spec` at your spec.
- * - `asyncapi` — native AsyncAPI reference with the same treatment; 2.x specs
- *   are normalized to 3.x automatically.
+ * - `reference` — API references as a list of adapters from
+ *   `blume/reference`: `openapi({…})` and `asyncapi({…})` render native pages
+ *   (one real page per operation, woven into the sidebar and search; AsyncAPI
+ *   2.x specs are normalized to 3.x), `graphql({…})` renders a schema, and
+ *   `scalar({…})` embeds the Scalar reference instead.
  *
- * **Search & AI**
+ * **Search, AI & agents**
  * - `search` — a search adapter from `blume/search` (`orama()` by default;
  *   `flexsearch()`, `pagefind()`, `algolia({…})`, `oramaCloud({…})`,
  *   `typesense({…})`, `mixedbread({…})`, or `false`), or `{ provider,
  *   popular, indexing }` to add curated links and indexing settings.
- * - `ai` — `ask` (the Ask AI chat endpoint and its provider adapter), `llmsTxt`
- *   (emit `llms.txt`), `mcp` (expose the docs as an MCP server for connecting
- *   agents), and `markdownComponents` (Markdown serializers for custom
- *   components in agent-facing output).
+ * - `ai` — what faces a model at read time: `ask` (the Ask AI assistant, with
+ *   a provider adapter from `blume/ai` such as `gateway()` or `openrouter()`)
+ *   and `openInChat` (the "Open in chat" page action).
+ * - `agents` — the machine-readable surface: `llmsTxt`, the JSON `api`, the
+ *   `mcp` server, published `skills`, `markdownComponents` (Markdown
+ *   serializers for custom components), the `catalog` manifests,
+ *   `agentReadability`, robots `contentSignals`, `webmcp`, and `webBotAuth`.
  *
  * **SEO, feeds & analytics**
- * - `seo` — `og` images, `sitemap`, `robots`, `rss` feeds, `structuredData`
- *   JSON-LD, `agentReadability`, and robots `contentSignals`.
- * - `analytics` — adapters from `blume/analytics`: `posthog()`, `vercel()`,
- *   `cloudflare()`, or `script()` for any other provider (Plausible, Fathom,
- *   GA, …).
+ * - `seo` — `og` images, `sitemap`, `robots`, `rss` feeds, and
+ *   `structuredData` JSON-LD.
+ * - `analytics` — a list of adapters from `blume/analytics`, one per provider
+ *   (`posthog()`, `googleAnalytics()`, `plausible()`, `fathom()`, `vercel()`,
+ *   `cloudflare()`, …), or `script()` for anything without one.
  *
  * **Astro**
  * - `integrations` — Astro integrations appended after Blume's built-ins, in
@@ -118,12 +125,15 @@ import type { Diagnostic } from "./types.ts";
  *
  * @example A production docs site with theming, search, and deployment.
  * ```ts
+ * import { vercel } from "blume/deploy";
+ * import { orama } from "blume/search";
+ *
  * export default defineConfig({
  *   title: "Acme Docs",
  *   description: "Build faster with Acme.",
  *   logo: { image: "/logo.svg", text: "Acme" },
  *   github: { owner: "acme", repo: "acme" },
- *   theme: { accent: "violet", fonts: { body: "inter" }, radius: "lg" },
+ *   theme: { accent: "purple", fonts: { body: "inter" }, radius: "lg" },
  *   navigation: {
  *     tabs: [
  *       { label: "Guides", path: "/guides" },
@@ -131,7 +141,7 @@ import type { Diagnostic } from "./types.ts";
  *     ],
  *   },
  *   search: orama(),
- *   // `vercel` from "blume/deploy": a server build on Vercel.
+ *   // A server build on Vercel.
  *   deployment: vercel({ site: "https://docs.acme.com" }),
  * });
  * ```
@@ -159,6 +169,21 @@ import type { Diagnostic } from "./types.ts";
  */
 export const defineConfig = (config: BlumeConfig): BlumeConfig => config;
 
+/**
+ * A config that fails validation. `diagnostic` folds every issue into the one
+ * message a command prints; `issues` keeps each on its own, with its own
+ * line, for `blume upgrade`, which lists them one by one.
+ */
+export class ConfigValidationError extends BlumeError {
+  readonly issues: Diagnostic[];
+
+  constructor(diagnostic: Diagnostic, issues: Diagnostic[]) {
+    super(diagnostic);
+    this.name = "ConfigValidationError";
+    this.issues = issues;
+  }
+}
+
 /** Result of loading + validating a project config. */
 export interface ConfigLoadResult {
   config: ResolvedConfig;
@@ -179,11 +204,61 @@ const importConfigModule = createModuleLoader();
 /**
  * The slice of a user config module probed before schema defaults apply:
  * whether `theme.fonts` was actually set. `looseObject` keeps every other key
- * out of scope; a non-object at either level simply fails the probe.
+ * out of scope; a non-object at either level simply fails the probe. `fonts`
+ * is optional here — Zod 4 treats a bare `z.unknown()` key as required, which
+ * would fail the probe for every `theme` that doesn't set fonts.
  */
 const themeFontsProbeSchema = z.looseObject({
-  theme: z.looseObject({ fonts: z.unknown() }).optional(),
+  theme: z.looseObject({ fonts: z.unknown().optional() }).optional(),
 });
+
+const isPathSegment = (segment: PropertyKey): segment is string | number =>
+  typeof segment !== "symbol";
+
+/**
+ * Where an issue is located in the config source: its own path, except that
+ * an unknown key — which Zod reports on its parent's path — is located at the
+ * key itself, so a removed field points at the line that sets it.
+ */
+const locationPath = (issue: z.core.$ZodIssue): (string | number)[] => [
+  ...issue.path.filter(isPathSegment),
+  ...(issue.code === "unrecognized_keys" ? issue.keys.slice(0, 1) : []),
+];
+
+/** Sort key for a config issue: the line that set the field, else last. */
+const lineRank = (diagnostic: Diagnostic): number =>
+  diagnostic.line ?? Number.MAX_SAFE_INTEGER;
+
+/**
+ * One diagnostic per config issue, each anchored to the config file and, when
+ * the source is on disk, to the line and column that set the field. Issues on
+ * the config's own top level (a removed top-level block) lead, since they name
+ * the biggest moves; the rest read top to bottom, in source order.
+ */
+const configIssues = (
+  error: z.ZodError,
+  options: { file?: string; source?: string }
+): Diagnostic[] => {
+  const code = "BLUME_CONFIG_INVALID";
+  const located = diagnosticsFromIssues(
+    error.issues.map((issue) => ({
+      message: issue.message,
+      path: locationPath(issue),
+    })),
+    { code, source: options.source }
+  );
+  return diagnosticsFromZod(error, { code, ...options })
+    .map((diagnostic, index) => ({
+      ...diagnostic,
+      column: located[index]?.column,
+      line: located[index]?.line,
+    }))
+    .toSorted(
+      (a, b) =>
+        Number(Boolean(a.schemaPath)) - Number(Boolean(b.schemaPath)) ||
+        lineRank(a) - lineRank(b)
+    );
+};
 
 /**
  * Load and validate the project config. When no config file exists, schema
@@ -222,21 +297,6 @@ export const loadConfig = async (
   const themeFontsConfigured =
     probe.success && probe.data.theme?.fonts !== undefined;
 
-  // The 1.x `openapi`/`asyncapi`/`graphql` blocks are gone from the schema, so
-  // a config still carrying one would only ever see "Unrecognized key" — name
-  // the `reference` list form instead, before the schema runs.
-  const removedKeysHint = probe.success
-    ? removedReferenceKeysHint(Object.keys(probe.data))
-    : undefined;
-  if (removedKeysHint) {
-    throw new BlumeError({
-      code: "BLUME_CONFIG_INVALID",
-      file: configFile ?? undefined,
-      message: removedKeysHint,
-      severity: "error",
-    });
-  }
-
   const parsed = blumeConfigSchema.safeParse(raw ?? {});
   if (!parsed.success) {
     // Read the raw config text (when on disk) so errors carry a line/column.
@@ -244,8 +304,7 @@ export const loadConfig = async (
       configFile && existsSync(configFile)
         ? readFileSync(configFile, "utf-8")
         : undefined;
-    const diagnostics = diagnosticsFromZod(parsed.error, {
-      code: "BLUME_CONFIG_INVALID",
+    const diagnostics = configIssues(parsed.error, {
       file: configFile ?? undefined,
       source,
     });
@@ -266,7 +325,7 @@ export const loadConfig = async (
             message: `${primary.message}\n${rest.length} more config issue(s):\n${moreIssues}`,
           }
         : primary;
-    throw new BlumeError(detail);
+    throw new ConfigValidationError(detail, diagnostics);
   }
 
   // Resolve the canonical site URL, then SEO defaults that depend on it.

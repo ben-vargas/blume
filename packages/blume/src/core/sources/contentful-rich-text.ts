@@ -21,6 +21,7 @@ import {
   renderInline,
   renderLink,
   unsupported,
+  writesMdx,
 } from "./lower.ts";
 
 /** An asset's file as a Markdown image needs it. */
@@ -35,7 +36,10 @@ export interface ContentfulRichTextOptions {
   resolveAsset?: (id: string) => ContentfulAsset | null;
   /** Resolve an entry link to the entry (`sys` plus `fields`). */
   resolveEntry?: (id: string) => JsonObject | null;
-  /** Serializers for embedded entries, keyed by content type id; return Markdown/MDX. */
+  /**
+   * Serializers for embedded entries, keyed by content type id; return
+   * Markdown or MDX. Setting any writes the source's entries as MDX.
+   */
   serializers?: Record<string, (entry: JsonObject) => string>;
 }
 
@@ -129,7 +133,8 @@ const embeddedEntry = (
     return serializer(entry);
   }
   return unsupported(
-    `Contentful embedded entry${contentType ? `: ${contentType}` : ""}`
+    `Contentful embedded entry${contentType ? `: ${contentType}` : ""}`,
+    writesMdx(options.serializers)
   );
 };
 
@@ -264,7 +269,10 @@ const renderBlock = (
       return renderTable(node, options);
     }
     default: {
-      return unsupported(`Contentful node: ${type}`);
+      return unsupported(
+        `Contentful node: ${type}`,
+        writesMdx(options.serializers)
+      );
     }
   }
 };

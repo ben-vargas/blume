@@ -4,7 +4,7 @@
  * user-supplied serializer or are skipped with a noted comment. Output is
  * Markdown text that flows through Blume's normal pipeline.
  */
-import { escapeMarkdownText } from "./lower.ts";
+import { escapeMarkdownText, image, unsupported, writesMdx } from "./lower.ts";
 
 /**
  * A field value on a Portable Text node: the arbitrary JSON the CMS query
@@ -50,7 +50,10 @@ interface PortableTextMarkDef {
 export interface PortableTextOptions {
   /** Resolve an image block to a URL (the adapter knows project/dataset). */
   imageUrl?: (block: PortableTextBlock) => string | null;
-  /** Custom block-type serializers, keyed by `_type`; return Markdown/MDX. */
+  /**
+   * Custom block-type serializers, keyed by `_type`; return Markdown or MDX.
+   * Setting any writes the source's entries as MDX.
+   */
   serializers?: Record<string, (block: PortableTextBlock) => string>;
 }
 
@@ -129,10 +132,13 @@ const renderBlock = (
   if (block._type === "image") {
     const url = options.imageUrl?.(block);
     const alt = isAltText(block.alt) ? block.alt : "";
-    return url ? `![${alt}](${url})` : "";
+    return url ? image(alt, url) : "";
   }
   if (block._type !== "block") {
-    return `<!-- unsupported Portable Text block: ${block._type} -->`;
+    return unsupported(
+      `Portable Text block: ${block._type}`,
+      writesMdx(options.serializers)
+    );
   }
 
   const inline = renderChildren(block);

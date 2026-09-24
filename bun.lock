@@ -130,7 +130,7 @@
         "typescript": "^6.0.3",
         "ufo": "^1.6.4",
         "undici": "^8.10.2",
-        "write-file-atomic": "^8.0.0",
+        "write-file-atomic": "^7.0.1",
         "zod": "^4.6.2",
       },
       "devDependencies": {
@@ -161,7 +161,7 @@
         "@astrojs/netlify": "^8.0.0",
         "@astrojs/svelte": "^9.0.0",
         "@astrojs/vue": "^7.0.0",
-        "@mixedbread/sdk": "^0.77.0",
+        "@mixedbread/sdk": ">=0.77.0 <1",
         "@notionhq/client": "^5.0.0",
         "@openrouter/ai-sdk-provider": "^3.0.0",
         "@oramacloud/client": "^2.1.0",
@@ -2902,7 +2902,7 @@
 
     "wrappy": ["wrappy@1.0.2", "", {}, "sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ=="],
 
-    "write-file-atomic": ["write-file-atomic@8.0.0", "", { "dependencies": { "signal-exit": "^4.0.1" } }, "sha512-dYwyZredl67GyLLIHJnRM3h2PcOmN5SkcgC7eM5DPDEOEl6dLFqVrMg3F1Ea32usj4VSVZtd2H4MtKTNOf6nPg=="],
+    "write-file-atomic": ["write-file-atomic@7.0.1", "", { "dependencies": { "signal-exit": "^4.0.1" } }, "sha512-OTIk8iR8/aCRWBqvxrzxR0hgxWpnYBblY1S5hDWBQfk/VFmJwzmJgQFN3WsoUKHISv2eAwe+PpbUzyL1CKTLXg=="],
 
     "ws": ["ws@8.21.0", "", { "peerDependencies": { "bufferutil": "^4.0.1", "utf-8-validate": ">=5.0.2" }, "optionalPeers": ["bufferutil", "utf-8-validate"] }, "sha512-Vsp28b7DRcimFQvrqu2Wek3z1iYxDCWqHYB8Qsnk/S4RfaCQzPGPyBNuVjJV3cd6UiKtUtp6sNM77gWvzcCH+g=="],
 

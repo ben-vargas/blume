@@ -23,7 +23,7 @@ Read `themeConfig`, `presets`, and `plugins`:
 | `themeConfig.colorMode.defaultMode` | `theme.mode` (`respectPrefersColorScheme: true` → `"system"`) |
 | `themeConfig.prism.theme` / `.darkTheme` | `markdown.code.theme: { light, dark }` (map Prism theme names to Shiki themes, e.g. `github`/`github-dark`) |
 | `themeConfig.metadata` / `themeConfig.image` | per-page `seo` frontmatter / `seo.og`; report what doesn't fit |
-| `url` + `baseUrl` | **`url` → drop** (`deployment.site` auto-detects); `baseUrl` (when not `/`) → `deployment.base` |
+| `url` + `baseUrl` | **`url` → drop** (the deployment's `site` is auto-detected); `baseUrl` (when not `/`) → `deployment: { base: "/…" }`, or the `base` option of a host adapter (`vercel({ base })`) when the site also needs one |
 | preset `docs.routeBasePath` — **including the default!** | Docusaurus serves docs at **`/docs/…` by default**; the "map only declared fields" rule does **not** apply here because the _URLs_ are load-bearing. Either keep them with top-level **`basePath: "/docs"`** (invisible to the sidebar), or intentionally move to root and emit a `redirects` entry per page. Decide explicitly and say which. (`routeBasePath: '/'` = docs-only mode — nothing to do.) |
 | preset `docs.editUrl` | `github` (owner/repo/branch; a path after the branch → `github.dir`; **an origin other than `https://github.com` → `github.host`** — a GitHub Enterprise repo's edit links and header mark point at the public site without it) |
 | `themeConfig.footer` | drop → Footer override (`defineComponents` layout slot) |

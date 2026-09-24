@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { unrecognizedKeysMessage } from "../core/unrecognized-keys.ts";
+
 /**
  * The option pieces every reference adapter shares: a spec source, the "Try
  * it" playground normalization, and the `spec` shorthand that folds into
@@ -86,12 +88,12 @@ export type ResolvedGraphqlSource = z.output<typeof graphqlSourceSchema>;
  * The interactive "Try it" panel on operation pages (Blume renderer). On by
  * default; `false` hides it. The object form keeps it on and sets `proxy`,
  * the CORS escape hatch the Send button routes requests through: a proxy URL,
- * or `true` for the built-in `/_api-proxy` endpoint (which requires
- * `deployment.output: "server"`). Booleans normalize to the object shape so
- * consumers read `{ enabled, proxy }` directly. `proxy` applies to the
- * HTTP-posting playgrounds (OpenAPI, GraphQL) — an event composer's WebSocket
- * connect is direct. One schema for every reference kind, so the
- * normalization can never drift between them.
+ * or `true` for the built-in `/_api-proxy` endpoint (which needs server
+ * output: a host adapter such as `vercel()` in `deployment`). Booleans
+ * normalize to the object shape so consumers read `{ enabled, proxy }`
+ * directly. `proxy` applies to the HTTP-posting playgrounds (OpenAPI, GraphQL)
+ * — an event composer's WebSocket connect is direct. One schema for every
+ * reference kind, so the normalization can never drift between them.
  */
 export const playgroundSchema = z
   .union([
@@ -124,12 +126,12 @@ export type ResolvedPlayground = z.output<typeof playgroundSchema>;
  * gets: Scalar is its own adapter now, so the option has no home.
  */
 export const RENDERER_REMOVED_HINT =
-  '`renderer` was removed: the Scalar embed is its own adapter. Replace `openapi({ spec, renderer: scalar({ theme }) })` with `scalar({ spec, theme })` from "blume/reference" — `route`, `sources`, `label`, and `noindex` carry over, and the native display options (`codeSamples`, `expandSchemas`, `playground`) don\'t apply to the embed.';
+  '`renderer` was removed: the Scalar embed is its own adapter. Replace `openapi({ spec, renderer: "scalar", theme })` with a separate `scalar({ spec, theme })` entry in `reference`, imported from "blume/reference" — `route`, `sources`, `label`, and `noindex` carry over, and the native display options (`codeSamples`, `expandSchemas`, `playground`) don\'t apply to the embed.';
 
 /**
  * Error params for the `openapi()`/`asyncapi()` option objects: a leftover
  * `renderer` key names its replacement instead of Zod's bare "Unrecognized
- * key"; any other unknown key keeps the default message.
+ * key"; any other unknown key keeps the default message, beside the hint.
  */
 export const rendererRemovedHint = {
   error: (issue: z.core.$ZodRawIssue): string | undefined => {
@@ -139,7 +141,10 @@ export const rendererRemovedHint = {
     ) {
       return;
     }
-    return RENDERER_REMOVED_HINT;
+    const others = issue.keys.filter((key) => key !== "renderer");
+    return others.length > 0
+      ? `${RENDERER_REMOVED_HINT} ${unrecognizedKeysMessage(others)}`
+      : RENDERER_REMOVED_HINT;
   },
 };
 

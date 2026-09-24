@@ -14,7 +14,9 @@ blume doctor
 - **The Node version** against the range the installed `blume` package supports, read from its own `engines` field. A version outside it is a warning: things may work, but it isn't a combination Blume tests.
 - **`blume.config.ts`**, with the same validation a build runs. A removed or renamed key fails with a hint naming its replacement rather than a bare "unrecognized key".
 - **Every content page and folder meta**: the diagnostics `blume dev` and `blume build` print as they load the project — invalid frontmatter, navigation problems, missing include targets, and the rest — collected in one report.
-- **Features that need a server** on a site configured for static output — Ask AI, the MCP server, or the Try it playground's built-in proxy: an error naming the feature, with the deployment adapter to switch to.
+- **Features that need a server** on a site configured for static output — Ask AI, the MCP server, or the Try it playground's built-in proxy: an error naming the feature, with the deployment adapter to switch to (or, when a host adapter is set to `output: "static"`, telling you to drop that option).
+- **Packages your config needs** that aren't installed — the SDK a search, content source, or Ask AI adapter imports, a deployment adapter's `@astrojs/*` package, or the renderer for Vue or Svelte islands: an error naming each package, with the install command for your package manager. `blume build` stops on the same check.
+- **Secrets an enabled feature reads** that aren't set, such as `ALGOLIA_ADMIN_API_KEY` or `OPENROUTER_API_KEY`: a warning naming the variable. Doctor loads `.env` and `.env.local` first, like `blume dev` and `blume build`.
 
 ## The summary
 

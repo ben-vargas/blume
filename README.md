@@ -2,9 +2,9 @@
 
 [![npm downloads](https://img.shields.io/npm/dm/blume.svg)](https://www.npmjs.com/package/blume) [![Socket Badge](https://socket.dev/api/badge/npm/package/blume)](https://socket.dev/npm/package/blume) ![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/haydenbleasel/blume?utm_source=oss&utm_medium=github&utm_campaign=haydenbleasel%2Fblume&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
 
-**Documentation for everything you build.** Fast, AI-ready, and zero-config. Free and open source, forever.
+**The open-source docs framework for humans and agents.** Fast, AI-ready, and zero-config. Free and open source, forever.
 
-Drop Markdown or MDX into a folder, run `blume dev`, and get a production-grade docs site — navigation, search, theming, Open Graph images, and a rich component library — with no app boilerplate to write or maintain. Blume generates and drives a hidden Astro project for you; run `blume eject` to get a standalone Astro app whenever you want full control.
+Drop Markdown or MDX into a folder, start the dev server, and get a production-grade docs site — navigation, search, theming, Open Graph images, and a rich component library — with no app boilerplate to write or maintain. Blume generates and drives a hidden Astro project for you; run `npx blume eject` to get a standalone Astro app whenever you want full control.
 
 **[Documentation](https://useblume.dev)** · [Quickstart](https://useblume.dev/docs/quickstart) · [Components](https://useblume.dev/docs/content/components) · [CLI](https://useblume.dev/docs/cli)
 
@@ -16,19 +16,21 @@ Blume needs **Node.js 22.12 or newer** and a content folder with at least one `.
 npx blume init
 ```
 
-Run the dev server with hot reload:
+It scaffolds `docs/index.mdx` and `blume.config.ts`, adds `dev` and `build` scripts to a new `package.json`, and installs dependencies. Run the dev server with hot reload:
 
 ```bash
-blume dev
+npm run dev
 ```
 
 Build static HTML, with a local search index, into `dist/`:
 
 ```bash
-blume build
+npm run build
 ```
 
-Blume works with any package manager and never requires you to set up Astro or Tailwind yourself.
+In a project that already has a `package.json`, `blume init` leaves it alone: add `"dev": "blume dev"` and `"build": "blume build"` to its scripts, or run `npx blume dev`. Blume works with any package manager and never requires you to set up Astro or Tailwind yourself.
+
+Moving from another docs framework? `npx blume migrate` hands a Mintlify, Fumadocs, Docusaurus, Starlight, or Nextra site to Claude Code or Codex — see [Migrate to Blume](https://useblume.dev/docs/migrating). On Blume 1, run `npx blume@latest upgrade` — see [Upgrade to Blume 2](https://useblume.dev/docs/upgrading).
 
 ## Features
 
@@ -36,16 +38,16 @@ Blume works with any package manager and never requires you to set up Astro or T
 - **Fast by default** — static HTML on Astro and Vite; the core theme ships no client framework JS so pages score well on Core Web Vitals out of the box.
 - **Type-safe config** — `blume.config.ts` and every `meta.ts` are real TypeScript, validated by a schema and authored with `defineConfig` / `defineMeta`, so your editor catches mistakes before a build.
 - **Components, no imports** — cards, columns, steps, tabs, accordions, badges, code groups, frames, file trees, type tables, live component previews, diffs, and more, usable in any MDX page.
-- **Local search** — Orama runs in dev and production with no hosted service; FlexSearch, Pagefind, Algolia, Typesense, Orama Cloud, and Mixedbread are one setting away.
-- **AI-ready** — `llms.txt` / `llms-full.txt`, raw Markdown at any `.md` URL, Copy as Markdown, Open in chat, an optional Ask AI assistant, and a hosted MCP server so coding agents can search and read your docs directly.
+- **Local search** — Orama runs in dev and production with no hosted service; FlexSearch, Pagefind, Algolia, Typesense, Orama Cloud, and Mixedbread are one adapter away (`search: pagefind()` from `blume/search`).
+- **AI-ready** — `llms.txt` / `llms-full.txt`, raw Markdown at any `.md` URL, a JSON docs API, Copy as Markdown, Open in chat, an optional Ask AI assistant, and a hosted MCP server so coding agents can search and read your docs directly.
 - **Agent skills** — Blume ships [agent skills](https://useblume.dev/docs/advanced/skills) that teach a coding agent to scaffold, write, and maintain your docs site.
 - **Content sources** — mix local files with remote MDX, GitHub Releases, Notion, Sanity, Contentful, Payload, Strapi, or any custom backend into a single site.
 - **Internationalization** — drop translated files into place for locale-aware routing, per-language navigation, translated UI, and SEO.
 - **SEO** — metadata, Open Graph images (rendered at build with Takumi), sitemap, `robots.txt`, RSS feeds, and JSON-LD, built in.
-- **API reference** — render an OpenAPI or AsyncAPI spec as an interactive reference (schemas, auth, request playground) via Scalar.
+- **API references** — render OpenAPI, AsyncAPI, and GraphQL specs as native reference pages (one per operation, with schemas, auth, and a request playground) with `openapi()`, `asyncapi()`, and `graphql()` from `blume/reference`, or embed Scalar's UI with `scalar()`.
 - **Export** — let readers download any page as a PDF or EPUB, entirely client-side, so static builds stay static.
 - **Customization** — component overrides, React islands, custom pages, Tailwind v4 theme tokens and `theme.css`, and a source-component registry (`blume add`).
-- **Eject** — `blume eject` produces a standalone Astro project that still uses the `blume` package.
+- **Eject** — `npx blume eject` produces a standalone Astro project that still uses the `blume` package.
 
 ## CLI
 
@@ -65,8 +67,10 @@ Blume works with any package manager and never requires you to set up Astro or T
 | `blume eval` | Test the docs: an agent answers your questions using only the documentation. |
 | `blume translate` | Translate docs into the configured locales with a local agent CLI. |
 | `blume version [id]` | Freeze the current docs as an archived version (no id lists configured versions). |
+| `blume migrate [source]` | Move a Mintlify, Fumadocs, Docusaurus, Starlight, or Nextra site to Blume with Claude Code or Codex. |
+| `blume upgrade` | Move to a new major: bump `blume`, then list the config changes left or hand them to Claude Code or Codex. |
 
-See the [CLI reference](https://useblume.dev/docs/cli) for every flag.
+Run them through your package manager (`npx blume <command>`) or a `package.json` script. See the [CLI reference](https://useblume.dev/docs/cli) for every flag.
 
 ## How it works
 
@@ -74,16 +78,25 @@ The Blume CLI loads `blume.config.ts`, scans your content into a graph, and gene
 
 ## Deployment
 
-`blume build` outputs static HTML to `dist/` — deploy to any static host (Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3 + CloudFront, or any CDN). For request-time features like Ask AI or the MCP server, switch to server output and pick an adapter:
+`blume build` outputs static HTML to `dist/` — deploy to any static host (Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3 + CloudFront, or any CDN). For request-time features like Ask AI or the MCP server, name a host adapter from `blume/deploy` in `blume.config.ts`, which switches the build to server output:
 
-| Adapter      | Use for                              |
-| ------------ | ------------------------------------ |
-| `vercel`     | Vercel                               |
-| `netlify`    | Netlify Functions                    |
-| `node`       | Self-hosted Node servers, containers |
-| `cloudflare` | Cloudflare Workers and Pages         |
+```ts
+import { defineConfig } from "blume";
+import { vercel } from "blume/deploy";
 
-On Vercel, Netlify, and Cloudflare Pages the matching adapter and site URL are detected automatically.
+export default defineConfig({
+  deployment: vercel(),
+});
+```
+
+| Adapter        | Use for                              |
+| -------------- | ------------------------------------ |
+| `vercel()`     | Vercel                               |
+| `netlify()`    | Netlify Functions                    |
+| `node()`       | Self-hosted Node servers, containers |
+| `cloudflare()` | Cloudflare Workers and Pages         |
+
+On Vercel, Netlify, and Cloudflare Pages the site URL is detected automatically. The adapter never is: name it in `blume.config.ts`.
 
 ## Compatibility
 

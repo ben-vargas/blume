@@ -20,7 +20,7 @@ Swap `fumadocs` for your framework, and `--claude` for `--codex` to use Codex. T
 
 ## Sources
 
-Name the framework you're migrating from, or leave it out and Blume detects it from the project's own files:
+Name the framework you're migrating from, or leave it out and Blume detects it from the project's own files. When you name one and the project looks like another, Blume warns and continues with the one you named:
 
 | Source | Detected from |
 | --- | --- |
@@ -47,7 +47,7 @@ It finishes with a summary of what it migrated, dropped, or approximated, such a
 
 ## Other agents
 
-Without `--claude` or `--codex`, the command reports the source it detected and prints the path to the playbook, the `blume-migrate` [skill](/docs/advanced/skills) bundled in the package. Point any other agent at that `SKILL.md`, or install the skill where your agent looks for skills:
+Without `--claude` or `--codex`, the command reports the source it detected, prints the path to the playbook — the `blume-migrate` [skill](/docs/advanced/skills) bundled in the package — and exits without changing anything. Point any other agent at that `SKILL.md`, or install the skill where your agent looks for skills, with the command it prints:
 
 ```bash
 npx skills add haydenbleasel/blume --skill blume-migrate

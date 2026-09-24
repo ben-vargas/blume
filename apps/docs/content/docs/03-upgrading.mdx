@@ -16,7 +16,7 @@ Run the upgrade from your project, the folder with `blume.config.ts`:
 npx blume@latest upgrade
 ```
 
-It bumps `blume` in your `package.json` to 2, installs it with the package manager your project uses, then checks your config and `components.ts` against Blume 2. Every change that's still needed is listed with its file, line, and replacement, and the command exits non-zero until none are left. Run it through `npx blume@latest` rather than `blume`: the command ships in Blume 2, so a project still on 1 doesn't have it yet.
+It bumps `blume` in your `package.json` to 2, installs it with the package manager your project uses, then checks your config and `components.ts` against Blume 2. Every change that's still needed is listed with its file, line, and replacement — including `package.json` scripts that still pass the removed `blume build` flags — and the command exits non-zero until none are left. Run from a folder with neither a config nor a `blume` dependency, it stops with an error instead. Run it through `npx blume@latest` rather than `blume`: the command ships in Blume 2, so a project still on 1 doesn't have it yet.
 
 To hand the changes to a coding agent instead, add `--claude` or `--codex`:
 
@@ -87,7 +87,7 @@ export default defineConfig({
 
 - `netlify()`, `cloudflare()`, and `node()` work the same way. Naming a host adapter switches to server output; pass `output: "static"` to keep a static build with that host's platform files.
 - A config that only sets `site` or `base` stays as it is: `deployment: { site, base }` is still the static form.
-- The `--adapter`, `--output`, and `--base` flags on `blume build` are gone. Set the adapter in `blume.config.ts`, and name it explicitly: server output is no longer inferred from the platform's environment.
+- The `--adapter`, `--output`, and `--base` flags on `blume build` are gone, and passing one stops the build with an error naming the `deployment` setting that replaces it. Set the adapter in `blume.config.ts`, and name it explicitly: server output is no longer inferred from the platform's environment.
 
 See [Deployment](/docs/deployment) for each adapter's options.
 
@@ -299,6 +299,28 @@ export default defineComponents({
 </CodeGroup>
 
 An inline function, a component declared in `components.ts` itself, a spread, or a computed key now fails with `BLUME_COMPONENTS_INVALID`, naming the entry. Move the component into its own file and import it. The `islands/` folder convention works as before. See [Customization](/docs/configuration/customization) for the accepted forms.
+
+## Ejected apps
+
+An app you [ejected](/docs/configuration/customization#eject) on Blume 1 no longer runs through the Blume CLI, but it still depends on the `blume` package. Its pages import Blume's components, `src/generated/` holds a snapshot of your site written by the Blume 1 generator, and `astro build` loads `blume.config.ts` again to write the search index, `llms.txt`, and the sitemap. Bumping `blume` to 2 under it pairs that Blume 1 snapshot with Blume 2 components that expect the new shapes, so eject again instead:
+
+<Steps>
+  <Step title="Upgrade the config">
+    Run `npx blume@latest upgrade` in the ejected app and apply what it lists,
+    so `blume.config.ts` and `components.ts` are valid Blume 2.
+  </Step>
+  <Step title="Eject a fresh copy">
+    Copy your content folder, `blume.config.ts`, `components.ts`, `public/`, and
+    `package.json` into an empty folder (leave out `astro.config.mjs` and
+    `src/`), install, and run `npx blume eject`.
+  </Step>
+  <Step title="Carry your edits across">
+    Diff the fresh output against your ejected app, and move your own changes
+    onto the new files.
+  </Step>
+</Steps>
+
+Until you do, keep the ejected app on Blume 1 (`"blume": "^1"`): nothing changes until you bump it.
 
 ## Check your work
 

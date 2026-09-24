@@ -65,7 +65,7 @@ analytics: [
     key: "phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     host: "https://us.i.posthog.com", // optional, this is the default
   }),
-];
+],
 ```
 
 `key` and `host` are the two options Blume maps (`host` becomes `api_host`). Anything else you pass — `persistence`, `capture_pageview`, `autocapture`, `disable_session_recording`, and every other `posthog.init` option — is forwarded to `posthog.init` verbatim.
@@ -75,7 +75,7 @@ analytics: [
 Add `vercel()` to include [Vercel Web Analytics](https://vercel.com/docs/analytics). Blume renders Vercel's official Astro component, which injects the first-party script served from your own domain once Web Analytics is enabled for the project in the Vercel dashboard.
 
 ```ts blume.config.ts lineNumbers
-analytics: [vercel()];
+analytics: [vercel()],
 ```
 
 No keys are needed — the script reports to the project it's deployed under. This only collects data on Vercel deployments, where the `/_vercel/insights` endpoint exists. Any option you pass is forwarded to the component as a prop (`mode`, `debug`, `endpoint`, `scriptSrc`, …); `beforeSend` is a function and can't travel through config, so assign `window.webAnalyticsBeforeSend` from a `script()` adapter instead.
@@ -93,7 +93,7 @@ analytics: [
   cloudflare({
     token: "0123456789abcdef0123456789abcdef",
   }),
-];
+],
 ```
 
 The whole option object becomes the beacon's `data-cf-beacon` JSON, so any other beacon setting (`spa`, …) passes straight through.
@@ -108,7 +108,7 @@ analytics: [
     id: "G-XXXXXXXXXX",
     anonymize_ip: true, // optional: any other `config` parameter
   }),
-];
+],
 ```
 
 `id` is the one option Blume maps. Anything else you pass rides on the `gtag('config', …)` call verbatim (`send_page_view`, `cookie_domain`, `debug_mode`, …). GA4's enhanced measurement counts history changes as page views by default, so client-side navigations are tracked without any extra setup. Google Analytics takes a day or two to show new data; the [Google Analytics Debugger](https://chrome.google.com/webstore/detail/google-analytics-debugger/jnkmfdileelhofjcijamephohjechhna) extension shows requests as they happen.
@@ -123,7 +123,7 @@ analytics: [
     id: "GTM-XXXXXXX",
     dataLayer: "dataLayer", // optional, this is the default
   }),
-];
+],
 ```
 
 Which tags fire, and on what, is the container's configuration. Client-side navigations reach the container as history changes, so fire pageview tags from a **History Change** trigger rather than the page-load one. Cookie consent banners are yours to set up in the container too.
@@ -138,7 +138,7 @@ analytics: [
     domain: "docs.example.com",
     host: "https://plausible.example.com", // optional, defaults to https://plausible.io
   }),
-];
+],
 ```
 
 `domain` becomes `data-domain` and `host` picks where `/js/script.js` loads from. Any other option becomes its own `data-` attribute on the tag (`api: "/api/event"` → `data-api`). Script variants with extra behavior baked into the filename (`script.outbound-links.js`, …) are a different tag; load those with [`script()`](#custom-scripts).
@@ -153,10 +153,10 @@ analytics: [
     site: "ABCDEFGH",
     "honor-dnt": "true", // optional: any other `data-` setting
   }),
-];
+],
 ```
 
-`site` becomes `data-site`. Any other option becomes its own `data-` attribute on the tag (`spa`, `honor-dnt`, `excluded-domains`, `canonical`, …), as strings.
+`site` becomes `data-site`. Any other option becomes its own `data-` attribute on the tag (`honor-dnt`, `excluded-domains`, `canonical`, …), as strings. `spa` defaults to `"auto"` so Fathom counts the client router's navigations; pass your own `spa` value to override it.
 
 ## Pirsch
 
@@ -167,7 +167,7 @@ analytics: [
   pirsch({
     code: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   }),
-];
+],
 ```
 
 `code` becomes `data-code`, and Blume gives the tag the `pianjs` id Pirsch's script finds itself by. Any other option becomes its own `data-` attribute (`dev`, `exclude`, `include`, `domain`, `endpoint`, …).
@@ -182,7 +182,7 @@ analytics: [
     token: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     region: "eu", // optional: "us" (default), "eu", or "in"
   }),
-];
+],
 ```
 
 `token` and `region` are the options Blume maps (`region` becomes `api_host`). Blume also sets `track_pageview` to `"url-with-path-and-query-string"`, so the library tracks each navigation itself. Anything else you pass — including `track_pageview` — is forwarded to `mixpanel.init` verbatim (`persistence`, `autocapture`, `record_sessions_percent`, …).
@@ -197,7 +197,7 @@ analytics: [
     key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     serverZone: "EU", // optional: any other `init` option
   }),
-];
+],
 ```
 
 `key` is the one option Blume maps. The `init` options start from what the dashboard snippet ships — `autocapture: true` and `fetchRemoteConfig: true` — and anything else you pass is merged over them verbatim. Autocapture covers page views and history changes, so client-side navigations count.
@@ -212,7 +212,7 @@ analytics: [
     key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     cdn: "https://cdn.example.com", // optional, defaults to https://cdn.segment.com
   }),
-];
+],
 ```
 
 `key` and `cdn` are the options Blume maps: the snippet loads the library from `cdn` and tells it to fetch its integrations from there too. Anything else you pass is forwarded as the `analytics.load` options verbatim (`integrations`, …).
@@ -227,7 +227,7 @@ analytics: [
     key: "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
     host: "us-east-1.hightouch-events.com", // optional, this is the default
   }),
-];
+],
 ```
 
 `key` and `host` are the options Blume maps (`host` becomes `apiHost`). Anything else you pass is forwarded as the `htevents.load` options verbatim.
@@ -242,7 +242,7 @@ analytics: [
     id: "1234567890",
     disableTextCapture: true, // optional: any other `heap.load` option
   }),
-];
+],
 ```
 
 `id` is the one option Blume maps. Anything else you pass becomes the config object of `heap.load` verbatim.
@@ -257,7 +257,7 @@ analytics: [
     id: 1234567,
     version: 6, // optional, this is the default
   }),
-];
+],
 ```
 
 `id` is `hjid` and `version` is `hjsv` in Hotjar's tracking code; the adapter takes nothing else.
@@ -271,7 +271,7 @@ analytics: [
   clarity({
     id: "xxxxxxxxxx",
   }),
-];
+],
 ```
 
 The adapter takes nothing else; Clarity's settings live in its dashboard.
@@ -286,7 +286,7 @@ analytics: [
     id: "your-org/your-app",
     release: "1.2.0", // optional: any other `init` option
   }),
-];
+],
 ```
 
 `id` is the one option Blume maps. Anything else you pass is forwarded to `LogRocket.init` verbatim (`release`, `console`, `network`, `dom`, …). A request or response sanitizer is a function and can't travel through config; for those, drop the adapter and call `LogRocket.init` yourself from a [`script()`](#custom-scripts) adapter.
@@ -300,7 +300,7 @@ analytics: [
   clearbit({
     key: "pk_xxxxxxxxxxxxxxxx",
   }),
-];
+],
 ```
 
 The adapter takes nothing else.
@@ -314,7 +314,7 @@ analytics: [
   adobe({
     url: "https://assets.adobedtm.com/xxxxxxxx/launch-xxxxxxxx.min.js",
   }),
-];
+],
 ```
 
 Blume loads the script asynchronously; what it tracks is the property's rules. Client-side navigations don't reload the page, so give the property a rule on history changes (or call `_satellite.track` from a [`script()`](#custom-scripts) adapter).
@@ -335,7 +335,7 @@ analytics: [
   script({
     content: "console.log('analytics ready')",
   }),
-];
+],
 ```
 
 `attributes` is a map of extra HTML attributes (`data-*`, `id`, …) spread onto the tag, and `strategy` adds `async` or `defer` to external scripts.
@@ -352,6 +352,7 @@ analytics: [
 | `cloudflare()` | `token` | — | Cloudflare Web Analytics site token (manual setup). Required. |
 | `cloudflare()` | anything else | — | Forwarded in the beacon's `data-cf-beacon` JSON verbatim. |
 | `fathom()` | `site` | — | Fathom site ID. Required. |
+| `fathom()` | `spa` | `"auto"` | Fathom's history-change tracking (`data-spa`). |
 | `fathom()` | anything else | — | Rendered as a `data-` attribute on the tag. |
 | `googleAnalytics()` | `id` | — | GA4 measurement ID. Required. |
 | `googleAnalytics()` | anything else | — | Forwarded on the `gtag('config', …)` call verbatim. |

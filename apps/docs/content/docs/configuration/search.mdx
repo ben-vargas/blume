@@ -92,7 +92,7 @@ search:
 
 ## Adapters
 
-The client-side adapters are keyless and need no options — their clients are configured from `i18n` (or, for Pagefind, from the built HTML), so an unknown key is rejected by config validation rather than ignored. The hosted ones take **public** credentials (safe to ship to the browser) and read their **secret** admin key from an environment variable at build time — the secret never lands in the config or the client bundle. Every option you pass to a hosted adapter is kept verbatim and handed to its client, so an option Blume doesn't name still reaches the SDK. Those options must be JSON values — the descriptor is inlined into the generated project as a literal, so a function, `undefined`, or a bigint fails config validation with a path instead of vanishing on the way.
+The client-side adapters are keyless and need no options — their clients are configured from `i18n` (or, for Pagefind, from the built HTML), so an unknown key is rejected by config validation rather than ignored. The hosted ones take **public** credentials (safe to ship to the browser) and read their **secret** admin key from an environment variable at build time — the secret never lands in the config or the client bundle. Every option you pass to a hosted adapter is kept verbatim and handed to its search client in the browser (or, for Mixedbread, to the search endpoint), so an option Blume doesn't name still reaches the SDK — Algolia's `liteClient`, the Typesense `Client`, or `OramaClient`. Those options must be JSON values — the descriptor is inlined into the generated project as a literal, so a function, `undefined`, or a bigint fails config validation with a path instead of vanishing on the way.
 
 ### Orama (default)
 
@@ -188,7 +188,7 @@ search: typesense({
 
 ### Mixedbread
 
-Semantic search via [Mixedbread](https://www.mixedbread.com). Queries are proxied through a generated `/api/search` endpoint that holds your key, so this adapter **requires server output** (`deployment.output: "server"`). The endpoint reads `MIXEDBREAD_API_KEY`. Sync your content to the store with the Mixedbread CLI in your build, e.g. `mxbai vs sync <STORE_ID> ./content --ci`.
+Semantic search via [Mixedbread](https://www.mixedbread.com). Queries are proxied through a generated `/api/search` endpoint that holds your key, so this adapter **requires server output**: a host adapter such as `deployment: vercel()` from `blume/deploy` (see [Server rendering](/docs/deployment#server-rendering)). The endpoint reads `MIXEDBREAD_API_KEY`. Sync your content to the store with the Mixedbread CLI in your build, e.g. `mxbai vs sync <STORE_ID> ./content --ci`.
 
 ```ts blume.config.ts lineNumbers
 import { mixedbread } from "blume/search";

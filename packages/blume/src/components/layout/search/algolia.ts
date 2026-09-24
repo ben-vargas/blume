@@ -1,5 +1,6 @@
 import { liteClient } from "algoliasearch/lite";
 
+import type { AlgoliaOptions } from "../../../search/adapters/algolia.ts";
 import { excerptFor, highlight, SEARCH_LIMIT } from "./types.ts";
 import type { SearchFn } from "./types.ts";
 
@@ -13,20 +14,19 @@ interface AlgoliaRecord {
 
 /**
  * Algolia: the browser queries the index directly with the public,
- * search-only key. Records are uploaded at build time by the sync step.
+ * search-only key. Records are uploaded at build time by the sync step. Every
+ * adapter option Blume doesn't read (`hosts`, `timeouts`, `baseHeaders`, …) is
+ * the site's own client option and goes to `liteClient` untouched.
  */
-export const createSearch = (opts: {
-  apiKey: string;
-  appId: string;
-  indexName: string;
-}): SearchFn => {
-  const client = liteClient(opts.appId, opts.apiKey);
+export const createSearch = (opts: AlgoliaOptions): SearchFn => {
+  const { apiKey, appId, indexName, ...clientOptions } = opts;
+  const client = liteClient(appId, apiKey, clientOptions);
   return async (query, options) => {
     const { results } = await client.search<AlgoliaRecord>({
       requests: [
         {
           hitsPerPage: SEARCH_LIMIT,
-          indexName: opts.indexName,
+          indexName,
           query,
           // The sync uploads `locale` and `version` on every record so a
           // site can scope hosted results to the active language and the

@@ -16,6 +16,11 @@ import {
 } from "../../deploy/adapter-output.ts";
 import { deployPlatform } from "../../deploy/platforms/index.ts";
 import { cardCacheTally, ogCacheDir, pruneCardCache } from "../../og/cache.ts";
+import {
+  flagList,
+  removedBuildFlags,
+  removedBuildFlagsAdvice,
+} from "../../upgrade/upgrade.ts";
 import { commandMeta } from "../command-meta.ts";
 import { refuseIfDevRunning } from "../dev-lock.ts";
 import { logger } from "../log.ts";
@@ -267,8 +272,18 @@ export const buildCommand = defineCommand({
     },
   },
   meta: commandMeta.build,
-  async run({ args }) {
+  async run({ args, rawArgs }) {
     const root = process.cwd();
+
+    // citty accepts unknown flags, so a Blume 1 `--adapter vercel --output
+    // server` would otherwise build a static site without a word.
+    const removed = removedBuildFlags(rawArgs);
+    if (removed.length > 0) {
+      logger.error(
+        `blume build no longer takes ${flagList(removed)}. ${removedBuildFlagsAdvice(removed)}`
+      );
+      process.exit(1);
+    }
 
     // `--isolated` (or BLUME_RUNTIME_DIR) relocates the whole runtime to a
     // sibling dir so this build never touches a live dev server's `.blume/` or

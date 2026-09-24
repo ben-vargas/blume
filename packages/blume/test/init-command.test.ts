@@ -159,5 +159,7 @@ describe("blume init", () => {
     expect({ exitCode, stderr }).toEqual({ exitCode: 0, stderr: "" });
     expect(await exists(join(root, "installed.marker"))).toBe(false);
     expect(stdout).not.toContain("Installing dependencies");
+    // The existing package.json lists no blume and no dev script.
+    expect(stdout).toMatch(boxLines("npm install blume", "npx blume dev"));
   });
 });

@@ -1,5 +1,7 @@
 ---
-title: Changelog
+title: Changelogs
+sidebar:
+  label: Changelog
 description: Author release notes as ordinary content files or source them from GitHub Releases, and Blume builds a timeline page and an RSS feed automatically.
 ---
 
@@ -62,15 +64,7 @@ Once you have at least one `type: changelog` entry, Blume generates a **`/change
 
 The page appears only when nothing already occupies the `/changelog` route. To replace it with your own design, add a [custom page](/docs/advanced/custom-pages) at `pages/changelog.astro` — it takes over and Blume stops generating the default index. The `<Update>` component the previous timeline was built from is still available for a hand-authored page that wants inline release notes.
 
-Because this page is generated rather than authored, it isn't part of the content tree — so a header [tab](/docs/content/navigation#tabs) pointing at `/changelog` resolves to the newest entry instead. Give the tab an `href` to land on the index itself:
-
-```ts blume.config.ts
-navigation: {
-  tabs: [
-    { label: "Changelog", path: "/changelog", href: "/changelog" },
-  ],
-}
-```
+A header [tab](/docs/content/navigation#tabs) pointing at `/changelog` opens this index — no `href` needed.
 
 ## From GitHub Releases
 

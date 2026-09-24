@@ -15,6 +15,7 @@ import {
   detectPackageManager,
   nextSteps,
   PACKAGE_MANAGERS,
+  readExistingPackage,
   TEMPLATES,
   validateContentDir,
 } from "../init/scaffold.ts";
@@ -84,12 +85,15 @@ const ejectScaffold = async (
   const cd = cdStep(answers);
   const install = needsInstall ? [commands.install] : [];
   try {
-    await eject(root);
+    const { dependencies } = await eject(root);
     // The scaffolded scripts point at the Blume CLI; the ejected app runs
     // Astro directly (mirroring the standalone `blume eject` command).
-    await updatePackageScripts(root);
+    const added = await updatePackageScripts(root, dependencies);
     logger.success("Ejected to a standalone Astro project.");
-    const steps = [...cd, ...install, commands.dev];
+    // The packages eject added aren't installed yet, even when the scaffold's
+    // own install already ran, so install comes first either way.
+    const ejectInstall = added.length > 0 ? [commands.install] : install;
+    const steps = [...cd, ...ejectInstall, commands.dev];
     logger.box(`Next steps:\n\n  ${steps.join("\n  ")}\n`);
   } catch (error) {
     // SAFETY: eject and the script rewrite throw Error instances; only the
@@ -244,7 +248,11 @@ export const initCommand = defineCommand({
       return;
     }
 
-    const steps = nextSteps(answers, needsInstall);
+    // An existing package.json was left alone, so the steps add what it lacks.
+    const existing = createdPackage
+      ? undefined
+      : await readExistingPackage(root);
+    const steps = nextSteps(answers, needsInstall, existing);
     if (interactive) {
       clack.note(steps.trimEnd());
       clack.outro("You're all set.");

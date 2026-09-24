@@ -433,6 +433,12 @@ export const buildSearchDocuments = async (
     if (!options?.includeWhenDisabled) {
       return route.indexable;
     }
+    // A fallback route renders the fallback locale's page at another locale's
+    // URL, so indexing it would only repeat that page as a second hit — the
+    // reason site search leaves it out too.
+    if (route.fallback) {
+      return false;
+    }
     const page = pageById.get(route.id);
     return page ? contentIndexable(page, project.config) : false;
   });

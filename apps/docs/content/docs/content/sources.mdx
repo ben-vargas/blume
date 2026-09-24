@@ -41,7 +41,7 @@ export default defineConfig({
 });
 ```
 
-The adapters are `filesystem()`, `mdxRemote()`, `githubReleases()`, `sanity()`, `notion()`, `obsidian()`, and `custom()`. Every adapter that takes an options object accepts two shared options:
+Each built-in adapter is a factory exported from `blume/sources`, covered in its own section below, and [`custom()`](#custom-sources) plugs in any other backend. Every adapter that takes an options object accepts two shared options:
 
 - **`prefix`** namespaces the source's routes under `/<prefix>/…`, which also becomes the source's name in diagnostics and its cache directory. If two sources resolve to the same route, Blume reports a `BLUME_DUPLICATE_ROUTE` build error — give each source a distinct `prefix`.
 - **`pollInterval`** (seconds) makes a remote source re-fetch on that interval in dev, reloading only when the content actually changes. Leave it unset to fetch once and freeze for the session. Local sources (`filesystem()`, `obsidian()`) watch the filesystem instead and ignore it.
@@ -167,11 +167,11 @@ export default defineConfig({
 });
 ```
 
-A read token for a private dataset comes from the `SANITY_TOKEN` environment variable, which the adapter declares. Custom Portable Text block types map to Blume components through the engine's `serializers` option, available when you construct `sanitySource` directly and pass it to [`custom()`](#custom-sources).
+A read token for a private dataset comes from the `SANITY_TOKEN` environment variable, which the adapter declares. Custom Portable Text block types map to Blume components through the engine's `serializers` option, available when you construct `sanitySource` directly and pass it to [`custom()`](#custom-sources). Setting `serializers` writes the source's pages as MDX, so a component or directive a serializer returns renders.
 
 ## Notion
 
-The built-in `notion()` adapter turns a Notion database into a collection: each row becomes a page, its properties become frontmatter, and its block tree becomes MDX. Callouts, toggles, columns, and code blocks map to the matching Blume components. Video blocks become a `<YouTube>` embed when they hold a YouTube link and a `<video>` player otherwise, with the block's caption as a `<Frame>` caption either way; a link to a video page rather than a media file (a Vimeo or Loom URL, say) is reported as a warning instead of embedded. The adapter declares `@notionhq/client` (v5 or later) as its runtime dependency — an optional peer; Blume reads the database through its first data source.
+The built-in `notion()` adapter turns a Notion database into a collection: each row becomes a page, its properties become frontmatter, and its block tree becomes MDX. Callouts, toggles, columns, and code blocks map to the matching Blume components, and the text you type in Notion renders as written: a `{`, `<`, or Markdown character in a page is escaped rather than read as MDX, JSX, or formatting. Video blocks become a `<YouTube>` embed when they hold a YouTube link and a `<video>` player otherwise, with the block's caption as a `<Frame>` caption either way; a link to a video page rather than a media file (a Vimeo or Loom URL, say) is reported as a warning instead of embedded. The adapter declares `@notionhq/client` (v5 or later) as its runtime dependency — an optional peer; Blume reads the database through its first data source.
 
 ```ts blume.config.ts
 import { defineConfig } from "blume";
@@ -223,7 +223,7 @@ export default defineConfig({
 });
 ```
 
-The Delivery API token comes from the `CONTENTFUL_ACCESS_TOKEN` environment variable, which the adapter declares. Under `--preview` the adapter reads drafts through the Preview API with `CONTENTFUL_PREVIEW_TOKEN` (falling back to the delivery token). Assets are referenced from Contentful's CDN rather than downloaded — their URLs are stable. An embedded entry maps to a Blume component through the engine's `serializers` option, keyed by content type id, when you construct `contentfulSource` directly and pass it to [`custom()`](#custom-sources); without a serializer it is noted in a comment. A link to another entry renders as plain text, since there is no route to point at.
+The Delivery API token comes from the `CONTENTFUL_ACCESS_TOKEN` environment variable, which the adapter declares. Under `--preview` the adapter reads drafts through the Preview API with `CONTENTFUL_PREVIEW_TOKEN`. The Preview API rejects delivery tokens, so `--preview` without a preview token fails with a clear error rather than falling back to `CONTENTFUL_ACCESS_TOKEN`. Assets are referenced from Contentful's CDN rather than downloaded — their URLs are stable. An embedded entry maps to a Blume component through the engine's `serializers` option, keyed by content type id, when you construct `contentfulSource` directly and pass it to [`custom()`](#custom-sources); setting `serializers` writes the source's pages as MDX so the returned components render, and an embedded entry without a serializer is noted in a comment. A link to another entry renders as plain text, since there is no route to point at.
 
 ## Payload
 
@@ -251,7 +251,7 @@ export default defineConfig({
 });
 ```
 
-The API key comes from the `PAYLOAD_API_KEY` environment variable and is sent as `users API-Key <key>`; set `authCollection` when the key belongs to another auth-enabled collection. Only published documents are imported — `--preview` requests drafts and stages them with `draft: true`. Documents are fetched with `depth: 1` so uploads carry their URLs, and a relative upload path (`/media/x.png`) resolves against `url`. A `block` or `inlineBlock` node maps to a Blume component through the engine's `serializers` option, keyed by `blockType`, when you construct `payloadSource` directly and pass it to [`custom()`](#custom-sources).
+The API key comes from the `PAYLOAD_API_KEY` environment variable and is sent as `users API-Key <key>`; set `authCollection` when the key belongs to another auth-enabled collection. Only published documents are imported — `--preview` requests drafts and stages them with `draft: true`. Documents are fetched with `depth: 1` so uploads carry their URLs, and a relative upload path (`/media/x.png`) resolves against `url`. A `block` or `inlineBlock` node maps to a Blume component through the engine's `serializers` option, keyed by `blockType`, when you construct `payloadSource` directly and pass it to [`custom()`](#custom-sources). Setting `serializers` writes the source's pages as MDX so the returned components render; a body held in a Markdown text field stays Markdown.
 
 ## Strapi
 
@@ -280,7 +280,7 @@ export default defineConfig({
 });
 ```
 
-The API token comes from the `STRAPI_API_TOKEN` environment variable, sent as a bearer token. Entries are fetched with `populate=*` so images carry their URLs (set `populate` to narrow it), and a relative upload path (`/uploads/x.png`) resolves against `url`. Only published entries are imported — `--preview` requests `status=draft` and stages unpublished entries with `draft: true`.
+The API token comes from the `STRAPI_API_TOKEN` environment variable, sent as a bearer token. Entries are fetched with `populate=*` so images carry their URLs (set `populate` to narrow it), and a relative upload path (`/uploads/x.png`) resolves against `url`. Only published entries are imported — `--preview` requests drafts (`status=draft` on Strapi 5, `publicationState=preview` on Strapi 4) and stages each document that has never been published with `draft: true`; a published document previews its latest draft.
 
 ## Preview and sync
 

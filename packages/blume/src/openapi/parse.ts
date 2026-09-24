@@ -6,7 +6,9 @@ import { convert } from "@asyncapi/converter";
 import { normalize, upgrade } from "@scalar/openapi-parser";
 import pRetry, { AbortError } from "p-retry";
 import { isAbsolute, join } from "pathe";
+import type * as UndiciModule from "undici";
 
+import { nodeRequire } from "../core/node-require.ts";
 import { hashText } from "../core/sources/cache.ts";
 import type { AsyncApiDocument } from "./asyncapi.ts";
 import { normalizeAsyncApiDocument } from "./asyncapi.ts";
@@ -83,18 +85,21 @@ export interface SpecFetchOptions {
  * spec is fetched with one configured. Node's built-in `fetch` ignores `*_PROXY`
  * on its own; undici's env proxy agent, installed on the shared global-dispatcher
  * symbol, wires it in without replacing `fetch` (so tests can still stub it).
- * Best-effort and lazy: no proxy env means no undici import at all, and an
+ * Best-effort and lazy: no proxy env means undici never loads, and an
  * unavailable undici just leaves the direct connection in place.
  */
 let proxyInstalled = false;
-const ensureProxyDispatcher = async (): Promise<void> => {
+const ensureProxyDispatcher = (): void => {
   // Only memoize a successful install: with no proxy configured we cheaply
   // re-check each time, so a proxy set later in the process still takes effect.
   if (proxyInstalled || !PROXY_ENV_VARS.some((name) => process.env[name])) {
     return;
   }
   try {
-    const { EnvHttpProxyAgent, setGlobalDispatcher } = await import("undici");
+    // `require`, not `import()`: an ejected app scans in `astro:build:done`
+    // (see `core/node-require.ts`).
+    const { EnvHttpProxyAgent, setGlobalDispatcher }: typeof UndiciModule =
+      nodeRequire("undici");
     setGlobalDispatcher(new EnvHttpProxyAgent());
     proxyInstalled = true;
   } catch {
@@ -177,7 +182,7 @@ const retryableFetchError = (
 
 /** Fetch a remote spec's text, retrying transient failures with backoff. */
 const fetchSpecText = async (spec: string): Promise<string> => {
-  await ensureProxyDispatcher();
+  ensureProxyDispatcher();
   return await pRetry(
     async () => {
       const attempt = await attemptFetch(spec);

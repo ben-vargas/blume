@@ -74,6 +74,9 @@ export default function Chart() {
 | `"load"` | Immediately on page load | Above-the-fold, must-be-instant UI |
 | `"idle"` | When the main thread is idle | Non-urgent interactivity |
 | `"only"` | Client only, never server-rendered | Libraries that need `window`/`document` (charts, editors) |
+| `"media"` _(`components.ts` only)_ | When a CSS media query matches | UI that only runs at some sizes, like a mobile-only menu |
+
+`"media"` needs the query beside it, so it's available only to a [`components.ts` entry](#registering-islands-in-componentsts) — `{ component: Menu, client: "media", media: "(max-width: 50em)" }`. An `islands/` file that declares it falls back to `"visible"` with a warning.
 
 ## Frameworks
 

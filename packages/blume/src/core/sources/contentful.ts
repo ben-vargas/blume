@@ -11,6 +11,7 @@ import {
   isJsonObject,
   objectsIn,
 } from "./json.ts";
+import { writesMdx } from "./lower.ts";
 import type { RemoteFieldMap, RestClient } from "./remote.ts";
 import {
   documentEntry,
@@ -90,17 +91,23 @@ export const contentfulSource = (
     const id = asString(sys.id) ?? "";
     // Field paths resolve against the entry's fields, with `sys` beside them.
     const view: JsonObject = { ...asObject(item.fields), sys };
-    return documentEntry(view, fields, id, (body) =>
-      isJsonObject(body)
-        ? contentfulRichTextToMarkdown(body, {
-            resolveAsset: (assetId) => {
-              const asset = assets.get(assetId);
-              return asset ? assetFromEntry(asset) : null;
-            },
-            resolveEntry: (entryId) => linked.get(entryId) ?? null,
-            serializers: options.serializers,
-          })
-        : ""
+    return documentEntry(
+      view,
+      fields,
+      id,
+      (body) =>
+        isJsonObject(body)
+          ? contentfulRichTextToMarkdown(body, {
+              resolveAsset: (assetId) => {
+                const asset = assets.get(assetId);
+                return asset ? assetFromEntry(asset) : null;
+              },
+              resolveEntry: (entryId) => linked.get(entryId) ?? null,
+              serializers: options.serializers,
+            })
+          : "",
+      false,
+      writesMdx(options.serializers)
     );
   };
 

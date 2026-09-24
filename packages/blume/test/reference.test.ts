@@ -201,6 +201,19 @@ describe("referenceAdapterSchema", () => {
         "scalar({ spec, theme })"
       );
     }
+    // An unrelated typo beside `renderer` isn't dropped from the diagnostic.
+    const both = referenceConfigSchema.safeParse([
+      {
+        ...openapi({ spec: "o.json" }),
+        options: { colour: 1, renderer: "scalar", spec: "o.json" },
+      },
+    ]);
+    expect(both.error?.issues[0]?.message).toContain(
+      '`openapi({ spec, renderer: "scalar", theme })`'
+    );
+    expect(both.error?.issues[0]?.message).toEndWith(
+      'Unrecognized key: "colour"'
+    );
     // Any other unknown key keeps Zod's own wording; GraphQL never had the
     // option, so it gets the plain message too.
     for (const bad of [
@@ -283,19 +296,23 @@ describe("referenceAdapterSchema", () => {
   });
 
   it("rejects the 1.x blocks and words the hint for the keys present", () => {
-    // The keys are simply gone from the schema; `loadConfig` turns the
-    // rejection into the migration hint (see config.test.ts).
-    expect(
-      blumeConfigSchema.safeParse({
-        openapi: { enabled: true, spec: "o.json" },
-      }).success
-    ).toBe(false);
+    // The keys are gone from the schema; the root object's error hook turns
+    // the rejection into the migration hint.
+    const rejected = blumeConfigSchema.safeParse({
+      openapi: { enabled: true, spec: "o.json" },
+    });
+    expect(rejected.success).toBe(false);
+    expect(rejected.error?.issues[0]?.message).toContain(
+      "replaced by `reference`"
+    );
     const hint =
       removedReferenceKeysHint(["graphql", "title", "openapi"]) ?? "";
     expect(hint).toContain("`graphql`, `openapi`");
     expect(hint).toContain("reference: [graphql({ … }), openapi({ … })]");
     expect(hint).toContain('"blume/reference"');
-    // Any other unrecognized key keeps zod's own wording.
+    // A plain unknown key beside them keeps zod's own wording in the hint…
+    expect(hint).toEndWith('Unrecognized key: "title"');
+    // …and alone gets zod's message untouched.
     expect(removedReferenceKeysHint(["colour"])).toBeUndefined();
   });
 });

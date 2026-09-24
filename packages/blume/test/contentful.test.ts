@@ -144,15 +144,15 @@ plain **bold** *em* \`x*y\` ~~old~~ under [site](https://x.dev) entry [file](htt
 
 <Callout>Entry e1</Callout>
 
-<!-- unsupported Contentful embedded entry: widget -->
+{/* unsupported Contentful embedded entry: widget */}
 
-<!-- unsupported Contentful embedded entry -->
+{/* unsupported Contentful embedded entry */}
 
 | a\\|b | line break |
 | --- | --- |
 | 1 1b | 2 |
 
-<!-- unsupported Contentful node: mystery -->
+{/* unsupported Contentful node: mystery */}
 `);
   });
 
@@ -281,11 +281,12 @@ describe("contentfulSource", () => {
     );
 
     const { entries } = await source.load();
-    expect(entries.map((e) => e.ref)).toStrictEqual([
-      "getting-started.md",
-      "md.md",
-      "c.md",
-      "untitled.md",
+    // Serializers make lowered rich text MDX; a Markdown string stays `.md`.
+    expect(entries.map((e) => [e.ref, e.body.format])).toStrictEqual([
+      ["getting-started.mdx", "mdx"],
+      ["md.md", "md"],
+      ["c.mdx", "mdx"],
+      ["untitled.md", "md"],
     ]);
     expect(entries[0]?.data).toStrictEqual({
       description: "Intro",

@@ -46,7 +46,7 @@ export default defineMeta({
 
 See [Folder meta](/docs/content/meta) for every field and computing meta at scan time.
 
-A folder's `meta.title` and its own `index` page's frontmatter `title` are resolved independently — translating one under i18n and forgetting the other renders a correct sidebar with a stale `<title>`/heading on the landing page itself. Blume reports a `BLUME_NAV_INDEX_TITLE_MISMATCH` warning when they diverge. Untranslated pages filled in from the fallback locale are exempt — their title belongs to the fallback locale, and the fix is translating the page, not editing its frontmatter.
+A folder's `meta.title` and its own `index` page's frontmatter `title` are resolved independently — translating one under i18n and forgetting the other renders a correct sidebar with a stale `<title>`/heading on the landing page itself. Blume reports a `BLUME_NAV_INDEX_TITLE_MISMATCH` warning when they diverge on an index page that hides its own sidebar row (`sidebar.hidden: true`), where the folder title is the only sidebar label the page has. When the index row is visible, the sidebar already shows both titles, so pairing a folder title with a different page title ("CLI" over "Overview") is fine. Untranslated pages filled in from the fallback locale are exempt — their title belongs to the fallback locale, and the fix is translating the page, not editing its frontmatter.
 
 To group pages _without_ adding a URL segment, use a parenthesized folder name — see [Pages](/docs/content#group-folders).
 
@@ -160,19 +160,19 @@ navigation: {
 }
 ```
 
-A tab's `path` is its section prefix, and it doubles as the link target. A section whose `path` isn't a page of its own — a folder with no `index.mdx` — would link to a 404, so the tab falls back to the first page in the section instead. The generated [changelog](/docs/advanced/changelog) index counts as the section's own page, so a `/changelog` tab opens the timeline rather than the newest entry.
+A tab's `path` is its section prefix, and it doubles as the link target. A section whose `path` isn't a page of its own — a folder with no `index.mdx` — would link to a 404, so the tab falls back to the first page in the section instead. A static [custom page](/docs/advanced/custom-pages) at the tab's `path` counts as the section's own page: with `pages/guides.astro`, a `/guides` tab lands on that page while the `guides/` folder fills its sidebar. So does the generated [changelog](/docs/advanced/changelog) index, so a `/changelog` tab opens the timeline rather than the newest entry.
 
-Set `href` when you want a tab to land somewhere else — for example, a [custom page](/docs/advanced/custom-pages) under `pages/`, which the fallback can't see:
+Set `href` when you want a tab to land somewhere else — a particular page in the section, say:
 
 ```ts blume.config.ts
 navigation: {
   tabs: [
-    { label: "Guides", path: "/guides", href: "/guides" },
+    { label: "Guides", path: "/guides", href: "/guides/getting-started" },
   ],
 }
 ```
 
-Here `pages/guides.astro` is the tab's landing page, while the `guides/` folder fills its sidebar. Tabs that don't set `href` keep the fallback.
+Tabs that don't set `href` keep the resolution above.
 
 On an [i18n](/docs/content/i18n) site, a tab's `label` (and a dropdown item's) can be a per-locale map instead of a string — the active locale's entry wins, then the default locale's:
 

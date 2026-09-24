@@ -14,9 +14,11 @@ const { track } = await import("../src/components/layout/analytics-client.ts");
 type Fn = ReturnType<typeof mock>;
 
 interface WindowStub {
+  __blumeGtmLayer?: { push: Fn };
   _satellite?: { track?: Fn };
   amplitude?: { track?: Fn };
   analytics?: { track?: Fn };
+  blumeLayer?: { push: Fn };
   clarity?: Fn;
   dataLayer?: { push: Fn };
   dispatchEvent: (event: CustomEvent) => boolean;
@@ -127,6 +129,29 @@ describe("track", () => {
     expect(dispatched).toHaveLength(1);
     expect(dispatched[0]?.type).toBe("blume:track");
     expect(dispatched[0]?.detail).toEqual({ event: "feedback", props });
+  });
+
+  it("pushes into the Tag Manager data layer the container snippet named", () => {
+    // `googleTagManager({ dataLayer: "blumeLayer" })` makes the container read
+    // `window.blumeLayer`; `window.dataLayer` belongs to the Google tag.
+    const layerPush = mock(noop);
+    const defaultPush = mock(noop);
+    const gtag = mock(noop);
+    const blumeLayer = { push: layerPush };
+    setWindow({
+      __blumeGtmLayer: blumeLayer,
+      blumeLayer,
+      dataLayer: { push: defaultPush },
+      dispatchEvent: () => true,
+      gtag,
+    });
+
+    const props = { helpful: "yes", path: "/x" };
+    track("feedback", props);
+
+    expect(layerPush).toHaveBeenCalledWith({ ...props, event: "feedback" });
+    expect(defaultPush).not.toHaveBeenCalled();
+    expect(gtag).toHaveBeenCalledWith("event", "feedback", props);
   });
 
   it("still fires Vercel and the custom event when other providers are absent", () => {

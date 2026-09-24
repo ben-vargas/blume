@@ -19,6 +19,7 @@ import {
   renderInline,
   renderLink,
   unsupported,
+  writesMdx,
 } from "./lower.ts";
 
 export interface LexicalOptions {
@@ -59,7 +60,10 @@ const customBlock = (node: JsonObject, options: LexicalOptions): string => {
   if (fields && serializer) {
     return serializer(fields);
   }
-  return unsupported(`Lexical block${blockType ? `: ${blockType}` : ""}`);
+  return unsupported(
+    `Lexical block${blockType ? `: ${blockType}` : ""}`,
+    writesMdx(options.serializers)
+  );
 };
 
 const renderInlines = (nodes: JsonObject[], options: LexicalOptions): string =>
@@ -105,7 +109,10 @@ const renderUpload = (node: JsonObject, options: LexicalOptions): string => {
   const value = asObject(node.value);
   const url = value ? asString(value.url) : undefined;
   if (!(value && url)) {
-    return unsupported("Lexical upload (fetch with depth 1 to populate it)");
+    return unsupported(
+      "Lexical upload (fetch with depth 1 to populate it)",
+      writesMdx(options.serializers)
+    );
   }
   const alt = asString(value.alt) ?? asString(value.filename) ?? "";
   return image(alt, absoluteUrl(url, options.baseUrl));
@@ -165,7 +172,10 @@ const renderBlock = (node: JsonObject, options: LexicalOptions): string => {
       return customBlock(node, options);
     }
     default: {
-      return unsupported(`Lexical node: ${typeOf(node)}`);
+      return unsupported(
+        `Lexical node: ${typeOf(node)}`,
+        writesMdx(options.serializers)
+      );
     }
   }
 };

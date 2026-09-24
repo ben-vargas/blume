@@ -1,6 +1,7 @@
 import type { JsonObject } from "./json.ts";
 import { asObject, asString, isJsonObject, objectsIn } from "./json.ts";
 import { lexicalToMarkdown } from "./lexical.ts";
+import { writesMdx } from "./lower.ts";
 import type { RemoteFieldMap, RestClient } from "./remote.ts";
 import {
   documentEntry,
@@ -111,7 +112,8 @@ export const payloadSource = (
             fields,
             id,
             (body) => (isJsonObject(body) ? lower(body) : ""),
-            draft
+            draft,
+            writesMdx(options.serializers)
           )
         );
       }

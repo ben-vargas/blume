@@ -157,6 +157,39 @@ describe("sanitySource", () => {
     expect(entry?.lastModified).toBe("2024-05-01T00:00:00Z");
   });
 
+  it("writes entries as MDX when serializers turn blocks into components", async () => {
+    const source = sanitySource(
+      {
+        client: clientReturning([
+          {
+            ...doc,
+            body: [
+              ...doc.body,
+              { _type: "callout", text: "Heads up" },
+              { _type: "mystery" },
+            ],
+          },
+        ]),
+        dataset: "production",
+        name: "guides",
+        projectId: "p1",
+        query: "*[_type == 'guide']",
+        serializers: { callout: (b) => `<Callout>${b.text}</Callout>` },
+      },
+      ctxFor(await tempDir())
+    );
+
+    const { entries } = await source.load();
+    const [entry] = entries;
+    expect(entry?.ref).toBe("getting-started.mdx");
+    expect(entry?.body.format).toBe("mdx");
+    expect(entry?.body.text).toContain("<Callout>Heads up</Callout>");
+    // MDX rejects HTML comments, so the unknown block is noted in MDX's form.
+    expect(entry?.body.text).toContain(
+      "{/* unsupported Portable Text block: mystery */}"
+    );
+  });
+
   it("watch polls fresh past the dev cache and fires on a changed document", async () => {
     let calls = 0;
     const client: SanityClientLike = {

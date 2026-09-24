@@ -13,12 +13,9 @@ import { fileURLToPath } from "node:url";
 
 import { dirname, join, normalize, relative } from "pathe";
 
-import { openaiCompatible, openrouter } from "../src/ai/ask.ts";
 import {
-  askProviderWarnings,
   buildRuntimeData,
   collectStaged,
-  deploymentAdapterWarnings,
   detectNeedsReact,
   detectUsesMath,
   diagnosticWarning,
@@ -28,7 +25,6 @@ import {
   reactCompilerWarnings,
   resolveReactCompiler,
   sameRealDir,
-  searchProviderWarnings,
 } from "../src/astro/generate.ts";
 import {
   readRuntimeModule,
@@ -36,11 +32,10 @@ import {
 } from "../src/astro/runtime-modules.ts";
 import { BlumeError } from "../src/core/diagnostics.ts";
 import { scanProject } from "../src/core/project-graph.ts";
-import { blumeConfigSchema } from "../src/core/schema.ts";
-import type { BlumeConfigInput, ResolvedConfig } from "../src/core/schema.ts";
+import type { ResolvedConfig } from "../src/core/schema.ts";
 import type { Diagnostic } from "../src/core/types.ts";
-import { cloudflare, netlify, node } from "../src/deploy/adapters/index.ts";
-import { flexsearch, mixedbread, orama } from "../src/search/adapters/index.ts";
+import { netlify, node } from "../src/deploy/adapters/index.ts";
+import { mixedbread } from "../src/search/adapters/index.ts";
 
 let srcDir: string;
 
@@ -2053,21 +2048,28 @@ describe("generateRuntime", () => {
     ).toBe(true);
   });
 
-  it("warns when the cloudflare adapter package isn't installed anywhere", async () => {
-    // The adapter may well be installed in this workspace (the docs app uses
-    // it) and linked into the Blume package, so an empty temp dir stands in
-    // for both the project root and the Blume package. Its empty
-    // `node_modules` also stops Bun resolving the package out of its global
-    // install cache, which it does for any bare specifier under a root that
-    // has no `node_modules` at all.
-    await mkdir(join(srcDir, "node_modules"));
-    const { deployment } = blumeConfigSchema.parse({
-      deployment: cloudflare(),
+  it("fails a build over a missing adapter package, naming the install command", async () => {
+    const root = await writeProject({
+      "blume.config.ts": `export default { deployment: ${JSON.stringify(netlify())} };
+`,
+      "docs/index.md": "# Home\n",
+      // A lockfile pins the package manager the suggestion names.
+      "pnpm-lock.yaml": "lockfileVersion: '9.0'\n",
     });
-    const warnings = deploymentAdapterWarnings(deployment, srcDir, srcDir);
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('Deployment adapter "cloudflare"');
-    expect(warnings[0]).toContain("Run `npm install @astrojs/cloudflare`");
+    const project = await scanProject(root, { mode: "build" });
+    const failure = await generateRuntime(project).catch((error) => error);
+    expect(failure).toBeInstanceOf(BlumeError);
+    expect(failure.diagnostic).toMatchObject({
+      code: "BLUME_DEPENDENCY_MISSING",
+      message:
+        'Deployment adapter "netlify" needs "@astrojs/netlify", which isn\'t installed.',
+      severity: "error",
+      suggestion: "Install it: `pnpm add @astrojs/netlify`.",
+    });
+    // Nothing is generated past the preflight.
+    expect(existsSync(join(project.context.outDir, "astro.config.mjs"))).toBe(
+      false
+    );
   });
 
   it("stays quiet when the project installed the netlify adapter", async () => {
@@ -2300,72 +2302,7 @@ describe("diagnosticWarning", () => {
   });
 });
 
-// A parsed (schema-defaulted) `ai.ask` block, the shape askProviderWarnings
-// receives from the resolved config.
-const parsedAsk = (
-  ask: NonNullable<NonNullable<BlumeConfigInput["ai"]>["ask"]>
-) => blumeConfigSchema.parse({ ai: { ask } }).ai.ask;
-
 describe("generateRuntime preflight and write failures", () => {
-  it("warns when the search adapter's SDK isn't installed anywhere", () => {
-    // An empty temp dir stands in for both the project root and the Blume
-    // package, so the adapter's SDK resolves from neither.
-    const warnings = searchProviderWarnings(flexsearch(), srcDir, srcDir);
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('Search adapter "flexsearch"');
-    expect(warnings[0]).toContain('needs "flexsearch"');
-  });
-
-  it("stays quiet when the adapter's SDK ships with Blume", () => {
-    expect(searchProviderWarnings(orama(), srcDir)).toEqual([]);
-  });
-
-  it("warns when the Ask AI backend's provider SDK isn't installed anywhere", () => {
-    const ask = parsedAsk({
-      enabled: true,
-      provider: openrouter({ model: "x/y" }),
-    });
-    const warnings = askProviderWarnings(ask, srcDir, srcDir);
-    expect(warnings).toHaveLength(1);
-    expect(warnings[0]).toContain('Ask AI provider "openrouter"');
-    expect(warnings[0]).toContain(
-      "Run `npm install @openrouter/ai-sdk-provider`"
-    );
-  });
-
-  it("stays quiet for the gateway backend, an external endpoint, and disabled Ask AI", () => {
-    // Gateway needs only the core `ai` package, which ships with Blume.
-    expect(
-      askProviderWarnings(parsedAsk({ enabled: true }), srcDir, srcDir)
-    ).toEqual([]);
-    // An external endpoint means the provider route is never generated.
-    expect(
-      askProviderWarnings(
-        parsedAsk({
-          enabled: true,
-          endpoint: "https://api.example.com/ask",
-          provider: openrouter({ model: "x/y" }),
-        }),
-        srcDir,
-        srcDir
-      )
-    ).toEqual([]);
-    expect(askProviderWarnings(undefined, srcDir, srcDir)).toEqual([]);
-  });
-
-  it("stays quiet when the Ask AI provider SDK is resolvable", () => {
-    const ask = parsedAsk({
-      enabled: true,
-      provider: openaiCompatible({
-        apiKeyEnv: "K",
-        baseUrl: "https://api.example.com/v1",
-        model: "m",
-      }),
-    });
-    // The monorepo root resolves the workspace-installed SDK.
-    expect(askProviderWarnings(ask, srcDir)).toEqual([]);
-  });
-
   it("cleans up the temp file and rethrows when the atomic rename fails", async () => {
     const project = await scanProject(
       await writeProject({ "docs/index.md": "# Home\n" })

@@ -29,6 +29,27 @@ Every page accepts the following frontmatter. All fields are optional.
       default: "false",
       description: "Exclude from production builds.",
     },
+    deprecated: {
+      type: "boolean",
+      default: "false",
+      description:
+        "Mark the page deprecated: its sidebar row gets a deprecated pill (a translatable UI string).",
+    },
+    hidden: {
+      type: "boolean",
+      default: "false",
+      description: "Shorthand for sidebar.hidden.",
+    },
+    noindex: {
+      type: "boolean",
+      default: "false",
+      description: "Shorthand for seo.noindex.",
+    },
+    icon: {
+      type: "string",
+      description:
+        "Lucide icon for the page's sidebar row when sidebar.icon isn't set (sidebar.icon wins).",
+    },
     lastModified: {
       type: "string",
       description:
@@ -62,7 +83,11 @@ seo:
   image: /og/install.png
   canonical: https://acme.com/install
   noindex: false
+  x:
+    creator: "@jane"
 ```
+
+`noindex` emits a robots `noindex`, drops the page from the sitemap, and skips its structured data. `x.creator` credits the page to an X account (`twitter:creator`) — a guest post's author, say. See [Metadata](/docs/discoverability/metadata#per-page-overrides) for every field.
 
 ## Search
 
@@ -71,6 +96,15 @@ search:
   exclude: false
   tags: [api]
 ```
+
+## AI
+
+```yaml lineNumbers
+ai:
+  exclude: true
+```
+
+`ai.exclude` keeps the page out of [`llms.txt` and `llms-full.txt`](/docs/discoverability/llms-txt#excluding-a-page). The page still renders, stays in search, and keeps its place in the sitemap.
 
 ## Changelog
 

@@ -85,7 +85,7 @@ Credentials typed into the auth inputs stay in memory and vanish on reload. Chec
 
 ### CORS and the proxy
 
-As with a [Scalar embed](/docs/references/scalar), requests go **directly from the browser** to the target API, so the API must allow cross-origin requests from the docs site (`Access-Control-Allow-Origin`). For APIs that can't, set `playground.proxy`: a URL routes requests through a proxy you host, and `true` enables the built-in `/_api-proxy` route — which needs a server build, so it requires [`deployment.output: "server"`](/docs/deployment#server-rendering):
+As with a [Scalar embed](/docs/references/scalar), requests go **directly from the browser** to the target API, so the API must allow cross-origin requests from the docs site (`Access-Control-Allow-Origin`). For APIs that can't, set `playground.proxy`: a URL routes requests through a proxy you host, and `true` enables the built-in `/_api-proxy` route — which needs [server output](/docs/deployment#server-rendering): a host adapter such as `deployment: vercel()` from `blume/deploy`:
 
 ```ts blume.config.ts lineNumbers
 reference: [
@@ -115,7 +115,7 @@ reference: [
 ],
 ```
 
-`spec` is shorthand for a single-entry `sources`, so you only reach for `sources` when you have more than one. When two specs need different display options — a different code-sample set, — list two `openapi()` adapters instead, each with its own `route`. An embedded [Scalar](/docs/references/scalar) reference beside native pages is its own `scalar()` adapter in the list. Sources are resolved in list order, and when two resolve to the same route the first one wins (the build warns about the one it dropped).
+`spec` is shorthand for a single-entry `sources`, so you only reach for `sources` when you have more than one. When two specs need different display options — a different code-sample set, say — list two `openapi()` adapters instead, each with its own `route`. An embedded [Scalar](/docs/references/scalar) reference beside native pages is its own `scalar()` adapter in the list. Sources are resolved in list order, and when two resolve to the same route the first one wins (the build warns about the one it dropped).
 
 ### Per-source indexing
 

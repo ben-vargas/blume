@@ -74,13 +74,23 @@ export const migrateCommand = defineCommand({
           ? `  Migrating from ${MIGRATE_SOURCE_NAMES[source]}${named ? "" : ` (detected from ${detected?.evidence})`}.\n`
           : "  Couldn't detect the docs framework; the agent will inventory the repo first.\n"
       );
+      // A named source wins, but a repo that looks like another framework is
+      // worth a second look before an agent rewrites it on the wrong mappings.
+      if (named && detected && detected.source !== named) {
+        process.stderr.write(
+          `  Warning: this looks like a ${MIGRATE_SOURCE_NAMES[detected.source]} project (${detected.evidence}); migrating from ${MIGRATE_SOURCE_NAMES[named]} as named.\n`
+        );
+      }
       const skillDir = join(packageRoot(), MIGRATE_SKILL_DIR);
 
+      // Without an agent flag the command is the pointer for any other agent:
+      // the bundled skill's path (which lives in a throwaway cache under npx),
+      // plus the install line that puts the skill where agents look for it.
       if (!agent) {
         process.stderr.write(
-          `  blume migrate runs the migration with a coding agent: rerun with --claude or --codex.\n  Using another agent? Point it at ${join(skillDir, "SKILL.md")}.\n`
+          `  blume migrate runs the migration with a coding agent: rerun with --claude or --codex.\n  Using another agent? Point it at ${join(skillDir, "SKILL.md")},\n  or install the skill where your agent looks for skills: npx skills add haydenbleasel/blume --skill blume-migrate\n`
         );
-        process.exit(1);
+        return;
       }
 
       const cli = AGENTS[agent];

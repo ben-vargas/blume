@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { blumeConfigSchema } from "../src/core/schema.ts";
+import { blumeConfigSchema, pageMetaSchema } from "../src/core/schema.ts";
 
 /**
  * The 2.0 config cleanups: each removed or renamed field fails validation with
@@ -207,5 +207,132 @@ describe("agents", () => {
     expect(messages(parse({ agents: { ask: { enabled: true } } }))[0]).toMatch(
       /Unrecognized key/u
     );
+  });
+});
+
+describe("ai.ask provider", () => {
+  /** An inline `blume/ai` descriptor, as the factories return it. */
+  const inkeepDescriptor = {
+    kind: "inkeep",
+    options: { model: "inkeep-qa" },
+    requiredSecrets: [],
+    runtimeDeps: [],
+  };
+
+  it("names the factory that replaced a 1.x provider name", () => {
+    expect(
+      messages(parse({ ai: { ask: { provider: "openrouter" } } }))
+    ).toEqual([
+      'ai.ask.provider takes an adapter from "blume/ai", not a provider name: `provider: openrouter({ model })`. The 1.x model, apiKeyEnv, baseUrl, headers, and reasoning fields move into the call.',
+    ]);
+    expect(
+      messages(parse({ ai: { ask: { provider: "openai-compatible" } } }))[0]
+    ).toContain("`provider: openaiCompatible({ model })`");
+  });
+
+  it("lists the adapters for a provider value that was never a 1.x name", () => {
+    const hint =
+      'ai.ask.provider takes an adapter from "blume/ai": gateway(), openrouter(), llmgateway(), inkeep(), or openaiCompatible().';
+    expect(messages(parse({ ai: { ask: { provider: "anthropic" } } }))).toEqual(
+      [hint]
+    );
+    expect(messages(parse({ ai: { ask: { provider: 42 } } }))).toEqual([hint]);
+  });
+
+  it("keeps Zod's message for a descriptor with an unknown kind", () => {
+    expect(
+      messages(parse({ ai: { ask: { provider: { kind: "nope" } } } }))[0]
+    ).toMatch(/discriminator/iu);
+  });
+
+  it("moves the 1.x flat fields into the adapter the provider names", () => {
+    expect(
+      messages(
+        parse({
+          ai: {
+            ask: {
+              model: "anthropic/claude-sonnet-4-5",
+              provider: "openrouter",
+              reasoning: "none",
+            },
+          },
+        })
+      )
+    ).toEqual([
+      'ai.ask.provider takes an adapter from "blume/ai", not a provider name: `provider: openrouter({ model })`. The 1.x model, apiKeyEnv, baseUrl, headers, and reasoning fields move into the call.',
+      'ai.ask.model, ai.ask.reasoning moved into the provider adapter: `provider: openrouter({ model, reasoning })`, imported from "blume/ai".',
+    ]);
+  });
+
+  it("names the descriptor's own adapter, or the gateway when unset", () => {
+    expect(
+      messages(
+        parse({ ai: { ask: { model: "x", provider: inkeepDescriptor } } })
+      )
+    ).toEqual([
+      'ai.ask.model moved into the provider adapter: `provider: inkeep({ model })`, imported from "blume/ai".',
+    ]);
+    expect(
+      messages(parse({ ai: { ask: { apiKeyEnv: "KEY", headers: {} } } }))
+    ).toEqual([
+      'ai.ask.apiKeyEnv, ai.ask.headers moved into the provider adapter: `provider: gateway({ apiKeyEnv, headers })`, imported from "blume/ai".',
+    ]);
+  });
+
+  it("keeps reporting a plain unknown key beside a moved field", () => {
+    expect(
+      messages(parse({ ai: { ask: { baseUrl: "https://x.dev", colour: 1 } } }))
+    ).toEqual([
+      'ai.ask.baseUrl moved into the provider adapter: `provider: gateway({ baseUrl })`, imported from "blume/ai". Unrecognized key: "colour"',
+    ]);
+  });
+
+  it("keeps the default message for an unknown key alone", () => {
+    expect(messages(parse({ ai: { ask: { colour: 1 } } }))[0]).toMatch(
+      /^Unrecognized key/u
+    );
+  });
+
+  it("keeps Zod's own message when ai.ask isn't an object", () => {
+    expect(messages(parse({ ai: { ask: "yes" } }))[0]).toMatch(
+      /expected object/iu
+    );
+  });
+});
+
+describe("the 1.x reference blocks", () => {
+  it("names the reference list beside every other issue in the config", () => {
+    // The hint is part of the schema, not a pre-check: `lastModified: true`
+    // is still reported in the same run.
+    const found = messages(
+      parse({ graphql: {}, lastModified: true, theme: { radius: "md" } })
+    );
+    expect(found).toHaveLength(2);
+    expect(found.join("\n")).toContain(
+      "The top-level `graphql` config was replaced by `reference`"
+    );
+    expect(found.join("\n")).toContain('`true` became "git"');
+  });
+
+  it("keeps reporting a plain unknown key beside the removed blocks", () => {
+    const [message] = messages(parse({ colour: "teal", openapi: {} }));
+    expect(message).toContain("`reference: [openapi({ … })]`");
+    expect(message).toEndWith('Unrecognized key: "colour"');
+  });
+});
+
+describe("search.boost frontmatter", () => {
+  it("rejects the removed field with a hint", () => {
+    const result = pageMetaSchema.safeParse({ search: { boost: 2 } });
+    expect(result.success).toBe(false);
+    expect(result.error?.issues.map((issue) => issue.message)).toEqual([
+      "search.boost was removed: search never read it, so the page ranked the same without it. Delete the field.",
+    ]);
+  });
+
+  it("keeps the other search keys", () => {
+    expect(
+      pageMetaSchema.parse({ search: { exclude: true, tags: ["a"] } }).search
+    ).toEqual({ exclude: true, tags: ["a"] });
   });
 });

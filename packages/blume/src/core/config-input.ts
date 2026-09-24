@@ -409,7 +409,7 @@ type RadiusScale = RadiusScaleTight | RadiusScaleRound;
 
 export interface ThemeConfig {
   /**
-   * Accent color. A palette name (`blue`, `violet`, `green`, …) or any CSS
+   * Accent color. A palette name (`blue`, `purple`, `green`, …) or any CSS
    * color applies to both modes; the object form sets each mode. Defaults to
    * `blue`.
    */

@@ -1,5 +1,6 @@
 import { OramaClient } from "@oramacloud/client";
 
+import type { OramaCloudOptions } from "../../../search/adapters/orama-cloud.ts";
 import { excerptFor, highlight, SEARCH_LIMIT } from "./types.ts";
 import type { SearchFn } from "./types.ts";
 
@@ -12,15 +13,16 @@ interface OramaCloudRecord {
 
 /**
  * Orama Cloud: the browser queries the hosted index directly with the public
- * endpoint + API key. Records are pushed at build time by the sync step.
+ * endpoint + API key. Records are pushed at build time by the sync step. Every
+ * adapter option Blume doesn't read is the site's own client option and goes
+ * to `OramaClient` untouched; `indexId` belongs to the sync and stays out.
  */
-export const createSearch = (opts: {
-  endpoint: string;
-  apiKey: string;
-}): SearchFn => {
+export const createSearch = (opts: OramaCloudOptions): SearchFn => {
+  const { apiKey, endpoint, indexId: _syncOnly, ...clientOptions } = opts;
   const client = new OramaClient({
-    api_key: opts.apiKey,
-    endpoint: opts.endpoint,
+    ...clientOptions,
+    api_key: apiKey,
+    endpoint,
   });
   return async (query, options) => {
     const results = await client.search({

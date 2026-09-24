@@ -16,12 +16,19 @@ import { track as vercelTrack } from "@vercel/analytics";
 /** Flat, serializable event properties. */
 export type TrackProps = Record<string, boolean | number | string>;
 
+/** A Tag Manager data layer: a queue the container drains. */
+interface DataLayer {
+  push: (entry: TrackProps & { event: string }) => number;
+}
+
 interface AnalyticsWindow {
+  /** The data layer a `googleTagManager()` snippet's container reads. */
+  __blumeGtmLayer?: DataLayer;
   _satellite?: { track?: (event: string, props?: TrackProps) => void };
   amplitude?: { track?: (event: string, props?: TrackProps) => void };
   analytics?: { track?: (event: string, props?: TrackProps) => void };
   clarity?: (command: "event", event: string) => void;
-  dataLayer?: { push: (entry: TrackProps & { event: string }) => number };
+  dataLayer?: DataLayer;
   fathom?: { trackEvent?: (event: string) => void };
   gtag?: (command: "event", event: string, props?: TrackProps) => void;
   heap?: { track?: (event: string, props?: TrackProps) => void };
@@ -68,10 +75,11 @@ const trackGlobals = (
   props: TrackProps
 ): void => {
   // Google: `gtag('event')` for the Google tag, and a plain `{ event }` push
-  // for a Tag Manager custom-event trigger. Each reads only its own shape, so
-  // a site with both configured still sees the event once per product.
+  // for a Tag Manager custom-event trigger, into the container's own data
+  // layer. Each reads only its own shape, so a site with both configured
+  // still sees the event once per product.
   attempt(() => w.gtag?.("event", event, props));
-  attempt(() => w.dataLayer?.push({ ...props, event }));
+  attempt(() => (w.__blumeGtmLayer ?? w.dataLayer)?.push({ ...props, event }));
   // Privacy-first counters take a name, some with properties.
   attempt(() => w.plausible?.(event, { props }));
   attempt(() => w.fathom?.trackEvent?.(event));

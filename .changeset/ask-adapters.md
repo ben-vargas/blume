@@ -23,3 +23,5 @@ export default defineConfig({
 ```
 
 The descriptor is plain data, so the generated and ejected routes inline it as literals and never import `blume.config.ts` at request time.
+
+A config still using a provider name or the flat fields fails with the adapter call that replaces them, such as `provider: openrouter({ model, reasoning })`.

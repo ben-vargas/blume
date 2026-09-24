@@ -43,6 +43,13 @@ export const isUnderPath = (route: string, base: string): boolean =>
 export const isRootTab = (tab: NavTab, root: string): boolean =>
   isUnderPath(root, tab.path);
 
+/**
+ * A page's sidebar icon: `sidebar.icon`, or the top-level `icon` shorthand
+ * (the Mintlify-style spelling) when the nested key is unset.
+ */
+const sidebarIcon = (page: PageRecord): string | undefined =>
+  page.meta.sidebar.icon ?? page.meta.icon;
+
 const humanize = (segment: string): string =>
   segment
     .replace(NUMERIC_PREFIX, "")
@@ -276,6 +283,12 @@ const applyFolderMeta = (
  * update the folder's `meta.ts` and forget the index page's own frontmatter
  * (or vice versa), and a correct-looking sidebar hides the mismatch.
  *
+ * Only fires when the index page's own sidebar row is hidden
+ * (`sidebar.hidden`), so the linked group header is the only sidebar label the
+ * page has. A visible index row shows the page's own label beneath the header,
+ * so the sidebar already carries both titles and a divergence there is a
+ * deliberate pairing ("CLI" over "Overview"), not drift.
+ *
  * Only fires when the page has an explicit frontmatter `title` of its own:
  * when it's absent, `page.title` is derived from the first heading or the
  * filename, so it almost never coincidentally matches a custom folder title —
@@ -298,7 +311,11 @@ const indexTitleMismatchDiagnostic = (
   metaPrefix: string,
   sharedMetaPrefix: string
 ): Diagnostic | undefined => {
-  if (!page.meta.title || page.fallback || folderPath === "") {
+  if (
+    !(page.meta.title && page.meta.sidebar.hidden) ||
+    page.fallback ||
+    folderPath === ""
+  ) {
     return undefined;
   }
   const meta =
@@ -552,8 +569,9 @@ const buildFileSystemSidebar = (
     const stem = stemOf(filename);
     const dirs = parts.slice(0, -1);
 
-    // Checked before the hidden filter: a sidebar-hidden index page still
-    // renders with its own <title>, so title drift matters there just the same.
+    // Checked before the hidden filter: the title check fires only for a
+    // sidebar-hidden index page, whose own <title> the header label stands in
+    // for, so it must see the pages the filter drops.
     if (isIndexStem(stem)) {
       const diagnostic = indexTitleMismatchDiagnostic(
         page,
@@ -612,7 +630,7 @@ const buildFileSystemSidebar = (
       deprecated: page.meta.deprecated || undefined,
       description: page.description,
       file: page.sourcePath,
-      icon: page.meta.sidebar.icon,
+      icon: sidebarIcon(page),
       key: segmentKey(stem),
       kind: "page",
       label: page.meta.sidebar.label ?? page.title,
@@ -691,7 +709,7 @@ const configItemToNode = (
       badge: page.meta.sidebar.badge,
       deprecated: page.meta.deprecated || undefined,
       description: page.description,
-      icon: page.meta.sidebar.icon,
+      icon: sidebarIcon(page),
       kind: "page",
       label: page.meta.sidebar.label ?? page.title,
       pageId: page.id,
@@ -764,11 +782,18 @@ const buildConfigSidebar = (
  * the content tree (the generated changelog index) or is a page/group in the
  * tree; otherwise fall back to the first linkable route in the section
  * (sidebar order).
+ *
+ * Routes outside the content tree are served at their own path, not under
+ * `basePath` (`pages/changelog.astro` answers `/changelog` on a `/docs`-based
+ * site), while tab paths arrive based (`/docs/changelog`). So when the based
+ * path is neither an outside route nor a tree node, the base-less path is
+ * checked against the outside routes before the section's first page wins.
  */
 const resolveTabHref = (
   sidebar: NavNode[],
   path: string,
-  extraRoutes: ReadonlySet<string>
+  extraRoutes: ReadonlySet<string>,
+  basePath: string
 ): string => {
   if (extraRoutes.has(path)) {
     return path;
@@ -793,7 +818,11 @@ const resolveTabHref = (
     }
     return false;
   };
-  return walk(sidebar) ? path : (first ?? path);
+  if (walk(sidebar)) {
+    return path;
+  }
+  const bare = stripBasePath(basePath, path);
+  return extraRoutes.has(bare) ? bare : (first ?? path);
 };
 
 /**
@@ -807,10 +836,12 @@ const resolveTabHref = (
 const withTabHrefs = (
   tabs: NavTab[],
   sidebar: NavNode[],
-  extraRoutes: ReadonlySet<string>
+  extraRoutes: ReadonlySet<string>,
+  basePath: string
 ): NavTab[] =>
   tabs.map((tab) => {
-    const href = tab.href ?? resolveTabHref(sidebar, tab.path, extraRoutes);
+    const href =
+      tab.href ?? resolveTabHref(sidebar, tab.path, extraRoutes, basePath);
     return href === tab.path ? tab : { ...tab, href };
   });
 
@@ -1002,7 +1033,7 @@ export const buildNavigation = (
       root: rootTabPath,
       selectors,
       sidebar,
-      tabs: withTabHrefs(tabs, sidebar, extraRoutes),
+      tabs: withTabHrefs(tabs, sidebar, extraRoutes, basePath),
     };
   }
 
@@ -1025,6 +1056,6 @@ export const buildNavigation = (
     root: rootTabPath,
     selectors,
     sidebar,
-    tabs: withTabHrefs(tabs, sidebar, extraRoutes),
+    tabs: withTabHrefs(tabs, sidebar, extraRoutes, basePath),
   };
 };

@@ -208,6 +208,61 @@ describe("githubReleasesSource", () => {
     expect(entries[0]?.raw).toContain("seo:");
   });
 
+  it("lifts the notes' headings so the shallowest is an h2", async () => {
+    const body = [
+      "### Major Changes",
+      "",
+      "- Dropped Node 20",
+      "",
+      "#### Migration",
+      "",
+      "```sh",
+      "### not a heading",
+      "```",
+      "",
+      "> ##### Quoted",
+      "",
+      "- ###### In a list",
+      "",
+      "### Patch Changes",
+    ].join("\n");
+    const { fetchImpl } = releasesFetch({
+      1: [
+        makeRelease({ body, id: 1, tag_name: "v2.0.0" }),
+        makeRelease({ body: "## Highlights\n\n### Detail", id: 2 }),
+        makeRelease({ body: "Setext\n======\n\n### Detail", id: 3 }),
+      ],
+    });
+    const source = githubReleasesSource(
+      { fetchImpl, name: "changelog", owner: "acme", repo: "sdk" },
+      ctxFor(await tempDir())
+    );
+    const { entries } = await source.load();
+    expect(entries[0]?.body.text).toBe(
+      [
+        "## Major Changes",
+        "",
+        "- Dropped Node 20",
+        "",
+        "### Migration",
+        "",
+        "```sh",
+        "### not a heading",
+        "```",
+        "",
+        "> #### Quoted",
+        "",
+        "- ##### In a list",
+        "",
+        "## Patch Changes",
+      ].join("\n")
+    );
+    expect(entries[0]?.raw).toContain("\n## Major Changes\n");
+    // Already at h2, or opening with an h1: left as written.
+    expect(entries[1]?.body.text).toBe("## Highlights\n\n### Detail");
+    expect(entries[2]?.body.text).toBe("Setext\n======\n\n### Detail");
+  });
+
   it("never splits a surrogate pair at the description cut", async () => {
     // One unbroken 158-unit token, then an astral emoji straddling the
     // 159-unit cut: a UTF-16 slice would keep only the high surrogate,

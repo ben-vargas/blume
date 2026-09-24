@@ -55,7 +55,7 @@ Blume 2 changes configuration, not content: search, deployment, content sources,
 npx blume@latest upgrade
 ```
 
-It bumps `blume` in `package.json`, installs, and lists every config change still needed with its file, line, and replacement, exiting non-zero until none are left. (`--claude` or `--codex` hands that list to an agent CLI from a terminal.) When you are the agent doing the upgrade, work from that list and the upgrade guide, `docs/03-upgrading.mdx` in the installed package, which has before-and-after examples for every change. Keep the site's behavior the same, and verify with `blume doctor` and `blume build`.
+It bumps `blume` in `package.json`, installs, and lists every config change still needed with its file, line, and replacement (plus `package.json` scripts that pass removed `blume build` flags), exiting non-zero until none are left — rerun it after each round of fixes. (`--claude` or `--codex` hands that list to an agent CLI from a terminal.) When you are the agent doing the upgrade, work from that list and the upgrade guide, `docs/03-upgrading.mdx` in the installed package, which has before-and-after examples for every change. Keep the site's behavior the same, and verify with `blume doctor` and `blume build`.
 
 ## Migrating from another framework
 
@@ -85,4 +85,4 @@ This is a high-level overview. For complete, authoritative docs — configuratio
 node -e "console.log(require.resolve('blume/package.json'))"
 ```
 
-The docs sit in `docs/` next to that `package.json`. Start with `docs/index.mdx` (Introduction) and `docs/01-quickstart.mdx`, then browse the `configuration/`, `content/`, `references/`, and `advanced/` sections for specifics.
+The docs sit in `docs/` next to that `package.json`. Start with `docs/index.mdx` (Introduction) and `docs/01-quickstart.mdx`, then list the `docs/` directory: each section is a folder — configuration, content authoring, API references, discoverability (SEO and the agent-facing surface), the CLI, and advanced topics — so open the one that covers the task.

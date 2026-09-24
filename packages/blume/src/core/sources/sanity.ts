@@ -2,6 +2,7 @@ import { join } from "pathe";
 
 import { BlumeError } from "../diagnostics.ts";
 import matter from "../frontmatter.ts";
+import { nodeRequire } from "../node-require.ts";
 import {
   hashText,
   loadWithCache,
@@ -10,6 +11,7 @@ import {
 } from "./cache.ts";
 import type { JsonObject } from "./json.ts";
 import { asString, getPath } from "./json.ts";
+import { writesMdx } from "./lower.ts";
 import { slugify, slugifyPath } from "./normalize.ts";
 import { portableTextToMarkdown } from "./portable-text.ts";
 import type { PortableTextBlock } from "./portable-text.ts";
@@ -94,19 +96,21 @@ interface SanityClientConfig {
   useCdn: boolean;
 }
 
-const resolveClient = async (
+const resolveClient = (
   options: SanitySourceOptions,
   preview: boolean
-): Promise<SanityClientLike> => {
+): SanityClientLike => {
   if (options.client) {
     return options.client;
   }
   let createClient: (config: SanityClientConfig) => SanityClientLike;
   try {
+    // `require`, not `import()`: an ejected app scans in `astro:build:done`
+    // (see `core/node-require.ts`).
     // SAFETY: `@sanity/client` is an optional dependency; its `createClient`
     // accepts a superset of this config slice and returns a client exposing
     // the `fetch` method this adapter uses.
-    ({ createClient } = (await import("@sanity/client")) as {
+    ({ createClient } = nodeRequire("@sanity/client") as {
       createClient: (config: SanityClientConfig) => SanityClientLike;
     });
   } catch {
@@ -188,16 +192,19 @@ export const sanitySource = (
         })
       : "";
 
+    // Serializer output is MDX (components, directives), so a source with
+    // serializers writes its entries as `.mdx`.
+    const format = writesMdx(options.serializers) ? "mdx" : "md";
     const raw = matter.stringify(markdown, data);
     return {
-      body: { format: "md", text: markdown },
+      body: { format, text: markdown },
       // Spread into a fresh literal: `SourceEntry.data` wants an
       // index-signature type, which the named interface lacks.
       data: { ...data },
       hash: hashText(raw),
       lastModified: asString(getPath(doc, fields.lastModified ?? "_updatedAt")),
       raw,
-      ref: `${slug}.md`,
+      ref: `${slug}.${format}`,
     };
   };
 
@@ -208,7 +215,7 @@ export const sanitySource = (
       options.name,
       cache,
       async () => {
-        const client = await resolveClient(options, ctx?.preview ?? false);
+        const client = resolveClient(options, ctx?.preview ?? false);
         const docs = await client.fetch<SanityDocument[]>(options.query);
         return docs.map(toEntry);
       },

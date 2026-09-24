@@ -99,7 +99,6 @@ import {
 import { buildReferenceFiles } from "../openapi/scalar.ts";
 import { isOpenApiSource } from "../openapi/source.ts";
 import { registry } from "../registry/registry.ts";
-import type { ResolvedSearchAdapter } from "../search/adapters/registry.ts";
 import { buildSearchDocuments } from "../search/documents.ts";
 import { resolveSearchPopular } from "../search/popular.ts";
 import {
@@ -129,6 +128,7 @@ import {
   hasGeneratedChangelog,
   routeIsTaken,
 } from "./pages.ts";
+import { missingDependencyDiagnostic } from "./runtime-deps.ts";
 import { publishRuntimeModules } from "./runtime-modules.ts";
 import type { RuntimeModuleId } from "./runtime-modules.ts";
 import {
@@ -172,16 +172,6 @@ import type { ClientFeatures } from "./templates.ts";
 
 /** Absolute path to the Blume package `src` directory. */
 const BLUME_SRC = join(packageRoot(), "src");
-
-/** Whether a module specifier resolves from a directory via node resolution. */
-const canResolveFrom = (fromDir: string, spec: string): boolean => {
-  try {
-    createRequire(pathToFileURL(join(fromDir, "_.js")).href).resolve(spec);
-    return true;
-  } catch {
-    return false;
-  }
-};
 
 /**
  * Absolute path to `babel-plugin-react-compiler`, resolved from Blume's own
@@ -598,146 +588,6 @@ export const prerenderDepsPlugin = (
     await linkDepsJunction(join(options.dir, "node_modules"), depsDir);
   },
 });
-
-/** Astro integration package each non-React island framework needs installed. */
-const ISLAND_FRAMEWORK_DEPS = new Map([
-  ["svelte", "@astrojs/svelte"],
-  ["vue", "@astrojs/vue"],
-]);
-
-/**
- * Adapter package the project must install itself for each deployment
- * platform whose adapter Blume doesn't ship. Node and Vercel ship with Blume,
- * so they never need this.
- */
-
-/**
- * Warn when a Vue/Svelte island is present but its Astro integration isn't
- * installed — Vite would otherwise fail opaquely on the generated config import.
- * React ships with Blume, so it never needs this.
- */
-const islandFrameworkWarnings = (
-  frameworks: Set<string>,
-  root: string
-): string[] => {
-  const warnings: string[] = [];
-  for (const framework of frameworks) {
-    const dep = ISLAND_FRAMEWORK_DEPS.get(framework);
-    if (dep && !canResolveFrom(root, dep)) {
-      warnings.push(
-        `Islands use ${framework}, which needs "${dep}". Install it (e.g. \`npm install ${dep} ${framework}\`).`
-      );
-    }
-  }
-  return warnings;
-};
-
-/**
- * Warn when the deployment adapter's package is missing. Each adapter declares
- * what its server build imports (`runtimeDeps`): Node and Vercel ship with
- * Blume, so theirs always resolve; Netlify and Cloudflare are optional peers
- * the project must install itself. The generated astro.config.mjs imports the
- * package directly, so warn early rather than let the build die with an
- * opaque ERR_MODULE_NOT_FOUND from the hidden generated config. Availability
- * mirrors the search-adapter check: a dep resolves from the project root or
- * from the Blume package itself. `pkgDir` is injectable for testing.
- */
-export const deploymentAdapterWarnings = (
-  deployment: ResolvedConfig["deployment"],
-  root: string,
-  pkgDir: string = packageRoot()
-): string[] => {
-  const warnings: string[] = [];
-  for (const dep of deployment.runtimeDeps) {
-    if (!(canResolveFrom(root, dep) || canResolveFrom(pkgDir, dep))) {
-      warnings.push(
-        `Deployment adapter "${deployment.kind}" needs "${dep}", which isn't installed. Run \`npm install ${dep}\` (or your package manager's equivalent).`
-      );
-    }
-  }
-  return warnings;
-};
-
-/**
- * Warn when the configured search provider's SDK is missing. Provider SDKs are
- * optional peers; warn (rather than fail opaquely in Vite) when the package
- * isn't installed. A dep is available if the project installed it (resolves
- * from the root) OR Blume ships it (resolves from the Blume package — the same
- * set the `.blume` deps link exposes to the build). Resolving from the project
- * root alone falsely flagged a shipped SDK like Orama (the default provider)
- * as missing whenever it wasn't hoisted into the project, e.g. under isolated
- * linkers. We resolve from each package's real location rather than through
- * the `.blume` junction, which can't be traversed reliably for store-symlinked
- * deps. `pkgDir` is injectable for testing.
- */
-export const searchProviderWarnings = (
-  provider: ResolvedSearchAdapter,
-  root: string,
-  pkgDir: string = packageRoot()
-): string[] => {
-  const warnings: string[] = [];
-  for (const dep of provider.runtimeDeps) {
-    if (!(canResolveFrom(root, dep) || canResolveFrom(pkgDir, dep))) {
-      warnings.push(
-        `Search adapter "${provider.kind}" needs "${dep}", which isn't installed. Run \`npm install ${dep}\` (or your package manager's equivalent).`
-      );
-    }
-  }
-  return warnings;
-};
-
-/**
- * Warn when a content source adapter's SDK is missing (`@notionhq/client`,
- * `@sanity/client`). The descriptor's `runtimeDeps` is the one place that
- * knows; same resolution rule as {@link searchProviderWarnings}. `pkgDir` is
- * injectable for testing.
- */
-export const sourceAdapterWarnings = (
-  sources: ResolvedConfig["content"]["sources"],
-  root: string,
-  pkgDir: string = packageRoot()
-): string[] => {
-  const warnings: string[] = [];
-  for (const source of sources) {
-    for (const dep of source.runtimeDeps) {
-      if (!(canResolveFrom(root, dep) || canResolveFrom(pkgDir, dep))) {
-        warnings.push(
-          `Content source "${source.kind}" needs "${dep}", which isn't installed. Run \`npm install ${dep}\` (or your package manager's equivalent).`
-        );
-      }
-    }
-  }
-  return warnings;
-};
-
-/**
- * Warn when the Ask AI adapter's provider SDK is missing. Like search provider
- * SDKs, these are optional peers the project must install (only `gateway`
- * needs nothing beyond the core `ai` package Blume ships) — warn early with
- * the package name rather than let Vite fail to resolve the import opaquely.
- * Same resolution rule as {@link searchProviderWarnings}: available if the
- * project installed it or Blume can resolve it. `pkgDir` is injectable for
- * testing.
- */
-export const askProviderWarnings = (
-  ask: ResolvedConfig["ai"]["ask"],
-  root: string,
-  pkgDir: string = packageRoot()
-): string[] => {
-  // An external `endpoint` means no generated route, so no SDK is imported.
-  if (!ask?.enabled || ask.endpoint) {
-    return [];
-  }
-  const { provider } = ask;
-  return provider.runtimeDeps
-    .filter(
-      (dep) => !(canResolveFrom(root, dep) || canResolveFrom(pkgDir, dep))
-    )
-    .map(
-      (dep) =>
-        `Ask AI provider "${provider.kind}" needs "${dep}", which isn't installed. Run \`npm install ${dep}\` (or your package manager's equivalent).`
-    );
-};
 
 /** Absolute path to the configured `examples.css`, or null when unset. */
 const examplesCssFile = (
@@ -1895,6 +1745,36 @@ export const diagnosticWarning = (diagnostic: Diagnostic): string =>
     ? `${diagnostic.message} ${diagnostic.suggestion}`
     : diagnostic.message;
 
+/**
+ * Missing-dependency preflight: the search provider's SDK, content source
+ * SDKs, the Ask AI backend's provider SDK, the deployment adapter's package,
+ * and — since React ships with Blume while Vue/Svelte don't — any island
+ * framework's Astro integration. A build fails here, before anything is
+ * written, with the install command for the project's package manager —
+ * otherwise Vite dies later on an opaque unresolved import from the hidden
+ * runtime. Dev warns and keeps serving: only the pages and routes that import
+ * the package break, and installing it is picked up on the next restart.
+ */
+const dependencyPreflight = async (
+  project: BlumeProject,
+  frameworks: Set<string>
+): Promise<string[]> => {
+  const build = project.mode === "build";
+  const diagnostic = await missingDependencyDiagnostic(
+    project.config,
+    project.context.root,
+    build ? "error" : "warning",
+    frameworks
+  );
+  if (!diagnostic) {
+    return [];
+  }
+  if (build) {
+    throw new BlumeError(diagnostic);
+  }
+  return [diagnosticWarning(diagnostic)];
+};
+
 export interface GenerateResult {
   /** Whether any structural file changed (config/page/content config). */
   structuralChange: boolean;
@@ -2127,6 +2007,7 @@ export const generateRuntime = async (
     ...exampleDiscovery.examples.map((example) => example.framework),
     ...slotPlan.frameworks,
   ]);
+  const dependencyWarnings = await dependencyPreflight(project, frameworks);
   const needsReact = detectedReact || askEnabled || frameworks.has("react");
   const needsVue = frameworks.has("vue");
   const needsSvelte = frameworks.has("svelte");
@@ -2470,22 +2351,13 @@ export const generateRuntime = async (
     ...islandDiscovery.islands.map((island) => island.name),
     ...overrideAnalysis.mdx.map((entry) => entry.key),
   ]);
-  // Missing-dependency preflights: the search provider's SDK, the Ask AI
-  // backend's provider SDK, the deployment adapter's package, and — since
-  // React ships with Blume while Vue/Svelte don't — any island framework's
-  // Astro integration. Warn early rather than let Vite fail to resolve them
-  // opaquely.
   warnings.push(
     ...validateUsedComponents(
       project.graph.pages,
       knownComponentTags,
       new Set(registry.map((item) => item.name))
     ).map(diagnosticWarning),
-    ...searchProviderWarnings(config.search.provider, context.root),
-    ...sourceAdapterWarnings(config.content.sources, context.root),
-    ...askProviderWarnings(config.ai.ask, context.root),
-    ...deploymentAdapterWarnings(config.deployment, context.root),
-    ...islandFrameworkWarnings(frameworks, context.root)
+    ...dependencyWarnings
   );
   if (hasScalarReferences(config)) {
     const references = await buildReferenceFiles({

@@ -254,6 +254,8 @@ describe("provider adapter heads", () => {
       googleTagManager({ dataLayer: "dl", id: "GTM-X" })
     );
     expect(custom?.content).toContain('"script","dl","GTM-X");');
+    // The layer is kept so `track()` pushes where the container reads.
+    expect(custom?.content).toContain("w[l]=w[l]||[];w.__blumeGtmLayer=w[l];");
   });
 
   it("heap: the loader and heap.load, bare or with the passthrough config", () => {

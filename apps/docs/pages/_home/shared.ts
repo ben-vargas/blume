@@ -85,15 +85,22 @@ export const sampleBrand = {
 // Render a prose string whose code spans are marked with backticks (`--flag`,
 // `blume init`) as HTML: everything else is escaped, each span becomes a
 // styled <code>. For the landing-page sections whose copy lives in data
-// arrays, where inline <code> elements can't be authored directly.
+// arrays, where inline <code> elements can't be authored directly. Each word
+// of a span is kept whole, so a long command wraps between its words on a
+// narrow screen instead of running off the edge or breaking inside `--claude`.
 export const escapeHtml = (text: string): string =>
   text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
+const CODE_SPAN = /`(?<span>[^`]+)`/gu;
+
 export const inlineCode = (text: string): string =>
-  escapeHtml(text).replaceAll(
-    /`(?<span>[^`]+)`/gu,
-    '<code class="whitespace-nowrap font-mono text-[0.925em] text-foreground">$<span></code>'
-  );
+  escapeHtml(text).replaceAll(CODE_SPAN, (match) => {
+    const words = match
+      .slice(1, -1)
+      .split(" ")
+      .map((word) => `<span class="whitespace-nowrap">${word}</span>`);
+    return `<code class="font-mono text-[0.925em] text-foreground">${words.join(" ")}</code>`;
+  });
 
 // The command shown in the install box (rendered by InstallBox.astro), shared
 // with the hero and install CTA so they stay identical.

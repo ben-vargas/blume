@@ -1,3 +1,6 @@
+import type * as AlgoliaSdk from "algoliasearch";
+
+import { nodeRequire } from "../../core/node-require.ts";
 import type { AlgoliaOptions } from "../adapters/algolia.ts";
 import type { SearchRecord } from "../documents.ts";
 
@@ -21,7 +24,9 @@ export const syncAlgolia = async (
   if (!adminKey) {
     throw new Error("ALGOLIA_ADMIN_API_KEY is not set.");
   }
-  const { algoliasearch } = await import("algoliasearch");
+  // `require`, not `import()`: this runs in `astro:build:done` (see
+  // `core/node-require.ts`).
+  const { algoliasearch }: typeof AlgoliaSdk = nodeRequire("algoliasearch");
   const client = algoliasearch(config.appId, adminKey);
   await client.replaceAllObjects({
     indexName: config.indexName,

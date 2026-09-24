@@ -233,16 +233,16 @@ export default defineConfig({
 Append `lineNumbers` to render a line-number gutter — on its own or alongside a title:
 
 ```ts server.ts lineNumbers
-import { serve } from "blume";
+import { createServer } from "node:http";
 
-serve({ port: 3000 });
+createServer().listen(3000);
 ```
 
 ````md
 ```ts server.ts lineNumbers
-import { serve } from "blume";
+import { createServer } from "node:http";
 
-serve({ port: 3000 });
+createServer().listen(3000);
 ```
 ````
 
@@ -267,12 +267,12 @@ export default defineConfig({
 });
 ```
 
-Highlight every occurrence of a term on a line with `// [!code word:serve]`:
+Highlight every occurrence of a term on a line with `// [!code word:createServer]`:
 
 ```ts
-import { serve } from "blume"; // [!code word:serve]
+import { createServer } from "node:http"; // [!code word:createServer]
 
-serve({ port: 3000 });
+createServer().listen(3000);
 ```
 
 Dim everything except the lines you mark with `// [!code focus]` (the rest sharpens on hover):

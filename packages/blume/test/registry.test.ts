@@ -98,6 +98,18 @@ describe("eject", () => {
         reference: [{ kind: "scalar", options: { spec: "openapi.json" }, requiredSecrets: [], runtimeDeps: [] }],
         search: ${JSON.stringify(mixedbread({ storeId: "store-1" }))},
       };\n`,
+      // Overrides from components.ts — one static, one hydrated — so eject
+      // writes both import forms.
+      "components.ts": `import { defineComponents } from "blume";
+import Callout from "./components/Callout.astro";
+import Tabs from "./components/Tabs.tsx";
+export default defineComponents({
+  mdx: { Callout, Tabs: { component: Tabs, client: "visible" } },
+});
+`,
+      "components/Callout.astro": "<aside><slot /></aside>\n",
+      "components/Tabs.tsx":
+        "export default function Tabs() { return null; }\n",
       // A blog post so an RSS feed is produced (alongside the home page).
       "docs/blog/hello.md":
         "---\ntitle: Hello\ntype: blog\ndate: 2024-01-01\n---\n# Hello\n",
@@ -119,8 +131,10 @@ describe("eject", () => {
     await mkdir(assetDir, { recursive: true });
     await writeFile(join(assetDir, "img.png"), "png-bytes");
 
-    const { files, warnings } = await eject(root);
+    const { dependencies, files, warnings } = await eject(root);
     const has = (rel: string): boolean => existsSync(join(root, rel));
+    const read = (rel: string): string =>
+      readFileSync(join(root, rel), "utf-8");
 
     // Core scaffolding.
     expect(has("astro.config.mjs")).toBe(true);
@@ -131,10 +145,10 @@ describe("eject", () => {
     // in memory), aliased from the ejected config to the snapshots it writes.
     const ejectedConfig = readFileSync(join(root, "astro.config.mjs"), "utf-8");
     expect(ejectedConfig).toContain(
-      '"blume:data": "./src/generated/data.json"'
+      '"blume:data": fileURLToPath(new URL("./src/generated/data.json", import.meta.url))'
     );
     expect(ejectedConfig).toContain(
-      '"blume:mcp-data": "./src/generated/mcp-data.json"'
+      '"blume:mcp-data": fileURLToPath(new URL("./src/generated/mcp-data.json", import.meta.url))'
     );
     expect(ejectedConfig).not.toContain("runtimeModulesPlugin");
     // The include graph the ejected astro.config's includeHmrPlugin reads —
@@ -147,6 +161,46 @@ describe("eject", () => {
     expect(has("src/generated/examples.ts")).toBe(true);
     expect(has("src/generated/component-slots/mdx-Counter.astro")).toBe(true);
     expect(has("src/generated/examples/demo.astro")).toBe(true);
+    // Every import in the ejected output is relative to the file holding it,
+    // so the app builds from any checkout, not only where eject ran.
+    const components = read("src/generated/components.ts");
+    expect(components).toContain(
+      'import __blumeSlot1 from "../../components/Callout.astro";'
+    );
+    expect(components).toContain(
+      'import __blumeSlot2 from "./component-slots/mdx-Tabs.astro";'
+    );
+    expect(read("src/generated/component-slots/mdx-Tabs.astro")).toContain(
+      'import Component from "../../../components/Tabs.tsx";'
+    );
+    expect(read("src/generated/component-slots/mdx-Counter.astro")).toContain(
+      'import Component from "../../../islands/Counter.tsx";'
+    );
+    expect(read("src/generated/examples/demo.astro")).toContain(
+      'import Example from "../../../examples/demo.tsx";'
+    );
+    // The ejected config is the project's own now: relative outDir, no
+    // "recreated on each run" header, and no path from the machine that ran
+    // eject anywhere in it.
+    expect(ejectedConfig).toContain('outDir: "./dist"');
+    expect(ejectedConfig).toContain('"./pages/**/*.astro"');
+    expect(ejectedConfig).not.toContain("Do not edit");
+    expect(ejectedConfig).not.toContain(root);
+    // The packages the ejected app imports by bare name, for package.json:
+    // Astro and its integrations, plus the adapters' own SDKs.
+    expect(dependencies).toEqual(
+      expect.arrayContaining([
+        "astro",
+        "@astrojs/mdx",
+        "@astrojs/react",
+        "@tailwindcss/vite",
+        "@openrouter/ai-sdk-provider",
+        "blume",
+        // React renders the islands and Ask AI, so the app depends on it.
+        "react",
+        "react-dom",
+      ])
+    );
 
     // Feature-gated endpoints: Ask AI, OG images, mixedbread search, the RSS
     // feed, and the OpenAPI reference page.

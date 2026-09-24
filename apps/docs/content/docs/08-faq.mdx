@@ -49,11 +49,11 @@ Yes. Any page can be `.md` or `.mdx`, and MDX lets you drop in the [built-in com
 
 ## Where can I deploy it?
 
-Anywhere. `blume build` outputs static HTML by default, which you can serve from any static host or CDN — Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3, or your own server. Server-only features (Ask AI, the MCP server, on-demand rendering) switch the build to a server function through an adapter for Vercel, Node, Netlify, or Cloudflare. See [Deployment](/docs/deployment).
+Anywhere. `blume build` outputs static HTML by default, which you can serve from any static host or CDN — Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3, or your own server. Server-only features (Ask AI, the MCP server, on-demand rendering) need server output: name a host adapter from `blume/deploy` — `vercel()`, `netlify()`, `cloudflare()`, or `node()` — as `deployment`. See [Deployment](/docs/deployment).
 
 ## Does search need a hosted service?
 
-No. [Orama](/docs/configuration/search) builds a local index that works in both dev and production with nothing to host or pay for. For very large sites, [Pagefind](/docs/configuration/search) is one flag away. Either way the index ships as part of your site.
+No. [Orama](/docs/configuration/search) builds a local index that works in both dev and production with nothing to host or pay for. For very large sites, [Pagefind](/docs/configuration/search#pagefind) is one adapter away: `search: pagefind()`. Either way the index ships as part of your site.
 
 ## How do I customize the look?
 

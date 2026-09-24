@@ -775,4 +775,15 @@ describe("buildSearchDocuments with includeWhenDisabled", () => {
     );
     expect(docs).toHaveLength(0);
   });
+
+  it("leaves out i18n fallback copies when the flag is set", async () => {
+    const project = projectNoSearch();
+    project.manifest.routes.push(
+      route({ fallback: true, id: "a.md", indexable: false, path: "/de/a" })
+    );
+    const docs = await buildSearchDocuments(project, {
+      includeWhenDisabled: true,
+    });
+    expect(docs.map((doc) => doc.route)).toStrictEqual(["/a"]);
+  });
 });
