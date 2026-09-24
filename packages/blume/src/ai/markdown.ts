@@ -8,6 +8,7 @@ import matter from "../core/frontmatter.ts";
 import type { BlumeProject } from "../core/project-graph.ts";
 import { readExpandedEntryText } from "../core/sources/read.ts";
 import type { RouteManifestEntry } from "../core/types.ts";
+import { advertisedConfig, servesMcp } from "./agent-surface.ts";
 import { buildChangelogIndexMarkdown } from "./changelog-markdown.ts";
 import { downlevelComponents } from "./component-markdown.ts";
 import { buildLlmsIndex } from "./llms.ts";
@@ -80,13 +81,14 @@ export const buildRawMarkdown = async (
           source: text,
           sourcePath: route.sourcePath,
         });
-        // `./install` means the page's sibling, not whatever the `.md` URL
-        // an agent fetched resolves it to.
-        text = rewriteLinks(text, {
-          route: route.path,
-          sourcePath: route.sourcePath,
-        });
       }
+      // `./install` means the page's sibling, not whatever the `.md` URL an
+      // agent fetched resolves it to, and `/install` gains the base and the
+      // page's locale the rendered link has — remote content included.
+      text = rewriteLinks(text, {
+        route: route.path,
+        sourcePath: route.sourcePath,
+      });
       const source = applyAgentVisibility(text);
       // The `.md` variant keeps the front-matter block in the output, but its
       // data must also be in scope for `prop={frontmatter.*}` expressions.
@@ -97,19 +99,29 @@ export const buildRawMarkdown = async (
     })
   );
   const map = Object.fromEntries(entries);
+  const userPages = project.context.pagesRoot
+    ? await discoverPages(project.context.pagesRoot)
+    : [];
   // A landing-page homepage (user `.astro` page, or no home route at all) has
   // no Markdown source, but agents negotiating `Accept: text/markdown` on `/`
   // still expect a Markdown answer. The llms.txt index — the machine-readable
   // representation of the site a landing page fronts — becomes its mirror, so
-  // `/index.md` always exists (see `markdownRoutePaths`).
+  // `/index.md` always exists (see `markdownRoutePaths`). Like llms.txt, it
+  // leaves out an MCP server a page's route kept from being generated.
   if (!map["/"]) {
-    map["/"] = { mdx: buildLlmsIndex(project) };
+    map["/"] = {
+      mdx: buildLlmsIndex({
+        ...project,
+        config: advertisedConfig(project.config, {
+          mcp: servesMcp(project, userPages),
+          // Skills are collected at the end of the build, after this runs.
+          skills: Boolean(project.config.agents.skills),
+        }),
+      }),
+    };
   }
   // The generated changelog index has no source either; its release list is
   // its mirror, so `/changelog.md` and `get_page` answer as the page does.
-  const userPages = project.context.pagesRoot
-    ? await discoverPages(project.context.pagesRoot)
-    : [];
   if (hasGeneratedChangelog(project, userPages)) {
     map[CHANGELOG_INDEX_ROUTE] = { mdx: buildChangelogIndexMarkdown(project) };
   }

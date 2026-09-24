@@ -168,6 +168,8 @@ const uiStringsObject = z.object({
       devOnly: z
         .string()
         .default("Search is available in the production build."),
+      // The section a hit falls under when its page sits in no sidebar group.
+      docs: z.string().default("Docs"),
       error: z.string().default("Something went wrong. Please try again."),
       label: z.string().default("Search docs"),
       // The version tag on a result from the current docs in an all-versions

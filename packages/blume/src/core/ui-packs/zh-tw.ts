@@ -98,6 +98,7 @@ export const zhTW: UIStringsOverride = {
     assistantHint: "從 AI 即時取得解答",
     button: "搜尋",
     devOnly: "搜尋在正式版組建中可用。",
+    docs: "文件",
     error: "發生了一些問題，請再試一次。",
     label: "搜尋文件",
     latest: "最新",

@@ -312,10 +312,11 @@ const buildFull = async (project: BlumeProject): Promise<string> => {
           source: raw,
           sourcePath: page.sourcePath,
         });
-        // Relative page links too: a reader of one flat file has no page URL
-        // to resolve `./install` against.
-        raw = rewriteLinks(raw, page);
       }
+      // Page links too: a reader of one flat file has no page URL to resolve
+      // `./install` against, and `/install` needs the base the site is
+      // served under.
+      raw = rewriteLinks(raw, page);
       // Resolve `<Visibility>` audiences (web-only content omitted from the
       // agent-facing output, agents-only unwrapped), then downlevel supported
       // components to plain Markdown.

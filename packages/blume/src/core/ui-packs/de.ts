@@ -99,6 +99,7 @@ export const de: UIStringsOverride = {
     assistantHint: "Erhalte sofort eine Antwort von der KI",
     button: "Suchen",
     devOnly: "Die Suche ist im Produktions-Build verfügbar.",
+    docs: "Dokumentation",
     error: "Etwas ist schiefgelaufen. Bitte versuche es erneut.",
     label: "Dokumentation durchsuchen",
     latest: "neueste",

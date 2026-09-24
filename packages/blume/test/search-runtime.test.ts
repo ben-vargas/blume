@@ -43,6 +43,16 @@ interface SaveObjectsArgs {
   indexName: string;
   objects: { objectID: string }[];
 }
+/** The slice of an Algolia index's settings the sync reads and writes. */
+interface AlgoliaSettings {
+  attributesForFaceting?: string[];
+}
+/** One `setSettings` call the Algolia sync made, and whether it was awaited. */
+interface AlgoliaSettingsWrite {
+  indexName: string;
+  indexSettings: AlgoliaSettings;
+  waited?: boolean;
+}
 interface TypesenseSearchParams {
   filter_by?: string;
   per_page: number;
@@ -101,6 +111,8 @@ let algoliaSearch: (
   params: AlgoliaSearchParams
 ) => Promise<{ results: { hits: HostedRecord[] }[] }>;
 let algoliaSave: (args: SaveObjectsArgs) => Promise<void>;
+let algoliaSettings: AlgoliaSettings = {};
+const algoliaSettingsWrites: AlgoliaSettingsWrite[] = [];
 let oramaCloudSearch: (
   query: OramaCloudSearchParams
 ) => Promise<{ hits: { document: HostedRecord }[] }>;
@@ -156,7 +168,19 @@ mock.module("algoliasearch/lite", () => ({
 }));
 mockSdk("algoliasearch", () => ({
   algoliasearch: () => ({
+    getSettings: () => Promise.resolve(algoliaSettings),
     replaceAllObjects: (args: SaveObjectsArgs) => algoliaSave(args),
+    setSettings: (args: AlgoliaSettingsWrite) => {
+      algoliaSettingsWrites.push(args);
+      return Promise.resolve({ taskID: algoliaSettingsWrites.length });
+    },
+    waitForTask: ({ taskID }: { taskID: number }) => {
+      const write = algoliaSettingsWrites[taskID - 1];
+      if (write) {
+        write.waited = true;
+      }
+      return Promise.resolve({ status: "published" });
+    },
   }),
 }));
 mockSdk("@oramacloud/client", () => ({
@@ -472,6 +496,52 @@ describe("hosted sync uploads", () => {
     await syncAlgolia(records, { appId: "app", indexName: "docs" });
     expect(captured.value?.indexName).toBe("docs");
     expect(captured.value?.objects[0]?.objectID).toBe("/a");
+  });
+
+  it("algolia declares the locale and version filters, keeping the site's own facets", async () => {
+    process.env.ALGOLIA_ADMIN_API_KEY = "admin";
+    algoliaSave = () => Promise.resolve();
+    const { syncAlgolia } = await import("../src/search/sync/algolia.ts");
+
+    // The dialog's facetFilters only match declared attributes.
+    algoliaSettings = { attributesForFaceting: ["searchable(tag)"] };
+    algoliaSettingsWrites.length = 0;
+    await syncAlgolia(records, { appId: "app", indexName: "docs" });
+    expect(algoliaSettingsWrites).toStrictEqual([
+      {
+        indexName: "docs",
+        indexSettings: {
+          attributesForFaceting: [
+            "searchable(tag)",
+            "filterOnly(locale)",
+            "filterOnly(version)",
+          ],
+        },
+        waited: true,
+      },
+    ]);
+
+    // Only what's missing is added; a fresh index has no settings at all.
+    algoliaSettings = { attributesForFaceting: ["locale"] };
+    algoliaSettingsWrites.length = 0;
+    await syncAlgolia(records, { appId: "app", indexName: "docs" });
+    expect(
+      algoliaSettingsWrites[0]?.indexSettings.attributesForFaceting
+    ).toStrictEqual(["locale", "filterOnly(version)"]);
+    algoliaSettings = {};
+    algoliaSettingsWrites.length = 0;
+    await syncAlgolia(records, { appId: "app", indexName: "docs" });
+    expect(
+      algoliaSettingsWrites[0]?.indexSettings.attributesForFaceting
+    ).toStrictEqual(["filterOnly(locale)", "filterOnly(version)"]);
+
+    // Already declared: the settings are left alone.
+    algoliaSettings = {
+      attributesForFaceting: ["filterOnly(locale)", "filterOnly(version)"],
+    };
+    algoliaSettingsWrites.length = 0;
+    await syncAlgolia(records, { appId: "app", indexName: "docs" });
+    expect(algoliaSettingsWrites).toStrictEqual([]);
   });
 
   it("orama-cloud snapshots the records and deploys", async () => {

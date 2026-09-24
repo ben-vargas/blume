@@ -141,7 +141,13 @@ describe("publishBuildArtifacts", () => {
     );
     expect(vercelJson.redirects).toStrictEqual([]);
     expect(vercelJson.headers).toContainEqual({
-      headers: [{ key: "Content-Type", value: "application/linkset+json" }],
+      headers: [
+        {
+          key: "Content-Type",
+          value:
+            'application/linkset+json; profile="https://www.rfc-editor.org/info/rfc9727"',
+        },
+      ],
       source: "/.well-known/api-catalog",
     });
     expect(existsSync(join(dist, "blume-redirects.json"))).toBe(false);

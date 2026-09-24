@@ -1,8 +1,14 @@
 import { basename } from "pathe";
 
-import { normalizeBasePath, withBasePath } from "../core/base-path.ts";
+import {
+  isInternalPath,
+  normalizeBasePath,
+  withBasePath,
+  withComposedBasePath,
+} from "../core/base-path.ts";
 import { nextFenceState } from "../core/code-fences.ts";
 import type { FenceState } from "../core/code-fences.ts";
+import { localePrefix } from "../core/i18n.ts";
 import {
   buildFileRouteIndex,
   isIndexFileName,
@@ -10,19 +16,25 @@ import {
   routeOfLinkedFile,
 } from "../core/links.ts";
 import type { RelativeLinkBase } from "../core/links.ts";
+import { localizeHref } from "../core/locale-links.ts";
 import type { BlumeProject } from "../core/project-graph.ts";
 import { extractLinks } from "../core/sources/normalize.ts";
 
 /**
- * Relative page links on the agent surfaces — the `.md`/`.mdx` mirrors,
+ * Page links on the agent surfaces — the `.md`/`.mdx` mirrors,
  * llms-full.txt, MCP `get_page` and `resources/read`. An agent resolves
  * `[Install](./install)` against the URL it fetched (`/guides.md`), so the
  * link lands on `/install`; the rendered page rewrites it to the route it
  * means (`markdown/relative-links.ts`), and the Markdown an agent reads gets
  * the same rewrite from the same resolver (`resolveRelativeHref`), so both
- * point at one page. Inline links and reference definitions are rewritten;
- * fenced and inline code, images, and anything not a relative page link are
- * left as written.
+ * point at one page. Root-relative page links (`[x](/guide)`,
+ * `<Card href="/guide">`) get what the rendered page gives them too: the
+ * `deployment.base` + `basePath` prefix (`markdown/base-links.ts`,
+ * `components/content/base-href.ts`) and, on a page in a prefixed locale,
+ * that locale's copy of the route when it is served
+ * (`components/layout/LocaleLinks.astro`). Inline links, component `href`s,
+ * and reference definitions are rewritten; fenced and inline code, images,
+ * asset links, and external URLs are left as written.
  */
 
 /** The page a Markdown text was written for. */
@@ -46,6 +58,21 @@ const DEFINITION =
  */
 const MAYBE_RELATIVE =
   /\]\([\t ]*<?(?![a-z][\d+.a-z-]*:|\/|#)|^ {0,3}\[[^\]\n]+\]:[\t ]*<?(?![a-z][\d+.a-z-]*:|\/|#)|\shref=["'](?![a-z][\d+.a-z-]*:|\/|#)/imu;
+
+/**
+ * {@link MAYBE_RELATIVE}, or a root-relative target (`/x`, never `//host`):
+ * the gate when root-relative links are rewritten too — a base or basePath is
+ * set, or the page sits under a locale prefix.
+ */
+const MAYBE_PAGE_LINK =
+  /\]\([\t ]*<?(?![a-z][\d+.a-z-]*:|\/\/|#)|^ {0,3}\[[^\]\n]+\]:[\t ]*<?(?![a-z][\d+.a-z-]*:|\/\/|#)|\shref=["'](?![a-z][\d+.a-z-]*:|\/\/|#)/imu;
+
+/**
+ * A path whose final segment carries a file extension — a `public/` asset or
+ * a raw `.md` twin, which the rendered page neither bases nor localizes (see
+ * `markdown/base-links.ts`).
+ */
+const ASSET_PATH = /\.[\da-z]+$/iu;
 
 interface Splice {
   column: number;
@@ -124,7 +151,7 @@ const collectSplices = (
 export const relativeLinkRewriter = (
   project: BlumeProject
 ): RelativeLinkRewriter => {
-  const { deployment, i18n } = project.config;
+  const { basePath, deployment, i18n } = project.config;
   const deployBase = normalizeBasePath(deployment.options.base);
   const localeTokens = i18n
     ? ["$", ...i18n.locales.map((locale) => locale.code)]
@@ -137,11 +164,20 @@ export const relativeLinkRewriter = (
     ])
   );
   const routes = new Set(project.manifest.routes.map((route) => route.path));
+  const localeByRoute = new Map(
+    project.manifest.routes.map((route) => [route.path, route.locale])
+  );
 
-  return (text, page) => {
+  /**
+   * A page's relative-link resolver; `undefined` when the page has no file
+   * to resolve its links from.
+   */
+  const relativeRoute = (
+    page: LinkedPage
+  ): ((target: string) => string | undefined) | undefined => {
     const { sourcePath } = page;
-    if (!sourcePath || !MAYBE_RELATIVE.test(text)) {
-      return text;
+    if (!sourcePath) {
+      return;
     }
     const from: RelativeLinkBase = {
       isIndex: isIndexFileName(basename(sourcePath), localeTokens),
@@ -150,12 +186,44 @@ export const relativeLinkRewriter = (
     const navPath = navPathBySource.get(sourcePath) ?? basename(sourcePath);
     const resolveFile = (path: string): string | undefined =>
       routeOfLinkedFile(fileRoutes, { navPath, sourcePath }, path);
-    const routed = (target: string): string | undefined => {
+    return (target) => {
       const route = resolveRelativeHref(target, from, resolveFile, (path) =>
         routes.has(path)
       );
       return route === undefined ? undefined : withBasePath(deployBase, route);
     };
+  };
+
+  return (text, page) => {
+    const locale = localeByRoute.get(page.route);
+    // The page's locale moves root links only when it has a URL prefix.
+    const localize =
+      i18n && locale !== undefined && localePrefix(locale, i18n) !== ""
+        ? { basePath, deployBase, i18n, locale, routes }
+        : undefined;
+    // A root-relative link only changes when the site is mounted under a
+    // prefix or the page reads in a prefixed locale.
+    const rootLinks =
+      deployBase !== "" || basePath !== "" || localize !== undefined;
+    if (
+      !(page.sourcePath || rootLinks) ||
+      !(rootLinks ? MAYBE_PAGE_LINK : MAYBE_RELATIVE).test(text)
+    ) {
+      return text;
+    }
+    const relative = relativeRoute(page);
+    // What the rendered page makes of `/guide`: based, then moved into the
+    // page's locale when that route is served.
+    const rooted = (target: string): string | undefined => {
+      if (ASSET_PATH.test(target.replace(/[#?].*$/u, ""))) {
+        return undefined;
+      }
+      const based = withComposedBasePath(deployBase, basePath, target);
+      const href = localize ? localizeHref(based, localize) : based;
+      return href === target ? undefined : href;
+    };
+    const routed = (target: string): string | undefined =>
+      isInternalPath(target) ? rooted(target) : relative?.(target);
 
     const lines = text.split("\n");
     const splices = collectSplices(text, lines, routed);

@@ -98,6 +98,7 @@ export const he: UIStringsOverride = {
     assistantHint: "קבל תשובה מיידית מה-AI",
     button: "חיפוש",
     devOnly: "החיפוש זמין בבנייה לייצור.",
+    docs: "תיעוד",
     error: "משהו השתבש. נסה שוב.",
     label: "חפש בתיעוד",
     latest: "האחרונה",

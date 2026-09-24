@@ -99,6 +99,7 @@ export const nl: UIStringsOverride = {
     assistantHint: "Krijg direct antwoord van AI",
     button: "Zoeken",
     devOnly: "Zoeken is beschikbaar in de productiebuild.",
+    docs: "Documentatie",
     error: "Er is iets misgegaan. Probeer het opnieuw.",
     label: "Documentatie doorzoeken",
     latest: "nieuwste",

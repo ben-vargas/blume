@@ -99,6 +99,7 @@ export const id: UIStringsOverride = {
     assistantHint: "Dapatkan jawaban instan dari AI",
     button: "Cari",
     devOnly: "Pencarian tersedia di build produksi.",
+    docs: "Dokumentasi",
     error: "Terjadi kesalahan. Silakan coba lagi.",
     label: "Cari dokumentasi",
     latest: "terbaru",

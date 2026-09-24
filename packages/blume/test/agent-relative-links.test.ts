@@ -100,7 +100,7 @@ describe("relative page links on the agent surfaces", () => {
       sourcePath: project.graph.pages[0]?.sourcePath,
     };
     const text =
-      "See [docs](https://example.com), [home](/), [top](#intro), and [mail](mailto:a@b.c).\n\n[ref]: https://example.com/x\n";
+      "See [docs](https://example.com), [top](#intro), and [mail](mailto:a@b.c).\n\n[ref]: https://example.com/x\n";
     expect(rewrite(text, page)).toBe(text);
     // A relative target anywhere still takes the full path.
     expect(rewrite("[x](install)", page)).not.toBe("[x](install)");

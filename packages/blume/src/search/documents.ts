@@ -16,6 +16,7 @@ import { applyAudienceVisibility } from "../ai/visibility.ts";
 import type { VisibilityAudience } from "../ai/visibility.ts";
 import matter from "../core/frontmatter.ts";
 import { parseHeadingMarkers } from "../core/heading-markers.ts";
+import { EN_UI, resolveUIStrings } from "../core/i18n-ui.ts";
 import { contentIndexable } from "../core/manifest.ts";
 import type { BlumeProject } from "../core/project-graph.ts";
 import { HTML_COMMENT } from "../core/sources/normalize.ts";
@@ -447,6 +448,26 @@ export const buildSearchDocuments = async (
   // otherwise.
   const components = projectComponentSerializers(project);
 
+  // A page in no sidebar group falls under the "Docs" section, in its own
+  // language: the label is a UI string, resolved once per locale.
+  const { i18n } = project.config;
+  const docsSections = new Map<string, string>();
+  const docsSection = (locale: string): string => {
+    let label = docsSections.get(locale);
+    if (label === undefined) {
+      label = (
+        i18n
+          ? resolveUIStrings(locale, {
+              defaultLocale: i18n.defaultLocale,
+              overrides: i18n.ui,
+            })
+          : EN_UI
+      ).search.docs;
+      docsSections.set(locale, label);
+    }
+    return label;
+  };
+
   return await Promise.all(
     indexable.map(async (route) => {
       const page = pageById.get(route.id);
@@ -461,7 +482,7 @@ export const buildSearchDocuments = async (
         description: page?.description ?? "",
         locale: route.locale,
         route: route.path,
-        section: crumb?.section || "Docs",
+        section: crumb?.section || docsSection(route.locale),
         tags: tags && tags.length > 0 ? tags : undefined,
         title: route.title,
         version: route.version,

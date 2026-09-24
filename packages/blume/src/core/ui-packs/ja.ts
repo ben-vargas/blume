@@ -99,6 +99,7 @@ export const ja: UIStringsOverride = {
     assistantHint: "AI からすぐに回答を得る",
     button: "検索",
     devOnly: "検索は本番ビルドで利用できます。",
+    docs: "ドキュメント",
     error: "問題が発生しました。もう一度お試しください。",
     label: "ドキュメントを検索",
     latest: "最新",

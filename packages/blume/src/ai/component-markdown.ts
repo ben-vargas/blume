@@ -4,6 +4,7 @@ import { mdxToMdast } from "satteri";
 import { parseYouTubeId } from "../components/content/youtube.ts";
 import type { ExampleLookup } from "../core/types.ts";
 import { MDX_FEATURES } from "../markdown/features.ts";
+import { readStaticExpression } from "./static-expression.ts";
 
 /**
  * Downlevel Blume's MDX components to plain Markdown for agent-facing output
@@ -44,10 +45,18 @@ interface MdxAttribute {
 
 /** A single source replacement: `[start, end)` byte range → `text`. */
 interface Splice {
+  /**
+   * The range is a flow (block-level) element, so the line after it must
+   * start a block of its own.
+   */
+  block: boolean;
   end: number;
   start: number;
   text: string;
 }
+
+/** Text that continues on the very next line, with no blank line between. */
+const NEXT_LINE_TEXT = /^[\t ]*\n[\t ]*\S/u;
 
 /**
  * A statically-recovered data value. Parsed front matter and evaluated
@@ -135,33 +144,13 @@ export type ComponentMarkdown = (
 ) => string | null;
 
 /**
- * Statically evaluate an MDX attribute expression (`prop={...}`). Component
- * data props are object/array/number literals in practice; evaluation runs at
- * build time over the author's own content — the same trust level as the MDX
- * itself, which Astro compiles and executes. The page's `frontmatter` is in
- * scope, mirroring what Astro provides an MDX body at render time, so
- * `prop={frontmatter.status}` resolves; expressions that reference imports or
- * other scope throw and report as not evaluable.
+ * Read an element's attributes into a plain props object. An expression
+ * attribute (`prop={...}`) is read as literal data and never executed (see
+ * `static-expression.ts`): the downleveler also runs over plain `.md` pages
+ * and remote content, which nothing else executes. `prop={frontmatter.status}`
+ * resolves against the page's front matter, as it does when Astro renders
+ * the page; anything else — a call, an import — marks the props lossy.
  */
-const evaluateExpression = (
-  raw: string,
-  frontmatter: Record<string, EvaluatedValue> | undefined
-) => {
-  try {
-    // Build-time eval of the author's own attribute literals; a throw falls
-    // back to leaving the JSX verbatim.
-    // oxlint-disable-next-line no-new-func
-    const value: EvaluatedValue = new Function(
-      "frontmatter",
-      `"use strict"; return (${raw});`
-    )(frontmatter);
-    return { ok: true, value };
-  } catch {
-    return { ok: false, value: undefined };
-  }
-};
-
-/** Evaluate an element's attributes into a plain props object. */
 const readProps = (
   node: MdastNode,
   frontmatter: Record<string, EvaluatedValue> | undefined
@@ -180,7 +169,7 @@ const readProps = (
     } else if (isString(attribute.value)) {
       props[attribute.name] = attribute.value;
     } else {
-      const result = evaluateExpression(attribute.value.value, frontmatter);
+      const result = readStaticExpression(attribute.value.value, frontmatter);
       if (result.ok) {
         props[attribute.name] = result.value;
       } else {
@@ -208,14 +197,24 @@ const applySplices = (text: string, splices: Splice[]): string => {
     const lineStart = result.lastIndexOf("\n", splice.start - 1) + 1;
     const prefix = result.slice(lineStart, splice.start);
     const indent = /^[\t ]+$/u.test(prefix) ? prefix : "";
+    // The JSX's closing tag ended its block; the Markdown standing in for it
+    // doesn't. Text on the very next line would read as a lazy continuation
+    // of a blockquote or list item (`> Body` then `Next.` joins the quote),
+    // so a blank line keeps it out.
+    const spliced =
+      splice.block &&
+      splice.text !== "" &&
+      NEXT_LINE_TEXT.test(result.slice(splice.end))
+        ? `${splice.text}\n`
+        : splice.text;
     const replacement = indent
-      ? splice.text
+      ? spliced
           .split("\n")
           .map((line, index) =>
             index === 0 || line === "" ? line : `${indent}${line}`
           )
           .join("\n")
-      : splice.text;
+      : spliced;
     result =
       result.slice(0, splice.start) + replacement + result.slice(splice.end);
   }
@@ -888,15 +887,21 @@ const renderSlice = (
   const splices: Splice[] = [];
   // oxlint-disable-next-line no-use-before-define
   collectSplices(walk, nodes, splices);
+  // Start the slice at its line's indent, so a component that opens the
+  // slice is indented like the lines after it once replaced (see
+  // `applySplices`) and dedents with them; the final trim drops that indent
+  // from the first line again.
+  const indent = indentAt(walk.source, start);
+  const from = start - (indent ?? 0);
   const spliced = applySplices(
-    walk.source.slice(start, end),
+    walk.source.slice(from, end),
     splices.map((splice) => ({
       ...splice,
-      end: splice.end - start,
-      start: splice.start - start,
+      end: splice.end - from,
+      start: splice.start - from,
     }))
   );
-  return dedent(spliced, indentAt(walk.source, start)).trim();
+  return dedent(spliced, indent).trim();
 };
 
 /** The element's body as Markdown: the slice covering all of its children. */
@@ -996,6 +1001,7 @@ const collectSplices = (
     const text = hasOffsets(node) ? downlevelComponentNode(node, walk) : null;
     if (text !== null && hasOffsets(node)) {
       out.push({
+        block: node.type === "mdxJsxFlowElement",
         end: node.position.end.offset,
         start: node.position.start.offset,
         text,
@@ -1015,10 +1021,10 @@ const collectSplices = (
  * over the built-ins: a same-name entry replaces the built-in serializer, and
  * one that always returns `null` effectively opts that component out.
  *
- * `frontmatter` is the page's parsed front-matter data. It is put in scope
- * when evaluating attribute expressions — so `prop={frontmatter.status}`
- * resolves the way it does when Astro renders the page — and handed to
- * serializers on their context.
+ * `frontmatter` is the page's parsed front-matter data. Attribute
+ * expressions that reference it — `prop={frontmatter.status}` — resolve the
+ * way they do when Astro renders the page, and it is handed to serializers on
+ * their context. Expressions are read as literal data, never executed.
  */
 export const downlevelComponents = (
   source: string,

@@ -98,6 +98,7 @@ export const it: UIStringsOverride = {
     assistantHint: "Ottieni una risposta immediata dall'IA",
     button: "Cerca",
     devOnly: "La ricerca è disponibile nella build di produzione.",
+    docs: "Documentazione",
     error: "Qualcosa è andato storto. Riprova.",
     label: "Cerca nella documentazione",
     latest: "più recente",

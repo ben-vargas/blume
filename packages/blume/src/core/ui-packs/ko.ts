@@ -99,6 +99,7 @@ export const ko: UIStringsOverride = {
     assistantHint: "AI에게 즉시 답변 받기",
     button: "검색",
     devOnly: "검색은 프로덕션 빌드에서 사용할 수 있습니다.",
+    docs: "문서",
     error: "문제가 발생했습니다. 다시 시도해 주세요.",
     label: "문서 검색",
     latest: "최신",

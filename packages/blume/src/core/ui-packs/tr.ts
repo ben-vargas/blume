@@ -99,6 +99,7 @@ export const tr: UIStringsOverride = {
     assistantHint: "Yapay zekâdan anında yanıt alın",
     button: "Ara",
     devOnly: "Arama, üretim derlemesinde kullanılabilir.",
+    docs: "Belgeler",
     error: "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
     label: "Belgelerde ara",
     latest: "en son",

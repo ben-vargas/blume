@@ -113,6 +113,7 @@ export interface ApiSpecDocument {
 }
 
 const JSON_TYPE = "application/json";
+const EVENT_STREAM_TYPE = "text/event-stream";
 const MARKDOWN_TYPE = "text/markdown";
 const TEXT_TYPE = "text/plain";
 
@@ -623,14 +624,26 @@ export const buildApiSpec = (input: ApiSpecInput): ApiSpecDocument => {
       {
         post: {
           description:
-            "The Model Context Protocol server (Streamable HTTP, stateless, JSON responses). Tools: `search_docs`, `get_page`, `list_pages`, `get_navigation` — the same operations this API exposes — plus every page as a `text/markdown` resource. Discovery document at `/.well-known/mcp.json`.",
+            "The Model Context Protocol server (Streamable HTTP, stateless, JSON responses). Send `Accept: application/json, text/event-stream`: the Streamable HTTP transport requires a client to accept both and answers `406` otherwise, though this server always replies with JSON. Tools: `search_docs`, `get_page`, `list_pages`, `get_navigation` — the same operations this API exposes — plus every page as a `text/markdown` resource. Discovery document at `/.well-known/mcp.json`.",
           operationId: "mcp",
           requestBody: {
             content: { [JSON_TYPE]: { schema: ref("JsonRpcRequest") } },
             required: true,
           },
           responses: {
-            "200": jsonResponse("The JSON-RPC response.", "JsonRpcResponse"),
+            // Both media types, so a generated client sends the Accept header
+            // the transport requires; OpenAPI ignores an `Accept` parameter.
+            "200": {
+              content: {
+                [JSON_TYPE]: { schema: ref("JsonRpcResponse") },
+                [EVENT_STREAM_TYPE]: { schema: { type: "string" } },
+              },
+              description: "The JSON-RPC response.",
+            },
+            "406": jsonResponse(
+              "The request's `Accept` header doesn't list both `application/json` and `text/event-stream`.",
+              "JsonRpcResponse"
+            ),
           },
           summary: "Call the MCP server",
           tags: ["MCP"],

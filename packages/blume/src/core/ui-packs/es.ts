@@ -99,6 +99,7 @@ export const es: UIStringsOverride = {
     assistantHint: "Obtén una respuesta instantánea de la IA",
     button: "Buscar",
     devOnly: "La búsqueda está disponible en la compilación de producción.",
+    docs: "Documentación",
     error: "Algo salió mal. Inténtalo de nuevo.",
     label: "Buscar en la documentación",
     latest: "más reciente",

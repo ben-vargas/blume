@@ -2,7 +2,7 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import type { ServerOptions } from "@modelcontextprotocol/sdk/server/index.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import {
-  CallToolRequestSchema,
+  ErrorCode,
   ListResourcesRequestSchema,
   ListToolsRequestSchema,
   McpError,
@@ -11,6 +11,7 @@ import {
 import { z } from "zod";
 
 import { withBasePath } from "../../core/base-path.ts";
+import { readCappedText } from "../../core/request-body.ts";
 import type { McpData } from "./data.ts";
 import {
   createIndexProvider,
@@ -42,6 +43,12 @@ const RESOURCE_MIME_TYPE = "text/markdown";
 const RESOURCE_NOT_FOUND = -32_002;
 /** URI scheme for page resources when no `deployment.site` is configured. */
 const LOCAL_RESOURCE_SCHEME = "blume:";
+/**
+ * The largest request body the HTTP endpoint reads. A JSON-RPC call to these
+ * tools is a few hundred bytes; the cap keeps one oversized POST from being
+ * buffered whole, as the assistant route's does.
+ */
+const MCP_BODY_LIMIT_BYTES = 65_536;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Headers":
@@ -108,6 +115,20 @@ const resourceRoute = (uri: string, data: McpData): string =>
     data
   );
 
+/**
+ * The `tools/call` params, as far as the server reads them before dispatch:
+ * each tool validates its own `arguments` against `TOOL_INPUTS`.
+ */
+const TOOL_CALL_PARAMS = z.object({
+  arguments: z.record(z.string(), z.unknown()).optional(),
+  name: z.string(),
+});
+
+/** A tool call's `arguments` object, before the tool's own validation. */
+type ToolArguments = NonNullable<
+  z.output<typeof TOOL_CALL_PARAMS>["arguments"]
+>;
+
 /** A tool call's text result, marked as an error when `isError` is set. */
 const text = (value: string, isError = false) => {
   const content = [{ text: value, type: "text" as const }];
@@ -165,9 +186,7 @@ export const buildServer = (
     };
   });
 
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { arguments: args = {}, name } = request.params;
-
+  const callTool = async (name: string, args: ToolArguments) => {
     if (name === "search_docs") {
       const results = await searchDocs(
         data,
@@ -206,11 +225,43 @@ export const buildServer = (
       return text(JSON.stringify(result.navigation, null, 2));
     }
 
-    return text(`Unknown tool: ${name}`, true);
-  });
+    // The MCP spec answers an unknown tool with a protocol error, not a
+    // failed tool result.
+    throw new McpError(ErrorCode.InvalidParams, `Unknown tool: ${name}`);
+  };
+
+  // `tools/call` goes through the fallback handler rather than a registered
+  // one: the SDK parses a registered handler's request against its own
+  // schema first and reports a malformed call (`arguments` that aren't an
+  // object) as -32603 Internal error carrying a raw Zod dump. Reading the
+  // params here answers it as -32602 Invalid params with a short message.
+  server.fallbackRequestHandler = async (request) => {
+    if (request.method !== "tools/call") {
+      throw new McpError(ErrorCode.MethodNotFound, "Method not found");
+    }
+    const params = TOOL_CALL_PARAMS.safeParse(request.params);
+    if (!params.success) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        "Invalid tools/call params: `name` must be a string and `arguments`, when given, an object."
+      );
+    }
+    return await callTool(params.data.name, params.data.arguments ?? {});
+  };
 
   return server;
 };
+
+/** A JSON-RPC error response the transport would send, for errors raised before it runs. */
+const jsonRpcError = (
+  status: number,
+  code: number,
+  message: string
+): Response =>
+  Response.json(
+    { error: { code, message }, id: null, jsonrpc: "2.0" },
+    { headers: CORS_HEADERS, status }
+  );
 
 /**
  * Build a stateless Streamable-HTTP MCP request handler from a data snapshot.
@@ -239,6 +290,26 @@ export const createMcpFetchHandler = (
       });
     }
 
+    // The transport would read the body with `request.json()`, buffering
+    // whatever a client sends; read it under the cap first and hand the
+    // transport a copy.
+    let forwarded = request;
+    if (request.method === "POST") {
+      const body = await readCappedText(request, MCP_BODY_LIMIT_BYTES);
+      if (body === undefined) {
+        return jsonRpcError(
+          413,
+          ErrorCode.InvalidRequest,
+          "Request too large: the body must be at most 64 KB."
+        );
+      }
+      forwarded = new Request(request.url, {
+        body,
+        headers: request.headers,
+        method: "POST",
+      });
+    }
+
     const server = buildServer(data, index);
     const transport = new WebStandardStreamableHTTPServerTransport({
       enableJsonResponse: true,
@@ -248,7 +319,7 @@ export const createMcpFetchHandler = (
       sessionIdGenerator: undefined,
     });
     await server.connect(transport);
-    const response = await transport.handleRequest(request);
+    const response = await transport.handleRequest(forwarded);
 
     const headers = new Headers(response.headers);
     for (const [key, value] of Object.entries(CORS_HEADERS)) {

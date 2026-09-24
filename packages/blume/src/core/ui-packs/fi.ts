@@ -98,6 +98,7 @@ export const fi: UIStringsOverride = {
     assistantHint: "Saat välittömän vastauksen tekoälyltä",
     button: "Hae",
     devOnly: "Haku on käytettävissä tuotantokäännöksessä.",
+    docs: "Dokumentaatio",
     error: "Jokin meni pieleen. Yritä uudelleen.",
     label: "Hae dokumentaatiosta",
     latest: "uusin",

@@ -1474,10 +1474,11 @@ describe("discovery documents", () => {
 });
 
 describe("unknown tool", () => {
-  it("reports an error for an unregistered tool name", async () => {
-    const { isError, text } = await callTool("bogus_tool");
-    expect(isError).toBe(true);
-    expect(text).toContain("Unknown tool: bogus_tool");
+  it("answers an unregistered tool name with Invalid params", async () => {
+    const body = await rpc("tools/call", { name: "bogus_tool" });
+    expect(body.result).toBeUndefined();
+    expect(body.error?.code).toBe(-32_602);
+    expect(body.error?.message).toContain("Unknown tool: bogus_tool");
   });
 });
 

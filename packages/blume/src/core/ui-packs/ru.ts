@@ -99,6 +99,7 @@ export const ru: UIStringsOverride = {
     assistantHint: "Получите мгновенный ответ от ИИ",
     button: "Поиск",
     devOnly: "Поиск доступен в production-сборке.",
+    docs: "Документация",
     error: "Что-то пошло не так. Попробуйте ещё раз.",
     label: "Поиск по документации",
     latest: "последняя",

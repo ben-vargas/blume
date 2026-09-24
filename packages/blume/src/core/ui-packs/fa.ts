@@ -98,6 +98,7 @@ export const fa: UIStringsOverride = {
     assistantHint: "پاسخی فوری از هوش مصنوعی دریافت کنید",
     button: "جستجو",
     devOnly: "جستجو در نسخه تولید در دسترس است.",
+    docs: "مستندات",
     error: "مشکلی پیش آمد. لطفاً دوباره تلاش کنید.",
     label: "جستجو در مستندات",
     latest: "جدیدترین",

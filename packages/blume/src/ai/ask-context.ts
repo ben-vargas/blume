@@ -30,6 +30,13 @@ export interface AskData {
   defaultLocale?: string;
   documents: OramaDoc[];
   site: string | null;
+  /**
+   * Present on a versioned site, whose documents then carry their `version`
+   * (`""` for the current docs): retrieval keeps to the version the reader
+   * is viewing — the current docs unless they're on an archived page — as
+   * the search dialog does.
+   */
+  versioned?: boolean;
 }
 
 /** Documents retrieved per question and injected into the system prompt. */
@@ -644,12 +651,17 @@ export const createAskContext = (
     // which part of each page is quoted.
     const [query = ""] = queries;
 
-    // The current page anchors retrieval to its locale and is injected first.
+    // The current page anchors retrieval to its locale and docs version, and
+    // is injected first. Without one, a versioned site grounds in the
+    // current docs rather than every archived copy of each page.
     const current = page?.path
       ? byRoute.get(normalizeRoute(page.path))
       : undefined;
     const db = await index();
-    const filters = { locale: current?.locale || undefined };
+    const filters = {
+      locale: current?.locale || undefined,
+      version: data.versioned ? (current?.version ?? "") : undefined,
+    };
     const hits = interleave(
       await Promise.all(
         queries.map((text) => queryOramaIndex(db, text, maxResults, filters))

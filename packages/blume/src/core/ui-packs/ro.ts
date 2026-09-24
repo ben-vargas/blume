@@ -99,6 +99,7 @@ export const ro: UIStringsOverride = {
     assistantHint: "Primește un răspuns instantaneu de la AI",
     button: "Caută",
     devOnly: "Căutarea este disponibilă în versiunea de producție.",
+    docs: "Documentație",
     error: "Ceva nu a mers bine. Încearcă din nou.",
     label: "Caută în documentație",
     latest: "cea mai recentă",

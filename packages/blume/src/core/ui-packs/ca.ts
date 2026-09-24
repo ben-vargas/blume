@@ -99,6 +99,7 @@ export const ca: UIStringsOverride = {
     assistantHint: "Obtén una resposta instantània de la IA",
     button: "Cerca",
     devOnly: "La cerca està disponible a la compilació de producció.",
+    docs: "Documentació",
     error: "Alguna cosa ha anat malament. Torna-ho a provar.",
     label: "Cerca a la documentació",
     latest: "darrera",

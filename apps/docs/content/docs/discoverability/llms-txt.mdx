@@ -31,16 +31,13 @@ agents: {
 }
 ```
 
-The object form also takes `details`: Markdown placed right after the title and summary in `llms.txt`, before the page sections — the [llms.txt spec](https://llmstxt.org)'s free-form "details" block. It's the place to tell agents _when_ to reach for your product and how to call it, which readiness scanners look for explicitly; an install command and the package name belong here too:
+The object form also takes `details`: Markdown placed right after the title and summary in `llms.txt`, before the page sections — the [llms.txt spec](https://llmstxt.org)'s free-form "details" block. It's the place to tell agents _when_ to reach for your product and how to call it, which readiness scanners look for explicitly; an install command and the package name belong here too. The spec allows any Markdown there except headings, which it reserves for the sections of links that follow, so write paragraphs or lists:
 
 ```ts blume.config.ts lineNumbers
 agents: {
   llmsTxt: {
-    details: [
-      "## When to use Acme",
-      "",
+    details:
       "Reach for Acme when a project needs hosted feature flags. Install the CLI with `npm install -g acme`; the API reference below covers every endpoint.",
-    ].join("\n"),
   },
 }
 ```

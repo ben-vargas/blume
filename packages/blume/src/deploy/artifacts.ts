@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "pathe";
 
 import { buildAgentReadability } from "../ai/agent-readability.ts";
+import { advertisedConfig, servesMcp } from "../ai/agent-surface.ts";
 import {
   AI_CATALOG_PATH,
   ARD_MANIFEST_PATH,
@@ -15,6 +16,7 @@ import { buildLlmsFiles } from "../ai/llms.ts";
 import { markdownRoutePaths } from "../ai/markdown.ts";
 import {
   AGENT_SKILLS_DIR,
+  AGENT_SKILLS_INDEX_PATH,
   buildSkillsIndex,
   collectSkills,
 } from "../ai/skills.ts";
@@ -23,6 +25,7 @@ import {
   buildSignaturesDirectory,
   SIGNATURES_DIRECTORY_PATH,
 } from "../ai/web-bot-auth.ts";
+import { discoverPagesSync } from "../core/custom-pages.ts";
 import type { BlumeProject } from "../core/project-graph.ts";
 import type { ResolvedConfig } from "../core/schema.ts";
 import { buildSearchIndex } from "../search/build.ts";
@@ -367,9 +370,26 @@ export const publishBuildArtifacts = async (
   });
 
   // Collected once: llms.txt lists the skills the build publishes below.
+  const userSkillsIndex = existsSync(
+    join(distDir, AGENT_SKILLS_INDEX_PATH.slice(1))
+  );
   const skills = await collectConfiguredSkills(project, distDir, logger);
+  // The discovery documents advertise what this build serves: no MCP server
+  // when a page took its route, no skills index when nothing was published.
+  const advertised: BlumeProject = {
+    ...project,
+    config: advertisedConfig(project.config, {
+      mcp: servesMcp(
+        project,
+        project.context.pagesRoot
+          ? discoverPagesSync(project.context.pagesRoot)
+          : []
+      ),
+      skills: skills.length > 0 || userSkillsIndex,
+    }),
+  };
   if (project.config.agents.llmsTxt.enabled) {
-    await publishLlmsFiles(project, distDir, skills, logger);
+    await publishLlmsFiles(advertised, distDir, skills, logger);
   }
 
   const sitemapFiles = buildSitemapFiles(project);
@@ -388,7 +408,7 @@ export const publishBuildArtifacts = async (
     logger.info("Generated robots.txt");
   }
 
-  const agentReadability = buildAgentReadability(project);
+  const agentReadability = buildAgentReadability(advertised);
   if (
     agentReadability &&
     !existsSync(join(distDir, "agent-readability.json"))
@@ -401,9 +421,9 @@ export const publishBuildArtifacts = async (
     logger.info("Generated agent-readability.json");
   }
 
-  await emitWellKnownFiles(project.config, distDir, skills, logger);
+  await emitWellKnownFiles(advertised.config, distDir, skills, logger);
   await emitAgentSkills(project, distDir, skills, logger);
 
-  await emitRedirectFiles(project, distDir, logger);
-  await emitHeaderFiles(project, distDir, logger);
+  await emitRedirectFiles(advertised, distDir, logger);
+  await emitHeaderFiles(advertised, distDir, logger);
 };

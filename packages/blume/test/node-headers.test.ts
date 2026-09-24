@@ -202,7 +202,8 @@ describe("nodeHeaderRules", () => {
     );
     expect(byPath["/docs/.well-known/api-catalog"]).toStrictEqual({
       "Access-Control-Allow-Origin": "*",
-      "Content-Type": "application/linkset+json",
+      "Content-Type":
+        'application/linkset+json; profile="https://www.rfc-editor.org/info/rfc9727"',
     });
     expect(byPath["/docs/.well-known/ai-catalog.json"]).toStrictEqual({
       "Access-Control-Allow-Origin": "*",
@@ -243,7 +244,8 @@ describe("nodeEntryWrapper", () => {
     ).toBe("handled");
     expect(matched.headers).toStrictEqual({
       "Access-Control-Allow-Origin": "*",
-      "Content-Type": "application/linkset+json",
+      "Content-Type":
+        'application/linkset+json; profile="https://www.rfc-editor.org/info/rfc9727"',
     });
     expect(state().calls).toStrictEqual([
       { next: "next", url: "/docs/.well-known/api-catalog?x=1" },

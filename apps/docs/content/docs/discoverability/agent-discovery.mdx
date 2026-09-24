@@ -54,7 +54,7 @@ Set `agents.agentReadability` to `false` to skip it, or ship your own `public/ag
 Agents that probe a site don't know to look for the manifest — so Blume also advertises it in an [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288) `Link` response header on the homepage, using IANA-registered relation types:
 
 ```http
-Link: </.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json",
+Link: </.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json; profile=\"https://www.rfc-editor.org/info/rfc9727\"",
   </.well-known/ai-catalog.json>; rel="ai-catalog"; type="application/ai-catalog+json",
   </openapi.json>; rel="service-desc"; type="application/json",
   </agent-readability.json>; rel="describedby"; type="application/json",
@@ -86,7 +86,7 @@ Here the `alternate` link points at _that page's own_ [raw-Markdown mirror](/doc
 
 ## API catalog
 
-When the site publishes APIs, Blume generates an [RFC 9727](https://www.rfc-editor.org/rfc/rfc9727) API catalog at `/.well-known/api-catalog` — a [linkset](https://www.rfc-editor.org/rfc/rfc9264) that lets agents enumerate your APIs from the domain alone, served with its registered `application/linkset+json` media type on every build surface. There's nothing to configure: the catalog is derived from what's already in `blume.config.ts`. Each [OpenAPI or AsyncAPI reference](/docs/references/openapi) becomes an entry anchored at its rendered docs route, with `service-doc` pointing at those docs and `service-desc` at the spec when it lives at a fetchable URL; the site's own [JSON API](/docs/discoverability/json-api) becomes an entry described by its `/openapi.json`; and the [MCP server](/docs/discoverability/mcp) becomes an entry with its discovery document as the service description:
+When the site publishes APIs, Blume generates an [RFC 9727](https://www.rfc-editor.org/rfc/rfc9727) API catalog at `/.well-known/api-catalog` — a [linkset](https://www.rfc-editor.org/rfc/rfc9264) that lets agents enumerate your APIs from the domain alone, served on every build surface with its registered `application/linkset+json` media type and the RFC's `profile="https://www.rfc-editor.org/info/rfc9727"` parameter. There's nothing to configure: the catalog is derived from what's already in `blume.config.ts`. Each [OpenAPI or AsyncAPI reference](/docs/references/openapi) becomes an entry anchored at its rendered docs route, with `service-doc` pointing at those docs and `service-desc` at the spec when it lives at a fetchable URL; the site's own [JSON API](/docs/discoverability/json-api) becomes an entry described by its `/openapi.json`; and the [MCP server](/docs/discoverability/mcp) becomes an entry with its discovery document as the service description:
 
 ```json .well-known/api-catalog
 {

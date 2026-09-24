@@ -54,7 +54,7 @@ Your text is **appended to** the built-in instructions rather than replacing the
 
 The assistant is **grounded in your docs**. For each question it retrieves the most relevant pages — using the same lexical [Orama](/docs/configuration/search) index that powers on-page search — and injects them into the model's system prompt, so answers come from your content instead of the model's own knowledge. The assistant is told to answer only from the retrieved pages, to say when something isn't covered, and to cite the pages it drew from.
 
-The page the reader is currently on is added to the context first and used to scope retrieval to that page's language, so answers stay relevant to where they are in the docs. Retrieval runs at request time from a snapshot baked into the build, so it works regardless of your [search](/docs/configuration/search) provider — even with `search: false` — and needs no configuration.
+The page the reader is currently on is added to the context first and used to scope retrieval to that page's language — and, on a [versioned](/docs/content/versioning) site, to its docs version — so answers stay relevant to where they are in the docs. Retrieval runs at request time from a snapshot baked into the build, so it works regardless of your [search](/docs/configuration/search) provider — even with `search: false` — and needs no configuration.
 
 Grounding is on for every adapter except **[Inkeep](#inkeep)**, which runs its own retrieval over the content you've indexed in its dashboard.
 

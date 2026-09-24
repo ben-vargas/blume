@@ -596,14 +596,14 @@ export interface LlmsTxtConfig {
   /**
    * Markdown placed after the title and summary in `llms.txt`, before the
    * page sections — the llms.txt spec's "details" block. Use it to tell
-   * agents when to reach for the product and how to call it (a "When to use"
-   * heading, the install command, the package name). Blank values are
-   * dropped.
+   * agents when to reach for the product and how to call it (the install
+   * command, the package name). The spec allows any Markdown there but
+   * headings. Blank values are dropped.
    *
    * ```ts
    * agents: {
    *   llmsTxt: {
-   *     details: "## When to use Acme\n\nUse Acme when…",
+   *     details: "Use Acme when…",
    *   },
    * }
    * ```

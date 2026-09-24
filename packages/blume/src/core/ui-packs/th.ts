@@ -98,6 +98,7 @@ export const th: UIStringsOverride = {
     assistantHint: "รับคำตอบทันทีจาก AI",
     button: "ค้นหา",
     devOnly: "การค้นหาพร้อมใช้งานในบิลด์โปรดักชัน",
+    docs: "เอกสาร",
     error: "เกิดข้อผิดพลาดบางอย่าง โปรดลองอีกครั้ง",
     label: "ค้นหาเอกสาร",
     latest: "ล่าสุด",

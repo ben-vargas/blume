@@ -113,6 +113,9 @@ describe("buildApiCatalog", () => {
 
   it("pins the RFC 9727 path and linkset media type", () => {
     expect(API_CATALOG_PATH).toBe("/.well-known/api-catalog");
-    expect(API_CATALOG_TYPE).toBe("application/linkset+json");
+    // RFC 9727 §4.1: a linkset catalog SHOULD carry the RFC's profile.
+    expect(API_CATALOG_TYPE).toBe(
+      'application/linkset+json; profile="https://www.rfc-editor.org/info/rfc9727"'
+    );
   });
 });

@@ -98,6 +98,7 @@ export const vi: UIStringsOverride = {
     assistantHint: "Nhận câu trả lời tức thì từ AI",
     button: "Tìm kiếm",
     devOnly: "Tìm kiếm có sẵn trong bản dựng production.",
+    docs: "Tài liệu",
     error: "Đã xảy ra sự cố. Vui lòng thử lại.",
     label: "Tìm kiếm tài liệu",
     latest: "mới nhất",

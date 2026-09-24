@@ -99,6 +99,7 @@ export const hu: UIStringsOverride = {
     assistantHint: "Kapj azonnali választ az AI-tól",
     button: "Keresés",
     devOnly: "A keresés az éles buildben érhető el.",
+    docs: "Dokumentáció",
     error: "Hiba történt. Próbáld újra.",
     label: "Keresés a dokumentációban",
     latest: "legújabb",

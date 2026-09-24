@@ -98,6 +98,7 @@ export const cs: UIStringsOverride = {
     assistantHint: "Získejte okamžitou odpověď od AI",
     button: "Hledat",
     devOnly: "Vyhledávání je dostupné v produkčním buildu.",
+    docs: "Dokumentace",
     error: "Něco se pokazilo. Zkuste to prosím znovu.",
     label: "Prohledat dokumentaci",
     latest: "nejnovější",

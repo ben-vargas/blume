@@ -93,7 +93,7 @@ describe("buildHomeLinkHeader", () => {
   it("advertises the API catalog when the site publishes APIs (RFC 9727 §3)", () => {
     const header = buildHomeLinkHeader(configWith({ mcp: true }), []);
     expect(header).toContain(
-      '</.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json"'
+      String.raw`</.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json; profile=\"https://www.rfc-editor.org/info/rfc9727\""`
     );
     expect(buildHomeLinkHeader(configWith(), [])).not.toContain("api-catalog");
   });
@@ -116,7 +116,7 @@ describe("buildHomeLinkHeader", () => {
       buildHomeLinkHeader(configWith({ api: true, base: "/base" }), ["/"])
     ).toBe(
       [
-        '</base/.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json"',
+        String.raw`</base/.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json; profile=\"https://www.rfc-editor.org/info/rfc9727\""`,
         '</base/openapi.json>; rel="service-desc"; type="application/json"',
         '</base/agent-readability.json>; rel="describedby"; type="application/json"',
         '</base/llms.txt>; rel="describedby"; type="text/plain"',

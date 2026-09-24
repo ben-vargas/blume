@@ -99,6 +99,7 @@ export const uk: UIStringsOverride = {
     assistantHint: "Отримайте миттєву відповідь від ШІ",
     button: "Пошук",
     devOnly: "Пошук доступний у production-збірці.",
+    docs: "Документація",
     error: "Щось пішло не так. Спробуйте ще раз.",
     label: "Пошук у документації",
     latest: "остання",

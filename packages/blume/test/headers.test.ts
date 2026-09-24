@@ -122,7 +122,7 @@ describe("buildNetlifyHeaders", () => {
       configWith({ api: false, base: "/base", mcp: true })
     );
     expect(out).toContain(
-      "/base/.well-known/api-catalog\n  Content-Type: application/linkset+json"
+      '/base/.well-known/api-catalog\n  Content-Type: application/linkset+json; profile="https://www.rfc-editor.org/info/rfc9727"'
     );
     // The JSON docs API is on by default, and it is an API.
     expect(buildNetlifyHeaders(configWith({}))).toContain("api-catalog");

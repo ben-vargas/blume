@@ -1,10 +1,44 @@
-// Mirrors the fence masking in `core/sources/assets.ts`: a fenced code sample
-// that *shows* `<Visibility>` markup must keep showing what the author wrote.
-const CODE_FENCE_BLOCK =
-  /^(?<fence>`{3,}|~{3,})[^\n]*\n[\s\S]*?^\k<fence>[^\n]*(?=\n|$)/gmu;
+import { nextFenceState } from "../core/code-fences.ts";
+import type { FenceState } from "../core/code-fences.ts";
+
+/** An inline code span on one line, as the other source scanners read it. */
+const INLINE_CODE = /`[^`\n]*`/gu;
 // NUL delimiters cannot appear in authored markdown, so tokens never collide.
 // oxlint-disable-next-line no-control-regex -- the NUL is the collision guard.
-const FENCE_TOKEN = /\u0000blume-fence-(?<index>\d+)\u0000/gu;
+const CODE_TOKEN = /\u0000blume-code-(?<index>\d+)\u0000/gu;
+
+/**
+ * Swap every code sample for a one-line token — fenced blocks at any indent
+ * (a fence inside a `<Tab>` or `<Step>` is indented under it) and inline code
+ * spans — so markup that *shows* `<Visibility>` keeps showing what the author
+ * wrote. An unclosed fence runs to the end, as CommonMark reads it.
+ */
+const maskCode = (markdown: string, stash: string[]): string => {
+  const token = (code: string): string => {
+    stash.push(code);
+    return `\u0000blume-code-${stash.length - 1}\u0000`;
+  };
+  const lines: string[] = [];
+  let fence: FenceState = null;
+  let block: string[] = [];
+  for (const line of markdown.split("\n")) {
+    const next = nextFenceState(line, fence);
+    if (fence === null && next === null) {
+      lines.push(line.replaceAll(INLINE_CODE, token));
+    } else {
+      block.push(line);
+      if (next === null) {
+        lines.push(token(block.join("\n")));
+        block = [];
+      }
+    }
+    fence = next;
+  }
+  if (block.length > 0) {
+    lines.push(token(block.join("\n")));
+  }
+  return lines.join("\n");
+};
 
 /** The audience an output surface serves — the component's two `for` values. */
 export type VisibilityAudience = "agents" | "web";
@@ -36,12 +70,9 @@ export const applyAudienceVisibility = (
   markdown: string,
   audience: VisibilityAudience
 ): string => {
-  // Mask fenced code blocks so documentation *about* Visibility survives.
-  const fences: string[] = [];
-  const masked = markdown.replace(CODE_FENCE_BLOCK, (block) => {
-    fences.push(block);
-    return `\u0000blume-fence-${fences.length - 1}\u0000`;
-  });
+  // Mask code so documentation *about* Visibility survives.
+  const code: string[] = [];
+  const masked = maskCode(markdown, code);
 
   let touched = false;
   const filtered = masked
@@ -56,12 +87,12 @@ export const applyAudienceVisibility = (
 
   // Removing/unwrapping block-level tags leaves runs of blank lines behind;
   // collapse them only when something matched so untouched files round-trip
-  // exactly. Fences are masked as single-line tokens, so they are unaffected.
+  // exactly. Code is masked as single-line tokens, so it is unaffected.
   const tidied = touched ? filtered.replaceAll(/\n{3,}/gu, "\n\n") : filtered;
 
   return tidied.replaceAll(
-    FENCE_TOKEN,
-    (token, index) => fences[Number(index)] ?? token
+    CODE_TOKEN,
+    (token, index) => code[Number(index)] ?? token
   );
 };
 

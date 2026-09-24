@@ -98,6 +98,7 @@ export const hi: UIStringsOverride = {
     assistantHint: "AI से तुरंत जवाब पाएँ",
     button: "खोजें",
     devOnly: "खोज प्रोडक्शन बिल्ड में उपलब्ध है।",
+    docs: "दस्तावेज़",
     error: "कुछ गलत हो गया। कृपया फिर से कोशिश करें।",
     label: "दस्तावेज़ खोजें",
     latest: "नवीनतम",

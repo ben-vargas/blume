@@ -5,7 +5,11 @@ import {
   AI_CATALOG_TYPE,
   hasAiCatalog,
 } from "./ai-catalog.ts";
-import { API_CATALOG_PATH, hasApiCatalog } from "./api-catalog.ts";
+import {
+  API_CATALOG_PATH,
+  API_CATALOG_TYPE,
+  hasApiCatalog,
+} from "./api-catalog.ts";
 import { OPENAPI_PATH } from "./api/paths.ts";
 
 /**
@@ -37,10 +41,11 @@ export const buildHomeLinkHeader = (
   const deployBase = normalizeBasePath(config.deployment.options.base);
   const links: string[] = [];
   // RFC 9727 §3: the api-catalog relation is how a homepage advertises the
-  // well-known catalog.
+  // well-known catalog. Its type carries the RFC 9727 profile, whose quotes
+  // are escaped inside the quoted `type` value (RFC 8288 quoted-string).
   if (hasApiCatalog(config)) {
     links.push(
-      `<${deployBase}${API_CATALOG_PATH}>; rel="api-catalog"; type="application/linkset+json"`
+      `<${deployBase}${API_CATALOG_PATH}>; rel="api-catalog"; type="${API_CATALOG_TYPE.replaceAll('"', String.raw`\"`)}"`
     );
   }
   // The ai-catalog spec's own relation for its well-known document, the

@@ -17,7 +17,13 @@ import { API_BASE, OPENAPI_PATH } from "./api/paths.ts";
  */
 
 export const API_CATALOG_PATH = "/.well-known/api-catalog";
-export const API_CATALOG_TYPE = "application/linkset+json";
+/** The profile URI RFC 9727 registers for an API catalog linkset. */
+export const API_CATALOG_PROFILE = "https://www.rfc-editor.org/info/rfc9727";
+/**
+ * The catalog's media type: a linkset carrying the RFC 9727 profile
+ * parameter, which the RFC says an API catalog SHOULD be served with.
+ */
+export const API_CATALOG_TYPE = `application/linkset+json; profile="${API_CATALOG_PROFILE}"`;
 
 /** An RFC 9264 linkset entry, restricted to the relations Blume emits. */
 interface LinksetEntry {

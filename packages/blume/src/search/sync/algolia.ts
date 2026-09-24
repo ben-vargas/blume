@@ -8,13 +8,28 @@ import type { SearchRecord } from "../documents.ts";
 export type AlgoliaSyncConfig = Pick<AlgoliaOptions, "appId" | "indexName">;
 
 /**
+ * The record attributes the search dialog filters on (`facetFilters` on
+ * `locale:<code>` and `version:<id>`). In Algolia a facet filter on an
+ * attribute the index doesn't declare for faceting matches nothing — an i18n
+ * or versioned site would get no hits — so the sync declares them,
+ * filter-only.
+ */
+const FILTER_ATTRIBUTES = ["locale", "version"] as const;
+
+/** A faceting declaration's attribute: `filterOnly(locale)` → `locale`. */
+const facetAttribute = (declaration: string): string =>
+  declaration.replace(/^\w+\((?<name>.*)\)$/u, "$<name>");
+
+/**
  * Upload the search records to Algolia. Uses the admin key from
  * `ALGOLIA_ADMIN_API_KEY` (never the adapter options, which hold only the
  * public, search-only key). Throws on a missing key so the caller can warn.
  *
  * Uses `replaceAllObjects`, which atomically replaces the index contents, so
  * pages deleted or renamed since the last sync don't linger as stale search
- * hits that 404 when clicked.
+ * hits that 404 when clicked. Then adds `filterOnly(locale)` and
+ * `filterOnly(version)` to the index's `attributesForFaceting`, keeping any
+ * the site declared itself, so the dialog's locale and version filters match.
  */
 export const syncAlgolia = async (
   records: SearchRecord[],
@@ -28,8 +43,27 @@ export const syncAlgolia = async (
   // `core/node-require.ts`).
   const { algoliasearch }: typeof AlgoliaSdk = nodeRequire("algoliasearch");
   const client = algoliasearch(config.appId, adminKey);
+  const { indexName } = config;
   await client.replaceAllObjects({
-    indexName: config.indexName,
+    indexName,
     objects: records.map((record) => ({ ...record, objectID: record._id })),
   });
+  const { attributesForFaceting = [] } = await client.getSettings({
+    indexName,
+  });
+  const declared = new Set(attributesForFaceting.map(facetAttribute));
+  const missing = FILTER_ATTRIBUTES.filter((name) => !declared.has(name));
+  if (missing.length === 0) {
+    return;
+  }
+  const { taskID } = await client.setSettings({
+    indexName,
+    indexSettings: {
+      attributesForFaceting: [
+        ...attributesForFaceting,
+        ...missing.map((name) => `filterOnly(${name})`),
+      ],
+    },
+  });
+  await client.waitForTask({ indexName, taskID });
 };

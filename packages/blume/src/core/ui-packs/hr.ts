@@ -99,6 +99,7 @@ export const hr: UIStringsOverride = {
     assistantHint: "Dobijte trenutačni odgovor od AI-ja",
     button: "Pretraži",
     devOnly: "Pretraživanje je dostupno u produkcijskoj verziji.",
+    docs: "Dokumentacija",
     error: "Nešto je pošlo po zlu. Pokušajte ponovno.",
     label: "Pretraži dokumentaciju",
     latest: "najnovija",

@@ -98,6 +98,7 @@ export const ar: UIStringsOverride = {
     assistantHint: "احصل على إجابة فورية من الذكاء الاصطناعي",
     button: "بحث",
     devOnly: "البحث متاح في إصدار الإنتاج.",
+    docs: "الوثائق",
     error: "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
     label: "البحث في الوثائق",
     latest: "الأحدث",

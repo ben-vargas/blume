@@ -1,3 +1,5 @@
+import { unescape } from "html-escaper";
+
 import type { SearchFn } from "../layout/search/types.ts";
 import { joinBase, prefixBase } from "./base-path.ts";
 
@@ -80,13 +82,15 @@ const isCallable = <T extends (...args: never[]) => void>(
 const TAG = /<[^>]*>?/gu;
 
 /**
- * Drop the `<mark>` highlighting (and any other markup) search hits carry.
- * The closing `>` is optional so every `<` starts a strip: a dangling
- * `<script` fragment can't survive the way it would if a full `<...>` pair
- * were required. The input is HTML, where a literal `<` is `&lt;`, so
- * consuming from every raw `<` loses nothing legitimate. Stripping repeats
- * to a fixed point so the no-fragment guarantee is explicit rather than an
- * artifact of the regex shape.
+ * Search-hit HTML as the plain text an agent reads: the `<mark>`
+ * highlighting (and any other markup) dropped, then the entities the
+ * highlighter escaped decoded (`&lt;T&gt; &amp;` → `<T> &`). The closing `>`
+ * is optional so every `<` starts a strip: a dangling `<script` fragment
+ * can't survive the way it would if a full `<...>` pair were required. The
+ * input is HTML, where a literal `<` is `&lt;`, so consuming from every raw
+ * `<` loses nothing legitimate. Stripping repeats to a fixed point so the
+ * no-fragment guarantee is explicit rather than an artifact of the regex
+ * shape; decoding comes last, so a decoded `<` is text, never a tag.
  */
 const plain = (html: string): string => {
   let stripped = html;
@@ -95,7 +99,7 @@ const plain = (html: string): string => {
     previous = stripped;
     stripped = stripped.replaceAll(TAG, "");
   } while (stripped !== previous);
-  return stripped;
+  return unescape(stripped);
 };
 
 export interface WebMcpToolOptions {

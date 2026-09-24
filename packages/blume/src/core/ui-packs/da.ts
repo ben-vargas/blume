@@ -98,6 +98,7 @@ export const da: UIStringsOverride = {
     assistantHint: "Få et øjeblikkeligt svar fra AI",
     button: "Søg",
     devOnly: "Søgning er tilgængelig i produktionsbygningen.",
+    docs: "Dokumentation",
     error: "Noget gik galt. Prøv igen.",
     label: "Søg i dokumentationen",
     latest: "nyeste",

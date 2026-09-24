@@ -99,6 +99,7 @@ export const ptBR: UIStringsOverride = {
     assistantHint: "Obtenha uma resposta instantânea da IA",
     button: "Pesquisar",
     devOnly: "A busca está disponível na build de produção.",
+    docs: "Documentação",
     error: "Algo deu errado. Tente novamente.",
     label: "Pesquisar na documentação",
     latest: "mais recente",
