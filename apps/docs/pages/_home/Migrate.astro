@@ -1,13 +1,13 @@
 ---
 // "Migrate with an agent." — one interactive demo: the headline reads
 // "Migrate from [Fumadocs]" where the bracketed brand is a dropdown trigger
-// (logo + name + chevron). Picking another source swaps the trigger and the
-// body copy; the install command below is the same for every source. With no JS
-// the initial source's panel (Fumadocs unless `initial` says otherwise) stays
-// visible. The copy button reuses the page-level delegated
+// (logo + name + chevron). Picking another source swaps the trigger, the body
+// copy, and the `blume migrate <source>` command in step one. With no JS the
+// initial source's panels (Fumadocs unless `initial` says otherwise) stay
+// visible. The copy buttons reuse the page-level delegated
 // `data-blume-copy-install` handler.
 import Icon from "blume/components/Icon.astro";
-import { installCommand, sourceById, sources } from "./migrate-sources.ts";
+import { migrateCommand, sourceById, sources } from "./migrate-sources.ts";
 import Tray from "./Tray.astro";
 
 interface Props {
@@ -140,28 +140,38 @@ const migrateScript = `(()=>{if(window.__blumeMigrate){return;}window.__blumeMig
           1
         </span>
         <div class="min-w-0 flex-1">
-          <p class="font-medium text-base sm:text-sm">Install the migration skill.</p>
-          <div
-            class="mt-3 flex items-center gap-3 rounded-blume bg-background py-2 pr-2 pl-4 ring-1 ring-border"
-          >
-            <span aria-hidden="true" class="select-none font-mono text-muted-foreground text-sm">$</span>
-            <code class="min-w-0 flex-1 truncate font-mono text-[0.8125rem] text-foreground">
-              {installCommand}
-            </code>
-            <button
-                aria-label="Copy the blume-migrate install command"
-                class="relative inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
-                data-blume-copy-install
-                data-command={installCommand}
-                type="button"
+          <p class="font-medium text-base sm:text-sm">Run one command in your docs project.</p>
+          {
+            sources.map((source) => (
+              <div
+                class="mt-3 hidden items-center gap-3 rounded-blume bg-background py-2 pr-2 pl-4 ring-1 ring-border data-[active=true]:flex"
+                data-active={source.id === active.id ? "true" : "false"}
+                data-migrate-panel={source.id}
               >
-                <span
-                  aria-hidden="true"
-                  class="absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden"
-                />
-                <Icon class="size-4" name="copy" size={16} />
-              </button>
-          </div>
+                <span aria-hidden="true" class="select-none font-mono text-muted-foreground text-sm">$</span>
+                <code class="min-w-0 flex-1 truncate font-mono text-[0.8125rem] text-foreground">
+                  {migrateCommand(source.id)}
+                </code>
+                <button
+                  aria-label={`Copy the ${source.name} migration command`}
+                  class="relative inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+                  data-blume-copy-install
+                  data-command={migrateCommand(source.id)}
+                  type="button"
+                >
+                  <span
+                    aria-hidden="true"
+                    class="absolute top-1/2 left-1/2 size-[max(100%,3rem)] -translate-1/2 pointer-fine:hidden"
+                  />
+                  <Icon class="size-4" name="copy" size={16} />
+                </button>
+              </div>
+            ))
+          }
+          <p class="mt-2 text-muted-foreground text-sm">
+            Using Codex? Swap <code class="font-mono text-foreground">--claude</code> for{" "}
+            <code class="font-mono text-foreground">--codex</code>.
+          </p>
         </div>
       </li>
       <li class="reveal-rise flex items-start gap-4 [--reveal-delay:150ms]">
@@ -171,11 +181,9 @@ const migrateScript = `(()=>{if(window.__blumeMigrate){return;}window.__blumeMig
           2
         </span>
         <div class="min-w-0 flex-1">
-          <p class="font-medium text-base sm:text-sm">Ask your agent to migrate.</p>
-          <p
-            class="mt-3 rounded-blume bg-background px-4 py-2.5 text-base text-foreground ring-1 ring-border sm:text-sm"
-          >
-            “Migrate this{" "}
+          <p class="font-medium text-base sm:text-sm">Review the agent's edits.</p>
+          <p class="mt-1 text-base text-muted-foreground sm:text-sm">
+            It follows Blume's migration playbook for{" "}
             {
               sources.map((source) => (
                 <span
@@ -186,8 +194,7 @@ const migrateScript = `(()=>{if(window.__blumeMigrate){return;}window.__blumeMig
                   {source.name}
                 </span>
               ))
-            }{" "}
-            site to Blume.”
+            }, rewriting your config and pages, and asks before each edit.
           </p>
         </div>
       </li>

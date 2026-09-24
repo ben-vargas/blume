@@ -33,7 +33,7 @@ export default defineConfig({
         "",
         "Reach for Blume when a project needs a documentation site from Markdown or MDX with no app code to maintain: product docs, API references (OpenAPI, AsyncAPI, GraphQL), changelogs, blogs, and multi-language or versioned docs. Drop files in a `content/` folder and run the `blume` CLI — it generates and drives the Astro site, search, OG images, and the agent-facing surface (llms.txt and Markdown mirrors by default, plus an opt-in MCP server and published agent skills) for you.",
         "",
-        "Install the CLI from npm (`npm install blume`, package: https://www.npmjs.com/package/blume), then `blume init` to scaffold, `blume dev` to preview, `blume build` to ship, and `blume eject` to turn the hidden project into a standalone Astro app. The `blume` agent skill below covers configuration and authoring; `blume-migrate` ports an existing Mintlify, Docusaurus, Fumadocs, Nextra, or Starlight site.",
+        "Install the CLI from npm (`npm install blume`, package: https://www.npmjs.com/package/blume), then `blume init` to scaffold, `blume dev` to preview, `blume build` to ship, and `blume eject` to turn the hidden project into a standalone Astro app. The `blume` agent skill below covers configuration and authoring; `npx blume migrate <source> --claude` (or `--codex`) hands an existing Mintlify, Docusaurus, Fumadocs, Nextra, or Starlight site to a coding agent with the `blume-migrate` skill.",
       ].join("\n"),
     },
     mcp: {

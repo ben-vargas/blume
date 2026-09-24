@@ -71,6 +71,11 @@ const main = defineCommand({
       () => import("./commands/mcp-stdio.ts"),
       "mcpStdioCommand"
     ),
+    migrate: lazyCommand(
+      commandMeta.migrate,
+      () => import("./commands/migrate.ts"),
+      "migrateCommand"
+    ),
     preview: lazyCommand(
       commandMeta.preview,
       () => import("./commands/preview.ts"),

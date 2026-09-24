@@ -1,0 +1,149 @@
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+
+import { join } from "pathe";
+
+/**
+ * `blume migrate`'s logic, kept out of the command module so it runs (and is
+ * covered) in-process. Migration is judgment work — idiomatic navigation,
+ * component rewrites, what to drop — so it stays in the `blume-migrate` skill,
+ * shipped inside the package; this module only names the source (from the
+ * argument, or detected from the repo's own files) and writes the prompt that
+ * points a coding agent at the skill and that source's mappings.
+ */
+
+/** The docs frameworks the skill has a mapping reference for. */
+export const MIGRATE_SOURCES = [
+  "mintlify",
+  "docusaurus",
+  "fumadocs",
+  "nextra",
+  "starlight",
+] as const;
+
+export type MigrateSourceId = (typeof MIGRATE_SOURCES)[number];
+
+/** Display names, for messages and the prompt. */
+export const MIGRATE_SOURCE_NAMES: Record<MigrateSourceId, string> = {
+  docusaurus: "Docusaurus",
+  fumadocs: "Fumadocs",
+  mintlify: "Mintlify",
+  nextra: "Nextra",
+  starlight: "Starlight",
+};
+
+/** The skill's directory inside the published package. */
+export const MIGRATE_SKILL_DIR = join("skills", "blume-migrate");
+
+export const isMigrateSource = (value: string): value is MigrateSourceId =>
+  MIGRATE_SOURCES.some((source) => source === value);
+
+/** A detected source and the file or dependency that gave it away. */
+export interface DetectedSource {
+  evidence: string;
+  source: MigrateSourceId;
+}
+
+/** The slice of `package.json` detection reads. */
+interface PackageJson {
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+}
+
+/** Every dependency the project's `package.json` names, or none when unreadable. */
+const dependencyNames = async (root: string): Promise<Set<string>> => {
+  const path = join(root, "package.json");
+  if (!existsSync(path)) {
+    return new Set();
+  }
+  try {
+    // SAFETY: package.json is a JSON object; only its dependency maps are read.
+    const pkg = JSON.parse(await readFile(path, "utf-8")) as PackageJson;
+    return new Set([
+      ...Object.keys(pkg.dependencies ?? {}),
+      ...Object.keys(pkg.devDependencies ?? {}),
+    ]);
+  } catch {
+    // A malformed package.json is the agent's to deal with; detection just
+    // falls back to the other signals.
+    return new Set();
+  }
+};
+
+/**
+ * Each source's tell, in the order the skill's workflow checks them: a config
+ * file the framework owns, or a dependency only it installs.
+ */
+const SIGNALS: {
+  deps?: string[];
+  files?: string[];
+  source: MigrateSourceId;
+}[] = [
+  { files: ["docs.json", "mint.json"], source: "mintlify" },
+  {
+    files: [
+      "docusaurus.config.ts",
+      "docusaurus.config.js",
+      "docusaurus.config.mjs",
+      "docusaurus.config.cjs",
+    ],
+    source: "docusaurus",
+  },
+  {
+    deps: ["fumadocs-core", "fumadocs-ui", "fumadocs-mdx"],
+    files: ["source.config.ts"],
+    source: "fumadocs",
+  },
+  { deps: ["nextra"], source: "nextra" },
+  { deps: ["@astrojs/starlight"], source: "starlight" },
+];
+
+/**
+ * Detect the docs framework a project is built on from its own files, or
+ * null when nothing gives it away (the skill still migrates any framework,
+ * working from its general model instead of a mapping reference).
+ */
+export const detectMigrateSource = async (
+  root: string
+): Promise<DetectedSource | null> => {
+  const deps = await dependencyNames(root);
+  for (const { deps: tells = [], files = [], source } of SIGNALS) {
+    const file = files.find((name) => existsSync(join(root, name)));
+    if (file) {
+      return { evidence: file, source };
+    }
+    const dep = tells.find((name) => deps.has(name));
+    if (dep) {
+      return { evidence: `${dep} in package.json`, source };
+    }
+  }
+  return null;
+};
+
+/**
+ * The handoff prompt: follow the skill, where its mappings for this source
+ * are, and the few rules worth restating — the target version, and that no
+ * page or URL is lost.
+ */
+export const migratePrompt = (options: {
+  detected: DetectedSource | null;
+  skillDir: string;
+  source: MigrateSourceId | null;
+  version: string;
+}): string => {
+  const { detected, skillDir, source, version } = options;
+  const evidence =
+    detected && detected.source === source
+      ? ` (detected from ${detected.evidence})`
+      : "";
+  const sourceLine = source
+    ? `The source is ${MIGRATE_SOURCE_NAMES[source]}${evidence}. Its exact mappings are in ${join(skillDir, "references", `${source}.md`)}.`
+    : `The source framework wasn't detected, so inventory the repo first. If it's ${MIGRATE_SOURCES.map((id) => MIGRATE_SOURCE_NAMES[id]).join(", ")}, read that framework's file in ${join(skillDir, "references")}; otherwise follow the skill's mental model directly.`;
+  return `Migrate this documentation project to Blume ${version}.
+
+Follow the blume-migrate skill: read ${join(skillDir, "SKILL.md")} first and work through its migration workflow. Wherever the skill says \`<skill>\`, it means ${skillDir}.
+
+${sourceLine}
+
+Add \`blume@^${version}\` as the docs package's dependency. Keep every page, and add a redirect for any URL that moves. Report everything you drop or approximate, and run the skill's verification steps before you finish.`;
+};

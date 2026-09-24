@@ -53,6 +53,11 @@ export const commandMeta = {
       "Serve an MCP data snapshot over stdio (internal, used by `blume eval`).",
     name: "mcp-stdio",
   },
+  migrate: {
+    description:
+      "Migrate a docs site from Mintlify, Fumadocs, Docusaurus, Starlight, or Nextra with a coding agent.",
+    name: "migrate",
+  },
   preview: {
     description: "Preview the last production build.",
     name: "preview",

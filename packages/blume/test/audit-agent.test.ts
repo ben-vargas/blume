@@ -8,6 +8,7 @@ import {
   AGENTS,
   fixPrompt,
   launchAgent,
+  launchInstalledAgent,
   writeAgentReport,
 } from "../src/audit/agent.ts";
 import type { AuditResult } from "../src/audit/run.ts";
@@ -118,6 +119,29 @@ describe("launchAgent", () => {
     // caller treats any launch error as "not installed", so assert only that.
     await expect(
       launchAgent("blume-agent-that-does-not-exist", "prompt")
+    ).rejects.toThrow();
+  });
+
+  it("resolves null from launchInstalledAgent when the executable is missing", async () => {
+    expect(
+      await launchInstalledAgent("blume-agent-that-does-not-exist", "prompt")
+    ).toBeNull();
+  });
+
+  it("passes the exit code through launchInstalledAgent", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "blume-agent-"));
+    dirs.push(dir);
+    const bin = await writeExecutable(dir, "exits", "process.exit(4);");
+    expect(await launchInstalledAgent(bin, "prompt", "linux")).toBe(4);
+  });
+
+  it("rethrows a launch failure that isn't a missing executable", async () => {
+    // A directory is found but can't be executed (EACCES), which must not be
+    // reported as "not installed".
+    const dir = await mkdtemp(join(tmpdir(), "blume-agent-"));
+    dirs.push(dir);
+    await expect(
+      launchInstalledAgent(dir, "prompt", "linux")
     ).rejects.toThrow();
   });
 

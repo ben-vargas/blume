@@ -9,7 +9,7 @@ import Icon from "blume/components/Icon.astro";
 import data from "blume:data";
 import TextLink from "../_home/TextLink.astro";
 import Tray from "../_home/Tray.astro";
-import { installCommand } from "../_home/migrate-sources.ts";
+import { migrateCommand } from "../_home/migrate-sources.ts";
 import { glyph, inlineCode } from "../_home/shared.ts";
 import type { CompareTool } from "./tools.ts";
 
@@ -21,6 +21,7 @@ const { tool } = Astro.props;
 const { config } = data;
 const blumeLogo = config.logo?.svg;
 const chevronRight = glyph("chevron-right");
+const command = migrateCommand(tool.id);
 
 // The footnote names the pages each claim was checked against (linked, so a
 // reader can verify them) and the date. A channel for corrections: a new
@@ -65,13 +66,13 @@ const reportHref = config.repoUrl
             $
           </span>
           <code class="min-w-0 flex-1 truncate font-mono text-[0.8125rem] text-foreground">
-            {installCommand}
+            {command}
           </code>
           <button
-            aria-label="Copy the blume-migrate install command"
+            aria-label={`Copy the ${tool.source.name} migration command`}
             class="relative inline-flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
             data-blume-copy-install
-            data-command={installCommand}
+            data-command={command}
             type="button"
           >
             <span

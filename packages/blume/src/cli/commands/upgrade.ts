@@ -1,7 +1,7 @@
 import { defineCommand } from "citty";
 import { join } from "pathe";
 
-import { AGENTS, launchAgent } from "../../audit/agent.ts";
+import { AGENTS, launchInstalledAgent } from "../../audit/agent.ts";
 import type { AgentKind } from "../../audit/agent.ts";
 import { formatDiagnostic } from "../../core/diagnostics.ts";
 import { packageRoot } from "../../core/package-root.ts";
@@ -109,16 +109,8 @@ export const upgradeCommand = defineCommand({
         root,
         version,
       });
-      let code: number;
-      try {
-        code = await launchAgent(cli.bin, prompt);
-      } catch (error) {
-        // SAFETY: only the `code` tag is inspected; a spawn failure throws an
-        // ErrnoException, and any other thrown value fails the comparison and
-        // rethrows unchanged.
-        if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
-          throw error;
-        }
+      const code = await launchInstalledAgent(cli.bin, prompt);
+      if (code === null) {
         logger.error(
           `${cli.name} (\`${cli.bin}\`) was not found on PATH. Install it with \`${cli.install}\`.`
         );

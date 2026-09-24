@@ -57,6 +57,10 @@ npx blume@latest upgrade
 
 It bumps `blume` in `package.json`, installs, and lists every config change still needed with its file, line, and replacement, exiting non-zero until none are left. (`--claude` or `--codex` hands that list to an agent CLI from a terminal.) When you are the agent doing the upgrade, work from that list and the upgrade guide, `docs/03-upgrading.mdx` in the installed package, which has before-and-after examples for every change. Keep the site's behavior the same, and verify with `blume doctor` and `blume build`.
 
+## Migrating from another framework
+
+To move a Mintlify, Docusaurus, Fumadocs, Nextra, or Starlight site to Blume, the user runs `npx blume migrate [source] --claude` (or `--codex`) from that project, which opens an agent on the `blume-migrate` skill. When you are that agent, or the user asks you to migrate directly, follow `skills/blume-migrate/SKILL.md` in the installed package instead of this file.
+
 ## What's included
 
 - **Components** — callouts, cards, steps, tabs, accordions, badges, file trees, and parameter tables, usable in MDX with no imports.

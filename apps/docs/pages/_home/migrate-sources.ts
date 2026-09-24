@@ -1,11 +1,14 @@
-// The migration sources Blume's `blume-migrate` skill handles: each brand's
-// mark, name, and what the agent does for it. Shared by the homepage's Migrate
-// picker and the /compare pages.
+// The migration sources `blume migrate` handles: each brand's mark, name, and
+// what the agent does for it. Shared by the homepage's Migrate picker and the
+// /compare pages.
 
-// The `blume-migrate` skill install is identical for every source — pick a
-// brand to see what the agent handles for it, then run the same one-liner.
-export const installCommand =
-  "npx skills add haydenbleasel/blume --skill blume-migrate";
+/**
+ * The one-liner that migrates a site from `source`: the CLI names the source
+ * and opens Claude Code on the `blume-migrate` skill bundled in the package
+ * (`--codex` for Codex, shown beside the command).
+ */
+export const migrateCommand = (source: string): string =>
+  `npx blume migrate ${source} --claude`;
 
 // Brand marks, each a full <svg> so it can be injected via set:html (and copied
 // into the trigger by the client script). Monochrome marks use currentColor so

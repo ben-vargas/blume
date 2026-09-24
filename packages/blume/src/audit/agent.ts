@@ -97,3 +97,27 @@ export const launchAgent = async (
     `Read ${promptPath} and follow its instructions exactly.`,
   ]);
 };
+
+/**
+ * {@link launchAgent}, but resolving `null` instead of rejecting when the
+ * executable isn't on PATH, so each command can print its own install hint.
+ * Only `ENOENT` means "not installed" — any other spawn failure (`EACCES`,
+ * `EMFILE`, …) must surface as itself, not be masked by an irrelevant hint.
+ */
+export const launchInstalledAgent = async (
+  bin: string,
+  prompt: string,
+  platform: NodeJS.Platform = process.platform
+): Promise<number | null> => {
+  try {
+    return await launchAgent(bin, prompt, platform);
+  } catch (error) {
+    // SAFETY: only the `code` tag is inspected; a spawn failure throws an
+    // ErrnoException, and any other thrown value fails the comparison and
+    // rethrows unchanged.
+    if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
+      throw error;
+    }
+    return null;
+  }
+};

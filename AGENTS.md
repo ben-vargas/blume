@@ -13,7 +13,7 @@ Blume is a zero-config documentation site generator: users drop Markdown/MDX in 
 | `packages/blume` | The published npm package: CLI, Astro runtime, components, core logic. |
 | `apps/docs` | The dogfooded docs site (useblume.dev). Content lives in `apps/docs/content/docs`. |
 | `packages/video` | Remotion project for launch/marketing videos. Excluded from `build`. |
-| `skills/` | Agent skills shipped with the package (`blume`, `blume-migrate`, `blume-update-docs`). Judgment-heavy workflows (like migration) ship as skills; mechanical checks ship as CLI commands. |
+| `skills/` | Agent skills shipped with the package (`blume`, `blume-migrate`, `blume-update-docs`). Judgment-heavy workflows (like migration) ship as skills, and a CLI command can be their front door (`blume migrate --claude` opens an agent on `blume-migrate`); mechanical checks ship as CLI commands. |
 | `patches/` | Bun `patchedDependencies` (currently `oxfmt` — see Gotchas). |
 | `plans/` | Working design notes; not shipped. |
 

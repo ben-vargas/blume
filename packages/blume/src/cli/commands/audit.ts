@@ -3,7 +3,7 @@ import { defineCommand } from "citty";
 import {
   AGENTS,
   fixPrompt,
-  launchAgent,
+  launchInstalledAgent,
   writeAgentReport,
 } from "../../audit/agent.ts";
 import type { AgentKind } from "../../audit/agent.ts";
@@ -40,31 +40,20 @@ export const shouldFail = (
   return result.diagnostics.some((d) => failing.has(d.severity));
 };
 
-/**
- * Launch the agent CLI, turning a missing executable into the install hint.
- * Only `ENOENT` means "not installed" — any other spawn failure (`EACCES`,
- * `EMFILE`, …) must surface as itself, not be masked by an irrelevant
- * install hint.
- */
+/** Launch the agent CLI, turning a missing executable into the install hint. */
 const launchAgentCode = async (
   agent: AgentKind,
   prompt: string
 ): Promise<number> => {
   const cli = AGENTS[agent];
-  try {
-    return await launchAgent(cli.bin, prompt);
-  } catch (error) {
-    // SAFETY: only the `code` tag is inspected; a spawn failure throws an
-    // ErrnoException, and any other thrown value fails the comparison and
-    // rethrows unchanged.
-    if ((error as NodeJS.ErrnoException)?.code !== "ENOENT") {
-      throw error;
-    }
+  const code = await launchInstalledAgent(cli.bin, prompt);
+  if (code === null) {
     logger.error(
       `${cli.name} (\`${cli.bin}\`) was not found on PATH. Install it with \`${cli.install}\`.`
     );
     return process.exit(1);
   }
+  return code;
 };
 
 export const auditCommand = defineCommand({
