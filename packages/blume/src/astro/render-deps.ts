@@ -105,7 +105,7 @@ export const packageDirFrom = (
   while (true) {
     const candidate = join(dir, "node_modules", name);
     if (existsSync(join(candidate, "package.json"))) {
-      return realpathSync(candidate);
+      return normalize(realpathSync(candidate));
     }
     const parent = dirname(dir);
     if (parent === dir) {
@@ -133,7 +133,7 @@ const linkPackageDir = async (link: string, target: string): Promise<void> => {
   // A relative link resolves from its folder's real path, which differs from
   // the logical one under a symlinked parent (macOS's `/var` → `/private/var`),
   // so the relative target is computed from the real path.
-  const from = await realpath(dirname(link));
+  const from = normalize(await realpath(dirname(link)));
   let existing: Awaited<ReturnType<typeof lstat>> | null;
   try {
     existing = await lstat(link);
@@ -145,7 +145,8 @@ const linkPackageDir = async (link: string, target: string): Promise<void> => {
       return;
     }
     try {
-      if (resolve(from, await readlink(link)) === target) {
+      // Both sides in one separator style: Windows hands back `\\` paths.
+      if (resolve(from, await readlink(link)) === normalize(target)) {
         return;
       }
     } catch {
@@ -217,7 +218,7 @@ export const linkRenderDeps = async (
   ) {
     for (const name of await packageNames(depsDir)) {
       if (!links.has(name)) {
-        links.set(name, realpathSync(join(depsDir, name)));
+        links.set(name, normalize(realpathSync(join(depsDir, name))));
       }
     }
   }

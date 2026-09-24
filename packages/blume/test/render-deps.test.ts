@@ -13,7 +13,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 
-import { dirname, join, resolve } from "pathe";
+import { dirname, join, normalize, resolve } from "pathe";
 
 import {
   linkRenderDeps,
@@ -51,7 +51,7 @@ const fakePackage = async (
 
 /** Where a link in `modulesDir` points, resolved against its own folder. */
 const linkTarget = async (link: string): Promise<string> =>
-  resolve(dirname(link), await readlink(link));
+  normalize(resolve(dirname(link), await readlink(link)));
 
 /**
  * A hoisted npm project where a root `js-yaml@4` shadows Blume's nested
@@ -139,7 +139,7 @@ describe("linkRenderDeps", () => {
     const link = join(outDir, "node_modules", "js-yaml");
     const stats = await lstat(link);
     expect(stats.isSymbolicLink()).toBe(true);
-    expect(await readlink(link)).not.toStartWith("/");
+    expect(normalize(await readlink(link))).not.toStartWith("/");
     expect(await linkTarget(link)).toBe(nested);
   });
 
@@ -173,7 +173,7 @@ describe("linkRenderDeps", () => {
     );
 
     // The correct link is untouched, so it keeps its absolute target.
-    expect(await readlink(join(modulesDir, "js-yaml"))).toBe(nested);
+    expect(normalize(await readlink(join(modulesDir, "js-yaml")))).toBe(nested);
     expect(await linkTarget(join(modulesDir, "stale"))).toBe(zod);
     const vendored = await lstat(join(modulesDir, "vendored"));
     expect(vendored.isDirectory()).toBe(true);
@@ -216,7 +216,7 @@ describe("linkRenderDeps", () => {
     expect(types).toEqual(["dir", "junction"]);
     const link = join(outDir, "node_modules", "js-yaml");
     // The junction carries the absolute target.
-    expect(await readlink(link)).toBe(nested);
+    expect(normalize(await readlink(link))).toBe(nested);
   });
 
   it("adds the rest of Blume's store under an isolated linker", async () => {
