@@ -26,6 +26,8 @@ export interface CompareTool {
   /** Independent agent-readiness scans of each project's own docs site. */
   scores?: { blume: number; href: string; name: string; them: number }[];
   source: MigrateSource;
+  /** The pages on the other tool's own site the claims were checked against. */
+  sources: { href: string; label: string }[];
   summary: string;
   tagline: string;
 }
@@ -112,7 +114,7 @@ const mintlify: CompareTool = {
     {
       blume: "Any host: Vercel, Netlify, Cloudflare, Node, or static files",
       label: "Hosting",
-      them: "Mintlify's cloud; a self-hosted static export is in private beta on Enterprise",
+      them: "Mintlify's cloud; self-hosting on AWS or Kubernetes on Enterprise",
     },
     {
       blume: "Markdown and MDX in your repo, in any editor",
@@ -127,7 +129,7 @@ const mintlify: CompareTool = {
     {
       blume: "OpenAPI, AsyncAPI, and GraphQL, with a Try it playground",
       label: "API references",
-      them: "OpenAPI, AsyncAPI, and GraphQL, with an API playground",
+      them: "OpenAPI and AsyncAPI with an API playground, plus GraphQL reference pages",
     },
     {
       blume: "`blume translate` fills in every locale with your coding agent",
@@ -161,6 +163,23 @@ const mintlify: CompareTool = {
     },
   ],
   source: sourceById("mintlify"),
+  sources: [
+    { href: "https://www.mintlify.com/pricing", label: "Pricing" },
+    {
+      href: "https://www.mintlify.com/docs/deploy/self-host",
+      label: "Self-hosting",
+    },
+    { href: "https://www.mintlify.com/docs/editor", label: "Editor" },
+    { href: "https://www.mintlify.com/docs/credits", label: "AI credits" },
+    {
+      href: "https://www.mintlify.com/docs/api-playground/overview",
+      label: "API playground",
+    },
+    {
+      href: "https://www.mintlify.com/docs/guides/internationalization",
+      label: "Internationalization",
+    },
+  ],
   summary:
     "The polished docs, API references, and AI features you'd reach for Mintlify for, as a free, open-source framework you host anywhere. Your MDX comes with you, and an agent does the move.",
   tagline: "The open-source Mintlify alternative.",
@@ -257,7 +276,7 @@ const fumadocs: CompareTool = {
     },
     {
       blume:
-        "llms.txt, Markdown mirrors, and skills by default; an opt-in MCP server",
+        "llms.txt, Markdown mirrors, and a JSON API by default; an opt-in MCP server",
       label: "Agent features",
       them: "llms.txt and Markdown routes in the templates; an MCP route added by its CLI",
     },
@@ -304,6 +323,22 @@ const fumadocs: CompareTool = {
     },
   ],
   source: sourceById("fumadocs"),
+  sources: [
+    { href: "https://fumadocs.dev/docs", label: "Frameworks" },
+    {
+      href: "https://fumadocs.dev/docs/integrations/llms",
+      label: "llms.txt and MCP",
+    },
+    {
+      href: "https://fumadocs.dev/docs/integrations/openapi",
+      label: "OpenAPI",
+    },
+    { href: "https://fumadocs.dev/docs/navigation", label: "Versioning" },
+    {
+      href: "https://fumadocs.dev/docs/internationalization",
+      label: "Internationalization",
+    },
+  ],
   summary:
     "Fumadocs gives you a React app to own. Blume turns a folder of Markdown into the whole site, with search, API references, versioning, llms.txt, and an MCP server built in rather than scaffolded into your code.",
   tagline: "Your docs as content, not an app.",
@@ -400,7 +435,7 @@ const docusaurus: CompareTool = {
     },
     {
       blume:
-        "llms.txt, Markdown mirrors, and skills by default; an opt-in MCP server",
+        "llms.txt, Markdown mirrors, and a JSON API by default; an opt-in MCP server",
       label: "Agent features",
       them: "Community plugins for llms.txt and Markdown routes; no official MCP server",
     },
@@ -432,6 +467,19 @@ const docusaurus: CompareTool = {
     title: "Blume vs Docusaurus: the zero-config Docusaurus alternative",
   },
   source: sourceById("docusaurus"),
+  sources: [
+    { href: "https://docusaurus.io/docs/search", label: "Search" },
+    { href: "https://docusaurus.io/docs/versioning", label: "Versioning" },
+    { href: "https://docusaurus.io/docs/i18n/introduction", label: "i18n" },
+    {
+      href: "https://docusaurus.io/community/resources",
+      label: "Community plugins",
+    },
+    {
+      href: "https://github.com/facebook/docusaurus/issues/10899",
+      label: "llms.txt issue",
+    },
+  ],
   summary:
     "Versioning, i18n, a blog, and search like Docusaurus, plus API references, llms.txt, Markdown mirrors, and an MCP server built in. All from a folder of Markdown, with no React app to maintain.",
   tagline: "The zero-config Docusaurus alternative.",
@@ -529,7 +577,7 @@ const starlight: CompareTool = {
     },
     {
       blume:
-        "llms.txt, Markdown mirrors, and skills by default; an opt-in MCP server",
+        "llms.txt, Markdown mirrors, and a JSON API by default; an opt-in MCP server",
       label: "Agent features",
       them: "Community plugins for llms.txt, Markdown pages, and copy buttons",
     },
@@ -561,6 +609,18 @@ const starlight: CompareTool = {
     title: "Blume vs Starlight: Astro docs with nothing to set up",
   },
   source: sourceById("starlight"),
+  sources: [
+    { href: "https://starlight.astro.build/manual-setup/", label: "Setup" },
+    {
+      href: "https://starlight.astro.build/guides/site-search/",
+      label: "Search",
+    },
+    { href: "https://starlight.astro.build/guides/i18n/", label: "i18n" },
+    {
+      href: "https://starlight.astro.build/resources/plugins/",
+      label: "Plugins",
+    },
+  ],
   summary:
     "Both build on Astro. Starlight is a theme for an Astro project you own; Blume generates and runs the project for you, with llms.txt, an MCP server, API references, and versioning built in rather than added as plugins.",
   tagline: "Astro docs, with nothing to set up.",
@@ -658,7 +718,7 @@ const nextra: CompareTool = {
     },
     {
       blume:
-        "llms.txt, Markdown mirrors, and skills by default; an opt-in MCP server",
+        "llms.txt, Markdown mirrors, and a JSON API by default; an opt-in MCP server",
       label: "Agent features",
       them: "A copy-page button with Open in ChatGPT and Claude; no llms.txt or MCP server",
     },
@@ -690,6 +750,16 @@ const nextra: CompareTool = {
     title: "Blume vs Nextra: a Nextra alternative with no Next.js app",
   },
   source: sourceById("nextra"),
+  sources: [
+    { href: "https://nextra.site/docs/guide/search", label: "Search" },
+    { href: "https://nextra.site/docs/guide/search/ai", label: "Ask AI" },
+    { href: "https://nextra.site/docs/guide/i18n", label: "i18n" },
+    {
+      href: "https://github.com/shuding/nextra/issues/4784",
+      label: "llms.txt issue",
+    },
+    { href: "https://www.npmjs.com/package/nextra", label: "npm releases" },
+  ],
   summary:
     "Everything Nextra gives you, plus llms.txt, Markdown mirrors, an MCP server, API references, and versioning, from a folder of Markdown with no Next.js app to maintain.",
   tagline: "The Nextra alternative with no app to maintain.",

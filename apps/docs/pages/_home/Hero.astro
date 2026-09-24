@@ -1,7 +1,8 @@
 ---
 // Landing hero: a full-bleed radial gradient, deep blue at the top fading into
-// the page background by the bottom, with the latest-release badge, headline,
-// install box, and doc/GitHub links in white on the blue and the product
+// the page background by the bottom, with the launch badge, headline, and the
+// install box with its two paths (get started, or migrate existing docs) in
+// white on the blue and the product
 // preview sitting on the fade below them. It lives outside the page container
 // so the gradient spans the viewport, and pulls itself up under the sticky
 // header (`h-16` in Header.astro) so the blue starts at the top of the page;
@@ -12,33 +13,9 @@
 // navy so toggling the theme reads as day turning to night. The install box copy
 // button uses the page-level delegated `data-blume-copy-install` handler in
 // index.astro.
-import data from "blume:data";
 import InstallBox from "./InstallBox.astro";
 import ProductPreview from "./ProductPreview.astro";
-import { glyph } from "./shared.ts";
-
-const { config } = data;
-const repoUrl = config.repoUrl;
-const docsHref = "/docs";
-const chevronRight = glyph("chevron-right");
-
-// Latest release for the hero badge, read from the changelog the
-// `githubReleases` content source materializes (`/changelog/<tag>` routes,
-// titled by release name, e.g. `blume@1.7.3`). The source already fetches
-// with `GITHUB_TOKEN` and keeps a snapshot cache, so the badge can never
-// disagree with /changelog — an unauthenticated fetch from a CI runner used to
-// hit GitHub's rate limit and silently leave the badge on its fallback.
-const toTime = (value: string | null): number =>
-  value ? new Date(value).getTime() : 0;
-const latestRelease = data.routes
-  .filter((route) => route.path.startsWith("/changelog/") && !route.draft)
-  .toSorted((a, b) => toTime(b.lastModified) - toTime(a.lastModified))
-  .at(0);
-// Release names are changesets-style (`blume@1.0.0`), but tolerate a plain
-// `v1.0.0` too — drop any package prefix and the leading `v`.
-const latestVersion = latestRelease
-  ? latestRelease.title.replace(/^.*@/u, "").replace(/^v/u, "")
-  : "0.0.0";
+import TextLink from "./TextLink.astro";
 ---
 
 <section
@@ -49,72 +26,27 @@ const latestVersion = latestRelease
       class="inline-flex items-center py-1 text-white/70 text-xs transition-colors hover:text-white"
       href="/changelog"
     >
-      Latest update, v{latestVersion}
+      Introducing Blume 2.0
     </a>
     <h1
       class="mt-6 max-w-3xl text-balance font-medium text-4xl sm:text-5xl lg:text-6xl"
     >
-      <span class="block">The best docs framework</span>
+      <span class="block">The open-source</span>
+      <span class="block">docs framework</span>
       <span class="block text-white/70">for humans and agents</span>
     </h1>
 
-    <!-- Tagline and install command on the left, links on the right -->
-    <div
-      class="mt-8 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between"
-    >
-      <div class="max-w-xl">
-        <p class="text-balance text-lg text-white/80">
-          Fast, AI-ready, and zero-config. Drop Markdown into a folder and ship
-          a production-grade docs site, no app boilerplate to write or
-          maintain. Free and open source, forever.
-        </p>
-        <div class="mt-8"><InstallBox variant="glass" /></div>
-      </div>
-      <div class="flex shrink-0 items-center gap-6 text-sm">
-    <a
-      class="inline-flex items-center gap-1 whitespace-nowrap font-medium text-white/80 transition-colors hover:text-white"
-      href={docsHref}
-    >
-      Read the docs
-      <svg
-        class="size-3.5"
-        fill="none"
-        height="14"
-        stroke="currentColor"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        viewBox="0 0 24 24"
-        width="14"
-        xmlns="http://www.w3.org/2000/svg"
-        set:html={chevronRight}
-      ></svg>
-    </a>
-        {
-          repoUrl && (
-          <a
-            class="inline-flex items-center gap-1 whitespace-nowrap font-medium text-white/80 transition-colors hover:text-white"
-            href={repoUrl}
-            rel="noreferrer"
-            target="_blank"
-          >
-            View source
-            <svg
-              class="size-3.5"
-              fill="none"
-              height="14"
-              stroke="currentColor"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              viewBox="0 0 24 24"
-              width="14"
-              xmlns="http://www.w3.org/2000/svg"
-              set:html={chevronRight}
-            ></svg>
-          </a>
-          )
-        }
+    <!-- Tagline, then the install command with the two paths beside it -->
+    <p class="mt-8 max-w-xl text-balance text-lg text-white/80">
+      Fast, AI-ready, and zero-config. Drop Markdown into a folder and ship a
+      production-grade docs site, no app boilerplate to write or maintain. Free
+      and open source, forever.
+    </p>
+    <div class="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
+      <div class="w-full max-w-xs"><InstallBox variant="glass" /></div>
+      <div class="flex items-center gap-6">
+        <TextLink href="/docs/quickstart" tone="inverse">Get started</TextLink>
+        <TextLink href="#migrate" tone="inverse">Migrate your docs</TextLink>
       </div>
     </div>
   </div>

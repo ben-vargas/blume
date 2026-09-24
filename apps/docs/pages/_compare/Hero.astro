@@ -22,8 +22,10 @@ const { config } = data;
 const blumeLogo = config.logo?.svg;
 const chevronRight = glyph("chevron-right");
 
-// A channel for corrections: a new GitHub issue prefilled with this page and
-// prompts for what changed and where, so readers can keep the table honest.
+// The footnote names the pages each claim was checked against (linked, so a
+// reader can verify them) and the date. A channel for corrections: a new
+// GitHub issue prefilled with this page and prompts for what changed and
+// where, so readers can keep the table honest.
 const reportBody = [
   `Page: ${config.site ?? ""}/compare/${tool.id}`,
   "",
@@ -150,8 +152,23 @@ const reportHref = config.repoUrl
         </tbody>
       </table>
     </Tray>
-    <p class="text-muted-foreground text-xs">
-      {tool.source.name} details are from its own site and docs as of {tool.checked}.
+    <p class="text-pretty text-muted-foreground text-xs">
+      {tool.source.name} details are from its own site as of {tool.checked}:{" "}
+      {
+        tool.sources.map((source, index) => (
+          <Fragment>
+            {index > 0 && ", "}
+            <a
+              class="underline decoration-foreground/20 underline-offset-2 hover:text-foreground hover:decoration-foreground/50"
+              href={source.href}
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              {source.label}
+            </a>
+          </Fragment>
+        ))
+      }.
       {
         reportHref && (
           <Fragment>

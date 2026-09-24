@@ -11,50 +11,46 @@ Go from an empty folder to a running docs site in a few commands. Blume needs **
 ## Install and run
 
 <Steps>
-  <Step title="Install Blume">
-    Add the package to a new or existing project.
-
-    ```package-install
-    npm i blume
-    ```
-
-  </Step>
-  <Step title="Scaffold a project">
+  <Step title="Create a project">
     `blume init` asks a few questions — where to create the project, what your
     docs site is called, which template, and where your content lives — then
-    scaffolds the minimum surface: a content folder and a config file, and
-    installs the dependencies with the package manager that ran it. Pass
-    `--yes` to skip the prompts and take the defaults, or `--no-install` to
-    only write the files.
+    scaffolds the minimum surface: a content folder, a config file, and a
+    `package.json` with `dev` and `build` scripts. It installs the dependencies
+    with the package manager that ran it. Pass `--yes` to skip the prompts and
+    take the defaults, or `--no-install` to only write the files.
 
-    ```bash
-    blume init
+    ```package-install
+    npx blume init
     ```
 
     ```txt
     docs/
       index.mdx
     blume.config.ts
+    package.json
     ```
 
   </Step>
   <Step title="Start the dev server">
-    Blume generates the runtime and serves your docs with hot reload.
+    From the project directory, Blume generates the runtime and serves your
+    docs with hot reload.
 
-    ```bash
-    blume dev
+    ```package-install
+    npm run dev
     ```
 
   </Step>
   <Step title="Build for production">
     Static HTML is written to `dist/`, with a local search index built over it.
 
-    ```bash
-    blume build
+    ```package-install
+    npm run build
     ```
 
   </Step>
 </Steps>
+
+Adding Blume to a project that already has a `package.json`? `blume init` leaves existing files alone, so add `"dev": "blume dev"` and `"build": "blume build"` to its scripts, or run `npx blume dev` directly.
 
 :::tip
 Blume works with any package manager and never requires you to set up Astro or Tailwind yourself.

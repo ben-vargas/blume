@@ -1,9 +1,8 @@
 ---
-// CLI page hero — deliberately unlike the homepage's full-bleed sky: a split
-// on the plain page (the two-tone headline on the left; the summary, install
-// box, and links on the right, top-aligned with it), over a wide sky tray
-// where the lifecycle session types itself out on load and idles on a
-// blinking prompt. The install box copy button uses
+// CLI page hero — the agents page's centered layout on the plain page (the
+// two-tone headline, the summary, and the install box with its two links
+// beneath), over a wide sky tray where the lifecycle session types itself out
+// on load and idles on a blinking prompt. The install box copy button uses
 // the page-level delegated `data-blume-copy-install` handler.
 import InstallBox from "../_home/InstallBox.astro";
 import TextLink from "../_home/TextLink.astro";
@@ -12,27 +11,25 @@ import FeatureTerminal from "./FeatureTerminal.astro";
 ---
 
 <section class="flex flex-col gap-12 pt-8 sm:pt-12 lg:gap-16">
-  <div class="grid gap-x-16 gap-y-8 lg:grid-cols-[5fr_4fr] lg:items-start">
+  <div class="flex flex-col items-center gap-8 text-center">
     <h1
       class="max-w-[20ch] text-balance font-medium text-4xl sm:text-5xl lg:text-6xl"
     >
       <span class="block">Everything your docs need,</span>
       <span class="block text-muted-foreground">one command away.</span>
     </h1>
-    <div class="flex flex-col items-start gap-8">
-      <p class="max-w-[48ch] text-pretty text-lg text-muted-foreground">
-        Every Blume project ships with a command line that scaffolds, previews,
-        builds, validates, audits, evaluates, and translates your docs. Fast by
-        default, scriptable in CI, and built to work with your coding agents.
-      </p>
-      <div class="flex w-full flex-wrap items-center gap-x-6 gap-y-4">
-        <div class="w-full sm:w-72">
-          <InstallBox />
-        </div>
-        <div class="flex items-center gap-6">
-          <TextLink href="/docs/quickstart">Get started</TextLink>
-          <TextLink href="/docs/cli">CLI reference</TextLink>
-        </div>
+    <p class="max-w-[56ch] text-pretty text-lg text-muted-foreground">
+      Every Blume project ships with a command line that scaffolds, previews,
+      builds, validates, audits, evaluates, and translates your docs. Fast by
+      default, scriptable in CI, and built to work with your coding agents.
+    </p>
+    <div class="flex w-full flex-col items-center gap-5">
+      <div class="w-full max-w-xs">
+        <InstallBox />
+      </div>
+      <div class="flex items-center gap-6">
+        <TextLink href="/docs/quickstart">Get started</TextLink>
+        <TextLink href="/docs/cli">CLI reference</TextLink>
       </div>
     </div>
   </div>
