@@ -760,10 +760,19 @@ const buildConfigSidebar = (
 /**
  * Resolve a tab's clickable target. A tab's `path` scopes its sidebar section
  * but need not be a real route — a section with no index page would 404 if the
- * tab linked straight to it. Prefer an exact page/group at the path; otherwise
- * fall back to the first linkable route in the section (sidebar order).
+ * tab linked straight to it. Prefer the path itself when it's served outside
+ * the content tree (the generated changelog index) or is a page/group in the
+ * tree; otherwise fall back to the first linkable route in the section
+ * (sidebar order).
  */
-const resolveTabHref = (sidebar: NavNode[], path: string): string => {
+const resolveTabHref = (
+  sidebar: NavNode[],
+  path: string,
+  extraRoutes: ReadonlySet<string>
+): string => {
+  if (extraRoutes.has(path)) {
+    return path;
+  }
   let first: string | undefined;
   const walk = (nodes: NavNode[]): boolean => {
     for (const node of nodes) {
@@ -791,12 +800,17 @@ const resolveTabHref = (sidebar: NavNode[], path: string): string => {
  * Attach a resolved `href` to each tab whose section has no index page. An
  * author-declared `href` is the tab's stated target, so it's kept as-is —
  * resolution only fills in the tabs that didn't declare one. That's what lets a
- * tab point at a route outside the content tree (a generated `/changelog`
- * index, a custom `.astro` page), which resolution can't see.
+ * tab point at a route outside the content tree that resolution can't see (a
+ * custom `.astro` page); the generated changelog index arrives in
+ * `extraRoutes`, so a `/changelog` tab needs no `href`.
  */
-const withTabHrefs = (tabs: NavTab[], sidebar: NavNode[]): NavTab[] =>
+const withTabHrefs = (
+  tabs: NavTab[],
+  sidebar: NavNode[],
+  extraRoutes: ReadonlySet<string>
+): NavTab[] =>
   tabs.map((tab) => {
-    const href = tab.href ?? resolveTabHref(sidebar, tab.path);
+    const href = tab.href ?? resolveTabHref(sidebar, tab.path, extraRoutes);
     return href === tab.path ? tab : { ...tab, href };
   });
 
@@ -913,6 +927,12 @@ export const buildNavigation = (
      * into in place; omit to discard.
      */
     diagnostics?: Diagnostic[];
+    /**
+     * Routes served outside the content tree that a tab `path` may name
+     * directly (the generated changelog index), so the tab links there instead
+     * of falling back to its section's first page.
+     */
+    extraRoutes?: ReadonlySet<string>;
   }
 ): Navigation => {
   const basePath = options.basePath ?? "";
@@ -920,6 +940,7 @@ export const buildNavigation = (
   const metaPrefix = options.metaPrefix ?? "";
   const sharedMetaPrefix = options.sharedMetaPrefix ?? "";
   const sharedFolderMeta = options.sharedFolderMeta ?? new Map();
+  const extraRoutes = options.extraRoutes ?? new Set<string>();
 
   // Content-derived sidebar routes are already based via `page.route`; the
   // based tab paths also feed tab-scoping below, so they must agree with the
@@ -981,7 +1002,7 @@ export const buildNavigation = (
       root: rootTabPath,
       selectors,
       sidebar,
-      tabs: withTabHrefs(tabs, sidebar),
+      tabs: withTabHrefs(tabs, sidebar, extraRoutes),
     };
   }
 
@@ -1004,6 +1025,6 @@ export const buildNavigation = (
     root: rootTabPath,
     selectors,
     sidebar,
-    tabs: withTabHrefs(tabs, sidebar),
+    tabs: withTabHrefs(tabs, sidebar, extraRoutes),
   };
 };

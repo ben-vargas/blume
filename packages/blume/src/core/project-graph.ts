@@ -1,5 +1,6 @@
 import { isAbsolute, relative } from "pathe";
 
+import { CHANGELOG_INDEX_ROUTE, hasChangelogIndex } from "./changelog-index.ts";
 import { loadConfig } from "./config.ts";
 import { buildContentGraph } from "./graph.ts";
 import { i18nDiagnostics } from "./i18n.ts";
@@ -364,6 +365,12 @@ export const scanProject = async (
 
   const graph = buildContentGraph(pages, {
     basePath: config.basePath,
+    // The generated changelog index isn't a content page, so name it here for
+    // tab resolution: a `/changelog` tab should open the timeline, not the
+    // newest entry.
+    extraRoutes: new Set(
+      hasChangelogIndex(pages, config) ? [CHANGELOG_INDEX_ROUTE] : []
+    ),
     folderMeta: folderMeta.meta,
     i18n: config.i18n,
     navigation: config.navigation,

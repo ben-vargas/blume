@@ -1,8 +1,11 @@
 import { extname, relative } from "pathe";
 import { glob, globSync } from "tinyglobby";
 
+import {
+  CHANGELOG_INDEX_ROUTE,
+  hasChangelogIndex,
+} from "../core/changelog-index.ts";
 import type { BlumeProject } from "../core/project-graph.ts";
-import { sourcesOfKind } from "../core/sources/collection.ts";
 import type { BlumePageRoute } from "./integration.ts";
 
 const PAGE_GLOB = ["**/*.astro"];
@@ -122,19 +125,9 @@ export const customStaticRoutes = (pages: { pattern: string }[]): string[] => {
 export const hasGeneratedChangelog = (
   project: BlumeProject,
   userPages: { pattern: string }[]
-): boolean => {
-  const hasChangelog = project.graph.pages.some(
-    (page) =>
-      page.contentType === "changelog" &&
-      !(page.meta.draft || page.meta.sidebar.hidden)
-  );
-  const hasChangelogSource =
-    sourcesOfKind(project.config, "github-releases").length > 0;
-  return (
-    (hasChangelog || hasChangelogSource) &&
-    !routeIsTaken(userPages, project.graph.pages, "/changelog")
-  );
-};
+): boolean =>
+  hasChangelogIndex(project.graph.pages, project.config) &&
+  !routeIsTaken(userPages, project.graph.pages, CHANGELOG_INDEX_ROUTE);
 
 const humanizeSegment = (segment: string): string =>
   segment

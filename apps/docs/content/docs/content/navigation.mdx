@@ -160,17 +160,19 @@ navigation: {
 }
 ```
 
-A tab's `path` is its section prefix, and it doubles as the link target. A section whose `path` isn't a page of its own — a folder with no `index.mdx` — would link to a 404, so the tab falls back to the first page in the section instead. Set `href` when you want it to land somewhere else:
+A tab's `path` is its section prefix, and it doubles as the link target. A section whose `path` isn't a page of its own — a folder with no `index.mdx` — would link to a 404, so the tab falls back to the first page in the section instead. The generated [changelog](/docs/advanced/changelog) index counts as the section's own page, so a `/changelog` tab opens the timeline rather than the newest entry.
+
+Set `href` when you want a tab to land somewhere else — for example, a [custom page](/docs/advanced/custom-pages) under `pages/`, which the fallback can't see:
 
 ```ts blume.config.ts
 navigation: {
   tabs: [
-    { label: "Changelog", path: "/changelog", href: "/changelog" },
+    { label: "Guides", path: "/guides", href: "/guides" },
   ],
 }
 ```
 
-This matters for routes that aren't part of the content tree, since the fallback can't see them: the generated [changelog](/docs/advanced/changelog) index, or a [custom page](/docs/advanced/custom-pages) you added under `pages/`. Without `href`, a `/changelog` tab lands on the newest entry rather than the index. Tabs that don't set `href` are unaffected.
+Here `pages/guides.astro` is the tab's landing page, while the `guides/` folder fills its sidebar. Tabs that don't set `href` keep the fallback.
 
 On an [i18n](/docs/content/i18n) site, a tab's `label` (and a dropdown item's) can be a per-locale map instead of a string — the active locale's entry wins, then the default locale's:
 

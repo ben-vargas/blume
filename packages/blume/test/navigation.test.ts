@@ -1,6 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "bun:test";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+
+import { join } from "pathe";
 
 import { buildNavigation } from "../src/core/navigation.ts";
+import { scanProject } from "../src/core/project-graph.ts";
 import { blumeConfigSchema, pageMetaSchema } from "../src/core/schema.ts";
 import type {
   FolderMeta,
@@ -295,6 +300,23 @@ describe("buildNavigation — filesystem sidebar", () => {
       }
     );
     expect(nav.tabs[0]?.href).toBe("/changelog");
+  });
+
+  it("links a tab straight to its path when that route is served outside the tree", () => {
+    // The generated changelog index isn't a content page, so without being
+    // told about it resolution would land on the newest entry.
+    const nav = buildNavigation(
+      [
+        page("changelog/v2.mdx", "/changelog/v2", "v2"),
+        page("changelog/v1.mdx", "/changelog/v1", "v1"),
+      ],
+      {
+        extraRoutes: new Set(["/changelog"]),
+        folderMeta: empty,
+        tabs: [{ label: "Changelog", path: "/changelog" }],
+      }
+    );
+    expect(nav.tabs[0]?.href).toBeUndefined();
   });
 
   it("applies folder meta: title, collapsed, and explicit page order", () => {
@@ -1159,5 +1181,39 @@ describe("buildNavigation — generated group links", () => {
       { folderMeta: empty, tabs: [{ label: "Setup", path: "/docs/setup" }] }
     );
     expect(nav.tabs[0]?.href).toBeUndefined();
+  });
+});
+
+describe("scanProject changelog tab", () => {
+  const dirs: string[] = [];
+  afterAll(async () => {
+    await Promise.all(
+      dirs.map((dir) => rm(dir, { force: true, recursive: true }))
+    );
+  });
+
+  it("points a /changelog tab at the generated index, not the newest entry", async () => {
+    const root = await mkdtemp(join(tmpdir(), "blume-nav-"));
+    dirs.push(root);
+    await mkdir(join(root, "docs", "changelog"), { recursive: true });
+    await writeFile(
+      join(root, "docs", "index.mdx"),
+      "---\ntitle: Home\n---\n# Home\n"
+    );
+    await writeFile(
+      join(root, "docs", "changelog", "v1.mdx"),
+      "---\ntitle: v1.0.0\ntype: changelog\ndate: 2026-06-20\n---\nFirst release.\n"
+    );
+    await writeFile(
+      join(root, "blume.config.ts"),
+      `export default {
+        navigation: { tabs: [{ label: "Changelog", path: "/changelog" }] },
+      };\n`
+    );
+
+    const project = await scanProject(root, { mode: "build" });
+    const [tab] = project.graph.navigation.tabs;
+    expect(tab?.path).toBe("/changelog");
+    expect(tab?.href).toBeUndefined();
   });
 });

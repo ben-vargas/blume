@@ -25,6 +25,8 @@ import { versionizeRoute } from "./versions.ts";
 interface BuildContentGraphOptions {
   /** Site-wide route mount point (`""` or `/seg`); invisible to the nav tree. */
   basePath?: string;
+  /** Routes served outside the content tree that tabs may link to directly. */
+  extraRoutes?: ReadonlySet<string>;
   folderMeta: Map<string, FolderMeta>;
   sharedFolderMeta?: Map<string, FolderMeta>;
   navigation: ResolvedConfig["navigation"];
@@ -199,6 +201,7 @@ const buildLocaleNavigation = (
     cta: cta ? localizeHref(cta) : null,
     diagnostics,
     display: options.navigation.sidebar.display,
+    extraRoutes: options.extraRoutes,
     featured: featured?.map(localizeHref),
     folderMeta: options.folderMeta,
     // The localized tree root ("/" for the hidden default, "/fr" otherwise;
@@ -299,6 +302,7 @@ const buildVersionNavigation = (
       cta: options.navigation.cta,
       diagnostics,
       display: options.navigation.sidebar.display,
+      extraRoutes: options.extraRoutes,
       featured: options.navigation.featured,
       folderMeta: options.folderMeta,
       localizedRoot: versionizeRoute("/", id),
@@ -346,6 +350,7 @@ export const buildContentGraph = (
       cta: options.navigation.cta,
       diagnostics,
       display: options.navigation.sidebar.display,
+      extraRoutes: options.extraRoutes,
       featured: options.navigation.featured,
       folderMeta: options.folderMeta,
       selectors: options.navigation.selectors,
