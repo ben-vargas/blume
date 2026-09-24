@@ -286,8 +286,11 @@ const terminal = terminals[kind] ?? terminals.init;
     <span aria-hidden="true" class="size-2.5 rounded-full bg-[#febc2e]"></span>
     <span aria-hidden="true" class="size-2.5 rounded-full bg-[#28c840]"></span>
   </div>
+  {/* A picture of a terminal, not a scroller: long lines run off the right
+      edge and long sessions off the bottom, so a swipe over it scrolls the
+      page instead of panning the transcript. */}
   <div
-    class="flex-1 overflow-x-auto p-4 font-mono text-[12px] leading-6 sm:p-5 sm:text-[13px]"
+    class="flex-1 overflow-hidden p-4 font-mono text-[12px] leading-6 sm:p-5 sm:text-[13px]"
   >
     {
       terminal.lines.map((line, index) => (
