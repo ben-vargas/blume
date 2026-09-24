@@ -11,9 +11,11 @@ import { collectAnswers } from "../init/questions.ts";
 import {
   applyPlan,
   buildPlan,
+  cdCommand,
   commandsFor,
   detectPackageManager,
   nextSteps,
+  outsidePnpmWorkspace,
   PACKAGE_MANAGERS,
   readExistingPackage,
   TEMPLATES,
@@ -25,7 +27,7 @@ import { logger } from "../log.ts";
 
 /** The `cd` line that opens every next-steps hint, when one is needed. */
 const cdStep = (answers: InitAnswers): string[] =>
-  answers.directory === "." ? [] : [`cd ${answers.directory}`];
+  answers.directory === "." ? [] : [cdCommand(answers.directory)];
 
 /**
  * Install the scaffolded project's dependencies. Interactive runs hide the
@@ -99,8 +101,13 @@ const ejectScaffold = async (
   } catch (error) {
     // SAFETY: eject and the script rewrite throw Error instances; only the
     // message is surfaced in the fallback hint.
+    const { message } = error as Error;
+    // Only a skipped install explains the failure; after an install that ran,
+    // the error itself is the reason.
     logger.warn(
-      `Scaffolded, but eject needs the project's dependencies installed to load blume.config.ts: ${(error as Error).message}`
+      needsInstall
+        ? `Scaffolded, but eject needs the project's dependencies installed to load blume.config.ts: ${message}`
+        : `Scaffolded, but eject failed: ${message}`
     );
     const steps = [...cd, ...install, `${commands.exec} blume eject --yes`];
     logger.box(`Next steps:\n\n  ${steps.join("\n  ")}`);
@@ -229,7 +236,7 @@ export const initCommand = defineCommand({
         { cwd, userAgent: process.env.npm_config_user_agent }
       );
       if (collected === null) {
-        clack.cancel("Cancelled — nothing was written.");
+        clack.cancel("Canceled — nothing was written.");
         process.exit(0);
       }
       answers = collected;
@@ -279,8 +286,11 @@ export const initCommand = defineCommand({
     }
 
     // A newly written package.json is the only one `init` knows lists blume;
-    // an existing one is left alone, and so are its dependencies.
-    const shouldInstall = createdPackage && args.install;
+    // an existing one is left alone, and so are its dependencies. In a pnpm
+    // workspace that doesn't list the folder, an install would exit 0 without
+    // installing it, so that one waits until the note's change is made.
+    const shouldInstall =
+      createdPackage && args.install && !outsidePnpmWorkspace(root, answers);
     if (note) {
       (interactive ? clack.log : logger).warn(note);
     }

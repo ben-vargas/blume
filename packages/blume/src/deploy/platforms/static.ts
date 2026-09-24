@@ -22,6 +22,7 @@ export const staticPlatform: DeployPlatform = {
   },
   kind: "static",
   negotiatesMarkdown: false,
+  previewDeploy: null,
   readsHeaderFiles: { server: false, static: true },
   redirectFiles: [REDIRECTS_FILE, VERCEL_JSON_FILE],
   serverOutputDir: distDir,

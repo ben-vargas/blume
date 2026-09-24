@@ -72,7 +72,7 @@ The JSON report carries the same `diagnostics` + `summary` shape as `blume valid
 
 ## Flags
 
-- `--codex` / `--claude` — which agent CLI translates. Exactly one is required (except with `--check`).
+- `--codex` / `--claude` — which agent CLI translates. Exactly one is required, except with `--check`, which runs no agent and takes neither.
 - `--check` — report drift and exit non-zero, without writing anything.
 - `--concurrency <n>` — parallel agent sessions. Defaults to `4`, max `16`.
 - `--locale <codes>` — comma-separated target locales (defaults to every non-default locale).

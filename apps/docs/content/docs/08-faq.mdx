@@ -141,7 +141,7 @@ Patch oxfmt so it preserves the line break that sits directly against a `:::` fe
     		case "emphasis": {
    ```
 
-2. Register it with your package manager's `patchedDependencies`. With Bun or pnpm, add to `package.json`:
+2. Register it with your package manager's `patchedDependencies`. With Bun, add to `package.json`:
 
    ```json package.json
    {
@@ -149,6 +149,13 @@ Patch oxfmt so it preserves the line break that sits directly against a `:::` fe
        "oxfmt@0.67.0": "patches/oxfmt@0.67.0.patch"
      }
    }
+   ```
+
+   With pnpm, add to `pnpm-workspace.yaml` (pnpm 11 and later no longer read settings from `package.json`):
+
+   ```yaml pnpm-workspace.yaml
+   patchedDependencies:
+     oxfmt@0.67.0: patches/oxfmt@0.67.0.patch
    ```
 
 3. Reinstall so the patch is applied:

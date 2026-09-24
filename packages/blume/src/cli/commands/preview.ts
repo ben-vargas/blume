@@ -7,8 +7,10 @@ import { join } from "pathe";
 import { loadConfig } from "../../core/config.ts";
 import { resolveProjectContext } from "../../core/project.ts";
 import { deployOutputDir } from "../../deploy/adapter-output.ts";
+import { deployPlatform } from "../../deploy/platforms/index.ts";
 import { parsePort } from "../args.ts";
 import { commandMeta } from "../command-meta.ts";
+import { refuseIfEjected } from "../eject-scripts.ts";
 import { normalizeHost } from "../host-args.ts";
 import { logger } from "../log.ts";
 
@@ -20,8 +22,21 @@ export const previewCommand = defineCommand({
   meta: commandMeta.preview,
   async run({ args }) {
     const root = process.cwd();
+    await refuseIfEjected(root, "preview");
     const { config } = await loadConfig(root);
     const context = resolveProjectContext(root, config);
+
+    // Astro previews a server build through its adapter's preview entrypoint,
+    // and the Vercel and Netlify adapters declare none, so Astro would throw
+    // mid-command. Say so up front, with what to run instead.
+    const { deployment } = config;
+    const platform = deployPlatform(deployment);
+    if (deployment.options.output === "server" && platform.previewDeploy) {
+      logger.error(
+        `\`blume preview\` can't serve a ${deployment.kind}() server build: ${platform.astro?.package} has no local preview server. Run \`blume dev\` to try the site locally, or deploy a preview with \`${platform.previewDeploy}\`.`
+      );
+      process.exit(1);
+    }
 
     // `blume dev` writes `.blume/astro.config.mjs` too, so the runtime alone
     // doesn't mean there's anything to serve: the build output must exist.

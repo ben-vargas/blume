@@ -1,8 +1,11 @@
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 
+import { loadAll } from "js-yaml";
 import { detect } from "package-manager-detector/detect";
 import { basename, dirname, isAbsolute, join, relative } from "pathe";
+import picomatch from "picomatch";
+import { z } from "zod";
 
 import { blumePackageJson, toPackageName } from "../../core/package-json.ts";
 import { contentful } from "../../sources/contentful.ts";
@@ -179,6 +182,20 @@ export const commandsFor = (pm: PackageManager) => ({
   exec: { bun: "bunx", npm: "npx", pnpm: "pnpm exec", yarn: "yarn" }[pm],
   install: `${pm} install`,
 });
+
+// A path every shell (POSIX, cmd, PowerShell) takes as one bare word.
+const SHELL_SAFE_PATH = /^[\w./:-]+$/u;
+// What a double-quoted POSIX word still interprets.
+const DOUBLE_QUOTE_SPECIAL = /["$\\`]/gu;
+
+/**
+ * The `cd` into the new project, quoting a directory a shell would split or
+ * expand: `blume init "my docs"` prints `cd "my docs"`, not `cd my docs`.
+ */
+export const cdCommand = (directory: string): string =>
+  SHELL_SAFE_PATH.test(directory)
+    ? `cd ${directory}`
+    : `cd "${directory.replaceAll(DOUBLE_QUOTE_SPECIAL, String.raw`\$&`)}"`;
 
 const isPackageManager = (value: string): value is PackageManager =>
   PACKAGE_MANAGERS.some((pm) => pm === value);
@@ -532,6 +549,70 @@ const readText = (path: string): string => {
 const pnpmWorkspaceRoot = (root: string): string | null =>
   nearestAncestor(root, (dir) => existsSync(join(dir, "pnpm-workspace.yaml")));
 
+/** The slice of `pnpm-workspace.yaml` the membership check reads. */
+const pnpmWorkspaceSchema = z.looseObject({
+  packages: z.array(z.string()).default([]),
+});
+
+// A glob's leading `./` and trailing `/`, which pnpm ignores.
+const GLOB_EDGES = /^\.\/|\/+$/gu;
+
+/** Whether any of `globs` matches the workspace-relative path `at`. */
+const matchesAny = (globs: string[], at: string): boolean =>
+  globs.length > 0 && picomatch(globs)(at);
+
+/**
+ * Whether the pnpm workspace at `workspace` lists `root` as one of its
+ * packages: the workspace root itself, or a folder its `packages` globs match
+ * and no `!` glob excludes. pnpm installs only those, so an install run in any
+ * other folder beneath it succeeds without installing that folder's
+ * dependencies. A workspace file that doesn't parse counts as listing it, so
+ * `init` never claims what it can't tell.
+ */
+const listsPackage = (workspace: string, root: string): boolean => {
+  const at = relative(workspace, root);
+  if (at === "") {
+    return true;
+  }
+  let parsed: ReturnType<typeof pnpmWorkspaceSchema.safeParse>;
+  try {
+    // `loadAll`, not `load`: js-yaml 5 throws on a file with no document (empty,
+    // or comments only), which pnpm reads as a workspace of the root alone.
+    const [document] = loadAll(
+      readText(join(workspace, "pnpm-workspace.yaml"))
+    );
+    parsed = pnpmWorkspaceSchema.safeParse(document ?? {});
+  } catch {
+    return true;
+  }
+  if (!parsed.success) {
+    return true;
+  }
+  const globs = parsed.data.packages;
+  const pattern = (glob: string): string => glob.replaceAll(GLOB_EDGES, "");
+  const included = globs.filter((glob) => !glob.startsWith("!")).map(pattern);
+  const excluded = globs
+    .filter((glob) => glob.startsWith("!"))
+    .map((glob) => pattern(glob.slice(1)));
+  return matchesAny(included, at) && !matchesAny(excluded, at);
+};
+
+/**
+ * Whether `init` installs with pnpm into a folder that sits inside a pnpm
+ * workspace without being one of its packages. pnpm would install that
+ * workspace's own packages from there and exit 0, leaving `blume` uninstalled.
+ */
+export const outsidePnpmWorkspace = (
+  root: string,
+  answers: InitAnswers
+): boolean => {
+  if (answers.packageManager !== "pnpm") {
+    return false;
+  }
+  const workspace = pnpmWorkspaceRoot(root);
+  return workspace !== null && !listsPackage(workspace, root);
+};
+
 /**
  * The Yarn project enclosing `root`: a directory holding a lockfile, a
  * `.yarnrc.yml`, or a `package.json` that declares workspaces.
@@ -592,10 +673,13 @@ const packageManagerConfigFor = (
   return [];
 };
 
+const ESBUILD_APPROVAL = "  allowBuilds:\n    esbuild: true";
+
 /**
- * What the project still needs from a workspace it joins, when `init` left
- * that workspace's config alone: pnpm's approval for esbuild's build script
- * (pnpm 10 and later fail the install without it), or Yarn Berry's
+ * What the project still needs from a workspace it sits in, when `init` left
+ * that workspace's config alone: a place in a pnpm workspace's `packages`
+ * (pnpm skips a folder it doesn't list), pnpm's approval for esbuild's build
+ * script (pnpm 10 and later fail the install without it), or Yarn Berry's
  * `node_modules` linker. Undefined when the workspace already has it, or the
  * project doesn't sit in one.
  */
@@ -606,11 +690,21 @@ export const workspaceNote = (
 ): string | undefined => {
   if (answers.packageManager === "pnpm") {
     const workspace = pnpmWorkspaceRoot(root);
-    const file = workspace && join(workspace, "pnpm-workspace.yaml");
-    if (!file || readText(file).includes("esbuild")) {
+    if (!workspace) {
       return;
     }
-    return `This project joins the pnpm workspace at ${file}. Approve esbuild's build script there before installing, or pnpm 10 and later stop the install:\n\n  allowBuilds:\n    esbuild: true`;
+    const file = join(workspace, "pnpm-workspace.yaml");
+    const approved = readText(file).includes("esbuild");
+    if (!listsPackage(workspace, root)) {
+      const entry = `  packages:\n    - ${relative(workspace, root)}`;
+      return approved
+        ? `This folder sits inside the pnpm workspace at ${file}, which doesn't list it under packages, so pnpm won't install it. Add it there before installing:\n\n${entry}`
+        : `This folder sits inside the pnpm workspace at ${file}, which doesn't list it under packages, so pnpm won't install it. Add it there before installing, and approve esbuild's build script, or pnpm 10 and later stop the install:\n\n${entry}\n${ESBUILD_APPROVAL}`;
+    }
+    if (approved) {
+      return;
+    }
+    return `This project joins the pnpm workspace at ${file}. Approve esbuild's build script there before installing, or pnpm 10 and later stop the install:\n\n${ESBUILD_APPROVAL}`;
   }
   if (answers.packageManager !== "yarn" || yarnMajor(env.userAgent) === 1) {
     return;
@@ -783,7 +877,7 @@ export const nextSteps = (
   const commands = commandsFor(answers.packageManager);
   const lines: string[] = [];
   if (answers.directory !== ".") {
-    lines.push(`cd ${answers.directory}`);
+    lines.push(cdCommand(answers.directory));
   }
   if (needsInstall) {
     lines.push(commands.install);

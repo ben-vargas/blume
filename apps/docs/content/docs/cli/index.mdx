@@ -15,7 +15,7 @@ blume <command> [options]
 | `blume dev` | Start the dev server with hot reload. |
 | `blume build` | Build the static (or server) site. |
 | `blume preview` | Preview the last build. |
-| `blume add <item>` | Install a source component from the registry. |
+| `blume add [item]` | Install a source component from the registry (no item lists what's available). |
 | `blume sync` | Re-fetch remote content sources and regenerate. |
 | `blume eject` | Promote the runtime into a standalone Astro app. |
 | `blume check` | Type-check the site with `astro check`. |
@@ -47,11 +47,14 @@ blume <command> [options]
 - `blume build --isolated` — build into a throwaway `.blume-verify/` runtime (and its own `dist/`) instead of `.blume/`, so a running `blume dev` server and your real `dist/` are left untouched. See [Verifying while the dev server runs](#verifying-while-the-dev-server-runs).
 - `blume preview --host --port <n>` — bind the preview server.
 - `blume sync --force` — re-fetch remote sources, dropping the cached snapshot first.
+- `blume sync --preview` — include drafts and unpublished CMS content.
+- `blume sync --strict` — fail on diagnostics.
 - `blume add <item> --force` — overwrite files that already exist.
 - `blume check --preview` — include drafts and unpublished CMS content when checking.
 - `blume check --strict` — fail on content diagnostics as well as type errors.
 - `blume check --isolated` — type-check in a throwaway `.blume-verify/` runtime so a running `blume dev` server is left untouched. See [Verifying while the dev server runs](#verifying-while-the-dev-server-runs).
 - `blume eject --yes` — skip the confirmation prompt.
+- `blume eject --force` — eject again over an already-ejected app, overwriting its `astro.config.mjs` and `src/`.
 
 The commands with a page of their own list every flag there: [`blume doctor`](/docs/cli/doctor), [`blume validate`](/docs/cli/validate), [`blume audit`](/docs/cli/audit), [`blume eval`](/docs/cli/evals), [`blume translate`](/docs/cli/translate), and [`blume version`](/docs/cli/version). `blume validate`, `blume doctor`, `blume audit`, `blume eval`, and `blume translate` take `--json` to print machine-readable results on stdout for CI and editor integrations (see [Validate](/docs/cli/validate#json-output) for the diagnostics shape); `build`, `check`, and `dev` report to the terminal only. Every command rejects a flag it doesn't take, suggesting the closest match and listing the flags it accepts, so a typo like `--isolatd` fails instead of being ignored.
 

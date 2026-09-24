@@ -6,6 +6,7 @@ import { defineCommand } from "citty";
 import { join } from "pathe";
 
 import { publishBuildProject } from "../../astro/integration.ts";
+import { BlumeError } from "../../core/diagnostics.ts";
 import { ensureGitignore } from "../../core/gitignore.ts";
 import type { BlumeProject } from "../../core/project-graph.ts";
 import { serverFeatures } from "../../core/server-features.ts";
@@ -21,10 +22,11 @@ import {
   removedBuildFlags,
   removedBuildFlagsAdvice,
 } from "../../upgrade/upgrade.ts";
+import { astroBuildDiagnostics } from "../build-failure.ts";
 import { commandMeta } from "../command-meta.ts";
 import { refuseIfDevRunning } from "../dev-lock.ts";
 import { refuseIfEjected } from "../eject-scripts.ts";
-import { logger } from "../log.ts";
+import { logger, reportDiagnostics } from "../log.ts";
 import { prepareProject } from "../prepare.ts";
 
 const BUDGET_JS = "budget-js";
@@ -333,10 +335,22 @@ export const buildCommand = defineCommand({
       publishBuildProject(project);
     }
 
-    await build({
-      logLevel: "info",
-      root: project.context.outDir,
-    });
+    try {
+      await build({
+        logLevel: "info",
+        root: project.context.outDir,
+      });
+    } catch (error) {
+      // Astro rejects when the site fails to compile or render (MDX that
+      // doesn't parse, a component that throws): report that as a build error
+      // at the file it names, not as an internal error blaming Blume. A
+      // BlumeError keeps its own diagnostic.
+      if (error instanceof BlumeError || !(error instanceof Error)) {
+        throw error;
+      }
+      reportDiagnostics(astroBuildDiagnostics(error), root);
+      process.exit(1);
+    }
 
     // A real build also prunes the cache; an isolated verify must not evict
     // cards a live dev server is still serving.

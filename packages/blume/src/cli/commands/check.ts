@@ -8,6 +8,7 @@ import { join } from "pathe";
 import { ensureGitignore } from "../../core/gitignore.ts";
 import { commandMeta } from "../command-meta.ts";
 import { refuseIfDevRunning } from "../dev-lock.ts";
+import { refuseIfEjected } from "../eject-scripts.ts";
 import { logger } from "../log.ts";
 import { prepareProject } from "../prepare.ts";
 
@@ -30,6 +31,7 @@ export const checkCommand = defineCommand({
   meta: commandMeta.check,
   async run({ args }) {
     const root = process.cwd();
+    await refuseIfEjected(root, "check");
 
     // `blume check` regenerates `.blume` just like `build`, so it must refuse a
     // live dev server unless isolated. `--isolated` (or BLUME_RUNTIME_DIR)

@@ -47,6 +47,7 @@ export type DependencyBump =
       to: string;
     }
   | { range: string; status: "current" }
+  | { range: string; status: "manual" }
   | { status: "missing" };
 
 type DependencyField = "dependencies" | "devDependencies";
@@ -71,6 +72,28 @@ const RANGE_MAJOR = /^[\s<=>^~v]*(?<major>\d+)/u;
 export const rangeMajor = (range: string): number | null => {
   const major = RANGE_MAJOR.exec(range)?.groups?.major;
   return major === undefined ? null : Number(major);
+};
+
+// Ranges whose version lives somewhere the bump doesn't rewrite: a pnpm
+// catalog in pnpm-workspace.yaml, or the `range` of an `npm:name@range` alias.
+const CATALOG_RANGE = /^catalog:(?<name>.*)$/u;
+const NPM_ALIAS = /^npm:.+@(?<range>[^@]*)$/u;
+
+/**
+ * What to change by hand for a `blume` range the bump can't rewrite (a
+ * `manual` {@link DependencyBump}): the pnpm catalog entry it points at, or
+ * the version inside its `npm:` alias.
+ */
+export const manualBumpAdvice = (range: string, version: string): string => {
+  const catalog = CATALOG_RANGE.exec(range)?.groups?.name;
+  if (catalog === undefined) {
+    return `package.json installs blume through the alias \`${range}\`, which \`blume upgrade\` doesn't rewrite: set the alias's version to ^${version}, then reinstall.`;
+  }
+  const entry =
+    catalog === "" || catalog === "default"
+      ? "`catalog`"
+      : `\`catalogs.${catalog}\``;
+  return `package.json takes blume from the pnpm catalog (\`${range}\`), which \`blume upgrade\` can't bump: set blume to ^${version} under ${entry} in pnpm-workspace.yaml if it isn't already, then reinstall.`;
 };
 
 // The file's own indentation (two spaces, four, or a tab), so a fallback
@@ -106,9 +129,11 @@ const replaceRange = (
 /**
  * Point `package.json`'s `blume` dependency at `^version` when it pins an
  * older major. A range already on this major, or one that names no version
- * (`workspace:*`, `latest`), is reported as current and left alone; a
- * project with no `package.json`, or none that lists `blume`, is `missing`.
- * Only the range changes: the rest of the file is kept byte for byte.
+ * (`workspace:*`, `latest`), is reported as current and left alone; one whose
+ * version lives elsewhere (`catalog:`, an `npm:` alias of an older major) is
+ * `manual`, for the user to change; a project with no `package.json`, or none
+ * that lists `blume`, is `missing`. Only the range changes: the rest of the
+ * file is kept byte for byte.
  */
 export const bumpBlumeDependency = async (
   root: string,
@@ -129,10 +154,17 @@ export const bumpBlumeDependency = async (
   if (!(field && from)) {
     return { status: "missing" };
   }
-  const current = rangeMajor(from);
+  if (CATALOG_RANGE.test(from)) {
+    return { range: from, status: "manual" };
+  }
+  const aliased = NPM_ALIAS.exec(from)?.groups?.range;
+  const current = rangeMajor(aliased ?? from);
   const target = rangeMajor(version);
   if (current === null || target === null || current >= target) {
     return { range: from, status: "current" };
+  }
+  if (aliased !== undefined) {
+    return { range: from, status: "manual" };
   }
   const to = `^${version}`;
   const indent = INDENT.exec(text)?.groups?.indent ?? "  ";

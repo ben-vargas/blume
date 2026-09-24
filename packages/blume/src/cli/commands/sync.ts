@@ -10,6 +10,7 @@ import {
 } from "../../core/project.ts";
 import { commandMeta } from "../command-meta.ts";
 import { readDevLock } from "../dev-lock.ts";
+import { refuseIfEjected } from "../eject-scripts.ts";
 import { logger } from "../log.ts";
 import { prepareProject } from "../prepare.ts";
 
@@ -28,6 +29,7 @@ export const syncCommand = defineCommand({
   meta: commandMeta.sync,
   async run({ args }) {
     const root = process.cwd();
+    await refuseIfEjected(root, "sync");
 
     // `--force` drops the snapshots so a stale or corrupt cache can't be served;
     // scoped to `.blume/cache`, so a running dev server's runtime is untouched.

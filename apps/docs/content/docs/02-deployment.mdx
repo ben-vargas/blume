@@ -53,6 +53,8 @@ blume build
 blume preview
 ```
 
+`blume preview` serves static builds and `node()` and `cloudflare()` server builds. The Vercel and Netlify adapters have no local preview server, so after a `vercel()` or `netlify()` server build it stops with an error instead. Try the site with `blume dev`, or deploy a preview with `vercel deploy` or `netlify deploy`.
+
 ## Subpath deploys
 
 Serving docs under a path like `example.com/docs`? Set `base` — common for GitHub Pages project sites. The whole site, root included, moves under the base, and internal links and assets are rewritten to include it.

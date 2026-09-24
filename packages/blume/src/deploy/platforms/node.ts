@@ -34,6 +34,7 @@ export const nodePlatform: DeployPlatform = {
   },
   kind: "node",
   negotiatesMarkdown: false,
+  previewDeploy: null,
   readsHeaderFiles: { server: false, static: false },
   redirectFiles: [],
   serverOutputDir: distDir,

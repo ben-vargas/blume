@@ -190,6 +190,8 @@ export const vercelPlatform: DeployPlatform = {
   },
   kind: "vercel",
   negotiatesMarkdown: true,
+  // @astrojs/vercel declares no preview entrypoint.
+  previewDeploy: "vercel deploy",
   readsHeaderFiles: { server: false, static: false },
   redirectFiles: [VERCEL_JSON_FILE],
   serverOutputDir: buildOutputDir,

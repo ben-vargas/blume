@@ -99,6 +99,13 @@ export interface DeployPlatform {
   /** Whether a server build honors `Accept: text/markdown` at the content URLs. */
   negotiatesMarkdown: boolean;
   /**
+   * The host CLI command that deploys a preview, for a platform whose
+   * `@astrojs/*` adapter has no local preview server: Astro's `preview`
+   * throws for its server build, so `blume preview` points here instead. Null
+   * when the adapter can preview a server build locally, or there is none.
+   */
+  previewDeploy: string | null;
+  /**
    * Whether the platform applies a `_headers` file to the static assets it
    * serves, per output mode.
    */

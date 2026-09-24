@@ -819,7 +819,10 @@ describe("workspaceNote", () => {
     expect(note).toContain(`joins the pnpm workspace at ${file}`);
     expect(note).toContain("allowBuilds:\n    esbuild: true");
     // Already approved: nothing to add.
-    await writeFile(file, "allowBuilds:\n  esbuild: true\n");
+    await writeFile(
+      file,
+      "packages:\n  - apps/*\nallowBuilds:\n  esbuild: true\n"
+    );
     expect(workspaceNote(member, pnpm)).toBeUndefined();
     // Outside any workspace, and for npm and bun, there's nothing to say.
     expect(workspaceNote(await makeTempDir(), pnpm)).toBeUndefined();

@@ -397,20 +397,27 @@ const contentConfigSchema = z
      */
     types: z.record(z.string(), contentTypeConfigSchema).default({}),
   })
-  .superRefine((value, ctx) => {
-    if (!value.sources) {
-      return;
-    }
-    for (const key of FILESYSTEM_SHORTHAND_KEYS) {
-      if (value[key] !== undefined) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `content.${key} is shorthand for a single filesystem() source and can't be combined with content.sources — move it into a filesystem({ ${key} }) entry in content.sources.`,
-          path: [key],
-        });
+  .superRefine(
+    (value, ctx) => {
+      if (!value.sources) {
+        return;
       }
-    }
-  })
+      for (const key of FILESYSTEM_SHORTHAND_KEYS) {
+        if (value[key] !== undefined) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `content.${key} is shorthand for a single filesystem() source and can't be combined with content.sources — move it into a filesystem({ ${key} }) entry in content.sources.`,
+            path: [key],
+          });
+        }
+      }
+    },
+    // Zod skips a refinement once a field has failed, so without this a
+    // Blume 1 config (`{ type: "filesystem" }` sources beside `content.root`)
+    // would only learn about the shorthand after fixing every source entry.
+    // Any object gets the check; a non-object already failed on its own.
+    { when: (payload) => isObjectLike(payload.value) }
+  )
   .transform(({ exclude, include, root, sources, ...rest }) => ({
     ...rest,
     sources: sources ?? [

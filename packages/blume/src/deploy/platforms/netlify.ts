@@ -115,6 +115,8 @@ export const netlifyPlatform: DeployPlatform = {
   },
   kind: "netlify",
   negotiatesMarkdown: false,
+  // @astrojs/netlify declares no preview entrypoint.
+  previewDeploy: "netlify deploy",
   // Netlify reads `_headers` from the publish directory of a static deploy.
   // A server build's static assets ride the Frameworks API tree instead,
   // where the file has never been applied.

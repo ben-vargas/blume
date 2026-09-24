@@ -165,6 +165,11 @@ const sourceEntrySchema = z
   .custom<SourceAdapterInput>(
     (value) => isObjectLike(value) && "kind" in value,
     {
+      // `z.custom` marks its failure as aborting by default, which makes Zod
+      // skip even the `content` refinement that opts in to running after a
+      // failed field (the shorthand beside `sources`). The pipe below stops
+      // at this entry either way.
+      abort: false,
       error: (issue) => {
         const legacy = legacyEntrySchema.safeParse(issue.input);
         return entryHint(legacy.success ? legacy.data.type : undefined);

@@ -305,6 +305,7 @@ export const cloudflarePlatform: DeployPlatform = {
   },
   kind: "cloudflare",
   negotiatesMarkdown: true,
+  previewDeploy: null,
   readsHeaderFiles: { server: true, static: true },
   redirectFiles: [REDIRECTS_FILE],
   serverOutputDir: distDir,

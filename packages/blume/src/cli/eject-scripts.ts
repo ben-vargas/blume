@@ -6,6 +6,7 @@ import { join } from "pathe";
 import { EJECTED_CONFIG_HEADER } from "../astro/templates.ts";
 import { packageRoot } from "../core/package-root.ts";
 import { commandsFor, detectProjectPackageManager } from "./init/scaffold.ts";
+import type { PackageManager } from "./init/scaffold.ts";
 import { logger } from "./log.ts";
 
 /** A JSON value, as `JSON.parse` of a manifest can return. */
@@ -136,22 +137,46 @@ export const isEjectedProject = (root: string): boolean => {
   );
 };
 
+/** The Blume commands that run the hidden `.blume/` copy of the site. */
+export type RuntimeCommand = "build" | "check" | "dev" | "preview" | "sync";
+
 /**
- * Stop `blume dev`/`blume build` in an ejected app. Either would regenerate
- * `.blume/` from `blume.config.ts` and run that hidden copy, ignoring every
- * edit made to the app since eject, so point at the app's own script under
- * the project's package manager instead.
+ * What an ejected app runs in place of each {@link RuntimeCommand}: its own
+ * `dev`/`build`/`preview` scripts (eject writes them), or Astro's CLI for the
+ * check and the content sync.
+ */
+const ejectedEquivalent = (
+  pm: PackageManager,
+  command: RuntimeCommand
+): string => {
+  const { build, dev, exec } = commandsFor(pm);
+  return {
+    build,
+    check: `${exec} astro check`,
+    dev,
+    // Spelled like `dev`: npm runs a custom script only through `run`.
+    preview: pm === "npm" ? "npm run preview" : `${pm} preview`,
+    sync: `${exec} astro sync`,
+  }[command];
+};
+
+/**
+ * Stop a command that works on the hidden runtime in an ejected app. `dev`,
+ * `build`, `check`, and `sync` would regenerate `.blume/` from
+ * `blume.config.ts` and run that hidden copy, ignoring every edit made to the
+ * app since eject, and `preview` would look for that copy's build; point at
+ * the app's own command under the project's package manager instead.
  */
 export const refuseIfEjected = async (
   root: string,
-  script: "build" | "dev"
+  command: RuntimeCommand
 ): Promise<void> => {
   if (!isEjectedProject(root)) {
     return;
   }
-  const commands = commandsFor(await detectProjectPackageManager(root));
+  const pm = await detectProjectPackageManager(root);
   logger.error(
-    `This project was ejected to a standalone Astro app, so \`blume ${script}\` would run a regenerated copy of the site instead of it. Run \`${commands[script]}\` instead.`
+    `This project was ejected to a standalone Astro app, so \`blume ${command}\` would run a regenerated copy of the site instead of it. Run \`${ejectedEquivalent(pm, command)}\` instead.`
   );
   process.exit(1);
 };

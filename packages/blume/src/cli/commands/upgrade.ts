@@ -12,6 +12,7 @@ import {
   bumpBlumeDependency,
   collectUpgradeFindings,
   isOutsideBlumeProject,
+  manualBumpAdvice,
   upgradePrompt,
 } from "../../upgrade/upgrade.ts";
 import { commandMeta } from "../command-meta.ts";
@@ -94,10 +95,20 @@ export const upgradeCommand = defineCommand({
         logger.warn(
           `No \`blume\` dependency in ./package.json; add blume@^${version} to the package that uses it.`
         );
+      } else if (bump.status === "manual") {
+        logger.warn(manualBumpAdvice(bump.range, version));
       }
 
       const findings = await collectUpgradeFindings(root);
       if (findings.length === 0) {
+        // Until the range the bump couldn't rewrite moves, the project still
+        // installs the old Blume, so it isn't ready yet.
+        if (bump.status === "manual") {
+          process.stderr.write(
+            `  The config, components.ts, and pages check out for Blume ${version}. Update blume's version as above, reinstall, then run \`${runner} blume build\` to confirm.\n`
+          );
+          process.exit(1);
+        }
         process.stderr.write(
           `  Ready for Blume ${version}: the config, components.ts, and pages check out. Run \`${runner} blume build\` to confirm.\n`
         );

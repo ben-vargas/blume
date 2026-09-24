@@ -19,6 +19,11 @@ import { dirname, join, resolve } from "pathe";
  * these files at build time, so a value means the same thing to the pre-boot
  * content scan and the built site — including multi-line double-quoted values
  * (PEM keys), which a line-based parser silently truncates.
+ *
+ * `NODE_ENV` is never taken from these files: it picks the mode Vite and Astro
+ * run in, so a monorepo root `.env` that sets it for another app would turn
+ * every `blume build` into a development build (or `blume dev` into a
+ * production one).
  */
 export const loadEnvFiles = (startDir: string): void => {
   const paths: string[] = [];
@@ -31,5 +36,11 @@ export const loadEnvFiles = (startDir: string): void => {
     done = existsSync(join(dir, ".git")) || parent === dir;
     dir = parent;
   }
-  config({ path: paths, quiet: true });
+  const loaded: Record<string, string> = {};
+  config({ path: paths, processEnv: loaded, quiet: true });
+  for (const [key, value] of Object.entries(loaded)) {
+    if (key !== "NODE_ENV" && process.env[key] === undefined) {
+      process.env[key] = value;
+    }
+  }
 };

@@ -23,11 +23,12 @@ Go from an empty folder to a running docs site in a few commands. Blume needs **
     npx blume init
     ```
 
-    On pnpm 12, add `--allow-build=esbuild` after `pnpm dlx` (`pnpm dlx --allow-build=esbuild blume init`): pnpm 12 refuses to run the install script of esbuild, which Astro depends on, unless you approve it. Inside an existing pnpm workspace, add `allowBuilds: { esbuild: true }` to the workspace's `pnpm-workspace.yaml`; `init` reminds you. With Yarn 2 or later, `init` writes a `.yarnrc.yml` that switches Yarn to a `node_modules` install, which Blume needs; on Yarn 1, run `npx blume init`.
+    On pnpm 12, add `--allow-build=esbuild` after `pnpm dlx` (`pnpm dlx --allow-build=esbuild blume init`): pnpm 12 refuses to run the install script of esbuild, which Astro depends on, unless you approve it. Inside an existing pnpm workspace, the new folder must be listed under the workspace's `packages` (pnpm installs nothing else, so `init` skips the install until it is), and esbuild needs `allowBuilds: { esbuild: true }` in the workspace's `pnpm-workspace.yaml`; `init` reminds you of both. With Yarn 2 or later, `init` writes a `.yarnrc.yml` that switches Yarn to a `node_modules` install, which Blume needs; on Yarn 1, run `npx blume init`.
 
     ```txt
     docs/
       index.mdx
+    .gitignore
     blume.config.ts
     package.json
     ```
@@ -52,7 +53,7 @@ Go from an empty folder to a running docs site in a few commands. Blume needs **
   </Step>
 </Steps>
 
-Adding Blume to a project that already has a `package.json`? `blume init` leaves existing files alone, so add `"dev": "blume dev"` and `"build": "blume build"` to its scripts, or run `npx blume dev` directly.
+Adding Blume to a project that already has a `package.json`? `blume init` leaves existing files alone and skips the install, so install Blume yourself (`npm install blume`), then add `"dev": "blume dev"` and `"build": "blume build"` to its scripts, or run `npx blume dev` directly. The next steps `init` prints include both commands for your package manager.
 
 :::tip
 Blume works with any package manager and never requires you to set up Astro or Tailwind yourself.
