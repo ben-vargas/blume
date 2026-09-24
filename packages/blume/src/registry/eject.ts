@@ -32,6 +32,7 @@ import {
   astroConfigTemplate,
   catchAllPageTemplate,
   changelogIndexTemplate,
+  contentAssetsEndpointTemplate,
   contentConfigTemplate,
   exampleMapTemplate,
   exampleSlug,
@@ -51,6 +52,7 @@ import {
   searchEndpointTemplate,
   staticJsonEndpointTemplate,
 } from "../astro/templates.ts";
+import { collectContentAssets } from "../core/content-assets.ts";
 import { buildIncludeGraph } from "../core/includes.ts";
 import { packageRoot } from "../core/package-root.ts";
 import { scanProject } from "../core/project-graph.ts";
@@ -265,6 +267,40 @@ const changelogFiles = (
   ];
 };
 
+/**
+ * The colocated-image map and the `/blume-assets/[...asset]` endpoint that
+ * serves it, mirroring generate.ts: the ejected raw Markdown points
+ * `![x](./diagram.png)` at `/blume-assets/content/…`, and the config aliases
+ * `blume:content-assets` to the map. Each original's path is written relative
+ * to the project root (the directory `astro dev`/`astro build` run from), so
+ * the ejected app builds from any checkout. Remote-source images need no
+ * endpoint: eject copies them into the project's own `public/blume-assets`.
+ */
+const contentAssetFiles = async (
+  project: BlumeProject,
+  root: string,
+  srcDir: string,
+  genDir: string
+): Promise<{ content: string; path: string }[]> => {
+  const assets = await collectContentAssets(project);
+  const portable = Object.fromEntries(
+    Object.entries(assets).map(([param, abs]) => [
+      param,
+      toPosix(relative(root, abs)),
+    ])
+  );
+  return [
+    {
+      content: `${JSON.stringify(portable)}\n`,
+      path: join(genDir, "content-assets.json"),
+    },
+    {
+      content: contentAssetsEndpointTemplate(null),
+      path: join(srcDir, "pages", "blume-assets", "[...asset].ts"),
+    },
+  ];
+};
+
 /** Contents of the configured `examples.css`, or `""` when unset/absent. */
 /**
  * Read a user stylesheet that eject inlines into a generated entry under
@@ -309,16 +345,18 @@ const examplesPreviewFiles = (
 
 /**
  * The packages the ejected app imports by bare name: Astro, Tailwind's Vite
- * plugin, `blume` itself, the integrations the config wires in, whatever the
- * configured adapters declare, and React when islands, examples, or the assistant
- * render with it (Blume ships React, so projects rarely list it). They have
- * to be the project's own dependencies after eject — under a strict linker
- * such as pnpm nothing else makes them resolvable, and `astro build` fails.
- * The hidden runtime reaches the same packages through its `node_modules`
- * junction into Blume's own, so only eject declares the ones its generated
- * files import directly: the AI SDK the assistant route streams through (unless
- * `ai.assistant.endpoint` points elsewhere, when no route is written) and the EPUB
- * generator's browser bundle `features.ts` loads.
+ * plugin, Tailwind and its typography plugin (which the generated `app.css`
+ * and `examples.css` import by name), `blume` itself, the integrations the
+ * config wires in, whatever the configured adapters declare, and React when
+ * islands, examples, or the assistant render with it (Blume ships React, so
+ * projects rarely list it). They have to be the project's own dependencies
+ * after eject — under a strict linker such as pnpm nothing else makes them
+ * resolvable, and `astro build` fails. The hidden runtime reaches the same
+ * packages through its `node_modules` junction into Blume's own, so only
+ * eject declares the ones its generated files import directly: the AI SDK the
+ * assistant route streams through (unless `ai.assistant.endpoint` points
+ * elsewhere, when no route is written) and the EPUB generator's browser bundle
+ * `features.ts` loads (only named there when `export.epub` is on).
  */
 const ejectDependencies = (
   options: Parameters<typeof runtimeDependencies>[0]
@@ -328,6 +366,8 @@ const ejectDependencies = (
     ...new Set([
       "astro",
       "@tailwindcss/vite",
+      "tailwindcss",
+      "@tailwindcss/typography",
       "blume",
       ...runtimeDependencies(options),
       ...(options.needsReact ? ["react", "react-dom"] : []),
@@ -581,31 +621,35 @@ export const eject = async (
     },
   ];
 
+  files.push(...(await contentAssetFiles(project, root, srcDir, genDir)));
+
   if (assistantEnabled) {
     files.push(...(await askFiles(project, srcDir, genDir)));
   }
+
+  // The `/changelog` index, mirrored from the generated runtime (`[]` when
+  // the project has no changelog). The OG endpoint below adds its card.
+  const changelog = changelogFiles(project, pages, srcDir, {
+    exportEpub,
+    exportPdf,
+    needsReact,
+    staged: hasStaged,
+  });
 
   if (config.seo.og.enabled) {
     files.push({
       content: ogEndpointTemplate(
         customOgRoutes(pages, config.title, config.seo.og.titles),
-        { pageDescriptions: config.seo.og.description !== false }
+        { pageDescriptions: config.seo.og.description !== false },
+        changelog.length > 0
       ),
       path: join(srcDir, "pages", "og", "[...slug].png.ts"),
     });
   }
 
-  // The hosted MCP server and the `/changelog` index, mirrored from the
-  // generated runtime (each helper returns `[]` when its feature is off).
-  files.push(
-    ...(await mcpFiles(project, pages, srcDir, genDir)),
-    ...changelogFiles(project, pages, srcDir, {
-      exportEpub,
-      exportPdf,
-      needsReact,
-      staged: hasStaged,
-    })
-  );
+  // The hosted MCP server, mirrored from the generated runtime (`[]` when
+  // the server is off).
+  files.push(...(await mcpFiles(project, pages, srcDir, genDir)), ...changelog);
 
   // Default 404 page, unless the project already owns `/404` (a custom
   // `pages/404.astro` or a `404.md` content page). The ejected project owns the

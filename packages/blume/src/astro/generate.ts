@@ -31,7 +31,7 @@ import {
   hasDeferrableGroups,
   navVariants,
 } from "../components/layout/nav-utils.ts";
-import { normalizeBasePath } from "../core/base-path.ts";
+import { normalizeBasePath, withBasePath } from "../core/base-path.ts";
 import { validateUsedComponents } from "../core/component-diagnostics.ts";
 import {
   analyzeComponentOverrides,
@@ -1495,12 +1495,14 @@ const writeApiFiles = async (
  * URL string points at an external service, and `false` sends requests
  * directly. Injected at `/_api-proxy` (rather than written under `pages/`)
  * because Astro treats `_`-prefixed page files as private; the endpoint's own
- * `prerender = false` export wins over the injection default.
+ * `prerender = false` export wins over the injection default. Mounted under
+ * the site `basePath`, at the URL the playground sends to (see
+ * openapi/source.ts); Astro layers `deployment.base` onto both.
  */
 const planPlaygroundProxy = (config: ResolvedConfig, srcDir: string) => ({
   enabled: needsPlaygroundProxy(config),
   entrypoint: join(srcDir, "blume-openapi", "api-proxy.ts"),
-  pattern: "/_api-proxy",
+  pattern: withBasePath(config.basePath, "/_api-proxy"),
 });
 
 /**

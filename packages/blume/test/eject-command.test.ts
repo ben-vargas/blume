@@ -199,17 +199,20 @@ describe("blume eject", () => {
     ) as { dependencies: Record<string, string> };
     // `astro build` needs `astro` resolvable from the project itself — under
     // pnpm nothing else puts it there.
-    // (`@orama/orama` is the default search adapter's client.)
+    // (`@orama/orama` is the default search adapter's client; `tailwindcss`
+    // and its typography plugin are imported by name from the ejected CSS.)
     expect(Object.keys(pkg.dependencies)).toEqual([
       "@astrojs/mdx",
       "@orama/orama",
+      "@tailwindcss/typography",
       "@tailwindcss/vite",
       "astro",
       "blume",
+      "tailwindcss",
     ]);
     expect(pkg.dependencies.blume).toBe("^2.0.0");
     expect(output).toContain(
-      "Added to package.json: astro, @tailwindcss/vite, @astrojs/mdx, @orama/orama."
+      "Added to package.json: astro, @tailwindcss/vite, tailwindcss, @tailwindcss/typography, @astrojs/mdx, @orama/orama."
     );
     expect(output.indexOf("pnpm install")).toBeGreaterThan(-1);
     expect(output.indexOf("pnpm install")).toBeLessThan(
