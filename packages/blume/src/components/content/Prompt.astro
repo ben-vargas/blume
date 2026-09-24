@@ -1,9 +1,8 @@
 ---
-import { createSatteriMarkdownProcessor } from "@astrojs/markdown-satteri";
 import data from "blume:data";
 
 import { contentStrings } from "./content-strings.ts";
-import { escapeRawHtml, unwrapParagraph } from "./inline-markdown.ts";
+import { renderInlineMarkdown } from "./inline-markdown.ts";
 import { promptMarkdown } from "./prompt-markdown.ts";
 
 interface Props {
@@ -24,11 +23,7 @@ const normalizeActions = (value: Props["actions"]): string[] => {
 };
 
 const enabledActions = new Set(normalizeActions(actions));
-const markdownProcessor = await createSatteriMarkdownProcessor();
-const renderedDescription = await markdownProcessor.render(
-  escapeRawHtml(description)
-);
-const descriptionHtml = unwrapParagraph(renderedDescription.code);
+const descriptionHtml = await renderInlineMarkdown(description);
 // The prompt as Markdown, for the copy button and the Cursor link: the rendered
 // body's text alone would drop its links, list markers, and code fences.
 const promptSource = Astro.slots.has("default")

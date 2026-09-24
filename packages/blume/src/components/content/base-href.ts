@@ -3,16 +3,31 @@ import data from "blume:data";
 import {
   isInternalPath,
   normalizeBasePath,
+  withBasePath,
   withComposedBasePath,
 } from "../../core/base-path.ts";
+import { routeSetFor, servesRoute } from "../../core/locale-links.ts";
 
 // Mirrors `markdown/base-links.ts`: a path whose final segment carries a file
 // extension is a `public/` asset, served at the site root and never moved
-// under `basePath`.
-const ASSET_PATH = /\.[a-z0-9]+$/iu;
+// under `basePath` — unless a page is served there (a dotted route like
+// `/releases/v1.2`).
+const DOTTED_PATH = /\.[a-z0-9]+$/iu;
 
 /** Strip any `#fragment`/`?query` so only the path is extension-tested. */
 const pathOf = (url: string): string => url.replace(/[#?].*$/u, "");
+
+/** Whether an internal `href` links a page rather than a public asset. */
+const isPageHref = (href: string): boolean => {
+  const path = pathOf(href);
+  return (
+    !DOTTED_PATH.test(path) ||
+    servesRoute(
+      routeSetFor(data.routes),
+      withBasePath(data.config.basePath, path)
+    )
+  );
+};
 
 /**
  * Rebase a component-emitted `href` the way `markdown/base-links.ts` rebases
@@ -24,7 +39,7 @@ const pathOf = (url: string): string => url.replace(/[#?].*$/u, "");
  * asset links.
  */
 export const contentHref = (href: string): string =>
-  isInternalPath(href) && !ASSET_PATH.test(pathOf(href))
+  isInternalPath(href) && isPageHref(href)
     ? withComposedBasePath(
         normalizeBasePath(import.meta.env.BASE_URL),
         data.config.basePath,

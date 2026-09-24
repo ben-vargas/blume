@@ -1,12 +1,11 @@
-import { readFileSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import { dirname, normalize, relative, resolve } from "pathe";
 
-import { readRuntimeModule } from "../astro/runtime-modules.ts";
 import { isIndexFileName, resolveRelativeHref } from "../core/links.ts";
 import type { RelativeLinkBase } from "../core/links.ts";
 import type { MdastNode, MdastValue } from "./mdast.ts";
+import { routeSnapshotReader } from "./route-snapshot.ts";
 
 interface UrlNode extends MdastNode {
   url?: string | null;
@@ -156,34 +155,15 @@ export const relativeLinksPlugin = (
   const contentRoot = options.contentRoot
     ? resolve(options.contentRoot)
     : undefined;
-  const dataFile = options.dataFile ? resolve(options.dataFile) : undefined;
+  const readSnapshot = routeSnapshotReader(options.dataFile);
 
   // Parsed once per published snapshot: the CLI republishes on regeneration,
   // and an unchanged snapshot is the same string, so every page compiled
   // between regenerations reuses one index.
   let cached: { index: RouteIndex; text: string } | undefined;
-  let fileStamp: number | undefined;
-  let fileText: string | undefined;
-
-  /** The ejected snapshot file's text, re-read only when it changes. */
-  const readDataFile = (path: string): string | undefined => {
-    let stamp: number;
-    try {
-      stamp = statSync(path).mtimeMs;
-    } catch {
-      return undefined;
-    }
-    if (stamp !== fileStamp) {
-      fileStamp = stamp;
-      fileText = readFileSync(path, "utf-8");
-    }
-    return fileText;
-  };
 
   const routeIndex = (): RouteIndex | undefined => {
-    const text =
-      readRuntimeModule("blume:data") ??
-      (dataFile ? readDataFile(dataFile) : undefined);
+    const text = readSnapshot();
     if (text === undefined) {
       return undefined;
     }

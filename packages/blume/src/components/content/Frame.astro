@@ -1,7 +1,5 @@
 ---
-import { createSatteriMarkdownProcessor } from "@astrojs/markdown-satteri";
-
-import { escapeRawHtml, unwrapParagraph } from "./inline-markdown.ts";
+import { renderInlineMarkdown } from "./inline-markdown.ts";
 
 interface Props {
   caption?: string;
@@ -10,10 +8,7 @@ interface Props {
 
 const { caption, hint } = Astro.props;
 
-const markdownProcessor = await createSatteriMarkdownProcessor();
-const captionHtml = caption
-  ? unwrapParagraph((await markdownProcessor.render(escapeRawHtml(caption))).code)
-  : undefined;
+const captionHtml = caption ? await renderInlineMarkdown(caption) : undefined;
 ---
 
 <blume-frame class="not-prose my-6 block">

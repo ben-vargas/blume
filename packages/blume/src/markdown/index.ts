@@ -286,8 +286,9 @@ export interface BlumeMarkdownOptions {
   contentRoot?: string;
   /**
    * The `blume:data` snapshot file an ejected app aliases. Relative page links
-   * resolve through the snapshot the CLI publishes; with no CLI in the
-   * process, they read this file instead.
+   * (and the base-path rewrite of dotted page routes) resolve through the
+   * snapshot the CLI publishes; with no CLI in the process, they read this
+   * file instead.
    */
   dataFile?: string;
 }
@@ -310,7 +311,9 @@ const blumeSharedMdastPlugins = (
   ...(options.basePath || options.deployBase
     ? [
         asMdastPlugin(
-          baseLinksPlugin(options.deployBase ?? "", options.basePath ?? "")
+          baseLinksPlugin(options.deployBase ?? "", options.basePath ?? "", {
+            dataFile: options.dataFile,
+          })
         ),
       ]
     : []),

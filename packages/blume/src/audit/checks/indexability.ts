@@ -130,7 +130,14 @@ const canonicalChecks = (
       )
     );
   } else if (context.byUrl.has(target)) {
-    if (!isArchivedLatestCanonical(context, page, target)) {
+    // An i18n fallback copy canonicalizes to the page it copies on purpose,
+    // like an archived page to its latest equivalent.
+    if (
+      !(
+        page.route?.fallback === true ||
+        isArchivedLatestCanonical(context, page, target)
+      )
+    ) {
       found.push(
         finding(
           "BLUME_AUDIT_CANONICAL_NOT_SELF",

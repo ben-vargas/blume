@@ -258,8 +258,15 @@ const buildLocaleNavigation = (
   // next to the originals and `guides/meta.ts` applies to every locale —
   // prefixing would look up keys that can never exist. Inside a snapshot the
   // version dir is hoisted in front (`v1.0/fr`), matching `discoverFolderMeta`.
-  const localeDir =
-    i18n.parser === "dir" && code !== i18n.defaultLocale ? code : "";
+  const localeDirOf = (locale: string): string =>
+    i18n.parser === "dir" && locale !== i18n.defaultLocale ? locale : "";
+  const localeDir = localeDirOf(code);
+  // A locale padded from the fallback locale mirrors that locale's folder meta
+  // for any folder it has no meta of its own for.
+  const fallbackMetaPrefix =
+    fallback && code !== fallback
+      ? [version, localeDirOf(fallback)].filter(Boolean).join("/")
+      : undefined;
   // Internal featured and header hrefs are localized like tab paths — a pinned
   // `/changelog` link rendered on `/fr/…` pages must stay inside the reader's
   // locale, not kick them back to the default one.
@@ -277,6 +284,7 @@ const buildLocaleNavigation = (
     diagnostics,
     display: options.navigation.sidebar.display,
     extraRoutes: options.extraRoutes,
+    fallbackMetaPrefix,
     featured: featured?.map(localizeHref),
     folderMeta: options.folderMeta,
     // The localized tree root ("/" for the hidden default, "/fr" otherwise;

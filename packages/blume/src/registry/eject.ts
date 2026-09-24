@@ -23,6 +23,10 @@ import {
   detectNeedsReact,
   detectUsesMath,
   languageIconCssFor,
+  PLAYGROUND_PROXY_ENTRY,
+  playgroundProxyPattern,
+  proxyAllowlistWarnings,
+  specOrigins,
 } from "../astro/generate.ts";
 import { discoverIslands } from "../astro/islands.ts";
 import { customOgRoutes, discoverPages, routeIsTaken } from "../astro/pages.ts";
@@ -44,6 +48,7 @@ import {
   mixedbreadSearchEndpointTemplate,
   notFoundPageTemplate,
   ogEndpointTemplate,
+  playgroundProxyTemplate,
   rawMarkdownEndpointTemplate,
   rssEndpointTemplate,
   runtimeDependencies,
@@ -64,7 +69,10 @@ import {
 import type { ProjectContext } from "../core/types.ts";
 import { buildRssFeeds, renderRssFeed } from "../deploy/rss.ts";
 import type { OpenApiData } from "../openapi/model.ts";
-import { hasScalarReferences } from "../openapi/references.ts";
+import {
+  hasScalarReferences,
+  needsPlaygroundProxy,
+} from "../openapi/references.ts";
 import { buildReferenceFiles } from "../openapi/scalar.ts";
 import { isOpenApiSource } from "../openapi/source.ts";
 import { buildSearchDocuments } from "../search/documents.ts";
@@ -188,6 +196,43 @@ const mcpDiscoveryPages = (
         {
           entrypoint: "src/blume-mcp/server-card.ts",
           pattern: "/.well-known/mcp/server-card.json",
+        },
+      ]
+    : [];
+
+/**
+ * The playground's built-in CORS proxy route (`playground: { proxy: true }`),
+ * mirroring `planPlaygroundProxy` in generate.ts: injected like the MCP
+ * discovery routes, because Astro treats a `_`-prefixed page file as private,
+ * and mounted under `basePath` at the URL the playground sends to. Empty when
+ * no reference routes its playground through it.
+ */
+const playgroundProxyPages = (
+  config: BlumeProject["config"]
+): { entrypoint: string; pattern: string }[] =>
+  needsPlaygroundProxy(config)
+    ? [
+        {
+          entrypoint: toPosix(join("src", PLAYGROUND_PROXY_ENTRY)),
+          pattern: playgroundProxyPattern(config),
+        },
+      ]
+    : [];
+
+/**
+ * The proxy endpoint behind {@link playgroundProxyPages}, with the origin
+ * allowlist baked in from the same parsed specs the reference pages render.
+ */
+const playgroundProxyFiles = (
+  config: BlumeProject["config"],
+  openApiData: OpenApiData,
+  srcDir: string
+): { content: string; path: string }[] =>
+  needsPlaygroundProxy(config)
+    ? [
+        {
+          content: playgroundProxyTemplate(specOrigins(openApiData)),
+          path: join(srcDir, PLAYGROUND_PROXY_ENTRY),
         },
       ]
     : [];
@@ -479,7 +524,9 @@ export const eject = async (
       pattern: page.pattern,
     })),
     ...mcpDiscoveryPages(project, pages),
+    ...playgroundProxyPages(config),
   ];
+  const openApiData = ejectOpenApiData(project);
 
   // Non-filesystem sources eject their materialized MDX into `<root>/blume-staged`
   // (a dedicated dir so it never clashes with a content root literally named
@@ -595,7 +642,7 @@ export const eject = async (
       path: join(genDir, "Ask.astro"),
     },
     {
-      content: `${JSON.stringify(ejectOpenApiData(project))}\n`,
+      content: `${JSON.stringify(openApiData)}\n`,
       path: join(genDir, "openapi.json"),
     },
     {
@@ -647,9 +694,13 @@ export const eject = async (
     });
   }
 
-  // The hosted MCP server, mirrored from the generated runtime (`[]` when
-  // the server is off).
-  files.push(...(await mcpFiles(project, pages, srcDir, genDir)), ...changelog);
+  // The hosted MCP server and the playground's built-in proxy, mirrored from
+  // the generated runtime (`[]` when each is off).
+  files.push(
+    ...(await mcpFiles(project, pages, srcDir, genDir)),
+    ...changelog,
+    ...playgroundProxyFiles(config, openApiData, srcDir)
+  );
 
   // Default 404 page, unless the project already owns `/404` (a custom
   // `pages/404.astro` or a `404.md` content page). The ejected project owns the
@@ -717,7 +768,9 @@ export const eject = async (
   // the ejected app keeps its reference routes — including the warnings (a
   // missing spec file, a route collision), which the caller surfaces exactly
   // like the generated-runtime path does.
-  const warnings: string[] = [];
+  // A proxied spec with no origin to allow gets the generated runtime's
+  // diagnostic too.
+  const warnings: string[] = proxyAllowlistWarnings(config, openApiData);
   if (hasScalarReferences(config)) {
     const references = await buildReferenceFiles({
       config,

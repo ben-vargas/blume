@@ -53,6 +53,13 @@ const decodePercent = (value: string): string => {
   }
 };
 
+/**
+ * Whether `routes` serves `route` (base-prefixed, fragment-less). Routes are
+ * stored decoded, so a browser-copied `/caf%C3%A9` still finds its page.
+ */
+export const servesRoute = (routes: RouteSet, route: string): boolean =>
+  routes.has(route) || routes.has(decodePercent(route));
+
 /** Whether `path` (base-stripped) already sits under some locale's prefix. */
 const hasLocalePrefix = (path: string, i18n: LocaleRouting): boolean =>
   i18n.locales.some((locale) => {
@@ -78,11 +85,9 @@ export const localizeLinkPath = (
     return path;
   }
   const localized = withBasePath(basePath, localizeRoute(rest, locale, i18n));
-  // Routes are stored decoded; a browser-copied `/caf%C3%A9` must still find
-  // its translation, but the emitted href keeps the author's encoding.
-  return routes.has(localized) || routes.has(decodePercent(localized))
-    ? localized
-    : path;
+  // A browser-copied `/caf%C3%A9` must still find its translation, but the
+  // emitted href keeps the author's encoding.
+  return servesRoute(routes, localized) ? localized : path;
 };
 
 export interface LocalizeHrefOptions extends LocalizeLinkOptions {

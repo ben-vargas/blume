@@ -3,9 +3,12 @@ import { readFile, writeFile } from "node:fs/promises";
 
 import { join } from "pathe";
 
+import { buildHomeLinkHeader } from "../../ai/link-headers.ts";
+import { markdownRoutePaths } from "../../ai/markdown.ts";
 import type { BlumeProject } from "../../core/project-graph.ts";
 import { NETLIFY_ADAPTER_PACKAGE } from "../adapters/netlify.ts";
-import { SVG_ASSET_HEADERS, svgAssetPath } from "../headers.ts";
+import { buildNetlifyConfigHeaders } from "../headers.ts";
+import type { NetlifyConfigHeaders } from "../headers.ts";
 import { buildNetlifyRedirects } from "../redirects.ts";
 import { distDir, toSiteUrl } from "./paths.ts";
 import type { BuildLog, DeployPlatform, RedirectFile } from "./types.ts";
@@ -33,44 +36,42 @@ export const NETLIFY_REDIRECTS_FILE: RedirectFile = {
 /** The Frameworks API config, once the build surfaced it to the project root. */
 export const NETLIFY_CONFIG_FILE = join(".netlify", "v1", "config.json");
 
-/** One entry of the Frameworks API config's `headers` array. */
-interface NetlifyHeaders {
-  for: string;
-  values: Record<string, string>;
-}
-
 /**
- * Sandbox the SVGs a content source downloaded on a server build. Netlify
- * serves them from the publish directory as static files, so the prerendered
- * endpoint's own headers never ship; a server build's header rules go in the
- * Frameworks API config the adapter writes (`.netlify/v1/config.json`, beside
- * its own `Cache-Control` rule for `/_astro/*`), which follows the same rules
- * as `netlify.toml`'s `[[headers]]`. Only a build that has the assets needs
- * the rule.
+ * Carry the static header rules into a server build. A static `netlify()`
+ * build gets them from `_headers` (see `deploy/artifacts.ts`), but a server
+ * build's header rules go in the Frameworks API config the adapter writes
+ * (`.netlify/v1/config.json`, beside its own `Cache-Control` rule for
+ * `/_astro/*`), which follows the same rules as `netlify.toml`'s
+ * `[[headers]]`: the charset on the raw Markdown and text files, the homepage
+ * `Link` header, the discovery files' media types and CORS header, and the
+ * sandbox on downloaded SVGs, which Netlify serves from the publish directory
+ * as static files, so the prerendered endpoint's own headers never ship.
  */
-export const emitNetlifyAssetHeaders = async (
+export const emitNetlifyHeaders = async (
   project: BlumeProject,
   log: BuildLog
 ): Promise<void> => {
   const { config, context } = project;
-  if (!existsSync(join(distDir(context), "blume-assets"))) {
-    return;
-  }
   const configPath = join(context.root, NETLIFY_CONFIG_FILE);
   if (!existsSync(configPath)) {
     log.warn(
-      `Could not find Netlify's deploy config at ${configPath}, so downloaded SVGs are served without their sandbox headers.`
+      `Could not find Netlify's deploy config at ${configPath}, so the site is served without its header rules (the homepage Link header, the discovery files' media types and CORS header, and the sandbox on downloaded SVGs).`
     );
     return;
   }
   // Only `headers` is read; every other key rides through as parsed.
-  const frameworks: { headers?: NetlifyHeaders[] } = JSON.parse(
+  const frameworks: { headers?: NetlifyConfigHeaders[] } = JSON.parse(
     await readFile(configPath, "utf-8")
   );
-  const path = svgAssetPath(config);
+  const ours = buildNetlifyConfigHeaders(
+    config,
+    buildHomeLinkHeader(config, markdownRoutePaths(project))
+  );
+  // A second pass over the same build replaces its own entries.
+  const paths = new Set(ours.map((entry) => entry.for));
   frameworks.headers = [
-    ...(frameworks.headers ?? []).filter((entry) => entry.for !== path),
-    { for: path, values: { ...SVG_ASSET_HEADERS } },
+    ...(frameworks.headers ?? []).filter((entry) => !paths.has(entry.for)),
+    ...ours,
   ];
   await writeFile(configPath, JSON.stringify(frameworks), "utf-8");
 };
@@ -104,7 +105,7 @@ export const netlifyPlatform: DeployPlatform = {
     // The Frameworks API config is a deploy artifact; an isolated verify
     // never surfaces it.
     if (!isolated) {
-      await emitNetlifyAssetHeaders(project, log);
+      await emitNetlifyHeaders(project, log);
     }
     return true;
   },
@@ -119,7 +120,8 @@ export const netlifyPlatform: DeployPlatform = {
   previewDeploy: "netlify deploy",
   // Netlify reads `_headers` from the publish directory of a static deploy.
   // A server build's static assets ride the Frameworks API tree instead,
-  // where the file has never been applied.
+  // where the file has never been applied, so `finalizeBuild` writes the
+  // same rules into that tree's config.
   readsHeaderFiles: { server: false, static: true },
   redirectFiles: [NETLIFY_REDIRECTS_FILE],
   serverOutputDir: distDir,

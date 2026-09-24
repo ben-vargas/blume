@@ -164,6 +164,33 @@ export const buildNetlifyHeaders = (
     .map((rule) => `${rule.path}\n  ${rule.name}: ${rule.value}`)
     .join("\n")}\n`;
 
+/** One entry of Netlify's Frameworks API config `headers` array. */
+export interface NetlifyConfigHeaders {
+  for: string;
+  values: Record<string, string>;
+}
+
+/**
+ * The {@link headerRules} as Netlify Frameworks API `headers` entries
+ * (`.netlify/v1/config.json`), one per path with every header it sets. A
+ * `netlify()` server build reads no `_headers` file, so it carries the same
+ * rules here, in the `for`/`values` form that follows `netlify.toml`'s
+ * `[[headers]]` and the same path syntax as `_headers`.
+ */
+export const buildNetlifyConfigHeaders = (
+  config: ResolvedConfig,
+  homeLinkHeader?: string | null
+): NetlifyConfigHeaders[] => {
+  const byPath = new Map<string, Record<string, string>>();
+  for (const rule of headerRules(config, homeLinkHeader)) {
+    byPath.set(rule.path, {
+      ...byPath.get(rule.path),
+      [rule.name]: rule.value,
+    });
+  }
+  return [...byPath].map(([path, values]) => ({ for: path, values }));
+};
+
 /** One entry of `vercel.json`'s `headers` array. */
 export interface VercelHeader {
   headers: { key: string; value: string }[];

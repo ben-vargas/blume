@@ -61,7 +61,7 @@ To group pages _without_ adding a URL segment, you don't need a `meta.ts` at all
 
 ## Internationalization
 
-Under [i18n](/docs/content/i18n), folder meta resolves per locale: put a `meta.ts` under `fr/guides/` to order the French group independently.
+Under [i18n](/docs/content/i18n), folder meta resolves per locale: put a `meta.ts` under `fr/guides/` to order the French group independently. Without one (or a shared `meta.$.ts`, below), the French group mirrors the fallback locale's `meta.ts`.
 
 For folder meta that's identical in every language, add a `$` marker so one file serves all locales without duplication:
 

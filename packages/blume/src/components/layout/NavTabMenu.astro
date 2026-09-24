@@ -42,6 +42,9 @@ const drawerRowClass =
         aria-current={tabCurrent}
         class="inline-flex cursor-pointer list-none items-center gap-1 rounded-full px-3 py-1.5 font-medium text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground aria-[current=true]:text-foreground [&::-webkit-details-marker]:hidden"
       >
+        {tab.icon && (
+          <Icon class="me-0.5 shrink-0" name={tab.icon} size={14} />
+        )}
         {tab.label}
         <Icon
           class="transition-transform group-open:rotate-180"
@@ -85,6 +88,7 @@ const drawerRowClass =
         aria-current={tabCurrent}
         class="flex cursor-pointer list-none items-center gap-2 rounded-[0.65rem] px-2.5 py-1.5 font-medium text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground aria-[current=true]:text-foreground [&::-webkit-details-marker]:hidden"
       >
+        {tab.icon && <Icon class="shrink-0" name={tab.icon} size={14} />}
         <span class="flex-1 truncate">{tab.label}</span>
         <Icon
           class="shrink-0 transition-transform group-open:rotate-180"

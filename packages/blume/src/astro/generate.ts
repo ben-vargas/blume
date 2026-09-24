@@ -1493,6 +1493,13 @@ const writeApiFiles = async (
   await Promise.all(writes);
 };
 
+/** The proxy endpoint's file under the Astro `src/` dir (eject writes it too). */
+export const PLAYGROUND_PROXY_ENTRY = join("blume-openapi", "api-proxy.ts");
+
+/** The URL the built-in proxy is injected at (see {@link planPlaygroundProxy}). */
+export const playgroundProxyPattern = (config: ResolvedConfig): string =>
+  withBasePath(config.basePath, "/_api-proxy");
+
 /**
  * Decide whether to generate the playground's built-in CORS proxy endpoint.
  * Only the Blume renderer's playground with `proxy: true` needs it — a proxy
@@ -1505,8 +1512,8 @@ const writeApiFiles = async (
  */
 const planPlaygroundProxy = (config: ResolvedConfig, srcDir: string) => ({
   enabled: needsPlaygroundProxy(config),
-  entrypoint: join(srcDir, "blume-openapi", "api-proxy.ts"),
-  pattern: withBasePath(config.basePath, "/_api-proxy"),
+  entrypoint: join(srcDir, PLAYGROUND_PROXY_ENTRY),
+  pattern: playgroundProxyPattern(config),
 });
 
 /**
@@ -1581,7 +1588,8 @@ type DocumentPathItem = { servers?: DocumentServer[] } & Partial<
   Record<HttpMethod, { servers?: DocumentServer[] } | null>
 >;
 
-const specOrigins = (data: OpenApiData): string[] =>
+/** The built-in proxy's allowlist: every spec's origins, deduped and sorted. */
+export const specOrigins = (data: OpenApiData): string[] =>
   [...new Set(Object.values(data).flatMap(specOriginsOf))].toSorted();
 
 /**
@@ -1593,7 +1601,7 @@ const specOrigins = (data: OpenApiData): string[] =>
  * whose own origins came out empty (no absolute `servers[].url`, no absolute
  * GraphQL `endpoint`) gets a warning naming it.
  */
-const proxyAllowlistWarnings = (
+export const proxyAllowlistWarnings = (
   config: ResolvedConfig,
   data: OpenApiData
 ): string[] => {

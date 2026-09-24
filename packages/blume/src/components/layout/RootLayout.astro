@@ -688,10 +688,13 @@ createIconSprite(Astro.locals);
                     ) : (
                       <a
                         aria-current={tab === activeTab ? "page" : undefined}
-                        class="block rounded-[0.65rem] px-2.5 py-1.5 font-medium text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground aria-[current=page]:bg-muted aria-[current=page]:text-foreground"
+                        class="flex items-center gap-2 rounded-[0.65rem] px-2.5 py-1.5 font-medium text-muted-foreground text-sm transition-colors hover:bg-muted hover:text-foreground aria-[current=page]:bg-muted aria-[current=page]:text-foreground"
                         href={withBase(tab.href ?? tab.path)}
                       >
-                        {tab.label}
+                        {tab.icon && (
+                          <Icon class="shrink-0" name={tab.icon} size={14} />
+                        )}
+                        <span class="flex-1 truncate">{tab.label}</span>
                       </a>
                     )}
                   </li>

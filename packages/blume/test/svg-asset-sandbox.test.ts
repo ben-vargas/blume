@@ -26,7 +26,7 @@ import {
 } from "../src/deploy/node-headers.ts";
 import type { BuildLog } from "../src/deploy/platforms/index.ts";
 import {
-  emitNetlifyAssetHeaders,
+  emitNetlifyHeaders,
   NETLIFY_CONFIG_FILE,
   netlifyPlatform,
 } from "../src/deploy/platforms/netlify.ts";
@@ -258,51 +258,24 @@ describe("netlify() server builds", () => {
         project: built,
       })
     ).toBe(true);
-    await emitNetlifyAssetHeaders(built, recorder().log);
-    expect(JSON.parse(await readFile(configPath, "utf-8"))).toStrictEqual({
-      headers: [
-        {
-          for: "/_astro/*",
-          values: { "Cache-Control": "public, max-age=31536000, immutable" },
-        },
-        { for: "/docs/blume-assets/*.svg", values: SANDBOX },
-      ],
-      images: { remote_images: [] },
+    const once = await readFile(configPath, "utf-8");
+    await emitNetlifyHeaders(built, recorder().log);
+    expect(await readFile(configPath, "utf-8")).toBe(once);
+    const written: {
+      headers: { for: string; values: Record<string, string> }[];
+      images: { remote_images: string[] };
+    } = JSON.parse(once);
+    // The adapter's own rule and keys ride through ahead of Blume's.
+    expect(written.headers[0]).toStrictEqual({
+      for: "/_astro/*",
+      values: { "Cache-Control": "public, max-age=31536000, immutable" },
     });
-  });
-
-  it("start a headers list when the config has none", async () => {
-    const built = await project(JSON.stringify(netlify()), {
-      [NETLIFY_CONFIG_FILE]: "{}",
-      "dist/blume-assets/sanity/a.svg": "<svg/>",
-    });
-    await emitNetlifyAssetHeaders(built, recorder().log);
+    expect(written.images).toStrictEqual({ remote_images: [] });
     expect(
-      JSON.parse(
-        await readFile(join(built.context.root, NETLIFY_CONFIG_FILE), "utf-8")
+      written.headers.filter(
+        (entry) => entry.for === "/docs/blume-assets/*.svg"
       )
-    ).toStrictEqual({
-      headers: [{ for: "/blume-assets/*.svg", values: SANDBOX }],
-    });
-  });
-
-  it("leave a build without content assets alone, and warn with no config", async () => {
-    const plain = await project(JSON.stringify(netlify()), {
-      [NETLIFY_CONFIG_FILE]: NETLIFY_FRAMEWORK_CONFIG,
-    });
-    const quiet = recorder();
-    await emitNetlifyAssetHeaders(plain, quiet.log);
-    expect(
-      await readFile(join(plain.context.root, NETLIFY_CONFIG_FILE), "utf-8")
-    ).toBe(NETLIFY_FRAMEWORK_CONFIG);
-    expect(quiet.warnings).toStrictEqual([]);
-
-    const unconfigured = await project(JSON.stringify(netlify()), {
-      "dist/blume-assets/sanity/a.svg": "<svg/>",
-    });
-    const loud = recorder();
-    await emitNetlifyAssetHeaders(unconfigured, loud.log);
-    expect(loud.warnings[0]).toContain("served without their sandbox headers");
+    ).toStrictEqual([{ for: "/docs/blume-assets/*.svg", values: SANDBOX }]);
   });
 });
 

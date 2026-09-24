@@ -277,6 +277,17 @@ const metaKey = (path: string, metaPrefix: string): string => {
 };
 
 /**
+ * What an i18n locale's tree mirrors from the fallback locale for a folder it
+ * has no meta of its own for: the fallback locale's folder meta, and the
+ * `sidebar.display` of a fallback-filled index page. Empty for the fallback
+ * locale itself and for single-locale sites.
+ */
+interface FallbackFolderMeta {
+  indexDisplay: Map<string, SidebarDisplay>;
+  meta: (path: string) => FolderMeta | undefined;
+}
+
+/**
  * Apply folder meta (title/order/icon/collapsed/display and explicit page
  * order), plus the index-frontmatter display sugar collected per folder path.
  */
@@ -287,7 +298,8 @@ const applyFolderMeta = (
   metaPrefix: string,
   sharedMetaPrefix: string,
   indexDisplay: Map<string, SidebarDisplay>,
-  indexRoute: Map<string, string>
+  indexRoute: Map<string, string>,
+  fallback: FallbackFolderMeta
 ): void => {
   // A folder with an index page links its group row to it — the same shape
   // as an explicit-config group's `root`, and the only sidebar link to the
@@ -298,13 +310,23 @@ const applyFolderMeta = (
   // Locale-specific meta wins; a shared `meta.$.*` (keyed by the locale-stripped
   // group path — version-prefixed inside a snapshot) applies to every locale
   // otherwise.
-  const meta =
+  const localeMeta =
     folderMeta.get(metaKey(group.path, metaPrefix)) ??
     sharedMeta.get(metaKey(group.path, sharedMetaPrefix));
+  // A locale with neither mirrors the fallback locale's group, the way its
+  // tree mirrors that locale's untranslated pages: the fallback's folder
+  // meta, and — ahead of it, as in the fallback's own tree — the display its
+  // fallback-filled index page sets. A locale's own meta owns its group, so
+  // the fallback's index frontmatter never overrides it.
+  const mirrored = localeMeta === undefined;
+  const meta = localeMeta ?? fallback.meta(group.path);
   // The group's own render mode, resolved index frontmatter first, then folder
   // meta; `toNavNode` falls back to the global mode. Applies to this group
   // only — nested subgroups resolve their own value through the same chain.
-  group.display = indexDisplay.get(group.path) ?? meta?.display;
+  group.display =
+    indexDisplay.get(group.path) ??
+    (mirrored ? fallback.indexDisplay.get(group.path) : undefined) ??
+    meta?.display;
   if (meta) {
     group.label = meta.title ?? group.label;
     group.icon = meta.icon ?? group.icon;
@@ -321,7 +343,8 @@ const applyFolderMeta = (
         metaPrefix,
         sharedMetaPrefix,
         indexDisplay,
-        indexRoute
+        indexRoute,
+        fallback
       );
     }
   }
@@ -623,13 +646,23 @@ const buildFileSystemSidebar = (
   sharedMetaPrefix: string,
   display: SidebarDisplay,
   tabPaths: Set<string>,
-  diagnostics: Diagnostic[] = []
+  diagnostics: Diagnostic[] = [],
+  fallbackMetaPrefix?: string
 ): NavNode[] => {
   const root = createGroup("", "", "", 0);
   // Folder path -> `sidebar.display` from that folder's index page frontmatter.
   // Collected before the hidden filter (like the title check): hiding the index
   // row from the panel shouldn't stop it configuring its group.
   const indexDisplay = new Map<string, SidebarDisplay>();
+  // What a group with no meta of this locale's mirrors from the fallback
+  // locale (see `applyFolderMeta`).
+  const fallback: FallbackFolderMeta = {
+    indexDisplay: new Map(),
+    meta: (path) =>
+      fallbackMetaPrefix === undefined
+        ? undefined
+        : folderMeta.get(metaKey(path, fallbackMetaPrefix)),
+  };
   // Folder path -> that folder's index page route, for the group row's link.
   // Also collected before the hidden filter: hiding the index row is how a
   // site drops the duplicate label under a linked header, so the link must
@@ -658,12 +691,16 @@ const buildFileSystemSidebar = (
       if (diagnostic) {
         diagnostics.push(diagnostic);
       }
-      // Fallback-filled pages are exempt (like the title check above): their
-      // frontmatter belongs to the fallback locale, and letting it through
-      // would override this locale's own authored `meta.ts` display — then
-      // silently flip again the day the index gets translated.
-      if (page.meta.sidebar.display && !page.fallback) {
-        indexDisplay.set(dirs.join("/"), page.meta.sidebar.display);
+      // A fallback-filled index's display is kept apart (like the title check
+      // above exempts it): its frontmatter belongs to the fallback locale, so
+      // it only speaks for a group this locale has no meta for — letting it
+      // override this locale's own authored `meta.ts` display would silently
+      // flip again the day the index gets translated.
+      if (page.meta.sidebar.display) {
+        (page.fallback ? fallback.indexDisplay : indexDisplay).set(
+          dirs.join("/"),
+          page.meta.sidebar.display
+        );
       }
       if (dirs.length > 0) {
         indexRoute.set(dirs.join("/"), page.route);
@@ -742,7 +779,8 @@ const buildFileSystemSidebar = (
     metaPrefix,
     sharedMetaPrefix,
     indexDisplay,
-    indexRoute
+    indexRoute,
+    fallback
   );
   sortNodes(root.children, diagnostics);
   hoistPages(root.children, display, true);
@@ -1104,6 +1142,13 @@ export const buildNavigation = (
      */
     metaPrefix?: string;
     /**
+     * Folder-meta lookup prefix of the i18n fallback locale, whose untranslated
+     * pages pad this tree (`""` for the default locale of the current
+     * version). A group with no meta of this locale's mirrors the fallback
+     * locale's. Unset for the fallback locale itself, and without i18n.
+     */
+    fallbackMetaPrefix?: string;
+    /**
      * Prefix for shared `meta.$.*` lookups — the version dir inside a
      * snapshot (`v1.0`), since shared meta is locale-agnostic but still
      * version-specific. `""` for the current version.
@@ -1217,7 +1262,8 @@ export const buildNavigation = (
     new Set(
       tabs.flatMap((tab) => (isRootTab(tab, rootTabPath) ? [] : [tab.path]))
     ),
-    diagnostics
+    diagnostics,
+    options.fallbackMetaPrefix
   );
   return {
     actions,
