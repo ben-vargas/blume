@@ -100,6 +100,20 @@ export const linkChecks: CheckModule = {
       if (resolved.kind === "external" || resolved.kind === "ignored") {
         return;
       }
+      if (resolved.kind === "outside-base") {
+        if (link.content) {
+          found.push(
+            finding(
+              "BLUME_AUDIT_LINK_TO_BROKEN",
+              pageSite(context, page),
+              `Link to ${link.href} is missing deployment.base (${deployBase}), so the deployed site does not serve it.`
+            )
+          );
+        } else if (!brokenChrome.has(resolved.path)) {
+          brokenChrome.set(resolved.path, page);
+        }
+        return;
+      }
 
       const anchorTarget = resolved.hash
         ? context.byUrl.get(resolved.path)

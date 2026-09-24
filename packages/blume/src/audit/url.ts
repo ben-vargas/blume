@@ -43,10 +43,20 @@ export type ResolvedHref =
   | { kind: "internal"; path: string; hash: string }
   /** An absolute URL that resolves back to this site — should have been a path. */
   | { kind: "self-origin"; path: string; hash: string }
+  /**
+   * A path on this origin that lacks `deployment.base`. The host serves the
+   * whole build under the base, so nothing answers here — `path` is the path
+   * as requested, base missing.
+   */
+  | { kind: "outside-base"; path: string }
   /** An absolute URL on another origin. */
   | { kind: "external"; url: string }
   /** In-page anchor, `mailto:`, `tel:`, `javascript:`, data URI — not a page link. */
   | { kind: "ignored" };
+
+/** Whether a served path sits under the deployment base (always, without one). */
+const underBase = (deployBase: string, path: string): boolean =>
+  !deployBase || path === deployBase || path.startsWith(`${deployBase}/`);
 
 const NON_HTTP_SCHEME = /^(?!https?:)[a-z][a-z0-9+.-]*:/iu;
 
@@ -62,6 +72,20 @@ export const decodePath = (path: string): string => {
     return decodeURI(path);
   } catch {
     return path;
+  }
+};
+
+/**
+ * Whether a `--url` value is an absolute http(s) URL the network tier can
+ * probe. A bare host (`example.com`) has no scheme, and `localhost:4321`
+ * parses with `localhost:` as its scheme — both are rejected.
+ */
+export const isHttpUrl = (input: string): boolean => {
+  try {
+    const { protocol } = new URL(input);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
   }
 };
 
@@ -113,12 +137,14 @@ export const resolveHref = (
       return { kind: "ignored" };
     }
     if (origin && parsed.origin === origin) {
+      const served = decodePath(parsed.pathname);
+      if (!underBase(deployBase, served)) {
+        return { kind: "outside-base", path: normalizePath(served) };
+      }
       return {
         hash: parsed.hash.slice(1),
         kind: "self-origin",
-        path: normalizePath(
-          stripBasePath(deployBase, decodePath(parsed.pathname))
-        ),
+        path: normalizePath(stripBasePath(deployBase, served)),
       };
     }
     return { kind: "external", url: parsed.toString() };
@@ -140,11 +166,16 @@ export const resolveHref = (
   } catch {
     return { kind: "ignored" };
   }
+  const served = decodePath(resolved.pathname);
+  // Only a root-relative href names the served path outright; a relative one
+  // (`./auth`) was resolved against the base-less page URL above, so it
+  // inherits the page's base by construction.
+  if (target.startsWith("/") && !underBase(deployBase, served)) {
+    return { kind: "outside-base", path: normalizePath(served) };
+  }
   return {
     hash: resolved.hash.slice(1),
     kind: "internal",
-    path: normalizePath(
-      stripBasePath(deployBase, decodePath(resolved.pathname))
-    ),
+    path: normalizePath(stripBasePath(deployBase, served)),
   };
 };

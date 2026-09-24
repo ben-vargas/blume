@@ -325,13 +325,31 @@ describe("parseSitemap", () => {
     expect(doc.error).toBeUndefined();
   });
 
-  it("rejects a document that is not a urlset", () => {
+  it("rejects a document that is not a urlset or sitemap index", () => {
     expect(parseSitemap("/f", "<html></html>", 10).error).toBe(
       "no <urlset> element"
     );
-    expect(parseSitemap("/f", "<sitemapindex></sitemapindex>", 10).error).toBe(
-      "sitemap is an index, not a urlset"
+  });
+
+  it("reads a sitemap index's child sitemaps instead of rejecting it", () => {
+    const doc = parseSitemap(
+      "/f",
+      `<sitemapindex>
+        <sitemap><loc> https://x.dev/sitemap-1.xml </loc></sitemap>
+        <sitemap><loc>https://x.dev/sitemap-2.xml</loc></sitemap>
+        <sitemap><lastmod>2026-01-01</lastmod></sitemap>
+        <sitemap>text</sitemap>
+      </sitemapindex>`,
+      10
     );
+    expect(doc.error).toBeUndefined();
+    expect(doc.sitemaps).toEqual([
+      "https://x.dev/sitemap-1.xml",
+      "https://x.dev/sitemap-2.xml",
+    ]);
+    expect(
+      parseSitemap("/f", "<sitemapindex></sitemapindex>", 10).sitemaps
+    ).toEqual([]);
   });
 });
 

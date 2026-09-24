@@ -57,7 +57,9 @@ export const metaTargetPath = (
 /**
  * Discover the default-locale `meta.{ts,js,mjs}` files whose titles a
  * translation run covers. Skips (in order): non-`dir` i18n projects entirely,
- * files inside a configured locale directory (those ARE translations),
+ * files inside a configured locale directory (those ARE translations), files
+ * inside an archived-version snapshot (frozen, with their own translations —
+ * the same folders the navigation's meta lookup hoists as versions),
  * factory-form modules (a warning — the generator can't re-emit a function),
  * modules that fail meta validation (the scan already errors on those), and
  * modules with no `title` (nothing to translate).
@@ -73,6 +75,9 @@ export const discoverTranslatableMeta = async (
     i18n.locales.flatMap((locale) =>
       locale.code === i18n.defaultLocale ? [] : [locale.code.toLowerCase()]
     )
+  );
+  const versionDirs = new Set(
+    project.config.versions?.archived.map((version) => version.id)
   );
 
   const load = createModuleLoader();
@@ -92,8 +97,11 @@ export const discoverTranslatableMeta = async (
     });
     for (const file of files.toSorted()) {
       const dir = relative(contentRoot, dirname(file));
-      const first = dir.split("/")[0]?.toLowerCase();
-      if (first && localeDirs.has(first)) {
+      const [head] = dir.split("/");
+      if (
+        head &&
+        (localeDirs.has(head.toLowerCase()) || versionDirs.has(head))
+      ) {
         continue;
       }
       // oxlint-disable-next-line no-await-in-loop -- sequential, ordered discovery

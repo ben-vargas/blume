@@ -11,6 +11,13 @@ import type {
 } from "../types.ts";
 import { resolveHref, siteOrigin } from "../url.ts";
 
+/**
+ * Vercel's image optimization route (`/_vercel/image?url=…&w=…`), which
+ * `imageService` on the Vercel adapter points `<img>` at. The platform
+ * serves it; the build never writes a file there.
+ */
+const VERCEL_IMAGE_ENDPOINT = "/_vercel/image";
+
 const formatBytes = (bytes: number): string =>
   bytes < 1024 * 1024
     ? `${Math.round(bytes / 1024)} kB`
@@ -44,15 +51,28 @@ const resolveAsset = (
   }
 
   const origin = siteOrigin(context.project.config.deployment.options.site);
-  const resolved = resolveHref(
-    page.url,
-    asset.src,
-    origin,
-    normalizeBasePath(context.project.config.deployment.options.base)
+  const deployBase = normalizeBasePath(
+    context.project.config.deployment.options.base
   );
+  const resolved = resolveHref(page.url, asset.src, origin, deployBase);
   // A subresource on another origin (a CDN, an analytics script) is outside the
   // build; we can't check whether it exists without the network.
   if (resolved.kind === "external" || resolved.kind === "ignored") {
+    return null;
+  }
+  // Vercel's image optimization endpoint answers these at request time, at the
+  // host root whatever the base.
+  if (resolved.path === VERCEL_IMAGE_ENDPOINT) {
+    return null;
+  }
+  if (resolved.kind === "outside-base") {
+    found.push(
+      finding(
+        missingId,
+        pageSite(context, page),
+        `Page references ${asset.src}, which is missing deployment.base (${deployBase}), so the deployed site does not serve it.`
+      )
+    );
     return null;
   }
 

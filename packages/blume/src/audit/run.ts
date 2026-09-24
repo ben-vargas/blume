@@ -137,6 +137,7 @@ export const runAudit = async (options: AuditOptions): Promise<AuditResult> => {
 
   const crawl = await crawlStaticDir({
     basePath,
+    deployBase: normalizeBasePath(project.config.deployment.options.base),
     manifest: project.manifest,
     staticDir,
   });

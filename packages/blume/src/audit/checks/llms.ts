@@ -113,15 +113,18 @@ export const llmsChecks: CheckModule = {
 
     // The reverse direction, mirroring INDEXABLE_PAGE_NOT_IN_SITEMAP: a page
     // that is built, indexable, and in the nav belongs in the index. Pages the
-    // generator deliberately skips — hidden, drafts, error routes, API
-    // reference when `agents.llmsTxt.openapi` is off, custom pages with no
-    // manifest route — are skipped here for the same reasons.
+    // generator deliberately skips — hidden, drafts, `ai.exclude`, i18n
+    // fallback copies, error routes, API reference when
+    // `agents.llmsTxt.openapi` is off, custom pages with no manifest route —
+    // are skipped here for the same reasons.
     for (const page of context.pages) {
       const { route } = page;
       if (
         !route ||
         route.hidden ||
         route.draft ||
+        route.aiExclude ||
+        route.fallback ||
         !page.indexable ||
         ERROR_ROUTES.has(page.url) ||
         (!openapi && route.source.name === "openapi") ||

@@ -1,5 +1,5 @@
 import type { AgentKind } from "../audit/agent.ts";
-import { DISALLOWED_TOOLS } from "../eval/agents.ts";
+import { CODEX_LOCKDOWN, DISALLOWED_TOOLS } from "../eval/agents.ts";
 
 /**
  * argv builders for the translator role. The subprocess machinery
@@ -28,6 +28,10 @@ const claudeArgs = (): string[] => [
   "1",
 ];
 
+// `--sandbox read-only` alone still lets codex's shell read any file the user
+// can, and the source page being translated is untrusted input (a remote
+// contributor's prose), so the translator gets the same lockdown as an eval
+// run: no shell, exec, or local-image tool, and no inherited environment.
 const codexArgs = (lastMessagePath: string): string[] => [
   "exec",
   "--skip-git-repo-check",
@@ -35,6 +39,7 @@ const codexArgs = (lastMessagePath: string): string[] => [
   "--ephemeral",
   "--sandbox",
   "read-only",
+  ...CODEX_LOCKDOWN,
   "--output-last-message",
   lastMessagePath,
   "-",

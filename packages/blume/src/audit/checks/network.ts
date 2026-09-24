@@ -180,8 +180,10 @@ export const networkChecks: CheckModule = {
       found.push(...servedPageChecks(context, page, result, origin));
     }
 
+    // With `seo.robots: false` Blume writes no robots.txt, so its absence on
+    // the live site is the configured outcome, not a defect.
     const robots = results.get(robotsUrl);
-    if (robots && !robots.ok) {
+    if (context.project.config.seo.robots && robots && !robots.ok) {
       found.push(
         finding(
           "BLUME_AUDIT_ROBOTS_NOT_ACCESSIBLE",

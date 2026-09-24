@@ -183,6 +183,7 @@ export const buildManifest = (options: {
   }
 
   const routes: RouteManifestEntry[] = graph.pages.map((page) => ({
+    aiExclude: page.meta.ai.exclude,
     alternates: alternatesByKey.get(page.translationKey) ?? [],
     collection: page.collection ?? "docs",
     contentType: page.contentType,

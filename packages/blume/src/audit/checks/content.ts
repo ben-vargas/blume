@@ -38,6 +38,22 @@ const frontmatterDate = (source: string): Date | null => {
   }
 };
 
+/**
+ * API reference pages (OpenAPI, AsyncAPI, GraphQL) are generated from a spec
+ * and have no front matter to edit: their title comes from the operation's
+ * summary (the spec's own title on the overview page) and their description
+ * from its description or summary. A fix naming front matter would send the
+ * reader to a file that doesn't exist.
+ */
+const isGeneratedReference = (page: PageSnapshot): boolean =>
+  page.route?.source.name === "openapi";
+
+const GENERATED_TITLE_FIX =
+  "This page is generated from an API spec, which titles it with the operation's `summary` (the spec's own title on the overview page) — rewrite it there.";
+
+const GENERATED_DESCRIPTION_FIX =
+  "This page is generated from an API spec, which describes it with the operation's `description` or `summary` (the spec's own description on the overview page) — rewrite it there.";
+
 const titleChecks = (
   context: AuditContext,
   page: PageSnapshot
@@ -74,7 +90,8 @@ const titleChecks = (
       finding(
         "BLUME_AUDIT_TITLE_LENGTH",
         pageSite(context, page, ["title"]),
-        `Title renders ${width} columns wide — too ${direction} (aim for ${titleMin}–${titleMax}).`
+        `Title renders ${width} columns wide — too ${direction} (aim for ${titleMin}–${titleMax}).`,
+        isGeneratedReference(page) ? GENERATED_TITLE_FIX : undefined
       )
     );
   }
@@ -123,7 +140,8 @@ const descriptionChecks = (
       finding(
         "BLUME_AUDIT_DESCRIPTION_LENGTH",
         pageSite(context, page, ["description"]),
-        `Meta description renders ${width} columns wide — too ${direction} (aim for ${descriptionMin}–${descriptionMax}).`
+        `Meta description renders ${width} columns wide — too ${direction} (aim for ${descriptionMin}–${descriptionMax}).`,
+        isGeneratedReference(page) ? GENERATED_DESCRIPTION_FIX : undefined
       )
     );
   }

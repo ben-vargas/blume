@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { dirname, extname, join, relative } from "pathe";
 
 import { localeCodes, localeTargetPath } from "../core/i18n.ts";
+import { scanProject } from "../core/project-graph.ts";
 import type { BlumeProject } from "../core/project-graph.ts";
 import type { Diagnostic, PageRecord } from "../core/types.ts";
 import { hashSource } from "./ledger.ts";
@@ -101,6 +102,18 @@ const rootFolders = (): ((contentRoot: string) => string[]) => {
     return names;
   };
 };
+
+/**
+ * Scan the project for a translation run: drafts included. A production
+ * (`build`) scan drops them, so a hand-written translation marked
+ * `draft: true` would look missing and be overwritten, and a source page
+ * drafted for a while would lose its ledger stamps — its outdated
+ * translations then reading as current once it's published again. A dev scan
+ * keeps drafts and differs only in reusing cached remote content, which
+ * translation never reads.
+ */
+export const scanForTranslation = (root: string): Promise<BlumeProject> =>
+  scanProject(root, { mode: "dev" });
 
 /**
  * The translatable page universe: filesystem-backed default-locale pages.

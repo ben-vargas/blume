@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 
 import pLimit from "p-limit";
 import pMap from "p-map";
-import { join } from "pathe";
+import { dirname, join } from "pathe";
 
 import { AGENTS } from "../audit/agent.ts";
 import type { AgentKind } from "../audit/agent.ts";
@@ -18,6 +18,7 @@ import { DEFAULT_TRANSLATE_TIMEOUT_MS, translateAgentArgs } from "./agents.ts";
 import { hashSource, stampLedger } from "./ledger.ts";
 import type { TranslationLedger } from "./ledger.ts";
 import { generateMetaModule } from "./meta.ts";
+import type { TranslatableMeta } from "./meta.ts";
 import { metaPrompt, pagePrompt } from "./prompts.ts";
 import { parseMetaTitles, validateTranslation } from "./validate.ts";
 import type {
@@ -88,8 +89,13 @@ interface RunContext {
   timeoutMs: number;
 }
 
-/** The root directory's key in a meta-titles prompt (an empty key is opaque). */
-const metaDirKey = (dir: string): string => (dir === "" ? "." : dir);
+/**
+ * A meta file's key in a meta-titles prompt: its directory relative to the
+ * project root. The content-root-relative `dir` isn't unique — two
+ * filesystem sources can both have a `guides/` folder — and colliding keys
+ * would hand both folders one translation.
+ */
+const metaKey = (meta: TranslatableMeta): string => dirname(meta.sourceRel);
 
 /**
  * One headless agent call. A missing executable rejects with ENOENT on every
@@ -183,7 +189,7 @@ const runMetaItem = async (
   });
 
   const titles = Object.fromEntries(
-    item.entries.map((entry) => [metaDirKey(entry.meta.dir), entry.meta.title])
+    item.entries.map((entry) => [metaKey(entry.meta), entry.meta.title])
   );
   // SAFETY: `targets` maps every configured locale, and work items only carry
   // configured locale codes.
@@ -199,7 +205,7 @@ const runMetaItem = async (
 
   const parsed = parseMetaTitles(output.text, Object.keys(titles));
   for (const entry of item.entries) {
-    const translated = parsed.titles[metaDirKey(entry.meta.dir)];
+    const translated = parsed.titles[metaKey(entry.meta)];
     if (translated === undefined) {
       continue;
     }

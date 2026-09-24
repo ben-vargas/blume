@@ -461,7 +461,9 @@ describe("runTranslate meta", () => {
       metaOf(root, "reference", "Reference"),
     ]);
     const { calls, run } = claudeRunner([
-      { result: '{"guides": "Guides FR", "reference": "Référence"}' },
+      {
+        result: '{"docs/guides": "Guides FR", "docs/reference": "Référence"}',
+      },
     ]);
 
     const result = await runTranslate({
@@ -474,7 +476,7 @@ describe("runTranslate meta", () => {
 
     expect(result.counts).toEqual({ failed: 0, partial: 0, translated: 1 });
     expect(calls).toHaveLength(1);
-    expect(calls[0]?.options.prompt).toContain('"guides": "Guides"');
+    expect(calls[0]?.options.prompt).toContain('"docs/guides": "Guides"');
     const guides = await readFile(
       join(root, "docs/fr/guides/meta.ts"),
       "utf-8"
@@ -493,7 +495,7 @@ describe("runTranslate meta", () => {
       metaOf(root, "guides", "Guides"),
       metaOf(root, "reference", "Reference"),
     ]);
-    const { run } = claudeRunner([{ result: '{"guides": "Guides FR"}' }]);
+    const { run } = claudeRunner([{ result: '{"docs/guides": "Guides FR"}' }]);
 
     const result = await runTranslate({
       agent: "claude",
@@ -504,7 +506,7 @@ describe("runTranslate meta", () => {
     });
 
     expect(result.counts).toEqual({ failed: 0, partial: 1, translated: 0 });
-    expect(result.results[0]?.detail).toContain("reference");
+    expect(result.results[0]?.detail).toContain("docs/reference");
     expect(existsSync(join(root, "docs/fr/guides/meta.ts"))).toBe(true);
     expect(existsSync(join(root, "docs/fr/reference/meta.ts"))).toBe(false);
     expect(ledger.files["docs/guides/meta.ts"]?.fr).toBeDefined();
@@ -551,10 +553,10 @@ describe("runTranslate meta", () => {
     expect(existsSync(join(root, "docs/fr/guides/meta.ts"))).toBe(false);
   });
 
-  it("keys the root directory's title as '.' in the prompt", async () => {
+  it("keys each title by its project-relative directory in the prompt", async () => {
     const root = await scratch();
     const item = metaItem(root, [metaOf(root, "", "Docs")]);
-    const { calls, run } = claudeRunner([{ result: '{".": "Docs FR"}' }]);
+    const { calls, run } = claudeRunner([{ result: '{"docs": "Docs FR"}' }]);
 
     const result = await runTranslate({
       agent: "claude",
@@ -564,7 +566,7 @@ describe("runTranslate meta", () => {
       workList: workListOf([item]),
     });
 
-    expect(calls[0]?.options.prompt).toContain('".": "Docs"');
+    expect(calls[0]?.options.prompt).toContain('"docs": "Docs"');
     expect(result.counts.translated).toBe(1);
     expect(existsSync(join(root, "docs/fr/meta.ts"))).toBe(true);
   });

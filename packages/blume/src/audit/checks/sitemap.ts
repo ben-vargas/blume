@@ -139,6 +139,40 @@ const checkListedUrl = (
 };
 
 /**
+ * The other direction: a page that was built, is indexable, and should be
+ * findable — but never made it into the sitemap. A page that names another
+ * URL as its canonical (an archived-version page pointing at the latest docs)
+ * and an i18n fallback copy are left out of the sitemap on purpose: it lists
+ * canonical URLs only (see NON_CANONICAL_IN_SITEMAP).
+ */
+const unlistedPages = (
+  context: AuditContext,
+  listed: Map<string, string>,
+  deployBase: string
+): Diagnostic[] =>
+  context.pages.flatMap((page) => {
+    const canonical = page.canonical
+      ? canonicalPath(page.canonical, deployBase)
+      : null;
+    if (
+      !page.indexable ||
+      page.route?.fallback ||
+      (canonical && canonical !== normalizePath(page.url)) ||
+      ERROR_ROUTES.has(page.url) ||
+      listed.has(normalizePath(page.url))
+    ) {
+      return [];
+    }
+    return [
+      finding(
+        "BLUME_AUDIT_INDEXABLE_PAGE_NOT_IN_SITEMAP",
+        pageSite(context, page),
+        `${page.url} is built and indexable but is not listed in sitemap.xml.`
+      ),
+    ];
+  });
+
+/**
  * The sitemap, cross-checked against what was actually built.
  *
  * The highest-value check here is the one Ahrefs buries at info severity:
@@ -175,23 +209,32 @@ export const sitemapChecks: CheckModule = {
         finding(
           "BLUME_AUDIT_SITEMAP_INVALID",
           { file: sitemap.file, url: "/sitemap.xml" },
-          `sitemap.xml is not a valid urlset: ${sitemap.error}`
+          `sitemap.xml is not a valid urlset or sitemap index: ${sitemap.error}`
         )
       );
       return found;
     }
 
-    if (
-      sitemap.bytes > MAX_SITEMAP_BYTES ||
-      sitemap.urls.length > MAX_SITEMAP_URLS
-    ) {
-      found.push(
-        finding(
-          "BLUME_AUDIT_SITEMAP_TOO_LARGE",
-          { file: sitemap.file, url: "/sitemap.xml" },
-          `sitemap.xml holds ${sitemap.urls.length} URLs in ${Math.round(sitemap.bytes / 1024 / 1024)} MB.`
-        )
-      );
+    // The limits are per file: a sitemap index splits a large site across
+    // urlsets, each of which must fit on its own.
+    const parts = sitemap.parts ?? [
+      {
+        bytes: sitemap.bytes,
+        file: sitemap.file,
+        url: "/sitemap.xml",
+        urls: sitemap.urls.length,
+      },
+    ];
+    for (const part of parts) {
+      if (part.bytes > MAX_SITEMAP_BYTES || part.urls > MAX_SITEMAP_URLS) {
+        found.push(
+          finding(
+            "BLUME_AUDIT_SITEMAP_TOO_LARGE",
+            { file: part.file, url: part.url },
+            `${part.url.slice(1)} holds ${part.urls} URLs in ${Math.round(part.bytes / 1024 / 1024)} MB.`
+          )
+        );
+      }
     }
 
     // A `<lastmod>` that lies — malformed, or claiming the future — teaches
@@ -230,25 +273,7 @@ export const sitemapChecks: CheckModule = {
       );
     }
 
-    // The other direction: a page that was built, is indexable, and should be
-    // findable — but never made it into the sitemap.
-    for (const page of context.pages) {
-      if (
-        !page.indexable ||
-        ERROR_ROUTES.has(page.url) ||
-        listed.has(normalizePath(page.url))
-      ) {
-        continue;
-      }
-      found.push(
-        finding(
-          "BLUME_AUDIT_INDEXABLE_PAGE_NOT_IN_SITEMAP",
-          pageSite(context, page),
-          `${page.url} is built and indexable but is not listed in sitemap.xml.`
-        )
-      );
-    }
-
+    found.push(...unlistedPages(context, listed, deployBase));
     return found;
   },
   tier: "static",

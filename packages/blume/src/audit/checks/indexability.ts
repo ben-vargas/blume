@@ -16,6 +16,33 @@ const parseCanonical = (canonical: string): URL | null => {
   }
 };
 
+/**
+ * Whether `page` naming `target` as its canonical is Blume's own default for
+ * an archived-version page (`versions.archived[].canonical: "latest"`)
+ * pointing at its latest equivalent — the live page is the authoritative one
+ * by design, not a defect. `target` is a base-less, normalized site path.
+ */
+export const isArchivedLatestCanonical = (
+  context: AuditContext,
+  page: PageSnapshot,
+  target: string
+): boolean => {
+  const version = page.route?.version;
+  const archived = version
+    ? context.project.config.versions?.archived.find(
+        (entry) => entry.id === version
+      )
+    : undefined;
+  const latestAlternate = page.route?.versionAlternates.find(
+    (alternate) => alternate.version === ""
+  );
+  return (
+    archived?.canonical === "latest" &&
+    latestAlternate !== undefined &&
+    normalizePath(latestAlternate.path) === target
+  );
+};
+
 const canonicalChecks = (
   context: AuditContext,
   page: PageSnapshot
@@ -33,8 +60,10 @@ const canonicalChecks = (
   if (!page.canonical) {
     // Without `deployment.site` Blume has no absolute URL to canonicalize to, so
     // report the root cause once (in the sitemap/robots checks) rather than
-    // flagging every page for a config field they can't fix individually.
-    return site
+    // flagging every page for a config field they can't fix individually. A
+    // noindex page omits its canonical on purpose — the layouts drop it, since
+    // Google treats the pairing as contradictory (see CANONICAL_ON_NOINDEX).
+    return site && page.indexable
       ? [
           finding(
             "BLUME_AUDIT_CANONICAL_MISSING",
@@ -101,23 +130,7 @@ const canonicalChecks = (
       )
     );
   } else if (context.byUrl.has(target)) {
-    // An archived-version page pointing at its latest equivalent is Blume's
-    // own default (versions.archived[].canonical: "latest"), not a defect —
-    // the live page is the authoritative one by design.
-    const version = page.route?.version;
-    const archived = version
-      ? context.project.config.versions?.archived.find(
-          (entry) => entry.id === version
-        )
-      : undefined;
-    const latestAlternate = page.route?.versionAlternates.find(
-      (alternate) => alternate.version === ""
-    );
-    const intentional =
-      archived?.canonical === "latest" &&
-      latestAlternate !== undefined &&
-      normalizePath(latestAlternate.path) === target;
-    if (!intentional) {
+    if (!isArchivedLatestCanonical(context, page, target)) {
       found.push(
         finding(
           "BLUME_AUDIT_CANONICAL_NOT_SELF",

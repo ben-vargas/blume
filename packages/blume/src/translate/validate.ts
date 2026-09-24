@@ -102,7 +102,16 @@ export const validateTranslation = (
   sourceText: string,
   agentText: string
 ): ValidationResult => {
-  const candidate = stripOuterFence(agentText);
+  // Only a fence the agent added is stripped. A source that is itself one
+  // code block (a frontmatter-less partial holding a single bash block)
+  // starts and ends with its own fence, which the translation must keep — so
+  // for such a source the reply loses its outer fence only when it has more
+  // fence lines than the source.
+  const sourceIsFenced = stripOuterFence(sourceText) !== sourceText.trim();
+  const candidate =
+    sourceIsFenced && countFenceLines(agentText) <= countFenceLines(sourceText)
+      ? agentText.trim()
+      : stripOuterFence(agentText);
   if (candidate === "") {
     return { ok: false, reason: "agent returned empty output" };
   }

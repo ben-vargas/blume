@@ -181,6 +181,31 @@ const runQuestion = async (
   };
 };
 
+/** The findings a missed question produces: failed, or its agent run errored. */
+const MISS_CODES: ReadonlySet<string> = new Set([
+  "BLUME_EVAL_QUESTION_ERROR",
+  "BLUME_EVAL_QUESTION_FAILED",
+]);
+
+/**
+ * The fraction of run (non-skipped) questions that pass the CI gate. A miss on
+ * a `severity: warning` question is reported as a warning and never counts
+ * against the gate — each miss's finding carries its question's severity, so
+ * the gate reads the same findings the JSON summary counts, and the exit code
+ * can't disagree with the summary's error total.
+ */
+export const passFraction = (result: EvalResult): number => {
+  const ran = result.results.length - result.counts.skip;
+  if (ran === 0) {
+    return 1;
+  }
+  const misses = result.diagnostics.filter(
+    (diagnostic) =>
+      MISS_CODES.has(diagnostic.code) && diagnostic.severity === "error"
+  ).length;
+  return (ran - misses) / ran;
+};
+
 /**
  * Run every question through the reader/judge pair, sequentially: each
  * question is already two agent sessions, and a serial run keeps progress

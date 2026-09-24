@@ -33,11 +33,46 @@ const TIER_FLAGS: { tier: AuditTier; flag: string }[] = [
 interface CheckRollup {
   id: CheckId;
   count: number;
+  /** Distinct affected URLs — one page can carry several findings. */
+  pages: number;
   severity: DiagnosticSeverity;
   category: AuditCategory;
   title: string;
   findings: Diagnostic[];
 }
+
+const SEVERITY_ORDER = {
+  error: 0,
+  info: 2,
+  warning: 1,
+} satisfies Record<DiagnosticSeverity, number>;
+
+/**
+ * The group's severity: the worst of its findings'. A check can downgrade a
+ * finding at runtime (an external link answering 503 is a warning, not the
+ * catalog's error), and the group's glyph must agree with the summary counts.
+ */
+const worstSeverity = (findings: Diagnostic[]): DiagnosticSeverity => {
+  let worst: DiagnosticSeverity = "info";
+  for (const finding of findings) {
+    if (SEVERITY_ORDER[finding.severity] < SEVERITY_ORDER[worst]) {
+      worst = finding.severity;
+    }
+  }
+  return worst;
+};
+
+/** The first finding per affected URL, in report order. */
+const firstPerPage = (findings: Diagnostic[]): Diagnostic[] => {
+  const seen = new Set<string | undefined>();
+  return findings.filter((finding) => {
+    if (seen.has(finding.url)) {
+      return false;
+    }
+    seen.add(finding.url);
+    return true;
+  });
+};
 
 /**
  * Group findings by check. This is the difference between a report people read
@@ -55,22 +90,18 @@ export const rollup = (diagnostics: Diagnostic[]): CheckRollup[] => {
     }
   }
 
-  const order = {
-    error: 0,
-    info: 2,
-    warning: 1,
-  } satisfies Record<DiagnosticSeverity, number>;
   const checks = [...groups.entries()].map(([id, findings]) => {
     // SAFETY: audit findings are only ever created through `finding()`, whose
     // codes are the check catalog's ids.
     const checkId = id as CheckId;
-    const { category, severity, title } = checkMeta(checkId);
+    const { category, title } = checkMeta(checkId);
     return {
       category,
       count: findings.length,
       findings,
       id: checkId,
-      severity,
+      pages: firstPerPage(findings).length,
+      severity: worstSeverity(findings),
       title,
     };
   });
@@ -80,7 +111,7 @@ export const rollup = (diagnostics: Diagnostic[]): CheckRollup[] => {
   // and print "content" three separate times.
   const worst = new Map<AuditCategory, number>();
   for (const check of checks) {
-    const rank = order[check.severity];
+    const rank = SEVERITY_ORDER[check.severity];
     worst.set(
       check.category,
       Math.min(worst.get(check.category) ?? rank, rank)
@@ -91,7 +122,7 @@ export const rollup = (diagnostics: Diagnostic[]): CheckRollup[] => {
     (a, b) =>
       (worst.get(a.category) ?? 0) - (worst.get(b.category) ?? 0) ||
       a.category.localeCompare(b.category) ||
-      order[a.severity] - order[b.severity] ||
+      SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity] ||
       b.count - a.count
   );
 };
@@ -176,14 +207,16 @@ export const formatReport = (
     }
 
     const color = SEVERITY_COLOR[group.severity];
-    const pages = `${group.count} page${group.count === 1 ? "" : "s"}`;
+    const pages = `${group.pages} page${group.pages === 1 ? "" : "s"}`;
     lines.push(
       `  ${color(`${GLYPH[group.severity]} ${group.title}`)}  ${colors.dim(pages)}`
     );
 
+    // The preview lists affected pages, each once; --verbose lists every
+    // finding, since each one's message names a different specific.
     const shown = options.verbose
       ? group.findings
-      : group.findings.slice(0, PREVIEW);
+      : firstPerPage(group.findings).slice(0, PREVIEW);
     for (const diagnostic of shown) {
       lines.push(findingLine(diagnostic, root));
       // The message names the specifics the rolled-up line can't — which target
@@ -192,16 +225,20 @@ export const formatReport = (
         lines.push(`        ${colors.dim(diagnostic.message)}`);
       }
     }
-    const hidden = group.count - shown.length;
+    const hidden = options.verbose ? 0 : group.pages - shown.length;
     if (hidden > 0) {
       lines.push(`      ${colors.dim(`… and ${hidden} more (--verbose)`)}`);
     }
 
-    // Every finding in a group shares the catalog's fix unless it overrode it,
-    // so showing the first one's is showing the group's.
-    const [first] = group.findings;
-    const fix = first?.suggestion;
-    if (fix) {
+    // Findings share the catalog's fix unless one overrode it (a navigation
+    // entry, a page generated from an API spec), so each distinct fix is
+    // printed once.
+    const fixes = new Set(
+      group.findings.flatMap((finding) =>
+        finding.suggestion ? [finding.suggestion] : []
+      )
+    );
+    for (const fix of fixes) {
       lines.push(`      ${colors.cyan(`fix: ${fix}`)}`);
     }
     lines.push("");

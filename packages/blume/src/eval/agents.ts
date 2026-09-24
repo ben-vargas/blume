@@ -124,6 +124,14 @@ export const runAgentHeadless = (
       }
     });
 
+    // An agent that exits before reading the whole prompt (it rejected a flag,
+    // say) closes the pipe mid-write, and the resulting EPIPE would otherwise
+    // be an uncaught exception that aborts the run. The exit itself is the
+    // outcome: `close` resolves with the agent's code and stderr, which
+    // `readAgentOutput` reports.
+    child.stdin?.on("error", () => {
+      // Deliberately ignored — see above.
+    });
     child.stdin?.end(options.prompt);
   });
 
@@ -208,7 +216,7 @@ const claudeArgs = (context: InvocationContext): string[] => {
 
 /**
  * Codex config overrides that leave an eval run nothing but its prompt and the
- * docs MCP tools. `--sandbox read-only` blocks writes and the network but still
+ * docs MCP tools (and a `blume translate` run nothing but its prompt). `--sandbox read-only` blocks writes and the network but still
  * lets the shell tool read any file the user can, and the docs a reader
  * searches — or the answer a judge grades — can come from a remote source, so
  * an instruction planted there could otherwise pull a local secret into the
@@ -216,7 +224,7 @@ const claudeArgs = (context: InvocationContext): string[] => {
  * local-image tool off, and any subprocess started with no inherited
  * environment, there is nothing on the machine for a run to read.
  */
-const CODEX_LOCKDOWN = [
+export const CODEX_LOCKDOWN = [
   "-c",
   "features.shell_tool=false",
   "-c",

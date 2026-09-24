@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { join } from "pathe";
 import { z } from "zod";
 
+import { BlumeError } from "../core/diagnostics.ts";
 import { writeTextAtomic } from "../core/fs-atomic.ts";
 
 /**
@@ -39,21 +40,34 @@ export const emptyLedger = (): TranslationLedger => ({
  * every locale's stamp. sha256-16 like the audit snapshot's content hash.
  * Kept as its own function rather than sharing core's `hashText`: ledger
  * stamps persist in user repos, so this hash must never change shape when an
- * ephemeral cache hash does.
+ * ephemeral cache hash does. CRLF line endings are normalized to LF first, so
+ * a Windows checkout (`core.autocrlf`) hashes the same as everyone else's —
+ * LF text hashes exactly as it always has.
  */
 export const hashSource = (text: string): string =>
-  createHash("sha256").update(text).digest("hex").slice(0, 16);
+  createHash("sha256")
+    .update(text.replaceAll("\r\n", "\n"))
+    .digest("hex")
+    .slice(0, 16);
+
+/** A git merge-conflict marker line: `<<<<<<< ours`, `=======`, `>>>>>>> theirs`. */
+const CONFLICT_MARKER = /^(?:<{7}|={7}|>{7})(?:[ \r]|$)/mu;
 
 /**
  * Read the ledger at `root`, tolerantly: a missing file, unparseable JSON, or
  * an unknown shape/version all resolve to an empty ledger rather than an error
  * (same posture as the dev lock's `parseLock`) — the worst outcome of a
  * corrupt ledger is retranslating files that were already up to date.
+ *
+ * Unresolved merge-conflict markers are the exception, and an error: read as
+ * empty, every existing translation would be adopted as current, so
+ * `--check` would pass over translations that are out of date.
  */
 export const readLedger = async (root: string): Promise<TranslationLedger> => {
+  const path = join(root, LEDGER_FILE);
   let raw: string;
   try {
-    raw = await readFile(join(root, LEDGER_FILE), "utf-8");
+    raw = await readFile(path, "utf-8");
   } catch {
     return emptyLedger();
   }
@@ -61,6 +75,15 @@ export const readLedger = async (root: string): Promise<TranslationLedger> => {
   try {
     data = JSON.parse(raw);
   } catch {
+    if (CONFLICT_MARKER.test(raw)) {
+      throw new BlumeError({
+        code: "BLUME_TRANSLATE_LEDGER_CONFLICT",
+        file: path,
+        message: `${LEDGER_FILE} has unresolved merge-conflict markers, so it can't say which translations are current.`,
+        severity: "error",
+        suggestion: `Resolve the merge conflict in ${LEDGER_FILE}, then rerun.`,
+      });
+    }
     return emptyLedger();
   }
   const parsed = ledgerSchema.safeParse(data);

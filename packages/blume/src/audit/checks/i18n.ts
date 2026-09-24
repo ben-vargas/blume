@@ -3,7 +3,8 @@ import type { Diagnostic } from "../../core/types.ts";
 import { finding } from "../catalog.ts";
 import { pageSite } from "../locate.ts";
 import type { AuditContext, CheckModule, PageSnapshot } from "../types.ts";
-import { normalizePath } from "../url.ts";
+import { decodePath, normalizePath } from "../url.ts";
+import { isArchivedLatestCanonical } from "./indexability.ts";
 
 /** The normalized `deployment.base` — hreflang hrefs carry it, page URLs don't. */
 const deployBaseOf = (context: AuditContext): string =>
@@ -21,13 +22,50 @@ const isValidBcp47 = (tag: string): boolean => {
   }
 };
 
-/** The site path an hreflang `href` points at, or null when it isn't parseable. */
+/**
+ * The site path an hreflang `href` points at, or null when it isn't parseable.
+ * Percent-decoded like every other URL the audit compares, since page URLs
+ * come from raw on-disk names (`/ガイド`) and `URL#pathname` is encoded.
+ */
 const alternatePath = (href: string, deployBase: string): string | null => {
   try {
-    return normalizePath(stripBasePath(deployBase, new URL(href).pathname));
+    return normalizePath(
+      stripBasePath(deployBase, decodePath(new URL(href).pathname))
+    );
   } catch {
     return null;
   }
+};
+
+/**
+ * An i18n fallback copy renders another locale's page at this locale's URL.
+ * Blume gives it hreflang links to the real translations, which by design
+ * never link back to it (it isn't one), and leaves it out of the sitemap —
+ * so the hreflang cluster checks don't apply to it.
+ */
+const isFallbackCopy = (page: PageSnapshot): boolean =>
+  page.route?.fallback === true;
+
+/**
+ * Whether `target` names a URL other than its own as canonical — unless that
+ * is Blume's archived-version default pointing at the latest equivalent,
+ * which the canonical checks already accept.
+ */
+const canonicalizesElsewhere = (
+  context: AuditContext,
+  target: PageSnapshot,
+  deployBase: string
+): boolean => {
+  if (!target.canonical) {
+    return false;
+  }
+  const canonical = alternatePath(target.canonical, deployBase);
+  if (canonical === normalizePath(target.url)) {
+    return false;
+  }
+  return !(
+    canonical !== null && isArchivedLatestCanonical(context, target, canonical)
+  );
 };
 
 const langChecks = (
@@ -115,10 +153,7 @@ const hreflangChecks = (
           `hreflang="${alternate.lang}" points at ${path}, which the build does not serve.`
         )
       );
-    } else if (
-      target.canonical &&
-      alternatePath(target.canonical, deployBase) !== normalizePath(target.url)
-    ) {
+    } else if (canonicalizesElsewhere(context, target, deployBase)) {
       found.push(
         finding(
           "BLUME_AUDIT_HREFLANG_BAD_TARGET",
@@ -190,6 +225,9 @@ const returnTagChecks = (context: AuditContext): Diagnostic[] => {
   const found: Diagnostic[] = [];
   const deployBase = deployBaseOf(context);
   for (const page of context.pages) {
+    if (isFallbackCopy(page)) {
+      continue;
+    }
     for (const alternate of page.hreflang) {
       if (alternate.lang === X_DEFAULT) {
         continue;
@@ -235,7 +273,7 @@ export const i18nChecks: CheckModule = {
     const found: Diagnostic[] = [];
     for (const page of context.pages) {
       found.push(...langChecks(context, page));
-      if (page.hreflang.length > 0) {
+      if (page.hreflang.length > 0 && !isFallbackCopy(page)) {
         found.push(...hreflangChecks(context, page));
       }
     }

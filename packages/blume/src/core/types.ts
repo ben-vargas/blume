@@ -420,6 +420,8 @@ export interface RouteManifestEntry {
   fallback?: boolean;
   /** True when the page's source publishes one language only (no switcher). */
   monolingual?: boolean;
+  /** True when front matter `ai.exclude` keeps the page out of llms.txt. */
+  aiExclude?: boolean;
   /** Resolved "last updated" ISO date, when the feature is enabled. */
   lastModified?: string;
 }

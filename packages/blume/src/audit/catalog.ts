@@ -583,7 +583,7 @@ export const CHECKS = [
   },
   {
     category: "sitemap",
-    fix: "Sitemaps must be valid XML in the sitemaps.org urlset format.",
+    fix: "Sitemaps must be valid XML in the sitemaps.org urlset or sitemap index format.",
     id: "BLUME_AUDIT_SITEMAP_INVALID",
     severity: "error",
     tier: "static",
@@ -684,7 +684,7 @@ export const CHECKS = [
   },
   {
     category: "ai",
-    fix: "Rebuild so llms.txt matches the site; if the page is deliberately excluded, mark it `seo.noindex` or `sidebar.hidden`.",
+    fix: "Rebuild so llms.txt matches the site; if the page is deliberately excluded, set `ai.exclude: true` in its front matter.",
     id: "BLUME_AUDIT_LLMS_TXT_PAGE_MISSING",
     severity: "warning",
     tier: "static",

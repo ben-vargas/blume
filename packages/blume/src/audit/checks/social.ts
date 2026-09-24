@@ -1,7 +1,8 @@
+import { normalizeBasePath, stripBasePath } from "../../core/base-path.ts";
 import type { Diagnostic } from "../../core/types.ts";
 import { finding } from "../catalog.ts";
 import { pageSite } from "../locate.ts";
-import type { CheckModule, PageSnapshot } from "../types.ts";
+import type { AuditContext, CheckModule, PageSnapshot } from "../types.ts";
 import { normalizePath } from "../url.ts";
 
 /** The Open Graph properties a share card is unusable without. */
@@ -175,6 +176,23 @@ const URL_STYLE: { name: string; test: RegExp }[] = [
   { name: "spaces", test: /%20| /u },
 ];
 
+/**
+ * The part of a page URL its author named: the URL minus a leading i18n locale
+ * segment. A locale code like `pt-BR` is BCP 47 casing set once in config,
+ * not an untidy slug, so it must not trip the uppercase check on every page
+ * of that locale. The segment follows `basePath`, which page URLs carry.
+ */
+const authoredPath = (context: AuditContext, url: string): string => {
+  const { basePath, i18n } = context.project.config;
+  if (!i18n) {
+    return url;
+  }
+  const base = normalizeBasePath(basePath);
+  const [, first = "", ...rest] = stripBasePath(base, url).split("/");
+  const isLocale = i18n.locales.some((locale) => locale.code === first);
+  return isLocale ? `${base}/${rest.join("/")}` : url;
+};
+
 /** A protocol-relative URL names a dotted host (`//cdn.example.com/x`). */
 const DOTTED_HOST = /^\/\/[^/]*\./u;
 
@@ -220,7 +238,8 @@ export const urlChecks: CheckModule = {
         }
       }
 
-      const untidy = URL_STYLE.filter((style) => style.test.test(page.url));
+      const authored = authoredPath(context, page.url);
+      const untidy = URL_STYLE.filter((style) => style.test.test(authored));
       if (untidy.length > 0) {
         found.push(
           finding(

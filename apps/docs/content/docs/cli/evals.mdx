@@ -74,7 +74,7 @@ Write questions your users actually ask — the ones from support threads, GitHu
 
 ## Failing CI
 
-The exit code is the contract: any failed question exits non-zero. When the agent run itself fails — the reader or judge errors out rather than grading an answer — the report says `run failed:` and points at the question in your evals file instead of naming a docs page to fix, since the docs weren't graded. `--threshold` relaxes the gate to a passing fraction when you're digging out of a backlog:
+The exit code is the contract: any failed question exits non-zero, except a `severity: warning` one — its miss is reported as a warning and never counts against the gate or `--threshold`. When the agent run itself fails — the reader or judge errors out rather than grading an answer — the report says `run failed:` and points at the question in your evals file instead of naming a docs page to fix, since the docs weren't graded. `--threshold` relaxes the gate to a passing fraction when you're digging out of a backlog:
 
 ```bash
 blume eval                    # every question must pass
@@ -100,7 +100,7 @@ This writes the full JSON report to a file and opens the agent interactively wit
 
 - `--agent codex|claude` — which agent CLI runs the reader and judge. Defaults to `codex`.
 - `--file <path>` — the evals file. Defaults to `evals.yaml`.
-- `--threshold <0..1>` — minimum passing fraction before the run exits non-zero. Defaults to `1`.
+- `--threshold <0..1>` — minimum passing fraction before the run exits non-zero, with `severity: warning` misses counted as passing. Defaults to `1`.
 - `--timeout <seconds>` — reader time limit per question. Defaults to `180`.
 - `--json` — emit the report as JSON on stdout.
 - `--fix` — after a failing run, hand the report to the agent to fix the docs interactively.

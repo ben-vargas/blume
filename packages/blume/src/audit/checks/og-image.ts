@@ -71,6 +71,16 @@ export const ogImageChecks: CheckModule = {
       if (resolved.kind === "external" || resolved.kind === "ignored") {
         continue;
       }
+      if (resolved.kind === "outside-base") {
+        found.push(
+          finding(
+            "BLUME_AUDIT_OG_IMAGE_BROKEN",
+            pageSite(context, page, ["seo", "image"]),
+            `og:image points at ${resolved.path}, which is missing deployment.base (${deployBase}), so the deployed site does not serve it.`
+          )
+        );
+        continue;
+      }
 
       const { path } = resolved;
       if (

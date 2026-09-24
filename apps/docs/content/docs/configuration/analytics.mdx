@@ -70,6 +70,8 @@ analytics: [
 
 `key` and `host` are the two options Blume maps (`host` becomes `api_host`). Anything else you pass — `persistence`, `capture_pageview`, `autocapture`, `disable_session_recording`, and every other `posthog.init` option — is forwarded to `posthog.init` verbatim.
 
+Blume sends a `$pageview` for each client-router navigation only while PostHog captures page loads alone, which is its behavior when you set neither `capture_pageview` nor `defaults`. With `capture_pageview: "history_change"`, or a `defaults` date such as `"2025-05-24"` from PostHog's current snippet, PostHog captures navigations itself, so Blume sends nothing extra. With `capture_pageview: false`, no pageviews are sent at all.
+
 ## Vercel Web Analytics
 
 Add `vercel()` to include [Vercel Web Analytics](https://vercel.com/docs/analytics). Blume renders Vercel's official Astro component, which injects the first-party script served from your own domain once Web Analytics is enabled for the project in the Vercel dashboard.

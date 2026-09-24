@@ -10,6 +10,28 @@ import type {
 } from "../src/audit/types.ts";
 import { isServed, siteOrigin } from "../src/audit/url.ts";
 import type { BlumeProject } from "../src/core/project-graph.ts";
+import type { RouteManifestEntry } from "../src/core/types.ts";
+
+/** A complete manifest route; tests override only the fields under test. */
+export const manifestRoute = (
+  over: Partial<RouteManifestEntry> = {}
+): RouteManifestEntry => ({
+  alternates: [],
+  collection: "docs",
+  contentType: "doc",
+  draft: false,
+  entryId: "a",
+  hidden: false,
+  id: "a.md",
+  indexable: true,
+  locale: "en",
+  path: "/a",
+  source: { name: "docs", ref: "a.md" },
+  title: "A",
+  version: "",
+  versionAlternates: [],
+  ...over,
+});
 
 /** A page with everything a healthy Blume page has, so a test only sets the defect. */
 export const snapshot = (
@@ -66,6 +88,8 @@ interface ContextOptions {
   sources?: Map<string, string>;
   seo?: { robots?: boolean; sitemap?: boolean };
   configFile?: string;
+  /** `i18n` config, for the checks that read the configured locale codes. */
+  i18n?: { locales: { code: string }[] };
   /** Docs-versioning config, for the archived-canonical checks. */
   versions?: {
     archived: {
@@ -99,6 +123,7 @@ export const context = (options: ContextOptions = {}): AuditContext => {
           site: options.site,
         },
       },
+      i18n: options.i18n,
       redirects,
       seo: {
         robots: options.seo?.robots ?? true,

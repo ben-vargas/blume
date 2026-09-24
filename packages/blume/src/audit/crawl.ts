@@ -125,6 +125,11 @@ type XmlValue =
 const isUrlsetElement = (value: XmlValue): value is { url?: XmlValue } =>
   typeof value === "object" && value !== null;
 
+const isSitemapIndexElement = (
+  value: XmlValue
+): value is { sitemap?: XmlValue } =>
+  typeof value === "object" && value !== null;
+
 const isUrlEntry = (
   value: XmlValue
 ): value is { lastmod?: XmlValue; loc?: XmlValue } =>
@@ -134,7 +139,9 @@ const isText = (value: XmlValue): value is string => typeof value === "string";
 
 /**
  * Parse `sitemap.xml`. Deliberately shallow: the checks only need the `<loc>`
- * list, each loc's `<lastmod>`, and whether the document is a urlset at all.
+ * list, each loc's `<lastmod>`, and whether the document is a urlset at all —
+ * or, for a sitemap index, the child sitemaps it lists (`sitemaps`), which
+ * the crawler reads from the build.
  */
 export const parseSitemap = (
   file: string,
@@ -149,10 +156,20 @@ export const parseSitemap = (
     doc.error = "no <urlset> element";
     return doc;
   }
+  if (Object.hasOwn(parsed, "sitemapindex")) {
+    const { sitemapindex } = parsed;
+    const children = isSitemapIndexElement(sitemapindex)
+      ? [sitemapindex.sitemap].flat()
+      : [];
+    doc.sitemaps = children.flatMap((child) =>
+      isUrlEntry(child) && isText(child.loc) && child.loc.trim()
+        ? [child.loc.trim()]
+        : []
+    );
+    return doc;
+  }
   if (!Object.hasOwn(parsed, "urlset")) {
-    doc.error = Object.hasOwn(parsed, "sitemapindex")
-      ? "sitemap is an index, not a urlset"
-      : "no <urlset> element";
+    doc.error = "no <urlset> element";
     return doc;
   }
   const { urlset } = parsed;
@@ -253,6 +270,69 @@ const readIfPresent = async (file: string): Promise<string | null> => {
 };
 
 /**
+ * Read `sitemap.xml`, following it through a sitemap index: each child
+ * sitemap is read from the build (its `<loc>` carries the site origin and the
+ * deployment base, the file tree neither) and its URLs merged into the one
+ * document the checks see. A child that can't be resolved, is missing, or
+ * isn't a urlset makes the whole document invalid.
+ */
+const readSitemap = async (
+  staticDir: string,
+  files: Map<string, number>,
+  deployBase: string
+): Promise<SitemapDoc | null> => {
+  const file = join(staticDir, "sitemap.xml");
+  const xml = await readIfPresent(file);
+  if (xml === null) {
+    return null;
+  }
+  const doc = parseSitemap(
+    file,
+    xml,
+    files.get("/sitemap.xml") ?? Buffer.byteLength(xml, "utf-8")
+  );
+  if (!doc.sitemaps) {
+    return doc;
+  }
+  doc.parts = [];
+  for (const loc of doc.sitemaps) {
+    let url: string;
+    try {
+      url = stripBasePath(deployBase, decodeURI(new URL(loc).pathname));
+    } catch {
+      doc.error = `the sitemap index lists "${loc}", which is not a valid absolute URL`;
+      return doc;
+    }
+    const childFile = join(staticDir, url);
+    // oxlint-disable-next-line no-await-in-loop -- one read per child, in index order
+    const childXml = await readIfPresent(childFile);
+    const child =
+      childXml === null
+        ? null
+        : parseSitemap(
+            childFile,
+            childXml,
+            files.get(url) ?? Buffer.byteLength(childXml, "utf-8")
+          );
+    if (!child || child.error || child.sitemaps) {
+      doc.error = `the sitemap index lists ${loc}, which is not a urlset in the build`;
+      return doc;
+    }
+    doc.urls.push(...child.urls);
+    for (const [key, value] of child.lastmod ?? []) {
+      doc.lastmod?.set(key, value);
+    }
+    doc.parts.push({
+      bytes: child.bytes,
+      file: childFile,
+      url,
+      urls: child.urls.length,
+    });
+  }
+  return doc;
+};
+
+/**
  * Read the built site: every HTML page reduced to a snapshot, the full file
  * index (for resolving subresource references), plus sitemap.xml and robots.txt.
  */
@@ -260,8 +340,10 @@ export const crawlStaticDir = async (options: {
   staticDir: string;
   manifest: BlumeManifest;
   basePath: string;
+  /** The normalized `deployment.base`, which sitemap-index `<loc>`s carry. */
+  deployBase?: string;
 }): Promise<CrawlResult> => {
-  const { staticDir, manifest, basePath } = options;
+  const { staticDir, manifest, basePath, deployBase = "" } = options;
   const routes = routeIndex(manifest, basePath);
 
   const htmlFiles = await glob("**/*.html", { absolute: true, cwd: staticDir });
@@ -287,8 +369,6 @@ export const crawlStaticDir = async (options: {
   );
   const pages = snapshots.filter((page) => page !== null);
 
-  const sitemapFile = join(staticDir, "sitemap.xml");
-  const sitemapXml = await readIfPresent(sitemapFile);
   const robotsFile = join(staticDir, "robots.txt");
   const robotsTxt = await readIfPresent(robotsFile);
   const llmsFile = join(staticDir, "llms.txt");
@@ -300,13 +380,6 @@ export const crawlStaticDir = async (options: {
     llms: llmsText === null ? null : parseLlms(llmsFile, llmsText),
     pages,
     robots: robotsTxt === null ? null : parseRobots(robotsFile, robotsTxt),
-    sitemap:
-      sitemapXml === null
-        ? null
-        : parseSitemap(
-            sitemapFile,
-            sitemapXml,
-            files.get("/sitemap.xml") ?? Buffer.byteLength(sitemapXml, "utf-8")
-          ),
+    sitemap: await readSitemap(staticDir, files, deployBase),
   };
 };

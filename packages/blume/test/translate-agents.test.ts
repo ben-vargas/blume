@@ -19,7 +19,9 @@ describe("translateAgentArgs", () => {
     ]);
   });
 
-  it("builds the codex argv: read-only sandbox, last-message file, stdin prompt", () => {
+  it("builds the codex argv: read-only sandbox, lockdown, last-message file, stdin prompt", () => {
+    // Same lockdown as an eval run: `--sandbox read-only` alone still leaves
+    // a shell that can read any file the user can.
     expect(translateAgentArgs("codex", "/work/message-3.txt")).toEqual([
       "exec",
       "--skip-git-repo-check",
@@ -27,6 +29,14 @@ describe("translateAgentArgs", () => {
       "--ephemeral",
       "--sandbox",
       "read-only",
+      "-c",
+      "features.shell_tool=false",
+      "-c",
+      "features.unified_exec=false",
+      "-c",
+      "tools.view_image=false",
+      "-c",
+      'shell_environment_policy.inherit="none"',
       "--output-last-message",
       "/work/message-3.txt",
       "-",

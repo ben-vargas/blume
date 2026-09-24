@@ -47,7 +47,12 @@ export const robotsChecks: CheckModule = {
       )
     );
 
-    if (site && robots.sitemaps.length === 0) {
+    // Blume only writes the Sitemap line when there is a sitemap to point at.
+    if (
+      site &&
+      context.project.config.seo.sitemap &&
+      robots.sitemaps.length === 0
+    ) {
       found.push(
         finding(
           "BLUME_AUDIT_ROBOTS_SITEMAP_MISSING",

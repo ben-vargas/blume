@@ -4,7 +4,6 @@ import { AGENTS } from "../../audit/agent.ts";
 import type { AgentKind } from "../../audit/agent.ts";
 import { BlumeError } from "../../core/diagnostics.ts";
 import { i18nEnabled, localeCodes } from "../../core/i18n.ts";
-import { scanProject } from "../../core/project-graph.ts";
 import type { ResolvedI18nConfig } from "../../core/schema.ts";
 import { DEFAULT_TRANSLATE_TIMEOUT_MS } from "../../translate/agents.ts";
 import {
@@ -25,7 +24,10 @@ import {
   translateSummaryLine,
 } from "../../translate/report.ts";
 import { runTranslate } from "../../translate/run.ts";
-import { computeWorkList } from "../../translate/work-list.ts";
+import {
+  computeWorkList,
+  scanForTranslation,
+} from "../../translate/work-list.ts";
 import { commandMeta } from "../command-meta.ts";
 import { reportInternalError } from "../internal-error.ts";
 import { flushStdout, logger, reportDiagnostics } from "../log.ts";
@@ -188,10 +190,11 @@ export const translateCommand = defineCommand({
     const { agent, concurrency, timeoutS } = parseFlags(args);
 
     try {
-      // `scanProject`, not `prepareProject`: translation reads the content
-      // tree and writes source files, never `.blume/`, so it doesn't contend
-      // with a running dev server. Same reasoning as `blume audit`/`eval`.
-      const project = await scanProject(root, { mode: "build" });
+      // A scan, not `prepareProject`: translation reads the content tree and
+      // writes source files, never `.blume/`, so it doesn't contend with a
+      // running dev server. Same reasoning as `blume audit`/`eval`. Drafts
+      // are included (see `scanForTranslation`).
+      const project = await scanForTranslation(root);
       if (!i18nEnabled(project.config)) {
         logger.error(
           "i18n is not configured — add `i18n.locales` to blume.config to use `blume translate`."

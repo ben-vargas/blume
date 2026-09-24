@@ -113,6 +113,16 @@ export interface RedirectResolution {
   outcome: "ok" | "loop" | "broken" | "chain";
 }
 
+/** One urlset file behind a sitemap, for the per-file size limits. */
+export interface SitemapPart {
+  file: string;
+  /** Site path the file is served at, e.g. `/sitemap-1.xml`. */
+  url: string;
+  bytes: number;
+  /** How many `<url>` entries the file lists. */
+  urls: number;
+}
+
 /** A parsed `sitemap.xml`. */
 export interface SitemapDoc {
   file: string;
@@ -121,6 +131,14 @@ export interface SitemapDoc {
   urls: string[];
   /** Each `<url>` block's `<lastmod>`, keyed by its `<loc>`. */
   lastmod?: Map<string, string>;
+  /**
+   * The child sitemaps' `<loc>`s, when `sitemap.xml` is a sitemap index —
+   * Blume writes one past 50,000 URLs. The crawler reads each child from the
+   * build and merges its URLs into `urls` and `lastmod`.
+   */
+  sitemaps?: string[];
+  /** The index's child urlset files, once the crawler has read them. */
+  parts?: SitemapPart[];
   /** Parse failure, when the document isn't usable. */
   error?: string;
 }

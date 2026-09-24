@@ -19,7 +19,7 @@ import {
   warningLines,
   writeEvalReport,
 } from "../../eval/report.ts";
-import { runEval } from "../../eval/run.ts";
+import { passFraction, runEval } from "../../eval/run.ts";
 import type { EvalResult } from "../../eval/run.ts";
 import { EvalsFileError, loadEvalsFile } from "../../eval/schema.ts";
 import { commandMeta } from "../command-meta.ts";
@@ -61,12 +61,6 @@ const launchAgentCode = async (
     }
     return notInstalled(agent);
   }
-};
-
-/** The fraction of run (non-skipped) questions that passed. */
-export const passFraction = (result: EvalResult): number => {
-  const ran = result.results.length - result.counts.skip;
-  return ran === 0 ? 1 : result.counts.pass / ran;
 };
 
 interface EvalFlags {

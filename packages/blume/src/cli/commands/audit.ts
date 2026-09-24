@@ -11,6 +11,7 @@ import { formatCatalog, formatReport, reportJson } from "../../audit/report.ts";
 import { NoBuildError, runAudit } from "../../audit/run.ts";
 import type { AuditResult } from "../../audit/run.ts";
 import { checkTerms, unknownCheckTerms } from "../../audit/terms.ts";
+import { isHttpUrl } from "../../audit/url.ts";
 import { BlumeError } from "../../core/diagnostics.ts";
 import { scanProject } from "../../core/project-graph.ts";
 import type { DiagnosticSeverity } from "../../core/types.ts";
@@ -160,6 +161,12 @@ export const auditCommand = defineCommand({
     const [agent] = agents;
     if (agent && args.json) {
       logger.error(`--json and --${agent} are mutually exclusive.`);
+      process.exit(1);
+    }
+    if (args.url !== undefined && !isHttpUrl(args.url)) {
+      logger.error(
+        `Invalid --url "${args.url}": pass the deployment's full URL, scheme included (e.g. https://${args.url}).`
+      );
       process.exit(1);
     }
     const only = splitTerms(args.only);
