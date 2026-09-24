@@ -1,4 +1,4 @@
-import { resolveSchema } from "./helpers.ts";
+import { isNullable, resolveSchema } from "./helpers.ts";
 import type { SchemaLike, SpecValue } from "./helpers.ts";
 import type { ValidationSchema } from "./request.ts";
 
@@ -50,6 +50,14 @@ export const inputValue = (value: SpecValue): string => {
 /** Recursion limit for pruned validation schemas — deep enough for real specs. */
 const MAX_SCHEMA_DEPTH = 6;
 
+/** Whether a property is `readOnly`, on the property or the schema it refs. */
+const isReadOnly = (
+  property: SchemaLike | undefined,
+  schemas: Record<string, SchemaLike>
+): boolean =>
+  property?.readOnly === true ||
+  resolveSchema(schemas, property).readOnly === true;
+
 /**
  * Prune a spec schema into the tiny subset `validate-json.ts` understands:
  * `$ref`s resolved inline, cycles cut (the visited set is copied per branch so
@@ -74,15 +82,26 @@ const pruneSchema = (
   }
   const resolved = resolveSchema(schemas, schema);
   const out: ValidationSchema = {};
-  const [type] = declaredTypes(resolved.type);
-  if (type) {
-    out.type = type;
+  // Only a single declared type is checked: a 3.1 type array like
+  // `["string", "integer"]` accepts either, which one `type` can't say.
+  const types = declaredTypes(resolved.type);
+  if (types.length === 1) {
+    [out.type] = types;
+  }
+  if (isNullable(resolved)) {
+    out.nullable = true;
   }
   if (resolved.enum) {
     out.enum = resolved.enum;
   }
-  if (resolved.required && resolved.required.length > 0) {
-    out.required = resolved.required;
+  // A `readOnly` property's `required` binds responses only: the server
+  // generates it, so a request body — which the prefilled example already
+  // leaves it out of — must not be told it is missing.
+  const required = (resolved.required ?? []).filter(
+    (name) => !isReadOnly(resolved.properties?.[name], schemas)
+  );
+  if (required.length > 0) {
+    out.required = required;
   }
   if (resolved.properties) {
     const properties: Record<string, ValidationSchema> = {};

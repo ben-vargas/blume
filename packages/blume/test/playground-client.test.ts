@@ -299,10 +299,10 @@ describe("sample sync", () => {
 
     edit(fixture, must(fixture.params.id));
     expect(fixture.curlCode.textContent).toContain(
-      'curl -X GET "https://api.example.com/pets/42"'
+      "curl -X GET 'https://api.example.com/pets/42'"
     );
     expect(fixture.curlCode.textContent).toContain(
-      '-H "Authorization: Bearer YOUR_TOKEN"'
+      "-H 'Authorization: Bearer YOUR_TOKEN'"
     );
     // The js pane has no <code> child — the pane itself is the target.
     expect(fixture.js.textContent).toContain("fetch(");
@@ -316,9 +316,9 @@ describe("sample sync", () => {
     fixture.custom.value = "https://alt.example.com/";
     edit(fixture, must(fixture.params.sort));
     expect(fixture.curlCode.textContent).toContain(
-      'curl -X GET "https://alt.example.com/pets/7?sort=asc"'
+      "curl -X GET 'https://alt.example.com/pets/7?sort=asc'"
     );
-    expect(fixture.curlCode.textContent).toContain('-H "X-Trace: trace-1"');
+    expect(fixture.curlCode.textContent).toContain("-H 'X-Trace: trace-1'");
   });
 
   it("includes real credentials in samples only after opt-in", () => {

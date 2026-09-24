@@ -81,7 +81,9 @@ import { ogCacheDir } from "../og/cache.ts";
 import { missingFontFiles, resolveOgFonts } from "../og/derive.ts";
 import type { DerivedOgFonts } from "../og/derive.ts";
 import { resolveOgLogo } from "../og/logo.ts";
-import type { ApiSpecData, OpenApiData } from "../openapi/model.ts";
+import type { AsyncApiSpecValue } from "../openapi/asyncapi.ts";
+import type { ApiSpecData, HttpMethod, OpenApiData } from "../openapi/model.ts";
+import { HTTP_METHODS, withServerDefaults } from "../openapi/model.ts";
 import {
   builtinProxyReferences,
   hasScalarReferences,
@@ -1509,12 +1511,16 @@ const planPlaygroundProxy = (config: ResolvedConfig, srcDir: string) => ({
 
 /**
  * The origins the built-in proxy is allowed to reach: one per absolute
- * `servers[].url` across the parsed specs. This is the endpoint's whole trust
- * boundary — the client sends the target as a query parameter, and a reader's
- * custom base URL is not a documented server — so it is derived here, at build
- * time, from the same documents the operation pages render.
+ * `servers[].url` across the parsed specs — the document's, each path item's,
+ * and each operation's, since an operation's playground sends to the most
+ * specific of those. This is the endpoint's whole trust boundary — the client
+ * sends the target as a query parameter, and a reader's custom base URL is not
+ * a documented server — so it is derived here, at build time, from the same
+ * documents the operation pages render.
  *
- * Relative (`/v1`) and templated (`{env}.api.example.com`) server URLs carry no
+ * A templated URL (`https://{env}.api.example.com`) is allowed as the
+ * playground sends it, with each variable at its declared default. Relative
+ * (`/v1`) URLs, and templates with a variable left undefaulted, carry no
  * origin to allow and are skipped; AsyncAPI documents declare `servers` as a
  * map and contribute nothing (the proxy is OpenAPI-only).
  */
@@ -1530,25 +1536,50 @@ const specOriginsOf = (spec: ApiSpecData): string[] => {
     }
   }
   // SAFETY: `document` is arbitrary parsed JSON; the assertion only names
-  // the optional `servers` shape, and every access below re-checks it —
-  // `Array.isArray(servers)` guards the list and `server.url ?? ""` the url.
-  const { servers } = spec.document as { servers?: { url?: string }[] };
-  for (const server of Array.isArray(servers) ? servers : []) {
-    const url = server.url ?? "";
-    // `new URL("https://{region}.api.example.com")` parses — the braces land
-    // in the hostname — so templated URLs need an explicit check or their
-    // junk literal becomes an allowlist entry no real request can match.
-    if (url.includes("{")) {
-      continue;
+  // the optional `servers` and `paths` shapes, and every access below
+  // re-checks them — `Array.isArray` guards each list, optional chaining each
+  // path item and operation, and `server.url ?? ""` the url.
+  const document = spec.document as {
+    paths?: Record<string, DocumentPathItem | null | undefined>;
+    servers?: DocumentServer[];
+  };
+  const lists = [document.servers];
+  for (const item of Object.values(document.paths ?? {})) {
+    lists.push(item?.servers);
+    for (const method of HTTP_METHODS) {
+      lists.push(item?.[method]?.servers);
     }
-    try {
-      origins.add(new URL(url).origin);
-    } catch {
-      // Not an absolute URL: nothing to allow.
+  }
+  for (const servers of lists) {
+    for (const server of Array.isArray(servers) ? servers : []) {
+      const url = withServerDefaults(server.url ?? "", server.variables);
+      // `new URL("https://{region}.api.example.com")` parses — the braces land
+      // in the hostname — so a variable with no default needs an explicit
+      // check or its junk literal becomes an allowlist entry no real request
+      // can match.
+      if (url.includes("{")) {
+        continue;
+      }
+      try {
+        origins.add(new URL(url).origin);
+      } catch {
+        // Not an absolute URL: nothing to allow.
+      }
     }
   }
   return [...origins];
 };
+
+/** A `servers[]` entry as a parsed spec document declares it. */
+interface DocumentServer {
+  url?: string;
+  variables?: AsyncApiSpecValue;
+}
+
+/** An OpenAPI path item: its own `servers` plus one per operation. */
+type DocumentPathItem = { servers?: DocumentServer[] } & Partial<
+  Record<HttpMethod, { servers?: DocumentServer[] } | null>
+>;
 
 const specOrigins = (data: OpenApiData): string[] =>
   [...new Set(Object.values(data).flatMap(specOriginsOf))].toSorted();
@@ -1577,7 +1608,7 @@ const proxyAllowlistWarnings = (
     warnings.push(
       spec.kind === "graphql"
         ? `The "${spec.label}" GraphQL reference (${spec.route}) has playground.proxy: true, but no absolute endpoint is configured for it, so the built-in proxy has no origin to allow and will refuse every request its playground sends. Set \`endpoint\` on the graphql() adapter (or the source) to the live GraphQL URL, or point playground.proxy at an external proxy URL.`
-        : `The "${spec.label}" reference (${spec.route}) has playground.proxy: true, but its spec declares no absolute servers[].url (relative and templated URLs carry no origin), so the built-in proxy has no origin to allow and will refuse every request its playground sends. Add an absolute server URL to the spec, or point playground.proxy at an external proxy URL.`
+        : `The "${spec.label}" reference (${spec.route}) has playground.proxy: true, but its spec declares no absolute servers[].url (relative URLs, and templated ones with a variable missing its default, carry no origin), so the built-in proxy has no origin to allow and will refuse every request its playground sends. Add an absolute server URL to the spec, or point playground.proxy at an external proxy URL.`
     );
   }
   return warnings;

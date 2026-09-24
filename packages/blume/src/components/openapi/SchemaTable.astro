@@ -1,86 +1,61 @@
 ---
-import {
-  objectProperties,
-  refName,
-  resolveSchema,
-  type SchemaLike,
-  typeLabel,
-} from "./helpers.ts";
+import type { SchemaLike } from "./helpers.ts";
+import { type SchemaNode, schemaTree } from "./schema-tree.ts";
 import SchemaProperty from "./SchemaProperty.astro";
 
 interface Props {
-  schema: SchemaLike;
+  /** The schema to render, planned here when no `node` is given. */
+  schema?: SchemaLike;
+  /** An already-planned subtree: how nested tables render. */
+  node?: SchemaNode;
   schemas: Record<string, SchemaLike>;
-  /** `$ref` names already on the current branch, to break circular schemas. */
-  seen?: string[];
   expandAll?: boolean;
 }
 
-const { schema, schemas, seen = [], expandAll = false } = Astro.props;
+const { schema = {}, node: planned, schemas, expandAll = false } = Astro.props;
 
-// Track the ref so a self-referential model stops instead of recursing forever.
-const refLabel =
-  typeof schema.$ref === "string" ? refName(schema.$ref) : null;
-const circular = refLabel !== null && seen.includes(refLabel);
-const nextSeen = refLabel ? [...seen, refLabel] : seen;
-const resolved = circular ? schema : resolveSchema(schemas, schema);
-
-const types = Array.isArray(resolved.type) ? resolved.type : [resolved.type];
-const isArray = types.includes("array");
-// Keep array items unresolved so a self-referential item `$ref` stays trackable
-// via `seen` — resolving here would drop the name and loop forever.
-const items = isArray ? (resolved.items ?? null) : null;
-const branches = resolved.oneOf ?? resolved.anyOf ?? null;
-
-const { properties, required } = circular
-  ? { properties: [] as [string, SchemaLike][], required: new Set<string>() }
-  : objectProperties(resolved, schemas);
+// The whole tree is planned once, at the top-level table, so that which named
+// schemas expand is decided for the tree as a whole (see `schema-tree.ts`).
+const node = planned ?? schemaTree(schema, schemas);
 ---
 
 {
-  circular ? (
+  node.kind === "circular" ? (
     <div class="text-muted-foreground text-sm">
-      Circular reference to <code class="text-foreground">{refLabel}</code>.
+      Circular reference to <code class="text-foreground">{node.name}</code>.
     </div>
-  ) : isArray ? (
+  ) : node.kind === "array" ? (
     <div>
       <div class="mb-2 text-muted-foreground text-xs">
-        Array of <code class="text-foreground">{typeLabel(items ?? {})}</code>
+        Array of <code class="text-foreground">{node.itemsLabel}</code>
       </div>
-      {items && (
-        <Astro.self schema={items} schemas={schemas} seen={nextSeen} expandAll={expandAll} />
+      {node.items && (
+        <Astro.self node={node.items.node} schemas={schemas} expandAll={expandAll} />
       )}
     </div>
-  ) : branches ? (
+  ) : node.kind === "branches" ? (
     <div class="flex flex-col gap-3">
-      <div class="text-muted-foreground text-xs">
-        {resolved.oneOf ? "One of" : "Any of"}:
-      </div>
-      {branches.map((branch, index) => (
+      <div class="text-muted-foreground text-xs">{node.label}:</div>
+      {node.branches.map((branch) => (
         <div class="rounded-blume border border-border p-3">
           <div class="mb-2 font-medium text-foreground text-xs">
-            {typeLabel(branch) || `Option ${index + 1}`}
+            {branch.label}
           </div>
-          <Astro.self schema={branch} schemas={schemas} seen={nextSeen} expandAll={expandAll} />
+          <Astro.self node={branch.slot.node} schemas={schemas} expandAll={expandAll} />
         </div>
       ))}
     </div>
-  ) : properties.length > 0 ? (
+  ) : node.kind === "properties" ? (
     <div class="not-prose">
-      {properties.map(([name, prop]) => (
-        <SchemaProperty
-          name={name}
-          schema={prop}
-          required={required.has(name)}
-          schemas={schemas}
-          seen={nextSeen}
-          expandAll={expandAll}
-        />
+      {node.rows.map((row) => (
+        <SchemaProperty row={row} schemas={schemas} expandAll={expandAll} />
       ))}
     </div>
   ) : (
     <div class="text-muted-foreground text-sm">
-      <code class="text-foreground">{typeLabel(resolved)}</code>
+      <code class="text-foreground">
+        {node.kind === "named" ? node.name : node.label}
+      </code>
     </div>
   )
 }

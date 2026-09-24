@@ -3,33 +3,23 @@ import Description from "./Description.astro";
 import {
   constraints,
   isNullable,
-  refName,
   resolveSchema,
   type SchemaLike,
   typeLabel,
 } from "./helpers.ts";
+import { rowExpands, type SchemaRow } from "./schema-tree.ts";
 import SchemaTable from "./SchemaTable.astro";
 
 interface Props {
-  name: string;
-  schema: SchemaLike;
-  required?: boolean;
+  /** One planned row of the parent table (see `schema-tree.ts`). */
+  row: SchemaRow;
   schemas: Record<string, SchemaLike>;
-  seen?: string[];
   expandAll?: boolean;
 }
 
-const {
-  name,
-  schema,
-  required = false,
-  schemas,
-  seen = [],
-  expandAll = false,
-} = Astro.props;
+const { row, schemas, expandAll = false } = Astro.props;
+const { name, schema, required } = row;
 
-const refLabel = typeof schema.$ref === "string" ? refName(schema.$ref) : null;
-const circular = refLabel !== null && seen.includes(refLabel);
 const resolved = resolveSchema(schemas, schema);
 
 const type = typeLabel(schema);
@@ -39,20 +29,9 @@ const nullable = isNullable(resolved);
 const enumValues = Array.isArray(resolved.enum) ? resolved.enum : null;
 const limits = constraints(resolved);
 
-const types = Array.isArray(resolved.type) ? resolved.type : [resolved.type];
-const isArray = types.includes("array");
-const items = isArray ? resolveSchema(schemas, resolved.items) : null;
-
-const hasObjectShape = (candidate: SchemaLike): boolean =>
-  Boolean(
-    candidate.properties ||
-      candidate.allOf ||
-      candidate.oneOf ||
-      candidate.anyOf ||
-      typeof candidate.$ref === "string"
-  );
-const expandable =
-  !circular && (hasObjectShape(resolved) || Boolean(items && hasObjectShape(items)));
+// Circles and schemas expanded elsewhere in the tree have no disclosure; the
+// type label names them.
+const children = rowExpands(row) ? row.children : undefined;
 ---
 
 {/* The row's vertical scale is 8 / 12 / 16px, and every other reference table copies it. A
@@ -103,17 +82,16 @@ const expandable =
     )
   }
   {
-    expandable && (
+    children && (
       <details class="mt-3" open={expandAll}>
         <summary class="cursor-pointer select-none text-accent text-xs hover:underline">
           <span class="[details[open]>summary_&]:hidden">Show properties</span>
           <span class="hidden [details[open]>summary_&]:inline">Hide properties</span>
         </summary>
-        <div class="mt-3 border-border border-l pl-4">
+        <div class="mt-3 border-border border-s ps-4">
           <SchemaTable
-            schema={schema}
+            node={children.node}
             schemas={schemas}
-            seen={seen}
             expandAll={expandAll}
           />
         </div>

@@ -152,17 +152,31 @@ export const resolveSchema = (
   return schema;
 };
 
-const nonNullTypes = (type: string | string[] | undefined): string[] => {
+const declaredTypeList = (type: string | string[] | undefined): string[] => {
   if (!type) {
     return [];
   }
-  return (Array.isArray(type) ? type : [type]).filter((t) => t !== "null");
+  return Array.isArray(type) ? type : [type];
+};
+
+const nonNullTypes = (type: string | string[] | undefined): string[] =>
+  declaredTypeList(type).filter((t) => t !== "null");
+
+/**
+ * Whether a schema admits only `null`: `{ type: "null" }`, the branch Scalar's
+ * upgrade pairs with a 3.0 `nullable: true` `$ref` (`anyOf: [$ref, { type:
+ * "null" }]`).
+ */
+const isNullType = (schema: SchemaLike): boolean => {
+  const types = declaredTypeList(schema.type);
+  return types.length > 0 && types.every((type) => type === "null");
 };
 
 /**
  * A short, human-readable type label for a schema row. `$ref`s label by name
  * (`Pet`, `Pet[]`) without resolving — which also means circular refs through
- * array items can't recurse forever.
+ * array items can't recurse forever. A `null` member stays out of a union's
+ * label: rows mark it with {@link isNullable}, as they do `type: [T, "null"]`.
  */
 export const typeLabel = (schema: SchemaLike): string => {
   if (isString(schema.$ref)) {
@@ -170,24 +184,42 @@ export const typeLabel = (schema: SchemaLike): string => {
   }
   if (schema.oneOf || schema.anyOf) {
     const branches = schema.oneOf ?? schema.anyOf ?? [];
-    const labels = branches.map((branch) => typeLabel(branch));
+    const members = branches.filter((branch) => !isNullType(branch));
+    if (members.length === 0 && branches.length > 0) {
+      return "null";
+    }
+    const labels = members.map((branch) => typeLabel(branch));
     return [...new Set(labels)].join(" | ") || "any";
   }
   if (schema.allOf) {
     return "object";
   }
   const types = nonNullTypes(schema.type);
+  const arrayLabel = (): string => `${typeLabel(schema.items ?? {})}[]`;
+  if (types.length > 1) {
+    // A 3.1 type array names every type the value may take, not just the first.
+    return types
+      .map((type) => (type === "array" ? arrayLabel() : type))
+      .join(" | ");
+  }
   if (types.includes("array")) {
-    return `${typeLabel(schema.items ?? {})}[]`;
+    return arrayLabel();
+  }
+  if (types.length === 0 && isNullType(schema)) {
+    return "null";
   }
   const base = types[0] ?? (schema.properties ? "object" : "any");
   return schema.format ? `${base}<${schema.format}>` : base;
 };
 
-/** Whether this schema is nullable (3.0 `nullable` or a 3.1 `"null"` in `type`). */
+/**
+ * Whether this schema is nullable: 3.0 `nullable`, a 3.1 `"null"` in `type`,
+ * or a `{ type: "null" }` member of a `oneOf`/`anyOf` union.
+ */
 export const isNullable = (schema: SchemaLike): boolean =>
   schema.nullable === true ||
-  (Array.isArray(schema.type) && schema.type.includes("null"));
+  (Array.isArray(schema.type) && schema.type.includes("null")) ||
+  [...(schema.oneOf ?? []), ...(schema.anyOf ?? [])].some(isNullType);
 
 /** Human-readable validation constraints for a schema, in display order. */
 export const constraints = (schema: SchemaLike): string[] => {
@@ -263,23 +295,26 @@ export const objectProperties = (
  * Build a representative example value for a schema via openapi-sampler
  * (Redoc's generator): declared `example`/`const`/`default`/`enum` values
  * win, formats produce realistic placeholders (`email`, `uuid`, `date-time`),
- * `readOnly` fields are skipped (these samples illustrate *requests*, and a
- * server-generated field has no place in one), and circular `$ref` chains —
- * which keeping refs intact allows — terminate safely.
+ * and circular `$ref` chains — which keeping refs intact allows — terminate
+ * safely. A request sample skips `readOnly` fields (a server-generated field
+ * has no place in one); a response sample skips `writeOnly` fields (a
+ * password the client sends never comes back) and keeps the `readOnly` ones.
  */
 export const exampleValue = (
   schema: SchemaLike | undefined,
-  schemas: Record<string, SchemaLike>
+  schemas: Record<string, SchemaLike>,
+  direction: "request" | "response" = "request"
 ): SpecValue => {
   if (!schema) {
     return null;
   }
+  const response = direction === "response";
   try {
     // SAFETY: SchemaLike structurally covers the JSONSchema7 fields the
     // sampler reads, and the sampler only ever assembles JSON values.
     return sample(
       schema as Parameters<typeof sample>[0],
-      { quiet: true, skipReadOnly: true },
+      { quiet: true, skipReadOnly: !response, skipWriteOnly: response },
       { components: { schemas } }
     ) as SpecValue;
   } catch {
@@ -288,6 +323,49 @@ export const exampleValue = (
     return null;
   }
 };
+
+/** Where an author can declare an example: a parameter or a media type. */
+export interface ExampleCarrier {
+  example?: SpecValue;
+  examples?: SpecValue;
+}
+
+const isRecord = (value: SpecValue): value is Record<string, SpecValue> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/**
+ * The example a parameter or media type declares: its `example`, else the
+ * first inline `value` in its `examples` map. Scalar's upgrade moves every
+ * OpenAPI 3.0 and Swagger 2.0 `example` into `examples.default.value`, and
+ * 3.1 authors write that map directly, so reading `example` alone would drop
+ * them all. `undefined` when nothing is declared.
+ */
+export const declaredExample = (carrier: ExampleCarrier): SpecValue => {
+  if (carrier.example !== undefined) {
+    return carrier.example;
+  }
+  const { examples } = carrier;
+  if (!isRecord(examples)) {
+    return undefined;
+  }
+  for (const entry of Object.values(examples)) {
+    if (isRecord(entry) && entry.value !== undefined) {
+      return entry.value;
+    }
+  }
+  return undefined;
+};
+
+/**
+ * A response media type's example for the Response panel: the declared one,
+ * else a sample built for the response direction (`readOnly` kept,
+ * `writeOnly` skipped).
+ */
+export const responseExample = (
+  media: ExampleCarrier & { schema?: SchemaLike },
+  schemas: Record<string, SchemaLike>
+): SpecValue =>
+  declaredExample(media) ?? exampleValue(media.schema, schemas, "response");
 
 /** Pretty-print a JSON value for an example/code block. */
 export const toJson = <T>(value: T): string => JSON.stringify(value, null, 2);

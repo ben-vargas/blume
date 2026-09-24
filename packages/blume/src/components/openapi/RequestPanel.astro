@@ -2,14 +2,20 @@
 import data from "blume:data";
 
 import { highlightCode } from "../../markdown/index.ts";
-import { exampleValue, type SchemaLike, toJson } from "./helpers.ts";
+import {
+  responseExample,
+  type SchemaLike,
+  type SpecValue,
+  toJson,
+} from "./helpers.ts";
 import { languageSamplePanels } from "./sample-panels.ts";
 import PanelTabs from "./PanelTabs.astro";
 import type { RequestSample, SampleLanguage } from "./snippets.ts";
 
 interface MediaTypeLike {
   schema?: SchemaLike;
-  example?: unknown;
+  example?: SpecValue;
+  examples?: SpecValue;
 }
 
 interface ResponseLike {
@@ -38,9 +44,7 @@ const responsePanels = await Promise.all(
       Object.entries(response.content ?? {}).find(([type]) =>
         type.includes("json")
       )?.[1] ?? Object.values(response.content ?? {})[0];
-    const example = media
-      ? (media.example ?? exampleValue(media.schema, schemas))
-      : undefined;
+    const example = media ? responseExample(media, schemas) : undefined;
     const html =
       example === undefined || example === null
         ? null

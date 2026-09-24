@@ -25,7 +25,7 @@ That mounts the reference at `/graphql` (an overview page), with root fields at 
 
 The `spec` is either a path to a local file in your project or an `http(s)` URL, and accepts two formats:
 
-- **SDL text** — a `.graphql` file with type definitions.
+- **SDL text** — a `.graphql` file with type definitions. Directives the file uses without declaring them, such as Apollo Federation's `@key` or AppSync's `@aws_*`, are ignored.
 - **An introspection result** — the JSON produced by running the standard introspection query, either the raw `{ "__schema": … }` shape or the full `{ "data": { "__schema": … } }` response envelope.
 
 The `endpoint` is the live GraphQL API URL. A schema, unlike an OpenAPI document, names no server — so the endpoint is what the Try it panel and the generated code samples target. Leave it off and the samples render with a placeholder URL readers replace.

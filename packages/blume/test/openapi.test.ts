@@ -2199,7 +2199,7 @@ describe("snippets", () => {
     const [curl, js, python] = sampleLanguages(["curl", "js", "python"]).map(
       (language) => language.build(sample)
     );
-    expect(curl).toContain('curl -X POST "https://api.test/v1/pet/7');
+    expect(curl).toContain("curl -X POST 'https://api.test/v1/pet/7");
     expect(js).toContain("await fetch(");
     expect(python).toContain("import requests");
   });
@@ -2435,7 +2435,7 @@ describe("security", () => {
     const [curl] = sampleLanguages(["curl"]).map((language) =>
       language.build(sample)
     );
-    expect(curl).toContain('-H "Authorization: Bearer YOUR_TOKEN"');
+    expect(curl).toContain("-H 'Authorization: Bearer YOUR_TOKEN'");
   });
 
   it("appends a query API key to the sample URL", () => {

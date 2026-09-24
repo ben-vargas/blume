@@ -42,8 +42,8 @@ const buildModel = (overrides: Partial<ModelArgs> = {}) =>
     ...overrides,
   });
 
-const CURL_FIRST = /^curl -X (?<method>\S+) "(?<url>[^"]+)"$/u;
-const CURL_HEADER = /^ {2}-H "(?<key>[^:]+): (?<value>.*)"$/u;
+const CURL_FIRST = /^curl -X (?<method>\S+) '(?<url>[^']+)'$/u;
+const CURL_HEADER = /^ {2}-H '(?<key>[^:]+): (?<value>.*)'$/u;
 const CURL_BODY = /^ {2}-d '(?<body>[\s\S]*)'$/u;
 
 /**

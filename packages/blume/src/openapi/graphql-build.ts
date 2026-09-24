@@ -1,4 +1,5 @@
 import type {
+  DocumentNode,
   GraphQLArgument,
   GraphQLEnumType,
   GraphQLField,
@@ -12,8 +13,8 @@ import type {
   GraphQLUnionType,
 } from "graphql";
 import {
+  buildASTSchema,
   buildClientSchema,
-  buildSchema,
   getNamedType,
   isEnumType,
   isInputObjectType,
@@ -21,7 +22,11 @@ import {
   isObjectType,
   isSpecifiedScalarType,
   isUnionType,
+  Kind,
+  parse,
   print,
+  specifiedDirectives,
+  visit,
 } from "graphql";
 
 import type {
@@ -260,6 +265,27 @@ const introspectionOf = <Value>(parsed: Value): object | undefined => {
 };
 
 /**
+ * SDL with every use of an undeclared directive removed. Subgraph and platform
+ * schemas lean on directives their server defines out of band — Apollo
+ * Federation's `@key` and `@link`, AppSync's `@aws_*` — and strict SDL
+ * validation rejects each one as `Unknown directive`. The reference renders
+ * none of them, so they are dropped rather than declared; every other check
+ * (syntax, unknown types, duplicates) still runs.
+ */
+const withoutUnknownDirectives = (document: DocumentNode): DocumentNode => {
+  const known = new Set(specifiedDirectives.map((directive) => directive.name));
+  for (const definition of document.definitions) {
+    if (definition.kind === Kind.DIRECTIVE_DEFINITION) {
+      known.add(definition.name.value);
+    }
+  }
+  return visit(document, {
+    // `null` deletes the node; `undefined` leaves it in place.
+    Directive: (node) => (known.has(node.name.value) ? undefined : null),
+  });
+};
+
+/**
  * Build the document from schema text: an introspection JSON result (the raw
  * `{ __schema }` shape or a `{ data: { __schema } }` response envelope) or
  * SDL. Anything else throws — JSON that isn't an introspection result names
@@ -289,5 +315,5 @@ export const buildGraphqlDocument = (text: string): GraphqlDocument => {
       )
     );
   }
-  return documentOf(buildSchema(text));
+  return documentOf(buildASTSchema(withoutUnknownDirectives(parse(text))));
 };

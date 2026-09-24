@@ -299,10 +299,12 @@ describe("asyncapi.extractAsyncApiOperations", () => {
       tag: "ping",
     });
 
-    // Declared info.tags metadata flows onto the extracted tag.
+    // Declared info.tags metadata flows onto the extracted tag, and declared
+    // tags lead in their declared order; the channel-address fallback group
+    // follows.
     expect(tags).toStrictEqual([
-      { description: "", name: "ping", slug: "ping" },
       { description: "User events", name: "Users", slug: "users" },
+      { description: "", name: "ping", slug: "ping" },
     ]);
   });
 

@@ -1,6 +1,10 @@
 import type { Document, OperationObject } from "@scalar/openapi-types/3.1";
 
-import type { AsyncApiAction, AsyncApiDocument } from "./asyncapi.ts";
+import type {
+  AsyncApiAction,
+  AsyncApiDocument,
+  AsyncApiSpecValue,
+} from "./asyncapi.ts";
 // Type-only, so the import can't cycle at runtime (graphql.ts imports the
 // collector from here).
 import type { GraphqlDocument, GraphqlMember } from "./graphql.ts";
@@ -99,7 +103,10 @@ export interface ApiOperationRef {
   channelId?: string;
 }
 
-/** A tag/section, in first-seen order. */
+/**
+ * A tag/section: the spec's declared tags in their declared order, then any
+ * undeclared tag an operation uses, in first-seen order.
+ */
 export interface ApiTagRef {
   slug: string;
   name: string;
@@ -212,6 +219,40 @@ export const specAddresses = (spec: ApiSpecData): SpecAddresses => {
   return { addresses, label: "Base URL" };
 };
 
+const SERVER_VARIABLE = /\{(?<name>[^{}]+)\}/gu;
+
+const isDocumentObject = (
+  value: AsyncApiSpecValue
+): value is Record<string, AsyncApiSpecValue> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+// YAML reads an unquoted `default: 8443` as a number; it is still the port.
+const isVariableDefault = (
+  value: AsyncApiSpecValue
+): value is string | number =>
+  typeof value === "string" || typeof value === "number";
+
+/**
+ * A server URL template — an OpenAPI `servers[].url`, an AsyncAPI server's
+ * `host` or `pathname` — with each `{variable}` replaced by the `default` its
+ * `variables` map declares. Code samples, the playground's Send, and the
+ * proxy allowlist all need a real address, and
+ * `https://{region}.api.example.com` is not one. A variable the map doesn't
+ * define with a default (invalid per both specs) stays templated.
+ */
+export const withServerDefaults = (
+  template: string,
+  variables: AsyncApiSpecValue
+): string =>
+  template.replaceAll(SERVER_VARIABLE, (match, name: string) => {
+    const variable =
+      isDocumentObject(variables) && Object.hasOwn(variables, name)
+        ? variables[name]
+        : undefined;
+    const value = isDocumentObject(variable) ? variable.default : undefined;
+    return isVariableDefault(value) ? String(value) : match;
+  });
+
 // The runtime object check stands guard because the document was parsed from
 // arbitrary YAML/JSON: a spec can put a scalar where the type promises an
 // operation object.
@@ -276,9 +317,10 @@ export interface ExtractedOperations extends CollectedOperations {
 
 /**
  * The collector behind both extractors (OpenAPI here, AsyncAPI in
- * `asyncapi.ts`): first-seen tag ordering, key de-duplication (a repeated key
- * gains its method/action as a suffix), and the shared route template — so
- * URL shape and slug rules can never drift between the two spec kinds.
+ * `asyncapi.ts`): declared-then-first-seen tag ordering, key de-duplication
+ * (a repeated key gains its method/action as a suffix), and the shared route
+ * template — so URL shape and slug rules can never drift between the two spec
+ * kinds.
  */
 export const operationCollector = (
   baseRoute: string,
@@ -310,15 +352,27 @@ export const operationCollector = (
     });
   };
 
+  // Declared tags in the order the spec's `tags` list gives them, then any
+  // tag an operation uses without declaring it, in first-use order. The
+  // declared order is the author's section order, not an accident of which
+  // path happens to come first.
+  const declared = [...tagMeta.keys()];
+  const rank = (name: string): number => {
+    const index = declared.indexOf(name);
+    return index === -1 ? declared.length : index;
+  };
+
   const finish = (): CollectedOperations => ({
     operations,
-    tags: tagOrder.map((name) => ({
-      description: tagMeta.get(name) ?? "",
-      name,
-      // The same slugger instance, so every tag resolves to the slug its
-      // operations were routed under.
-      slug: slugForTag(name),
-    })),
+    tags: tagOrder
+      .toSorted((a, b) => rank(a) - rank(b))
+      .map((name) => ({
+        description: tagMeta.get(name) ?? "",
+        name,
+        // The same slugger instance, so every tag resolves to the slug its
+        // operations were routed under.
+        slug: slugForTag(name),
+      })),
   });
 
   return { add, finish };
@@ -328,7 +382,8 @@ export const operationCollector = (
  * Flatten a 3.1 document into a route-mapped operation list and its ordered
  * tags. Operations inherit the first tag they declare; keys are de-duplicated so
  * a repeated `operationId` still yields distinct routes. `warnings` reports
- * anything skipped (a `$ref` path item), so missing operations aren't silent.
+ * anything skipped (a `$ref` path item, webhooks), so missing operations
+ * aren't silent.
  */
 export const extractOperations = (
   document: ApiDocument,
@@ -369,6 +424,15 @@ export const extractOperations = (
         tag: operation.tags?.[0] ?? UNTAGGED,
       });
     }
+  }
+
+  // OpenAPI 3.1 webhooks (requests the API sends, not ones it serves) have no
+  // page renderer; say so rather than dropping them silently.
+  const webhooks = Object.keys(document.webhooks ?? {});
+  if (webhooks.length > 0) {
+    warnings.push(
+      `The spec declares ${webhooks.length === 1 ? "a webhook" : `${webhooks.length} webhooks`} under "webhooks" (${webhooks.join(", ")}); webhooks aren't rendered, so they are missing from the reference.`
+    );
   }
 
   return { ...collector.finish(), warnings };

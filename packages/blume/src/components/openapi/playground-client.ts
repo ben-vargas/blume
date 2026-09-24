@@ -155,6 +155,36 @@ const prettyBody = (text: string): string => {
   }
 };
 
+/*
+ * Remembered credentials are a convenience, never a requirement. With storage
+ * blocked (Safari's "Block All Cookies", a sandboxed iframe) even reading the
+ * `localStorage` global throws a SecurityError, which would take the whole
+ * panel down during init; each access is guarded so the form simply forgets.
+ */
+const readStored = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+const writeStored = (key: string, value: string): void => {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Blocked or full storage: the credentials stay in the form only.
+  }
+};
+
+const removeStored = (key: string): void => {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // Blocked storage never held the entry in the first place.
+  }
+};
+
 /** A one-line text element for the response/error regions. */
 const line = (className: string, text: string): HTMLElement => {
   const el = document.createElement("div");
@@ -316,7 +346,7 @@ export const initPlayground = (root: HTMLElement): void => {
 
   /** Restore remembered credentials into the inputs and re-check the box. */
   const restoreAuth = (): void => {
-    const stored = localStorage.getItem(storageKey);
+    const stored = readStored(storageKey);
     if (!stored) {
       return;
     }
@@ -355,7 +385,7 @@ export const initPlayground = (root: HTMLElement): void => {
       }
     } catch {
       // A corrupt entry (older format, manual edit) must not break init.
-      localStorage.removeItem(storageKey);
+      removeStored(storageKey);
     }
   };
 
@@ -374,12 +404,12 @@ export const initPlayground = (root: HTMLElement): void => {
       )
     );
     const table = document.createElement("table");
-    table.className = "w-full text-left text-xs";
+    table.className = "w-full text-start text-xs";
     for (const [name, value] of res.headers) {
       const row = document.createElement("tr");
       const header = document.createElement("th");
       header.setAttribute("scope", "row");
-      header.className = "pr-3 align-top font-medium text-muted-foreground";
+      header.className = "pe-3 align-top font-medium text-muted-foreground";
       header.textContent = name;
       const cell = document.createElement("td");
       cell.className = "break-all font-mono text-foreground";
@@ -548,9 +578,9 @@ export const initPlayground = (root: HTMLElement): void => {
     }
     if (remember && target === remember) {
       if (remember.checked) {
-        localStorage.setItem(storageKey, JSON.stringify(collectAuth()));
+        writeStored(storageKey, JSON.stringify(collectAuth()));
       } else {
-        localStorage.removeItem(storageKey);
+        removeStored(storageKey);
       }
     } else if (
       remember?.checked &&
@@ -558,7 +588,7 @@ export const initPlayground = (root: HTMLElement): void => {
         target.dataset.authUsername !== undefined ||
         target.dataset.authPassword !== undefined)
     ) {
-      localStorage.setItem(storageKey, JSON.stringify(collectAuth()));
+      writeStored(storageKey, JSON.stringify(collectAuth()));
     }
     syncSamples();
   };

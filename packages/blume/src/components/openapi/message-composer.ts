@@ -199,6 +199,14 @@ export const initComposer = (root: HTMLElement): void => {
 
   const client = createWsClient({ onFrame: renderFrame, onState: renderState });
 
+  // A ClientRouter navigation swaps this panel out of the document without
+  // unloading the page, so a live socket would stay open behind the next page
+  // — and coming back and connecting again would open a second one. Every
+  // swap replaces the panel, so the first one closes the socket for good.
+  document.addEventListener("astro:before-swap", () => client.disconnect(), {
+    once: true,
+  });
+
   connectButton?.addEventListener("click", () => {
     if (validatePayload().length > 0) {
       return;

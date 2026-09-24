@@ -62,7 +62,9 @@ const TAB_CLASS =
       </div>
       <blume-panel-tabs class="block overflow-hidden rounded-blume border border-border bg-background">
         <div class="flex items-center justify-between gap-2 border-border border-b px-3">
-          <div class="flex flex-wrap gap-4" role="tablist">
+          <div aria-label={heading} class="flex flex-wrap gap-4" role="tablist">
+            {/* Roving tabindex: only the selected tab is in the Tab order, and
+                the arrow keys, Home, and End move between tabs (panel.ts). */}
             {panels.map((panel, index) => (
               <button
                 aria-controls={idFor("panel", panel.key)}
@@ -71,6 +73,7 @@ const TAB_CLASS =
                 data-panel-tab={panel.key}
                 id={idFor("tab", panel.key)}
                 role="tab"
+                tabindex={index === 0 ? "0" : "-1"}
                 type="button"
               >
                 {panel.label}

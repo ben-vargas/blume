@@ -18,22 +18,46 @@ class BlumePanelTabs extends HTMLElement {
 
     const activate = (key: string): void => {
       for (const tab of tabs) {
-        tab.setAttribute(
-          "aria-selected",
-          tab.dataset.panelTab === key ? "true" : "false"
-        );
+        const selected = tab.dataset.panelTab === key;
+        tab.setAttribute("aria-selected", selected ? "true" : "false");
+        // Roving tabindex: Tab reaches the selected tab only, the arrow keys
+        // move between the rest.
+        tab.tabIndex = selected ? 0 : -1;
       }
       for (const panel of panels) {
         panel.classList.toggle("hidden", panel.dataset.panel !== key);
       }
     };
 
-    for (const tab of tabs) {
+    for (const [index, tab] of tabs.entries()) {
       tab.addEventListener("click", () => {
         const key = tab.dataset.panelTab;
         if (key) {
           activate(key);
         }
+      });
+      // The WAI-ARIA tabs keyboard pattern, matching `<Tabs>`: arrows move and
+      // wrap, Home and End jump to the ends, and focus follows selection.
+      tab.addEventListener("keydown", (event) => {
+        const last = tabs.length - 1;
+        let next: number | undefined;
+        if (event.key === "ArrowRight") {
+          next = index === last ? 0 : index + 1;
+        } else if (event.key === "ArrowLeft") {
+          next = index === 0 ? last : index - 1;
+        } else if (event.key === "Home") {
+          next = 0;
+        } else if (event.key === "End") {
+          next = last;
+        }
+        const target = next === undefined ? undefined : tabs[next];
+        const key = target?.dataset.panelTab;
+        if (!(target && key)) {
+          return;
+        }
+        event.preventDefault();
+        activate(key);
+        target.focus();
       });
     }
 

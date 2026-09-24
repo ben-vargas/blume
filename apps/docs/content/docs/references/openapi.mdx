@@ -69,7 +69,7 @@ reference: [
 
 ## Try it playground
 
-Operation pages rendered natively ship an interactive **Try it** panel by default. Blume generates the form from the operation itself: an input per path, query, and header parameter, a body editor built from the request-body schema, everything prefilled from the spec's examples. A server picker lists the spec's `servers`, with a free-text field for any other base URL, and auth inputs match the operation's [resolved security](#authorization) — bearer token, API key, and basic credentials, with OAuth2 as a token paste field (bring an access token; Blume doesn't run the flow).
+Operation pages rendered natively ship an interactive **Try it** panel by default. Blume generates the form from the operation itself: an input per path, query, and header parameter, a body editor built from the request-body schema, everything prefilled from the spec's examples. A server picker lists the operation's servers (its own `servers`, else its path's, else the spec's, with each `{variable}` at its `default`), with a free-text field for any other base URL, and auth inputs match the operation's [resolved security](#authorization) — bearer token, API key, and basic credentials, with OAuth2 as a token paste field (bring an access token; Blume doesn't run the flow).
 
 The panel and the code samples stay in lockstep: values typed into the form update the generated samples live, so a copied curl command always matches exactly what **Send** would do. And it stays out of the way — the panel is server-rendered collapsed, and its JavaScript loads only when a reader first opens it. Readers who never touch it download none of it.
 
@@ -98,7 +98,7 @@ reference: [
 ],
 ```
 
-The built-in proxy only forwards requests to the origins your specs declare in `servers` — including across redirects — so a public docs deployment can't be aimed at other hosts on its network. A **Custom base URL** typed into the panel isn't a documented server: with the proxy enabled, requests to it are refused with a 403. It reads a request body only up to 4 MB (anything larger gets a `413`), and every response it relays carries `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff`, and `Cross-Origin-Resource-Policy: same-origin` — plus `Content-Disposition: attachment` for HTML or SVG — so an API error page that echoes its input can't run script on the docs origin.
+The built-in proxy only forwards requests to the origins your specs declare in `servers` (at the document, path, or operation level, with variables at their defaults) — including across redirects — so a public docs deployment can't be aimed at other hosts on its network. A **Custom base URL** typed into the panel isn't a documented server: with the proxy enabled, requests to it are refused with a 403. It reads a request body only up to 4 MB (anything larger gets a `413`), and every response it relays carries `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff`, and `Cross-Origin-Resource-Policy: same-origin` — plus `Content-Disposition: attachment` for HTML or SVG — so an API error page that echoes its input can't run script on the docs origin.
 
 ## Multiple specs
 

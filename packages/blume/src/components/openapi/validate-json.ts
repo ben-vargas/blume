@@ -74,7 +74,7 @@ const walk = (
   path: string,
   errors: string[]
 ): void => {
-  if (!schema) {
+  if (!schema || (value === null && schema.nullable === true)) {
     return;
   }
   if (schema.type !== undefined && !matchesType(value, schema.type)) {

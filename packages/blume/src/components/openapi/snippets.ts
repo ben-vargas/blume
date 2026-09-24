@@ -22,26 +22,42 @@ const headerLines = (
 ): string[] =>
   Object.entries(headers).map(([key, value]) => format(key, value));
 
+/**
+ * A single-quoted POSIX shell word. Nothing expands inside single quotes — no
+ * `$`, backtick, `!`, or `\` — so a value reaches curl byte for byte; a
+ * literal `'` closes the quote, adds an escaped one, and reopens it.
+ */
+const shellQuote = (value: string): string =>
+  `'${value.replaceAll("'", String.raw`'\''`)}'`;
+
+/**
+ * A double-quoted string literal for the JavaScript and Python samples. JSON's
+ * string escapes are a subset of both languages' — a quote in a header value
+ * (`If-Match: "33a64df5"`) or a backslash becomes an escape rather than
+ * ending the literal early.
+ */
+const stringLiteral = (value: string): string => JSON.stringify(value);
+
 const curlSnippet = (sample: RequestSample): string => {
   const lines = [
-    `curl -X ${sample.method} "${sample.url}"`,
-    ...headerLines(sample.headers, (key, value) => `  -H "${key}: ${value}"`),
+    `curl -X ${sample.method} ${shellQuote(sample.url)}`,
+    ...headerLines(
+      sample.headers,
+      (key, value) => `  -H ${shellQuote(`${key}: ${value}`)}`
+    ),
   ];
   if (sample.body) {
-    // Close-quote/escaped-quote/reopen: the POSIX way to put a literal ' in a
-    // single-quoted string, so an example like "it's" doesn't break the shell.
-    const escapedBody = sample.body.replaceAll("'", String.raw`'\''`);
-    lines.push(`  -d '${escapedBody}'`);
+    lines.push(`  -d ${shellQuote(sample.body)}`);
   }
   return lines.join(" \\\n");
 };
 
 const fetchSnippet = (sample: RequestSample): string => {
-  const options = [`  method: "${sample.method}"`];
+  const options = [`  method: ${stringLiteral(sample.method)}`];
   if (Object.keys(sample.headers).length > 0) {
     const headers = headerLines(
       sample.headers,
-      (key, value) => `    "${key}": "${value}"`
+      (key, value) => `    ${stringLiteral(key)}: ${stringLiteral(value)}`
     ).join(",\n");
     options.push(`  headers: {\n${headers}\n  }`);
   }
@@ -53,28 +69,27 @@ const fetchSnippet = (sample: RequestSample): string => {
     // and an id past 2^53 loses digits through a JS number. The string
     // literal also stays syntactically valid while the editor holds mid-edit
     // text that isn't JSON yet.
-    options.push(`  body: ${JSON.stringify(sample.body)}`);
+    options.push(`  body: ${stringLiteral(sample.body)}`);
   }
-  return `const response = await fetch("${sample.url}", {\n${options.join(
+  return `const response = await fetch(${stringLiteral(sample.url)}, {\n${options.join(
     ",\n"
   )}\n});`;
 };
 
 const pythonSnippet = (sample: RequestSample): string => {
-  const args = [`    "${sample.url}"`];
+  const args = [`    ${stringLiteral(sample.url)}`];
   if (Object.keys(sample.headers).length > 0) {
     const headers = headerLines(
       sample.headers,
-      (key, value) => `        "${key}": "${value}"`
+      (key, value) => `        ${stringLiteral(key)}: ${stringLiteral(value)}`
     ).join(",\n");
     args.push(`    headers={\n${headers}\n    }`);
   }
   if (sample.body) {
     // Same rule as the fetch snippet: the raw text travels as a string via
-    // `data=` (JSON string escapes are a subset of Python's, so the literal is
-    // valid) rather than a `json=` dict — a Python literal re-serializes
+    // `data=` rather than a `json=` dict — a Python literal re-serializes
     // `1e400` as `Infinity` and would otherwise diverge from the live send.
-    args.push(`    data=${JSON.stringify(sample.body)}`);
+    args.push(`    data=${stringLiteral(sample.body)}`);
   }
   return `import requests\n\nresponse = requests.${sample.method.toLowerCase()}(\n${args.join(
     ",\n"

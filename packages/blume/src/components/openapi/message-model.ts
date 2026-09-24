@@ -2,6 +2,7 @@ import type {
   AsyncApiAction,
   AsyncApiServerObject,
 } from "../../openapi/asyncapi.ts";
+import { withServerDefaults } from "../../openapi/model.ts";
 import type { AsyncApiMessageLike, NamedMessage } from "./async.ts";
 import { payloadSchema } from "./async.ts";
 import { exampleValue, toJson } from "./helpers.ts";
@@ -78,9 +79,18 @@ const messagePayload = (
 /**
  * A server's base URL for the picker. Falls back to the bare host when the
  * spec omits `protocol` — a label is a label, and the snippet builders read
- * the server object itself rather than this string.
+ * the server object itself rather than this string. Server variables in the
+ * host and pathname (`{env}.events.example.com`) resolve to their declared
+ * defaults, in the label and in the object the samples and connect URL read.
  */
-const serverOption = (server: AsyncApiServerObject): MessageServerOption => {
+const serverOption = (spec: AsyncApiServerObject): MessageServerOption => {
+  const server = { ...spec };
+  if (spec.host !== undefined) {
+    server.host = withServerDefaults(spec.host, spec.variables);
+  }
+  if (spec.pathname !== undefined) {
+    server.pathname = withServerDefaults(spec.pathname, spec.variables);
+  }
   const host = `${server.host ?? ""}${server.pathname ?? ""}`;
   return {
     label: server.protocol ? `${server.protocol}://${host}` : host,

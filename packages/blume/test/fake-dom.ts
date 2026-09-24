@@ -199,7 +199,39 @@ const fakeStorage = {
   },
 };
 
+/** Listeners the clients registered on the fake `document`, by event type. */
+const documentListeners = new Map<
+  string,
+  { listener: () => void; once: boolean }[]
+>();
+
+/**
+ * Dispatch `type` on the fake `document` (say, the ClientRouter's
+ * `astro:before-swap`), dropping `once` listeners after they run as a browser
+ * does.
+ */
+export const fireDocument = (type: string): void => {
+  const entries = documentListeners.get(type) ?? [];
+  documentListeners.set(
+    type,
+    entries.filter((entry) => !entry.once)
+  );
+  for (const entry of entries) {
+    entry.listener();
+  }
+};
+
 const fakeDocument = {
+  addEventListener: (
+    type: string,
+    listener: () => void,
+    options?: { once?: boolean }
+  ) => {
+    documentListeners.set(type, [
+      ...(documentListeners.get(type) ?? []),
+      { listener, once: options?.once === true },
+    ]);
+  },
   createElement: (tag: string) => new FakeEl(tag),
   // Fallback scope when no wrapper element (e.g. [data-operation-panel]) is
   // above the root a client was handed.
@@ -255,7 +287,9 @@ export const installFakeDom = (options: FakeDomOptions = {}): (() => void) => {
       }
     }
     // The storage map is module-level, so entries a suite persisted would
-    // otherwise leak into the next suite's "fresh" localStorage.
+    // otherwise leak into the next suite's "fresh" localStorage — and the
+    // same goes for document listeners.
     storage.clear();
+    documentListeners.clear();
   };
 };

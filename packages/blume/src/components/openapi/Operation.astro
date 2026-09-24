@@ -6,8 +6,13 @@ import {
   type ParameterLike,
   resolveComponentRef,
   type SchemaLike,
+  type SpecValue,
 } from "./helpers.ts";
-import { operationModel } from "./operation-model.ts";
+import {
+  effectiveServers,
+  operationModel,
+  type ServerLike,
+} from "./operation-model.ts";
 import { buildRequest, defaultValues } from "./request.ts";
 import {
   effectiveSecurity,
@@ -35,7 +40,8 @@ interface Props {
 
 interface MediaTypeLike {
   schema?: SchemaLike;
-  example?: unknown;
+  example?: SpecValue;
+  examples?: SpecValue;
 }
 
 interface RequestBodyLike {
@@ -59,6 +65,7 @@ interface FullOperation {
   requestBody?: RequestBodyLike;
   responses?: Record<string, ResponseLike>;
   security?: SecurityRequirementLike[];
+  servers?: ServerLike[];
 }
 
 const { source, id } = Astro.props;
@@ -73,7 +80,10 @@ const isGraphql = spec?.kind === "graphql";
 const doc = (spec?.document ?? {}) as {
   paths?: Record<
     string,
-    Record<string, unknown> & { parameters?: ParameterLike[] }
+    Record<string, unknown> & {
+      parameters?: ParameterLike[];
+      servers?: ServerLike[];
+    }
   >;
   components?: {
     schemas?: Record<string, SchemaLike>;
@@ -83,7 +93,7 @@ const doc = (spec?.document ?? {}) as {
     securitySchemes?: Record<string, SecuritySchemeLike>;
   };
   security?: SecurityRequirementLike[];
-  servers?: { url?: string }[];
+  servers?: ServerLike[];
 };
 const pathItem = ref ? doc.paths?.[ref.path] : undefined;
 const operation = (
@@ -123,7 +133,13 @@ const model =
         requestBody,
         schemas,
         security,
-        servers: doc.servers ?? [],
+        // An operation's own `servers` override its path item's, which
+        // override the document's.
+        servers: effectiveServers(
+          operation.servers,
+          pathItem?.servers,
+          doc.servers
+        ),
       })
     : null;
 const sample = model ? buildRequest(model, defaultValues(model)) : null;

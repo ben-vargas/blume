@@ -90,6 +90,9 @@ const codeSpans = (text: string, tree: Root): [number, number][] => {
   return spans;
 };
 
+/** Stands in for `<` when locating code spans (see `mdxSafe`). */
+const HTML_MASK = "";
+
 /**
  * Escape MDX-special syntax in prose while leaving code verbatim. A spec is
  * someone else's content, so a link whose destination isn't a web, mail, or
@@ -101,8 +104,14 @@ const mdxSafe = (text: string): string => {
   const unsafe = unsafeLinkSpans(tree);
   const insideUnsafe = (offset: number): boolean =>
     unsafe.some((span) => offset >= span.start && offset < span.end);
+  // Code spans come from a parse with every `<` masked. The emitted MDX
+  // escapes each `<` outside code to `&lt;`, so no line of it is an HTML
+  // block — but CommonMark reads `<div>` as one and never looks for the code
+  // spans inside it, which would leave their braces to be escaped and shown
+  // as a literal `&#123;`. The mask is one code unit, so offsets line up.
+  const masked = text.replaceAll("<", HTML_MASK);
   const segments = [
-    ...codeSpans(text, tree)
+    ...codeSpans(masked, fromMarkdown(masked))
       .filter(([start]) => !insideUnsafe(start))
       .map(([start, end]) => ({ end, start, text: text.slice(start, end) })),
     ...unsafe,

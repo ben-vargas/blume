@@ -37,6 +37,8 @@ export interface PlaygroundBodyField {
 /** A pruned, cycle-free JSON-schema subset `validate-json.ts` understands. */
 export interface ValidationSchema {
   type?: string;
+  /** `null` is also accepted: 3.0 `nullable`, or `"null"` in a 3.1 type array. */
+  nullable?: boolean;
   properties?: Record<string, ValidationSchema>;
   required?: string[];
   items?: ValidationSchema;

@@ -1,4 +1,6 @@
+import { withServerDefaults } from "../../openapi/model.ts";
 import {
+  declaredExample,
   exampleValue,
   objectProperties,
   resolveSchema,
@@ -30,8 +32,29 @@ import type { OperationSecurity, ResolvedScheme } from "./security.ts";
 
 interface MediaTypeLike {
   schema?: SchemaLike;
-  example?: unknown;
+  example?: SpecValue;
+  examples?: SpecValue;
 }
+
+/** A server entry: its URL template and the variables that fill it. */
+export interface ServerLike {
+  url?: string;
+  variables?: SpecValue;
+}
+
+/**
+ * The servers an operation is sent to: its own `servers` when it declares
+ * any, else its path item's, else the document's — each level overrides the
+ * one above it, as the OpenAPI spec defines.
+ */
+export const effectiveServers = (
+  operation: ServerLike[] | undefined,
+  pathItem: ServerLike[] | undefined,
+  document: ServerLike[] | undefined
+): ServerLike[] =>
+  [operation, pathItem, document].find(
+    (servers) => Array.isArray(servers) && servers.length > 0
+  ) ?? [];
 
 /** Primitive types the flat-body fields UI can edit directly. */
 const PRIMITIVE_TYPES = {
@@ -78,7 +101,9 @@ const modelParams = (
       required,
       type: scalarType(param.schema, schemas),
       value: required
-        ? inputValue(param.example ?? exampleValue(param.schema, schemas))
+        ? inputValue(
+            declaredExample(param) ?? exampleValue(param.schema, schemas)
+          )
         : "",
     });
   }
@@ -127,7 +152,12 @@ const bodyFields = (
       description: propertySchema.description,
       enum: propertySchema.enum?.map(String),
       name,
-      required: required.has(name),
+      // A `readOnly` property's `required` binds responses only: a request
+      // shouldn't send the server-generated field at all.
+      required:
+        required.has(name) &&
+        property.readOnly !== true &&
+        propertySchema.readOnly !== true,
       type,
       value: inputValue(defaults?.[name]),
     });
@@ -145,10 +175,8 @@ const modelBody = (
     return undefined;
   }
   const [contentType, mediaType] = media;
-  // SAFETY: `example` comes from the parsed spec document (YAML/JSON), whose
-  // values are exactly the JSON-shaped tree `SpecValue` models.
   const exampleData =
-    (mediaType.example as SpecValue) ?? exampleValue(mediaType.schema, schemas);
+    declaredExample(mediaType) ?? exampleValue(mediaType.schema, schemas);
   return {
     contentType,
     example: toJson(exampleData) ?? "",
@@ -241,7 +269,8 @@ export const operationModel = (args: {
   /** Pre-merged/resolved (`mergeParameters` output). */
   parameters: ParameterLike[];
   requestBody?: { content?: Record<string, MediaTypeLike> };
-  servers: { url?: string }[];
+  /** The operation's effective servers (`effectiveServers` output). */
+  servers: ServerLike[];
   schemas: Record<string, SchemaLike>;
   security: OperationSecurity;
 }): PlaygroundModel => ({
@@ -256,5 +285,8 @@ export const operationModel = (args: {
   method: args.method.toUpperCase(),
   params: modelParams(args.parameters, args.schemas),
   path: args.path,
-  servers: args.servers.map((server) => server.url ?? ""),
+  // Variables resolve to their defaults: the samples and Send need a real URL.
+  servers: args.servers.map((server) =>
+    withServerDefaults(server.url ?? "", server.variables)
+  ),
 });

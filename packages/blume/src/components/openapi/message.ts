@@ -40,7 +40,10 @@ export interface MessagePayload {
 export interface MessageServerOption {
   /** `protocol://host+pathname` — what the reader picks between. */
   label: string;
-  /** The spec server, verbatim; the snippet builders read host/pathname/protocol. */
+  /**
+   * The spec server with its host/pathname variables at their defaults; the
+   * snippet builders read host/pathname/protocol.
+   */
   server: AsyncApiServerObject;
 }
 
