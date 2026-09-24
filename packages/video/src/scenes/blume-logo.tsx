@@ -12,7 +12,7 @@ import {
 // it. Each `d` is paired with a bloom `order` so the center pops first and the
 // ring sweeps in clockwise. Paths use `currentColor`, so the mark takes its
 // color from the svg's `color`.
-const DOTS: { d: string; order: number }[] = [
+export const BLUME_DOTS: { d: string; order: number }[] = [
   // center
   {
     d: "M143.797 114.433C168.964 114.433 189.366 134.835 189.366 160.002C189.366 185.169 168.964 205.572 143.797 205.572C118.63 205.572 98.2275 185.169 98.2275 160.002C98.2277 134.835 118.63 114.433 143.797 114.433Z",
@@ -108,7 +108,7 @@ export const BlumeLogo = ({
 
   const wordmarkStyle = {
     color,
-    filter: `blur(${wordBlur}px)`,
+    filter: wordBlur > 0.05 ? `blur(${wordBlur}px)` : "none",
     fontFamily:
       "var(--font-geist-sans), -apple-system, BlinkMacSystemFont, sans-serif",
     fontSize: wordmarkSize,
@@ -129,7 +129,7 @@ export const BlumeLogo = ({
         style={{ color, overflow: "visible" }}
         aria-label={wordmark}
       >
-        {DOTS.map((dot) => {
+        {BLUME_DOTS.map((dot) => {
           const local = frame - dot.order * dotStagger;
           const s = spring({
             config: { damping: 12, mass: 0.6, stiffness: 200 },
@@ -141,7 +141,13 @@ export const BlumeLogo = ({
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
           });
-          const blur = interpolate(s, [0, 1], [7, 0]);
+          // Blur on the clock, not the spring: the spring overshoots past 1,
+          // and a blur that dips negative (invalid, so no filter) and back
+          // flickers each dot between crisp and soft as it settles.
+          const blur = interpolate(local, [0, 5], [7, 0], {
+            extrapolateLeft: "clamp",
+            extrapolateRight: "clamp",
+          });
           return (
             <path
               key={dot.order}
@@ -150,7 +156,7 @@ export const BlumeLogo = ({
               stroke="currentColor"
               strokeWidth={2.02532}
               style={{
-                filter: `blur(${blur}px)`,
+                filter: blur > 0.05 ? `blur(${blur}px)` : "none",
                 opacity,
                 transform: `scale(${scale})`,
                 transformBox: "fill-box",

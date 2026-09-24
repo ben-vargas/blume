@@ -12,6 +12,10 @@ import {
   TRANSLATE_VIDEO_DURATION,
   TranslateVideo,
 } from "./translate-composition";
+import {
+  V2_LAUNCH_VIDEO_DURATION,
+  V2LaunchVideo,
+} from "./v2-launch-composition";
 
 export const RemotionRoot: React.FC = () => (
   <>
@@ -51,6 +55,14 @@ export const RemotionRoot: React.FC = () => (
       id="AgentReadyVideo"
       component={AgentReadyVideo}
       durationInFrames={AGENT_READY_VIDEO_DURATION}
+      fps={30}
+      width={1920}
+      height={1080}
+    />
+    <Composition
+      id="V2LaunchVideo"
+      component={V2LaunchVideo}
+      durationInFrames={V2_LAUNCH_VIDEO_DURATION}
       fps={30}
       width={1920}
       height={1080}
