@@ -1,0 +1,312 @@
+---
+title: Upgrade to Blume 2
+description: Move a Blume 1 site to Blume 2 with one command, then use this guide for each config change — or hand the whole upgrade to Claude Code or Codex.
+sidebar:
+  label: Upgrade to Blume 2
+  order: 2.5
+---
+
+Blume 2 changes configuration, not content: your Markdown and MDX pages need no edits. Settings that used to be a named string or a keyed block — the search provider, the deployment target, content sources, API references, analytics, and the Ask AI backend — are now **adapters** you import from a `blume/*` subpath and call. The machine-readable settings move from `ai` to a new `agents` key, and `components.ts` overrides are checked before the build. A zero-config site, or one that sets none of these, only needs the version bump.
+
+## Upgrade with one command
+
+Run the upgrade from your project, the folder with `blume.config.ts`:
+
+```package-install
+npx blume@latest upgrade
+```
+
+It bumps `blume` in your `package.json` to 2, installs it with the package manager your project uses, then checks your config and `components.ts` against Blume 2. Every change that's still needed is listed with its file, line, and replacement, and the command exits non-zero until none are left. Run it through `npx blume@latest` rather than `blume`: the command ships in Blume 2, so a project still on 1 doesn't have it yet.
+
+To hand the changes to a coding agent instead, add `--claude` or `--codex`:
+
+```package-install
+npx blume@latest upgrade --claude
+```
+
+The agent opens interactively with the findings and this guide, applies each change, and runs `blume doctor` and `blume build` until both pass, so you review every edit through its own permission flow. Pass `--no-install` to bump `package.json` without installing.
+
+The sections below cover each change, for upgrading by hand or checking what the agent did.
+
+## Search
+
+`search` takes an adapter from `blume/search` instead of a `provider` string with a credentials block. The default local search needs no change.
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  search: {
+    provider: "algolia",
+    algolia: { appId: "APP_ID", indexName: "docs", searchApiKey: "SEARCH_KEY" },
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { algolia } from "blume/search";
+
+export default defineConfig({
+  search: algolia({ appId: "APP_ID", indexName: "docs", apiKey: "SEARCH_KEY" }),
+});
+```
+
+</CodeGroup>
+
+- Orama Cloud, Typesense, and Mixedbread map the same way to `oramaCloud()`, `typesense()`, and `mixedbread()`. The search-only key is `apiKey` in every adapter; admin keys stay in their env vars (`ALGOLIA_ADMIN_API_KEY`, `ORAMA_PRIVATE_API_KEY`, `TYPESENSE_ADMIN_API_KEY`, `MIXEDBREAD_API_KEY`).
+- `provider: "pagefind"` becomes `pagefind()`, and `provider: "none"` becomes `search: false`.
+- To keep `popular` links or `indexing` options, wrap the adapter: `search: { provider: algolia({ … }), popular: […] }`.
+
+## Deployment
+
+`deployment` takes a host adapter from `blume/deploy` instead of `adapter` and `output` fields. `site` and `base` move into the adapter's options.
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  deployment: {
+    adapter: "vercel",
+    output: "server",
+    site: "https://docs.example.com",
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { vercel } from "blume/deploy";
+
+export default defineConfig({
+  deployment: vercel({ site: "https://docs.example.com" }),
+});
+```
+
+</CodeGroup>
+
+- `netlify()`, `cloudflare()`, and `node()` work the same way. Naming a host adapter switches to server output; pass `output: "static"` to keep a static build with that host's platform files.
+- A config that only sets `site` or `base` stays as it is: `deployment: { site, base }` is still the static form.
+- The `--adapter`, `--output`, and `--base` flags on `blume build` are gone. Set the adapter in `blume.config.ts`, and name it explicitly: server output is no longer inferred from the platform's environment.
+
+See [Deployment](/docs/deployment) for each adapter's options.
+
+## Content sources
+
+Each `content.sources` entry is an adapter from `blume/sources` instead of a `{ type }` object.
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  content: {
+    sources: [
+      { type: "filesystem", root: "content" },
+      {
+        type: "github-releases",
+        owner: "acme",
+        repo: "sdk",
+        prefix: "changelog",
+      },
+    ],
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { filesystem, githubReleases } from "blume/sources";
+
+export default defineConfig({
+  content: {
+    sources: [
+      filesystem({ root: "content" }),
+      githubReleases({ owner: "acme", repo: "sdk", prefix: "changelog" }),
+    ],
+  },
+});
+```
+
+</CodeGroup>
+
+- `mdx-remote`, `sanity`, `notion`, and `obsidian` become `mdxRemote()`, `sanity()`, `notion()`, and `obsidian()`, with every other field moving into the call unchanged. `{ type: "custom", source }` becomes `custom(source)`.
+- `content.root`, `content.include`, and `content.exclude` are still the shorthand for a single folder, but they can't sit beside `sources` any more. Move them into the `filesystem()` entry.
+
+## API references
+
+The top-level `openapi`, `asyncapi`, and `graphql` blocks become one `reference` list of adapters from `blume/reference`. Drop `enabled`.
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  openapi: { enabled: true, spec: "./openapi.yaml" },
+  graphql: {
+    enabled: true,
+    spec: "./schema.graphql",
+    endpoint: "https://api.example.com/graphql",
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { graphql, openapi } from "blume/reference";
+
+export default defineConfig({
+  reference: [
+    openapi({ spec: "./openapi.yaml" }),
+    graphql({
+      spec: "./schema.graphql",
+      endpoint: "https://api.example.com/graphql",
+    }),
+  ],
+});
+```
+
+</CodeGroup>
+
+- `asyncapi: { … }` becomes `asyncapi({ … })` with the same options.
+- `renderer: "scalar"` becomes its own `scalar({ spec, theme, … })` entry in the list, keeping the block's `route` and `sources`.
+- A block with `enabled: false` is simply left out of the list.
+
+## Analytics
+
+The `analytics` object becomes a list of adapters from `blume/analytics`.
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  analytics: {
+    posthog: { key: "phc_…" },
+    vercel: true,
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { posthog, vercel } from "blume/analytics";
+
+export default defineConfig({
+  analytics: [posthog({ key: "phc_…" }), vercel()],
+});
+```
+
+</CodeGroup>
+
+`cloudflare: { token }` becomes `cloudflare({ token })`, and each `scripts[]` entry becomes `script({ … })`.
+
+## Ask AI
+
+`ai.ask.provider` takes an adapter from `blume/ai`, which owns the model and the fields that went with it.
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: "openrouter",
+      model: "anthropic/claude-sonnet-4-5",
+      reasoning: "none",
+    },
+  },
+});
+```
+
+```ts title="Blume 2"
+import { defineConfig } from "blume";
+import { openrouter } from "blume/ai";
+
+export default defineConfig({
+  ai: {
+    ask: {
+      enabled: true,
+      provider: openrouter({
+        model: "anthropic/claude-sonnet-4-5",
+        reasoning: "none",
+      }),
+    },
+  },
+});
+```
+
+</CodeGroup>
+
+The adapters are `gateway()`, `openrouter()`, `llmgateway()`, `inkeep()`, and `openaiCompatible({ baseUrl, name, model, apiKeyEnv })`. `model`, `apiKeyEnv`, `baseUrl`, `headers`, and `reasoning` move into the adapter; `enabled`, `instructions`, `retrieval`, `suggestions`, `cors`, and `endpoint` stay on `ai.ask`. Leaving `provider` unset still uses the AI Gateway.
+
+## Agents and other config moves
+
+The machine-readable settings move from `ai` to a new `agents` key, and three smaller fields change shape.
+
+<CodeGroup>
+
+```ts title="Blume 1"
+export default defineConfig({
+  ai: { mcp: { enabled: true }, skills: "./skills" },
+  lastModified: true,
+  markdown: {
+    codeBlocks: { theme: { light: "github-light", dark: "github-dark" } },
+  },
+  theme: { layout: "sidebar" },
+});
+```
+
+```ts title="Blume 2"
+export default defineConfig({
+  agents: { mcp: { enabled: true }, skills: "./skills" },
+  lastModified: "git",
+  markdown: {
+    code: { theme: { light: "github-light", dark: "github-dark" } },
+  },
+});
+```
+
+</CodeGroup>
+
+- `ai.api`, `ai.catalog`, `ai.llmsTxt`, `ai.markdownComponents`, `ai.mcp`, `ai.skills`, `ai.webBotAuth`, and `ai.webmcp` become `agents.*`, and so do `seo.agentReadability` and `seo.contentSignals`. `ai` keeps only `ask` and `openInChat`.
+- `lastModified` is a flat value: `true` becomes `"git"`, and `{ type: "git" }` or `{ type: "frontmatter" }` becomes the bare string.
+- `markdown.codeBlocks` merges into `markdown.code`.
+- `theme.layout` is gone. Nothing read it, so delete it.
+
+## Component overrides
+
+Blume 2 checks every `components.ts` entry before the build instead of falling back at runtime. Each `mdx` and `layout` entry must be an imported component, a path string, or a `{ component, client, media }` object, and the `islands` group is gone: an `mdx` entry with a `client` mode is an island.
+
+<CodeGroup>
+
+```ts title="Blume 1"
+import { defineComponents } from "blume";
+import Counter from "./islands/Counter.tsx";
+
+export default defineComponents({
+  islands: { Counter },
+});
+```
+
+```ts title="Blume 2"
+import { defineComponents } from "blume";
+import Counter from "./islands/Counter.tsx";
+
+export default defineComponents({
+  mdx: { Counter: { component: Counter, client: "visible" } },
+});
+```
+
+</CodeGroup>
+
+An inline function, a component declared in `components.ts` itself, a spread, or a computed key now fails with `BLUME_COMPONENTS_INVALID`, naming the entry. Move the component into its own file and import it. The `islands/` folder convention works as before. See [Customization](/docs/configuration/customization) for the accepted forms.
+
+## Check your work
+
+Once `blume upgrade` reports nothing left to change, run the site's own checks:
+
+```bash
+blume doctor
+blume build
+```
+
+The full list of changes, with the reasoning behind each, is in the [changelog](/changelog).

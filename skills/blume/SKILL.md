@@ -18,16 +18,15 @@ The core idea: **the framework _is_ the template.** There's no starter to clone 
 
 ## Quickstart
 
-Blume needs **Node.js 22.12 or newer**. From an empty or existing project:
+Blume needs **Node.js 22.12 or newer**. From an empty folder:
 
 ```bash
-npm i blume      # install the package
-blume init       # scaffold: docs/index.mdx + blume.config.ts
-blume dev        # dev server with hot reload
-blume build      # static HTML to dist/, with a local search index
+npx blume init   # scaffold docs/index.mdx, blume.config.ts, and package.json scripts, then install
+npm run dev      # dev server with hot reload
+npm run build    # static HTML to dist/, with a local search index
 ```
 
-Blume works with any package manager and never requires you to set up Astro or Tailwind yourself.
+In a project that already has a `package.json`, `blume init` leaves it alone: add `"dev": "blume dev"` and `"build": "blume build"` to its scripts, or run `npx blume dev`. Blume works with any package manager and never requires you to set up Astro or Tailwind yourself.
 
 ### Writing a page
 
@@ -48,10 +47,20 @@ Blume ships callouts, cards, tabs, steps, and more.
 
 Navigation, search, and page metadata are inferred from your files as you add them.
 
+## Upgrading from Blume 1
+
+Blume 2 changes configuration, not content: search, deployment, content sources, API references, analytics, and the Ask AI backend become adapters imported from `blume/*` subpaths (`search: algolia({ … })` from `blume/search`), the machine-readable settings move from `ai` to `agents`, and `components.ts` entries must be static. From the folder with `blume.config.ts`, run:
+
+```bash
+npx blume@latest upgrade
+```
+
+It bumps `blume` in `package.json`, installs, and lists every config change still needed with its file, line, and replacement, exiting non-zero until none are left. (`--claude` or `--codex` hands that list to an agent CLI from a terminal.) When you are the agent doing the upgrade, work from that list and the upgrade guide, `docs/03-upgrading.mdx` in the installed package, which has before-and-after examples for every change. Keep the site's behavior the same, and verify with `blume doctor` and `blume build`.
+
 ## What's included
 
 - **Components** — callouts, cards, steps, tabs, accordions, badges, file trees, and parameter tables, usable in MDX with no imports.
-- **Local search** — Orama in dev and production; Pagefind is one flag away for large sites. No hosted index.
+- **Local search** — Orama in dev and production, with no hosted index; Pagefind, Algolia, and other backends are one adapter away (`search: pagefind()` from `blume/search`).
 - **AI** — `llms.txt`, raw Markdown URLs, a JSON docs API with an OpenAPI description, Copy as Markdown, Open in chat, an Ask AI assistant, and an MCP server endpoint served by the docs site itself.
 - **Navigation** — inferred from files, refined with `meta.ts` or config.
 - **SEO** — metadata, Open Graph images, RSS feeds, and JSON-LD.
@@ -72,4 +81,4 @@ This is a high-level overview. For complete, authoritative docs — configuratio
 node -e "console.log(require.resolve('blume/package.json'))"
 ```
 
-The docs sit in `docs/` next to that `package.json`. Start with `docs/index.mdx` (Introduction) and `docs/01-quickstart.mdx`, then browse the `configuration/`, `content/`, `reference/`, and `advanced/` sections for specifics.
+The docs sit in `docs/` next to that `package.json`. Start with `docs/index.mdx` (Introduction) and `docs/01-quickstart.mdx`, then browse the `configuration/`, `content/`, `references/`, and `advanced/` sections for specifics.

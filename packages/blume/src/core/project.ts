@@ -29,6 +29,10 @@ const firstExisting = (root: string, names: string[]): string | null => {
 export const findConfigFile = (root: string): string | null =>
   firstExisting(root, CONFIG_FILENAMES);
 
+/** Locate the project's `components.ts`/`.tsx` override file, if any. */
+export const findComponentsFile = (root: string): string | null =>
+  firstExisting(root, COMPONENTS_FILENAMES);
+
 /**
  * Resolve the generated runtime directory for a project. Defaults to
  * `<root>/.blume`; an override (e.g. `.blume-verify` for an isolated build that
@@ -67,7 +71,7 @@ export const resolveProjectContext = (
     : join(absoluteRoot, "dist");
 
   return {
-    componentsFile: firstExisting(absoluteRoot, COMPONENTS_FILENAMES),
+    componentsFile: findComponentsFile(absoluteRoot),
     configFile: findConfigFile(absoluteRoot),
     contentRoot,
     distDir,

@@ -621,7 +621,15 @@ const searchPopularLinkSchema = z.strictObject({
  * `runtimeDeps`, and `requiredSecrets` without a special case.
  */
 const searchProviderSchema = z
-  .custom<false | SearchAdapterInput>()
+  .custom<false | SearchAdapterInput>(
+    // A 1.x provider name (`"algolia"`, `"none"`) fails here with the adapter
+    // that replaces it, rather than the pipe's bare "expected object".
+    (value) => value === false || isObjectLike(value),
+    {
+      message:
+        'search.provider takes an adapter from "blume/search" — algolia({…}), pagefind(), … — not a provider name. The 1.x provider string was removed, and "none" is now `search: false`.',
+    }
+  )
   .transform((value) => (value === false ? NONE_SEARCH_ADAPTER : value))
   .pipe(resolvedSearchAdapterSchema);
 
@@ -634,12 +642,25 @@ const searchIndexingSchema = z
   .prefault({});
 
 /** The object form of `search`: the adapter plus its adapter-independent settings. */
-const searchOptionsSchema = z.strictObject({
-  indexing: searchIndexingSchema,
-  /** Curated links for the Cmd+K empty state; defaults to the first sidebar pages. */
-  popular: z.array(searchPopularLinkSchema).default([]),
-  provider: searchProviderSchema.default(() => orama()),
-});
+const searchOptionsSchema = z.strictObject(
+  {
+    indexing: searchIndexingSchema,
+    /** Curated links for the Cmd+K empty state; defaults to the first sidebar pages. */
+    popular: z.array(searchPopularLinkSchema).default([]),
+    provider: searchProviderSchema.default(() => orama()),
+  },
+  // The 1.x credential blocks, each now its adapter's options.
+  removedKeysHint({
+    algolia:
+      'search.algolia moved into its adapter: `search: algolia({ appId, indexName, apiKey })` from "blume/search", where the 1.x `searchApiKey` is now `apiKey`.',
+    mixedbread:
+      'search.mixedbread moved into its adapter: `search: mixedbread({ storeId })` from "blume/search".',
+    oramaCloud:
+      'search.oramaCloud moved into its adapter: `search: oramaCloud({ endpoint, apiKey, indexId })` from "blume/search".',
+    typesense:
+      'search.typesense moved into its adapter: `search: typesense({ host, collection, apiKey })` from "blume/search", where the 1.x `searchApiKey` is now `apiKey`.',
+  })
+);
 
 type SearchOptionsInput = z.input<typeof searchOptionsSchema>;
 

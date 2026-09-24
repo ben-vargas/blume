@@ -86,6 +86,11 @@ const main = defineCommand({
       () => import("./commands/translate.ts"),
       "translateCommand"
     ),
+    upgrade: lazyCommand(
+      commandMeta.upgrade,
+      () => import("./commands/upgrade.ts"),
+      "upgradeCommand"
+    ),
     validate: lazyCommand(
       commandMeta.validate,
       () => import("./commands/validate.ts"),

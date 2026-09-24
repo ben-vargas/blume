@@ -66,6 +66,11 @@ export const commandMeta = {
       "Translate docs into the configured locales with a local agent CLI.",
     name: "translate",
   },
+  upgrade: {
+    description:
+      "Upgrade to this version of Blume: bump the dependency and list the config changes left.",
+    name: "upgrade",
+  },
   validate: {
     description: "Validate internal, anchor, asset, and external links.",
     name: "validate",

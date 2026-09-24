@@ -312,6 +312,39 @@ describe("search config schema", () => {
       expect(messages[0]).toContain('"blume/search"');
     }
   });
+
+  it("names the adapter for a 1.x provider name and credential block", () => {
+    // The 1.x object form: a provider name beside its credentials block.
+    const result = blumeConfigSchema.safeParse({
+      search: {
+        algolia: { appId: "APP", indexName: "docs", searchApiKey: "KEY" },
+        provider: "algolia",
+      },
+    });
+    const messages = result.success
+      ? []
+      : result.error.issues.map((issue) => issue.message);
+    expect(messages).toContainEqual(
+      expect.stringContaining("not a provider name")
+    );
+    expect(messages).toContainEqual(
+      expect.stringContaining("search: algolia({ appId, indexName, apiKey })")
+    );
+  });
+
+  it("names each 1.x credential block's adapter", () => {
+    for (const [key, adapter] of [
+      ["mixedbread", "mixedbread({ storeId })"],
+      ["oramaCloud", "oramaCloud({ endpoint, apiKey, indexId })"],
+      ["typesense", "typesense({ host, collection, apiKey })"],
+    ] as const) {
+      const result = blumeConfigSchema.safeParse({ search: { [key]: {} } });
+      const messages = result.success
+        ? []
+        : result.error.issues.map((issue) => issue.message);
+      expect(messages.join(" ")).toContain(adapter);
+    }
+  });
 });
 
 describe("runtimeDependencies", () => {
