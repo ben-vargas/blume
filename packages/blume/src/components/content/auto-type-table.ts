@@ -128,8 +128,11 @@ export const extractTypeTable = async (
   return checker.getPropertiesOfType(type).map((symbol) => {
     const decl = symbol.declarations?.[0];
     const signature = decl && ts.isPropertySignature(decl) ? decl : undefined;
+    // Slice the text from the file that declares the property: an inherited
+    // member (`Props extends Base`, Base imported) lives in another file, and
+    // its positions mean nothing in the documented one.
     const typeText = signature?.type
-      ? signature.type.getText(sourceFile)
+      ? signature.type.getText(signature.getSourceFile())
       : checker.typeToString(
           checker.getTypeOfSymbolAtLocation(symbol, decl ?? declaration)
         );

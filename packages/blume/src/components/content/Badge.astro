@@ -1,6 +1,7 @@
 ---
 import { STROKE, TINT } from "../colors.ts";
 import Icon from "../Icon.astro";
+import { badgeColorName } from "./badge-color.ts";
 
 type BadgeVariant = "default" | "accent" | "success" | "warning" | "danger";
 type BadgeSize = "xs" | "sm" | "md" | "lg";
@@ -34,15 +35,7 @@ const {
 
 const activeStroke = stroke === true || stroke === "true";
 const isDisabled = disabled === true || disabled === "true";
-const colorName =
-  color ??
-  {
-    accent: "blue",
-    danger: "red",
-    default: "gray",
-    success: "green",
-    warning: "orange",
-  }[variant];
+const colorName = badgeColorName(variant, color);
 const customColor = colorName.startsWith("#") ? colorName : null;
 
 // The hue rows come from the shared table (see colors.ts for the contrast

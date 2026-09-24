@@ -97,29 +97,33 @@ const accordionId = id ?? componentSlug(title);
       });
     };
 
-    document.addEventListener(
-      "toggle",
-      (event) => {
-        const accordion = event.target;
-        if (
-          !(accordion instanceof HTMLDetailsElement) ||
-          !accordion.matches("[data-blume-accordion]") ||
-          !accordion.open ||
-          !accordion.id
-        ) {
-          return;
-        }
+    // Only the reader opening an item points the hash at it, so this keys on
+    // the summary's click (pointer, Enter, or Space) rather than `toggle`: a
+    // `defaultOpen` item a client-router swap inserts fires `toggle` too, and
+    // that must not overwrite the hash the reader arrived with.
+    document.addEventListener("click", (event) => {
+      const summary =
+        event.target instanceof Element ? event.target.closest("summary") : null;
+      const accordion = summary?.parentElement;
+      if (
+        event.defaultPrevented ||
+        !(accordion instanceof HTMLDetailsElement) ||
+        !accordion.matches("[data-blume-accordion]") ||
+        // Open now means this click closes it.
+        accordion.open ||
+        !accordion.id
+      ) {
+        return;
+      }
 
-        // Keep the entry's state: the client router ignores a popstate whose
-        // state is null, so Back to this page would change only the URL.
-        history.replaceState(
-          history.state,
-          "",
-          `#${encodeURIComponent(accordion.id)}`
-        );
-      },
-      true
-    );
+      // Keep the entry's state: the client router ignores a popstate whose
+      // state is null, so Back to this page would change only the URL.
+      history.replaceState(
+        history.state,
+        "",
+        `#${encodeURIComponent(accordion.id)}`
+      );
+    });
 
     const init = () => {
       dedupeAccordionIds();

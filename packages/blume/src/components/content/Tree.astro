@@ -239,6 +239,11 @@
       }
 
       const folder = folderForItem(item);
+      // Deeper items sit further toward the inline end (the left under
+      // dir="rtl"), so the expand and collapse arrows swap there.
+      const rtl = getComputedStyle(this).direction === "rtl";
+      const expandKey = rtl ? "ArrowLeft" : "ArrowRight";
+      const collapseKey = rtl ? "ArrowRight" : "ArrowLeft";
       if (event.key === "ArrowDown") {
         event.preventDefault();
         this.#move(1);
@@ -251,7 +256,7 @@
       } else if (event.key === "End") {
         event.preventDefault();
         this.#moveToEdge("last");
-      } else if (event.key === "ArrowRight" && folder) {
+      } else if (event.key === expandKey && folder) {
         event.preventDefault();
         if (isOpenableDetails(folder) && !folder.open) {
           folder.open = true;
@@ -259,7 +264,7 @@
         } else {
           this.#setActive(this.#firstChild(folder), true);
         }
-      } else if (event.key === "ArrowLeft") {
+      } else if (event.key === collapseKey) {
         const parent = this.#parentItem(item);
         if (isOpenableDetails(folder) && folder.open) {
           event.preventDefault();
