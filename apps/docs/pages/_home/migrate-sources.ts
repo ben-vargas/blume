@@ -12,7 +12,7 @@ export const migrateCommand = (source: string): string =>
 
 // Brand marks, each a full <svg> so it can be injected via set:html (and copied
 // into the trigger by the client script). Monochrome marks use currentColor so
-// they track the theme; brand-coloured marks stay fixed.
+// they track the theme; brand-colored marks stay fixed.
 export const logos = {
   docusaurus:
     '<svg class="size-full" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><g fill="#3ECC5F"><path d="M23 163c-7.4 0-14-4-17.3-10A20 20 0 003 163c0 11 9 20 20 20h20v-20H23zm141 20h9v-4h-8z"/><path d="M183 53V43c0-11-9-20-20-20H73c-4-8-6-8-10 0-4-8-6-8-10 0-4-8-6-8-10 0-7-9-9-5-10.3 2.3-9-3-10.3-1.7-7.3 7.3-9 2-10 3-2.4 10.4-8 4-8 6 0 10-8 4-8 6 0 10-8 4-8 6 0 10-8 4-8 6 0 10-8 4-8 6 0 10-8 4-8 6 0 10-8 4-8 6 0 10-8 4-8 6 0 10-8 4-8 6 0 10-8 4-8 6 0 10-8 4-8 6 0 10 0 11 9 20 20 20h120c11 0 20-9 20-20"/></g><path fill="#FFF" d="M183 83l-70-4.3c-13.3-1.5-13.3-19.8 0-21.3l70-4.4"/><use href="#docusaurus-h" x="60"/><use href="#docusaurus-f" x="50"/><path d="M103 183h60c11 0 20-9 20-20V93h-60c-11 0-20 9-20 20v70z" fill="#FFFF50"/><g fill="none" stroke="#000" stroke-width="2" stroke-linecap="round"><path d="M63 53a1 1 0 10-20 0" stroke-width="5"/><path d="M183 62.6c-5 0-5 10-10 10.7-5 0-5-10-10-10s-5 9-10 9-5-8.5-10-8.5-5 8-10 8-5-7.25-10-7.25-5 6.5-10 6.5" stroke-linecap="butt"/><path d="M168 113h-50m50 10h-50m50 10h-50m50 10h-50m50 10h-50m50 10h-50"/></g><circle cx="143" cy="39.3" r="2.5"/><circle cx="163" cy="38" r="2.5"/><circle cx="113" cy="71" r="1"/><path d="M83 123h40v-20H83zm0 60h40v-40H83z" fill="#3ECC5F"/><g id="docusaurus-h" fill="#44D860"><circle cx="123" cy="113" r="10"/><circle cx="128" cy="104.3" r="2.4"/><circle cx="131.7" cy="108" r="2.4"/><circle cx="133" cy="113" r="2.4"/><circle cx="131.7" cy="118" r="2.4"/><circle cx="128" cy="121.7" r="2.4"/></g><g id="docusaurus-f" fill="#44D860"><circle cx="123" cy="163" r="20"/><circle cx="113" cy="145.7" r="5"/><circle cx="123" cy="143" r="5"/><circle cx="133" cy="145.7" r="5"/><circle cx="140.3" cy="153" r="5"/><circle cx="143" cy="163" r="5"/></g></svg>',
@@ -26,18 +26,41 @@ export const logos = {
     '<svg class="size-full" viewBox="0 0 25 26" fill="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="blume-starlight" x1="2.5" x2="21.61" y1="2.65" y2="25.4" gradientUnits="userSpaceOnUse"><stop stop-color="var(--starlight-gold-1, #FBD57F)"/><stop offset="1" stop-color="var(--starlight-gold-2, #D17F0D)"/></linearGradient></defs><path fill="url(#blume-starlight)" fill-rule="evenodd" d="M15.22 7.77 12.06.94 8.91 7.77l-.15.29L7 6.3a1.18 1.18 0 1 0-1.68 1.68l1.75 1.74-.2.1-.04.02L0 13l6.83 3.16.24.11-1.75 1.76A1.18 1.18 0 1 0 7 19.7l1.76-1.76.15.3 3.15 6.82 3.16-6.83.12-.24 1.71 1.71a1.18 1.18 0 1 0 1.68-1.67L17 16.3l.29-.15L24.13 13 17.3 9.84 17 9.7l1.73-1.73a1.18 1.18 0 1 0-1.68-1.67L15.35 8a4.15 4.15 0 0 1-.12-.21l-.01-.03Zm-3.17.36-.42.9a7.27 7.27 0 0 1-3.55 3.55l-.9.42.9.42a7.27 7.27 0 0 1 3.55 3.55l.42.9.42-.9a7.27 7.27 0 0 1 3.55-3.55l.9-.42-.9-.42a7.27 7.27 0 0 1-3.55-3.55l-.42-.9Z" clip-rule="evenodd"/><path fill="url(#blume-starlight)" d="M22.27 4.43a1.18 1.18 0 1 0-1.67-1.68l-.57.57a1.18 1.18 0 0 0 1.68 1.67l.56-.56ZM4.2 5.18c-.46.46-1.2.46-1.67 0l-.56-.56a1.18 1.18 0 0 1 1.67-1.68l.57.57c.46.46.46 1.2 0 1.67Zm0 15.64a1.18 1.18 0 0 0-1.67 0l-.56.56a1.18 1.18 0 0 0 1.67 1.68l.57-.57c.46-.46.46-1.2 0-1.67Zm18.07.75a1.18 1.18 0 0 1-1.67 1.68l-.57-.57a1.19 1.19 0 0 1 1.68-1.67l.56.56Z"/></svg>',
 };
 
+let svgInstance = 0;
+
+/**
+ * A mark's inline SVG with its ids (and every `#id` reference to them) made
+ * unique to this render. The same mark can appear several times on one page —
+ * the picker trigger and its option, a table header hidden on phones — and a
+ * gradient referenced by a shared id resolves to the first copy, which draws
+ * nothing when that copy is hidden. Call it wherever a mark is rendered.
+ */
+export const withUniqueIds = (svg: string): string => {
+  svgInstance += 1;
+  const suffix = `-${svgInstance}`;
+  let out = svg;
+  for (const match of svg.matchAll(/\sid="(?<id>[^"]+)"/gu)) {
+    const id = match.groups?.id ?? "";
+    out = out
+      .replaceAll(`id="${id}"`, `id="${id}${suffix}"`)
+      .replaceAll(`#${id}"`, `#${id}${suffix}"`)
+      .replaceAll(`#${id})`, `#${id}${suffix})`);
+  }
+  return out;
+};
+
 export const sources = [
   {
-    body: "The agent moves your content/docs tree into place, turns every meta.json into a typed meta.ts, and rewrites Cards, Accordions, Tabs, and includes to Blume's components — frontmatter and folder order intact.",
-    id: "fumadocs",
-    logo: logos.fumadocs,
-    name: "Fumadocs",
-  },
-  {
-    body: "The agent translates docs.json to blume.config.ts, reshapes config-driven navigation into folders and tabs, rewrites callouts to directives, inlines snippets, and maps FontAwesome icons to their Lucide equivalents.",
+    body: "The agent translates docs.json to blume.config.ts, reshapes config-driven navigation into folders and tabs, rewrites callouts to directives, inlines snippets, and maps Font Awesome icons to their Lucide equivalents.",
     id: "mintlify",
     logo: logos.mintlify,
     name: "Mintlify",
+  },
+  {
+    body: "The agent moves your content/docs tree into place, turns every meta.json into a typed meta.ts, and rewrites Cards, Accordions, and Tabs to Blume's components — includes, frontmatter, and folder order intact.",
+    id: "fumadocs",
+    logo: logos.fumadocs,
+    name: "Fumadocs",
   },
   {
     body: "The agent maps docusaurus.config and sidebars.js onto Blume, keeps your admonitions as directives, converts Tabs and _category_.json, and reports the swizzled-theme chrome it can't carry over.",

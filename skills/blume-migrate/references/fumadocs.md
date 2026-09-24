@@ -69,7 +69,7 @@ Fumadocs icons are strings resolved by the repo's own `icon` handler in `loader(
 - **Tabs:** Fumadocs declares labels on the parent (`<Tabs items={['npm','pnpm']}>`) and selects with `<Tab value="npm">`. Blume's `<Tab>` carries its own `title`. Strip `items={[…]}` from `<Tabs>` and give each child `<Tab>` a `title` (from its `value`, or the positional `items` entry).
 - **Pass through unchanged:** `<Steps>`/`<Step>`, `<TypeTable>` (Blume's was modeled on Fumadocs' — identical `type` record shape), `<GithubInfo>`.
 - **`<Banner>`** (layout-mounted, not per-page) → the `banner` config field (`{ content, link, dismissible, id }`).
-- **`<include>./partial.mdx</include>`** — Blume has no runtime include. **Inline** the partial's body (strip its frontmatter) at migration time; resolve nested includes recursively.
+- **`<include>./partial.mdx</include>`** — Blume uses the same include syntax. **Pass through unchanged**: paths resolve relative to the including file, a leading `/` resolves from the content root, and nested includes work. Keep partials in `_`-prefixed files or folders so they stay out of routing and the sidebar.
 - **No equivalent — report:** `<DynamicCodeBlock>`, `<ImageZoom>` (Blume zooms content images by default), `<InlineTOC>`.
 - **Strip or convert every import** — not just `fumadocs-*`: `lucide-react` imports (icon JSX → string names), `next/image`/`next/link` (→ Markdown image/link), and local components. **Inventory `mdx-components.tsx` before deleting it** — components registered there are used import-free in MDX bodies; port or inline each usage first.
 

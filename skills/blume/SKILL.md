@@ -59,7 +59,7 @@ It bumps `blume` in `package.json`, installs, and lists every config change stil
 
 ## Migrating from another framework
 
-To move a Mintlify, Docusaurus, Fumadocs, Nextra, or Starlight site to Blume, the user runs `npx blume migrate [source] --claude` (or `--codex`) from that project, which opens an agent on the `blume-migrate` skill. When you are that agent, or the user asks you to migrate directly, follow `skills/blume-migrate/SKILL.md` in the installed package instead of this file.
+To move a Mintlify, Fumadocs, Docusaurus, Starlight, or Nextra site to Blume, the user runs `npx blume migrate [source] --claude` (or `--codex`) from that project, which opens an agent on the `blume-migrate` skill. When you are that agent, or the user asks you to migrate directly, follow `skills/blume-migrate/SKILL.md` in the installed package instead of this file.
 
 ## What's included
 

@@ -36,7 +36,7 @@ const mintlify: CompareTool = {
   carryOver: {
     items: [
       {
-        body: "Callouts become `:::` directives, and Cards, Steps, Tabs, Columns, Frame, and Tooltip carry over as they are.",
+        body: "Callouts become `:::` directives, Cards, Steps, Columns, Frame, and Tooltip carry over as they are, and Tabs gain an `inline` prop.",
         title: "Pages stay MDX.",
       },
       {
@@ -48,7 +48,7 @@ const mintlify: CompareTool = {
         title: "Your OpenAPI spec keeps working.",
       },
       {
-        body: "A bundled codemod remaps FontAwesome icons to Lucide and renames frontmatter keys like `sidebarTitle`.",
+        body: "A bundled codemod remaps Font Awesome icons to Lucide and renames frontmatter keys like `sidebarTitle`.",
         title: "Icons and frontmatter, handled.",
       },
     ],
@@ -72,7 +72,7 @@ const mintlify: CompareTool = {
     },
     {
       answer:
-        "Yes. Pages stay MDX. `npx blume migrate mintlify` converts callouts to directives, maps Mintlify's components to Blume's, and turns docs.json navigation into folders and tabs.",
+        "Yes. Pages stay MDX. `npx blume migrate mintlify --claude` converts callouts to directives, maps Mintlify's components to Blume's, and turns docs.json navigation into folders and tabs.",
       question: "Can I keep my Mintlify MDX?",
     },
     {
@@ -220,7 +220,7 @@ const fumadocs: CompareTool = {
   faq: [
     {
       answer:
-        "Fumadocs is a framework you scaffold into a React app and then own, down to the route handlers. Blume is the whole site from a folder of Markdown, with no app code, and search, API references, llms.txt, Markdown mirrors, and an MCP server built in. When you want the code, `blume eject` hands you a standalone Astro app.",
+        "Fumadocs is a framework you scaffold into your own app and then own, down to the route handlers. Blume is the whole site from a folder of Markdown, with no app code, and search, API references, llms.txt, Markdown mirrors, and an MCP server built in. When you want the code, `blume eject` hands you a standalone Astro app.",
       question: "What's the difference between Blume and Fumadocs?",
     },
     {
@@ -246,7 +246,7 @@ const fumadocs: CompareTool = {
   ],
   fit: [
     {
-      body: "Fumadocs runs inside Next.js, React Router, TanStack Start, or Waku, so your docs share the app's routing, auth, and components.",
+      body: "Fumadocs runs inside Next.js, React Router, TanStack Start, Waku, or Astro with React, so your docs share the app's routing, auth, and components.",
       title: "Your docs live inside a React app.",
     },
     {
@@ -262,12 +262,12 @@ const fumadocs: CompareTool = {
     {
       blume: "A folder of Markdown, plus one optional config file",
       label: "You maintain",
-      them: "A React app you scaffold: `source.config.ts`, layouts, and route handlers",
+      them: "An app you scaffold: `source.config.ts`, layouts, and route handlers",
     },
     {
       blume: "Astro, generated and run for you",
       label: "Built on",
-      them: "Next.js, React Router, TanStack Start, Waku, or Astro",
+      them: "Next.js, React Router, TanStack Start, Waku, or Astro with React",
     },
     {
       blume: "Free and open source (MIT)",
@@ -348,7 +348,7 @@ const docusaurus: CompareTool = {
   carryOver: {
     items: [
       {
-        body: "`:::note`, `:::tip`, and the rest are directives in both, and Tabs and TabItem become Tabs and Tab.",
+        body: "`:::note`, `:::tip`, and the rest are directives in both (in `.mdx` pages on Blume), and Tabs and TabItem become Tabs and Tab.",
         title: "Admonitions already fit.",
       },
       {
@@ -370,7 +370,7 @@ const docusaurus: CompareTool = {
       { from: '<TabItem label="…">', to: '<Tab title="…">' },
       { from: "sidebar_position", to: "sidebar.order" },
       { from: "static/", to: "public/" },
-      { from: ":::caution", to: ":::warning" },
+      { from: ":::tip Title", to: ":::tip[Title]" },
       { from: "```bash npm2yarn", to: "```package-install" },
     ],
     tagline: "Your admonitions already fit, and an agent does the rest.",
@@ -389,7 +389,7 @@ const docusaurus: CompareTool = {
     },
     {
       answer:
-        "Yes. Docusaurus admonitions are already directive syntax, so `:::note` and `:::tip` pass through. The agent renames `.md` files that use MDX features to `.mdx`, converts Tabs, and moves `static/` into `public/`.",
+        "Yes. Docusaurus admonitions are already directive syntax, so `:::note` and `:::tip` carry over. Blume reads directives in MDX only, so the agent renames every `.md` page that uses one to `.mdx`, converts Tabs, and moves `static/` into `public/`.",
       question: "Do my admonitions and MDX carry over?",
     },
     {
@@ -429,7 +429,8 @@ const docusaurus: CompareTool = {
       them: "Free and open source (MIT), maintained by Meta",
     },
     {
-      blume: "Local search with no keys, or Algolia and five more by adapter",
+      blume:
+        "Local search with no keys, or Pagefind, Algolia, and more by adapter",
       label: "Search",
       them: "Algolia DocSearch first-class; local search through community plugins",
     },
@@ -481,7 +482,7 @@ const docusaurus: CompareTool = {
     },
   ],
   summary:
-    "Versioning, i18n, a blog, and search like Docusaurus, plus API references, llms.txt, Markdown mirrors, and an MCP server built in. All from a folder of Markdown, with no React app to maintain.",
+    "Versioning, i18n, blog posts with RSS, and search like Docusaurus, plus API references, llms.txt, Markdown mirrors, and an MCP server built in. All from a folder of Markdown, with no React app to maintain.",
   tagline: "The zero-config Docusaurus alternative.",
 };
 
@@ -520,7 +521,7 @@ const starlight: CompareTool = {
   faq: [
     {
       answer:
-        "Starlight is an integration you add to an Astro project you own and configure. Blume generates and runs the Astro project for you from a folder of Markdown, and builds in what Starlight leaves to plugins: llms.txt, an MCP server, API references, versioning, and a blog.",
+        "Starlight is an integration you add to an Astro project you own and configure. Blume generates and runs the Astro project for you from a folder of Markdown, and builds in what Starlight leaves to plugins: llms.txt, an MCP server, API references, versioning, and blog posts with RSS.",
       question: "Blume and Starlight both use Astro. What's the difference?",
     },
     {
@@ -605,7 +606,7 @@ const starlight: CompareTool = {
   id: "starlight",
   meta: {
     description:
-      "Compare Blume and Starlight, two ways to build docs on Astro, on setup, agent features, API references, and versioning, and see how an agent migrates your Starlight site.",
+      "Compare Blume and Starlight, two Astro docs frameworks, on setup, agent features, API references, and versioning, and see how an agent migrates your site.",
     title: "Blume vs Starlight: Astro docs with nothing to set up",
   },
   source: sourceById("starlight"),
@@ -772,6 +773,15 @@ export const tools: CompareTool[] = [
   starlight,
   nextra,
 ];
+
+/** A compare tool by id, for the route file that renders its page. */
+export const compareTool = (id: string): CompareTool => {
+  const tool = tools.find((entry) => entry.id === id);
+  if (!tool) {
+    throw new Error(`Unknown compare tool: ${id}`);
+  }
+  return tool;
+};
 
 /** When the agent-readiness scores were taken (as reported on the homepage). */
 export const scoresDate = "September 20, 2026";

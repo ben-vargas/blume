@@ -32,7 +32,7 @@ const pagesOf = (nodes: typeof data.navigation.sidebar): FooterLink[] =>
 // content), which are separate tabs. Fall back to the whole sidebar when no
 // tabs are configured (sections live at the top level then). From the docs
 // group, descend through any single wrapping group until we reach the level
-// that holds the section sub-groups: the lead pages become a "Getting Started"
+// that holds the section sub-groups: the lead pages become a "Getting started"
 // column and each section group ("Content", "Configuration", …) its own column.
 const sidebar = data.navigation?.sidebar ?? [];
 const primaryTabPath = data.navigation?.tabs?.[0]?.path;
@@ -55,7 +55,7 @@ while (
 const columns: FooterColumn[] = [];
 const lead = pagesOf(roots);
 if (lead.length > 0) {
-  columns.push({ links: lead, title: "Getting Started" });
+  columns.push({ links: lead, title: "Getting started" });
 }
 for (const node of roots) {
   if (node.kind !== "group" || node.label === "Changelog") {

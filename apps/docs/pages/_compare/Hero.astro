@@ -7,9 +7,10 @@
 // command box uses the page-level delegated `data-blume-copy-install` handler.
 import Icon from "blume/components/Icon.astro";
 import data from "blume:data";
+import CommandText from "../_home/CommandText.astro";
 import TextLink from "../_home/TextLink.astro";
 import Tray from "../_home/Tray.astro";
-import { migrateCommand } from "../_home/migrate-sources.ts";
+import { migrateCommand, withUniqueIds } from "../_home/migrate-sources.ts";
 import { glyph, inlineCode } from "../_home/shared.ts";
 import type { CompareTool } from "./tools.ts";
 
@@ -65,8 +66,8 @@ const reportHref = config.repoUrl
           >
             $
           </span>
-          <code class="min-w-0 flex-1 truncate font-mono text-[0.8125rem] text-foreground">
-            {command}
+          <code class="min-w-0 flex-1 wrap-break-word font-mono text-[0.8125rem] text-foreground">
+            <CommandText command={command} />
           </code>
           <button
             aria-label={`Copy the ${tool.source.name} migration command`}
@@ -118,7 +119,7 @@ const reportHref = config.repoUrl
                 <span
                   aria-hidden="true"
                   class="inline-flex size-4 shrink-0"
-                  set:html={tool.source.logo}
+                  set:html={withUniqueIds(tool.source.logo)}
                 />
                 {tool.source.name}
               </span>
@@ -154,7 +155,7 @@ const reportHref = config.repoUrl
       </table>
     </Tray>
     <p class="text-pretty text-muted-foreground text-xs">
-      {tool.source.name} details are from its own site as of {tool.checked}:{" "}
+      {tool.source.name} details are from its own pages as of {tool.checked}:{" "}
       {
         tool.sources.map((source, index) => (
           <Fragment>

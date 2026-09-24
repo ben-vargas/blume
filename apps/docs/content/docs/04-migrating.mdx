@@ -1,6 +1,6 @@
 ---
 title: Migrate to Blume
-description: Move a Mintlify, Docusaurus, Fumadocs, Nextra, or Starlight site to Blume with one command that hands the migration to Claude Code or Codex.
+description: Move a Mintlify, Fumadocs, Docusaurus, Starlight, or Nextra site to Blume with one command that hands the migration to Claude Code or Codex.
 sidebar:
   label: Migrate to Blume
   order: 2.4
@@ -25,10 +25,10 @@ Name the framework you're migrating from, or leave it out and Blume detects it f
 | Source | Detected from |
 | --- | --- |
 | `mintlify` | `docs.json` or `mint.json` |
-| `docusaurus` | `docusaurus.config.*` |
 | `fumadocs` | `source.config.ts`, or `fumadocs-core`, `fumadocs-ui`, or `fumadocs-mdx` in `package.json` |
-| `nextra` | `nextra` in `package.json` |
+| `docusaurus` | `docusaurus.config.*` |
 | `starlight` | `@astrojs/starlight` in `package.json` |
+| `nextra` | `nextra` in `package.json` |
 
 Each source has its own mapping reference in the playbook. A site built with anything else still migrates: run the command without a source, and the agent inventories the repo first, then works from the playbook's general rules.
 

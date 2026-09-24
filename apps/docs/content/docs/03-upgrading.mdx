@@ -54,7 +54,7 @@ export default defineConfig({
 
 </CodeGroup>
 
-- Orama Cloud, Typesense, and Mixedbread map the same way to `oramaCloud()`, `typesense()`, and `mixedbread()`. The search-only key is `apiKey` in every adapter; admin keys stay in their env vars (`ALGOLIA_ADMIN_API_KEY`, `ORAMA_PRIVATE_API_KEY`, `TYPESENSE_ADMIN_API_KEY`, `MIXEDBREAD_API_KEY`).
+- Orama Cloud, Typesense, and Mixedbread map the same way to `oramaCloud()`, `typesense()`, and `mixedbread()`. The search-only key is `apiKey` in every adapter that takes one; `mixedbread()` takes only `storeId`, since its queries run on the docs server. Admin keys stay in their env vars (`ALGOLIA_ADMIN_API_KEY`, `ORAMA_PRIVATE_API_KEY`, `TYPESENSE_ADMIN_API_KEY`, `MIXEDBREAD_API_KEY`).
 - `provider: "pagefind"` becomes `pagefind()`, and `provider: "none"` becomes `search: false`.
 - To keep `popular` links or `indexing` options, wrap the adapter: `search: { provider: algolia({ … }), popular: […] }`.
 

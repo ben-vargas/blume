@@ -10,7 +10,7 @@
 // bento's, and a few rows follow the pointer.
 import data from "blume:data";
 import BentoCard from "../_home/BentoCard.astro";
-import { logos } from "../_home/migrate-sources.ts";
+import { logos, withUniqueIds } from "../_home/migrate-sources.ts";
 import SectionHeading from "../_home/SectionHeading.astro";
 import TextLink from "../_home/TextLink.astro";
 import { glyph, icons } from "../_home/shared.ts";
@@ -306,7 +306,7 @@ const sparkles = glyph("sparkles");
                   class:list={[window, "reveal-pop flex size-10 items-center justify-center p-2.5 hover:-translate-y-0.5 motion-safe:transition-transform"]}
                   style={`--reveal-delay: ${index * 90}ms`}
                 >
-                  <span class="inline-flex size-full text-foreground" set:html={mark} />
+                  <span class="inline-flex size-full text-foreground" set:html={withUniqueIds(mark)} />
                 </li>
               ))
             }
@@ -347,8 +347,8 @@ const sparkles = glyph("sparkles");
             set:html={sparkles}
           />
         </span>
-        Runs on the agent CLI you already use. Blume holds no API keys and
-        calls no model itself.
+        These run on the agent CLI you already use: Blume holds no API keys for
+        them and calls no model itself.
       </p>
       <TextLink class="shrink-0" href="/docs/advanced/skills">
         Agent skills

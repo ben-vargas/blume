@@ -1,0 +1,20 @@
+---
+// A shell command as wrappable text: on a narrow screen it breaks only between
+// words, never after the hyphens of a flag (`--claude`), which browsers
+// otherwise treat as a line-break opportunity.
+interface Props {
+  command: string;
+}
+
+const { command } = Astro.props;
+const words = command.split(" ");
+---
+
+{
+  words.map((word, index) => (
+    <Fragment>
+      {index > 0 && " "}
+      <span class="whitespace-nowrap">{word}</span>
+    </Fragment>
+  ))
+}

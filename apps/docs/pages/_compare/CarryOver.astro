@@ -8,6 +8,7 @@
 // homepage bento's.
 import Split from "../_home/Split.astro";
 import Tray from "../_home/Tray.astro";
+import { withUniqueIds } from "../_home/migrate-sources.ts";
 import { glyph } from "../_home/shared.ts";
 import type { CompareTool } from "./tools.ts";
 
@@ -42,7 +43,7 @@ const arrow = glyph("arrow-right");
           <span
             aria-hidden="true"
             class="inline-flex size-3.5 shrink-0"
-            set:html={tool.source.logo}
+            set:html={withUniqueIds(tool.source.logo)}
           />
           {tool.source.name}
         </p>

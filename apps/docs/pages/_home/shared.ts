@@ -62,8 +62,8 @@ export const sampleBrand = {
       label: "Templates",
     },
   ],
-  // Screen-reader-only disclosure for the mock windows — a badge in the app
-  // chrome and a figcaption on the window — so assistive tech and crawlers
+  // Screen-reader-only disclosure for the mock window, read out by its
+  // figcaption ("Example site: …"), so assistive tech and crawlers
   // know the brand is a stand-in for "your product", not a Blume product or a
   // real company, without adding visible chrome to the design.
   badge: "Example site",

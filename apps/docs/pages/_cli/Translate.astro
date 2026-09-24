@@ -27,6 +27,13 @@ const locales = ["de", "hi", "ja", "pt"];
 
 // Each page's state per locale: fresh, or stale/missing before this run.
 type Cell = "fresh" | "stale" | "missing";
+// What each cell says to a screen reader: the icons are hidden, and the flagged
+// cells end the demo translated.
+const cellLabels: Record<Cell, string> = {
+  fresh: "Up to date",
+  missing: "Was missing, now translated",
+  stale: "Was out of date, now retranslated",
+};
 const pages: { cells: Cell[]; name: string }[] = [
   { cells: ["fresh", "stale", "stale", "fresh"], name: "quickstart.mdx" },
   { cells: ["fresh", "fresh", "fresh", "fresh"], name: "deployment.mdx" },
@@ -84,6 +91,7 @@ const flipDelay = (row: number, column: number): number =>
                 </td>
                 {page.cells.map((cell, column) => (
                   <td class="px-2 py-3">
+                    <span class="sr-only">{cellLabels[cell]}</span>
                     {cell === "fresh" ? (
                       <svg
                         aria-hidden="true"

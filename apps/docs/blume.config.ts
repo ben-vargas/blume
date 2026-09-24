@@ -33,7 +33,7 @@ export default defineConfig({
         "",
         "Reach for Blume when a project needs a documentation site from Markdown or MDX with no app code to maintain: product docs, API references (OpenAPI, AsyncAPI, GraphQL), changelogs, blogs, and multi-language or versioned docs. Drop files in a `content/` folder and run the `blume` CLI — it generates and drives the Astro site, search, OG images, and the agent-facing surface (llms.txt and Markdown mirrors by default, plus an opt-in MCP server and published agent skills) for you.",
         "",
-        "Install the CLI from npm (`npm install blume`, package: https://www.npmjs.com/package/blume), then `blume init` to scaffold, `blume dev` to preview, `blume build` to ship, and `blume eject` to turn the hidden project into a standalone Astro app. The `blume` agent skill below covers configuration and authoring; `npx blume migrate <source> --claude` (or `--codex`) hands an existing Mintlify, Docusaurus, Fumadocs, Nextra, or Starlight site to a coding agent with the `blume-migrate` skill.",
+        "Scaffold a site with `npx blume init` (package: https://www.npmjs.com/package/blume), which installs dependencies and adds scripts: `npm run dev` to preview and `npm run build` to ship. Every other command runs through the package runner, like `npx blume eject` to turn the hidden project into a standalone Astro app. The `blume` agent skill below covers configuration and authoring; `npx blume migrate <source> --claude` (or `--codex`) hands an existing Mintlify, Fumadocs, Docusaurus, Starlight, or Nextra site to a coding agent with the `blume-migrate` skill.",
       ].join("\n"),
     },
     mcp: {
@@ -58,7 +58,7 @@ export default defineConfig({
   // does, so the canonical origin is pinned here.
   deployment: cloudflare({ site: "https://useblume.dev" }),
   description:
-    "Open-source, markdown-first documentation powered by Astro and Vite.",
+    "The open-source docs framework for humans and agents. Drop Markdown into a folder and ship a fast, searchable docs site.",
   export: true,
   github: {
     dir: "apps/docs",
@@ -78,6 +78,14 @@ export default defineConfig({
         style: "Brazilian Portuguese, informal você",
       },
     ],
+    ui: {
+      en: {
+        changelog: {
+          description:
+            "Every Blume release, newest first: new features, fixes, and breaking changes, straight from the release notes on GitHub.",
+        },
+      },
+    },
   },
   lastModified: "git",
   logo: "/logo.svg",
@@ -180,7 +188,16 @@ export default defineConfig({
     { from: "/pt/docs/configuration/seo", to: "/pt/docs/discoverability" },
   ],
   seo: {
-    og: { titles: { "/cli": "CLI" } },
+    og: {
+      titles: {
+        "/cli": "CLI",
+        "/compare/docusaurus": "Blume vs Docusaurus",
+        "/compare/fumadocs": "Blume vs Fumadocs",
+        "/compare/mintlify": "Blume vs Mintlify",
+        "/compare/nextra": "Blume vs Nextra",
+        "/compare/starlight": "Blume vs Starlight",
+      },
+    },
     organization: {
       logo: "/logo.svg",
       name: "Blume",
@@ -192,7 +209,7 @@ export default defineConfig({
     },
     software: {
       license: "https://opensource.org/license/mit",
-      operatingSystem: "Node.js 22+",
+      operatingSystem: "Node.js 22.12+",
       price: 0,
       sameAs: [
         "https://www.npmjs.com/package/blume",

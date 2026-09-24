@@ -1,27 +1,25 @@
 ---
-// A compare page per tool (/compare/<id>), prerendered from the data in
-// _compare/tools.ts: the "Blume vs <tool>" hero with its at-a-glance table,
-// the agent-readiness scores when both sites were scanned, what the
-// migration carries over, where the other tool fits better, the homepage's
-// Migrate picker opened on this tool, questions (also emitted as FAQPage
-// JSON-LD), and the install CTA. Built in the homepage's design language.
+// A compare page for one tool, rendered from its entry in tools.ts: the
+// "Blume vs <tool>" hero with its at-a-glance table, the agent-readiness
+// scores when both sites were scanned, what the migration carries over, where
+// the other tool fits better, the homepage's Migrate picker opened on this
+// tool, questions (also emitted as FAQPage JSON-LD), and the install CTA.
+// Built in the homepage's design language. Each tool has its own static route
+// file under compare/ rather than one `[tool]` route, so every page gets a
+// generated OG card and a sitemap entry like any other static page.
 import PageLayout from "blume/components/layout/PageLayout.astro";
 import data from "blume:data";
-import CarryOver from "../_compare/CarryOver.astro";
-import Faq from "../_compare/Faq.astro";
-import Fit from "../_compare/Fit.astro";
-import Hero from "../_compare/Hero.astro";
-import Scores from "../_compare/Scores.astro";
-import type { CompareTool } from "../_compare/tools.ts";
-import { tools } from "../_compare/tools.ts";
 import Footer from "../_home/Footer.astro";
 import InstallCta from "../_home/InstallCta.astro";
 import Migrate from "../_home/Migrate.astro";
 import Motion from "../_home/Motion.astro";
 import { installCopyScript } from "../_home/shared.ts";
-
-export const getStaticPaths = () =>
-  tools.map((tool) => ({ params: { tool: tool.id }, props: { tool } }));
+import CarryOver from "./CarryOver.astro";
+import Faq from "./Faq.astro";
+import Fit from "./Fit.astro";
+import Hero from "./Hero.astro";
+import Scores from "./Scores.astro";
+import type { CompareTool } from "./tools.ts";
 
 interface Props {
   tool: CompareTool;

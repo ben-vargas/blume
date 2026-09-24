@@ -8,7 +8,7 @@
 import data from "blume:data";
 import SectionHeading from "../_home/SectionHeading.astro";
 import Tray from "../_home/Tray.astro";
-import { logos } from "../_home/migrate-sources.ts";
+import { logos, withUniqueIds } from "../_home/migrate-sources.ts";
 
 const { config } = data;
 const blumeLogo = config.logo?.svg ?? "";
@@ -80,7 +80,7 @@ const questions = ["You maintain", "It runs on", "It costs", "Agent features"];
                       "inline-flex h-full shrink-0 text-foreground [&>svg]:h-full [&>svg]:w-auto",
                       model.raised ? "" : "aspect-square",
                     ]}
-                    set:html={mark}
+                    set:html={withUniqueIds(mark)}
                   />
                 ))}
               </div>

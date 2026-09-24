@@ -174,7 +174,8 @@ const link =
             </div>
             <div class="border-border border-t pt-6">
               <dl class="flex flex-wrap gap-x-3 gap-y-5">
-                <div class="flex min-w-[7rem] flex-1 flex-col gap-1">
+                <div class="flex min-w-[7rem] flex-1 flex-col-reverse gap-1">
+                  <dt class="text-muted-foreground text-sm">useblume.dev</dt>
                   <dd class="font-medium text-2xl tabular-nums">
                     <span
                       data-count-delay={cardDelay(index)}
@@ -183,10 +184,10 @@ const link =
                       {item.score}
                     </span><span class="text-muted-foreground">/100</span>
                   </dd>
-                  <dt class="text-muted-foreground text-sm">useblume.dev</dt>
                 </div>
                 {item.others.map((other) => (
-                  <div class="flex min-w-[7rem] flex-1 flex-col gap-1">
+                  <div class="flex min-w-[7rem] flex-1 flex-col-reverse gap-1">
+                    <dt class="text-muted-foreground text-sm">{other.name}</dt>
                     <dd class="font-medium text-2xl text-muted-foreground tabular-nums">
                       <span
                         data-count-delay={cardDelay(index)}
@@ -195,7 +196,6 @@ const link =
                         {other.score}
                       </span><span class="text-muted-foreground/60">/100</span>
                     </dd>
-                    <dt class="text-muted-foreground text-sm">{other.name}</dt>
                   </div>
                 ))}
               </dl>

@@ -77,13 +77,17 @@ const webhookCode = `app.post("/webhooks/acme", (req, res) => {
 ---
 
 <!-- data-nosnippet keeps the sample copy out of search snippets and AI
-     overviews; the screen-reader-only figcaption and chrome badge label it for
-     assistive tech and crawlers without adding visible chrome. -->
+     overviews; the screen-reader-only figcaption labels it for assistive tech
+     and crawlers without adding visible chrome. -->
 <figure class="relative" data-nosnippet>
   <figcaption class="sr-only">
-    {sampleBrand.caption}
+    {sampleBrand.badge}: {sampleBrand.caption}
   </figcaption>
+  <!-- The mock itself is a picture of a docs site: `inert` keeps its fake
+       nav, sidebars, and copy button out of the tab order and the
+       accessibility tree, which get the figcaption instead. -->
   <div
+    inert
     class="h-[660px] overflow-hidden rounded-t-[28px] bg-white/25 p-2 shadow-[0_100px_68px_0_rgba(28,40,64,0.18)] backdrop-blur-[24px]"
   >
     <div
@@ -108,7 +112,6 @@ const webhookCode = `app.post("/webhooks/acme", (req, res) => {
             }
             {title}
           </span>
-          <span class="sr-only">{sampleBrand.badge}</span>
           <nav
             class="hidden items-center gap-5 text-muted-foreground text-sm sm:flex"
           >

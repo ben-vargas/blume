@@ -18,8 +18,9 @@ const { config } = data;
 const names = new Intl.ListFormat("en", { type: "conjunction" }).format(
   tools.map((tool) => tool.source.name)
 );
-const pageTitle = `Compare Blume with ${names}`;
-const pageDescription = `How Blume compares with ${names} on price, hosting, AI and agent features, and API references, and how an agent migrates your docs.`;
+// The title drops the list's "and" to stay inside a search result's width.
+const pageTitle = `Blume vs ${tools.map((tool) => tool.source.name).join(", ")}`;
+const pageDescription = `How Blume compares with ${names} on price, hosting, agent features, API references, and migration.`;
 ---
 
 <PageLayout
