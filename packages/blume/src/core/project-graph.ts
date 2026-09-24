@@ -181,6 +181,7 @@ const normalizeLoadedEntries = (
         frontmatterExtend,
         i18n: config.i18n,
         source: {
+          monolingual: source.monolingual,
           name: source.name,
           prefix: source.prefix,
           staged: source.staged,

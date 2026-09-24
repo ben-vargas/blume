@@ -16,6 +16,7 @@ const route = (over: Partial<BlumeRoute>): BlumeRoute => ({
   indexable: true,
   lastModified: null,
   locale: "en",
+  monolingual: false,
   path: "/",
   title: "",
   version: "",

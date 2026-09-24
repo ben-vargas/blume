@@ -2035,6 +2035,7 @@ export function getStaticPaths() {
       indexable: route.indexable,
       lastModified: route.lastModified,
       locale: route.locale,
+      monolingual: route.monolingual,
       route: route.path,
       title: route.title,
       version: route.version,
@@ -2043,7 +2044,7 @@ export function getStaticPaths() {
   }));
 }
 
-const { entryId, collection, route, title, indexable, editUrl, lastModified, locale, alternates, fallback, version, versionAlternates } = Astro.props;
+const { entryId, collection, route, title, indexable, editUrl, lastModified, locale, alternates, fallback, monolingual, version, versionAlternates } = Astro.props;
 const entry = await getEntry(collection as CollectionKey, entryId);
 if (!entry) {
   return new Response(null, { status: 404 });
@@ -2171,7 +2172,9 @@ const mountLocalized = (logical: string, codeArg: string) =>
 const logicalRoute = i18n
   ? stripLocale(stripBasePath(data.config.basePath, route), locale)
   : route;
-const localeSwitch = i18n
+// A page from a one-language source (GitHub Releases) gets no switcher: every
+// other locale would only repeat the same text.
+const localeSwitch = i18n && !monolingual
   ? i18n.locales.map((l) => {
       const alt = (alternates ?? []).find((x) => x.locale === l.code);
       return {

@@ -1172,6 +1172,7 @@ export const normalizeEntry = (
     lastModified: meta.lastModified ?? entry.lastModified,
     links: entryLinks(entry),
     meta,
+    monolingual: ctx.source.monolingual,
     navPath,
     segments,
     source: { name: ctx.source.name, ref: entry.ref },

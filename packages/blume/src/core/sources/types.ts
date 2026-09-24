@@ -118,6 +118,12 @@ export interface ContentSource {
   /** Optional route prefix; the source's routes namespace under `/<prefix>/`. */
   readonly prefix?: string;
   /**
+   * True for a source whose entries exist in one language and can never be
+   * translated (GitHub Releases). Its pages render without a language
+   * switcher, since every other locale would only repeat the same text.
+   */
+  readonly monolingual?: boolean;
+  /**
    * Resolved on-disk root, set by sources whose entries live on disk. For
    * filesystem sources it drives folder-meta discovery (scan under this root)
    * and the docs-collection base; for staged local sources (an Obsidian
@@ -141,7 +147,12 @@ export interface ContentSource {
 
 /** Context passed to `normalizeEntry`, describing the owning source. */
 export interface NormalizeContext {
-  source: { name: string; prefix?: string; staged: boolean };
+  source: {
+    monolingual?: boolean;
+    name: string;
+    prefix?: string;
+    staged: boolean;
+  };
   /** Site-wide route mount point (`""` or `/seg`), prepended to every route. */
   basePath?: string;
   defaultType: string;

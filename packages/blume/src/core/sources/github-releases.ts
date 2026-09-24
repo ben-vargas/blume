@@ -286,6 +286,8 @@ export const githubReleasesSource = (
 
   return {
     load,
+    // Releases are written once, in one language: no locale can translate them.
+    monolingual: true,
     name: options.name,
     prefix: options.prefix,
     read,

@@ -1491,6 +1491,7 @@ export const buildRuntimeData = (project: BlumeProject): string => {
       indexable: route.indexable,
       lastModified: route.lastModified ?? null,
       locale: route.locale,
+      monolingual: route.monolingual ?? false,
       path: route.path,
       title: route.title,
       version: route.version,

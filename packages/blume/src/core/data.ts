@@ -99,6 +99,11 @@ export interface BlumeRoute {
   lastModified: string | null;
   /** Resolved locale code (the default locale when not under i18n). */
   locale: string;
+  /**
+   * True when the page's source publishes one language only (GitHub
+   * Releases), so the page renders without a language switcher.
+   */
+  monolingual: boolean;
   path: string;
   title: string;
   /** Resolved docs version (`""` for the current docs). */

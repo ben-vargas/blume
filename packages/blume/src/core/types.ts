@@ -155,6 +155,11 @@ export interface PageRecord {
    */
   fallback?: boolean;
   /**
+   * True for pages from a source that publishes one language only (GitHub
+   * Releases): they render without a language switcher.
+   */
+  monolingual?: boolean;
+  /**
    * Content-relative path with the leading locale directory stripped, used for
    * sidebar grouping so the locale dir is not surfaced as a nav group. Equals
    * `id` for single-locale projects.
@@ -399,6 +404,8 @@ export interface RouteManifestEntry {
   versionAlternates: VersionAlternate[];
   /** True when this route renders fallback content for a missing translation. */
   fallback?: boolean;
+  /** True when the page's source publishes one language only (no switcher). */
+  monolingual?: boolean;
   /** Resolved "last updated" ISO date, when the feature is enabled. */
   lastModified?: string;
 }

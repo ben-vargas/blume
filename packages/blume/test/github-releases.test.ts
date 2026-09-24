@@ -7,7 +7,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { dirname, join } from "pathe";
 import stringWidth from "string-width";
 
-import { generateRuntime } from "../src/astro/generate.ts";
+import { buildRuntimeData, generateRuntime } from "../src/astro/generate.ts";
 import { scanProject } from "../src/core/project-graph.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
 import { githubReleasesSource } from "../src/core/sources/github-releases.ts";
@@ -652,6 +652,72 @@ describe("generateRuntime with a staged changelog source", () => {
         "src/pages/changelog.astro"
       );
       expect(existsSync(changelog)).toBe(true);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
+  });
+});
+
+describe("release pages under i18n", () => {
+  it("marks every release route monolingual so it renders no language switcher", async () => {
+    const root = await mkdtemp(join(tmpdir(), "blume-mono-cl-"));
+    dirs.push(root);
+    const files = {
+      "blume.config.ts": `export default {
+  content: {
+    sources: [
+      { kind: "filesystem", options: { root: "docs" }, requiredSecrets: [], runtimeDeps: [] },
+      { kind: "github-releases", options: { owner: "acme", prefix: "changelog", repo: "sdk" }, requiredSecrets: [], runtimeDeps: [] },
+    ],
+  },
+  i18n: {
+    defaultLocale: "en",
+    locales: [
+      { code: "en", label: "English" },
+      { code: "de", label: "Deutsch" },
+    ],
+  },
+};
+`,
+      "docs/index.md": "# Home\n",
+    };
+    await Promise.all(
+      Object.entries(files).map(async ([rel, content]) => {
+        const abs = join(root, rel);
+        await mkdir(dirname(abs), { recursive: true });
+        await writeFile(abs, content);
+      })
+    );
+
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = asFetch(() =>
+      Promise.resolve(Response.json([makeRelease({})]))
+    );
+    try {
+      const project = await scanProject(root, { mode: "build" });
+      const releaseRoutes = project.manifest.routes.filter(
+        (route) => route.contentType === "changelog"
+      );
+      // The release itself and its German fallback both carry the flag.
+      expect(releaseRoutes.map((route) => route.locale).toSorted()).toEqual([
+        "de",
+        "en",
+      ]);
+      expect(releaseRoutes.every((route) => route.monolingual)).toBe(true);
+      // A filesystem page stays translatable.
+      const home = project.manifest.routes.find((route) => route.path === "/");
+      expect(home?.monolingual).toBeUndefined();
+
+      // SAFETY: buildRuntimeData serializes the runtime data object, whose
+      // routes each carry `path` and a boolean `monolingual`.
+      const data = JSON.parse(buildRuntimeData(project)) as {
+        routes: { contentType?: string; monolingual: boolean; path: string }[];
+      };
+      const byPath = new Map(data.routes.map((route) => [route.path, route]));
+      expect(byPath.get("/")?.monolingual).toBe(false);
+      expect(
+        releaseRoutes.every((route) => byPath.get(route.path)?.monolingual)
+      ).toBe(true);
     } finally {
       globalThis.fetch = originalFetch;
     }

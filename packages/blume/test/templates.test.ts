@@ -135,6 +135,13 @@ describe("catchAllPageTemplate", () => {
     expect(out).not.toContain("Warning");
   });
 
+  it("drops the language switcher on a monolingual page", () => {
+    const out = catchAllPageTemplate({ ...exportOpts, mathEnabled: false });
+    // The route's flag rides into the page props, and gates the switcher.
+    expect(out).toContain("monolingual: route.monolingual,");
+    expect(out).toContain("const localeSwitch = i18n && !monolingual");
+  });
+
   it("swaps the switcher's fallback locale in base-less space", () => {
     const out = catchAllPageTemplate({ ...exportOpts, mathEnabled: false });
     // The base helpers are the manifest's own, imported rather than re-spelled
