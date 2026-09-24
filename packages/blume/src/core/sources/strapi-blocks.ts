@@ -9,6 +9,7 @@ import {
   absoluteUrl,
   blockquote,
   codeFence,
+  guardBlockStart,
   headingPrefix,
   image,
   listItem,
@@ -52,12 +53,16 @@ const renderInlineNode = (node: JsonObject): string => {
   }
 };
 
+/** A text block's inline nodes, joined and guarded as one block. */
+const blockText = (nodes: JsonObject[]): string =>
+  guardBlockStart(renderInlines(nodes));
+
 const renderList = (node: JsonObject): string => {
   const ordered = asString(node.format) === "ordered";
   return children(node)
     .map((item, index) => {
       const kids = children(item);
-      const line = renderInlines(kids.filter((kid) => typeOf(kid) !== "list"));
+      const line = blockText(kids.filter((kid) => typeOf(kid) !== "list"));
       const sub = kids
         .filter((kid) => typeOf(kid) === "list")
         .map((list) => renderList(list))
@@ -89,13 +94,13 @@ const renderBlock = (
 ): string => {
   switch (typeOf(node)) {
     case "paragraph": {
-      return renderInlines(children(node));
+      return blockText(children(node));
     }
     case "heading": {
-      return `${headingPrefix(asNumber(node.level) ?? 1)}${renderInlines(children(node))}`;
+      return `${headingPrefix(asNumber(node.level) ?? 1)}${blockText(children(node))}`;
     }
     case "quote": {
-      return blockquote(renderInlines(children(node)));
+      return blockquote(blockText(children(node)));
     }
     case "list": {
       return renderList(node);

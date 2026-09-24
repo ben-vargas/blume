@@ -122,10 +122,12 @@ describe("lowering primitives", () => {
     expect(escapeMarkdownText("a\n\nimport b\nimport c")).toBe(
       "a\n\n&#105;mport b\nimport c"
     );
-    // Only the lowercase keyword and a following space open a statement.
+    // Only the lowercase keyword, as a whole word at a block start, opens a
+    // statement.
     expect(escapeMarkdownText("Import it, importing, import\tx")).toBe(
       "Import it, importing, import\tx"
     );
+    expect(escapeMarkdownText("importing it")).toBe("importing it");
   });
 
   it("keeps a character reference typed in the CMS as written", () => {

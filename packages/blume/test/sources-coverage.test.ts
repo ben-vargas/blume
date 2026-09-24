@@ -562,7 +562,7 @@ describe("materializeAssets: video sources", () => {
     const stem = hashText(url);
     await mkdir(join(dir, "assets"), { recursive: true });
     await writeFile(join(dir, "assets", `${stem}.mp4`), "");
-    await writeFile(join(dir, "assets", `${stem}.bin`), "");
+    await writeFile(join(dir, "assets", `${stem}.mov`), "");
     await materializeAssets(
       `<video controls src="${url}" />`,
       assetCtx(dir, fetchImpl)
@@ -570,16 +570,21 @@ describe("materializeAssets: video sources", () => {
     expect(fetched).toStrictEqual([url]);
   });
 
-  it("falls back to .bin when neither the url nor the response names a type", async () => {
+  it("refuses a download when neither the url nor the response names a media type", async () => {
     const dir = await tempDir();
-    const { markdown } = await materializeAssets(
+    const { diagnostics, markdown } = await materializeAssets(
       '<video controls src="https://cdn.example.com/stream?id=9" />',
       assetCtx(
         dir,
         asFetch(() => Promise.resolve(okBytes()))
       )
     );
-    expect(markdown).toContain(".bin");
+    expect(diagnostics[0]?.message).toContain(
+      "responded with no content type and its URL names no image or video file"
+    );
+    expect(markdown).toBe(
+      '<video controls src="https://cdn.example.com/stream?id=9" />'
+    );
   });
 
   it("refuses an html watch page and keeps the original src", async () => {

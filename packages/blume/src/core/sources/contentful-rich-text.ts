@@ -13,6 +13,7 @@ import type { InlineMarks } from "./lower.ts";
 import {
   absoluteUrl,
   blockquote,
+  guardBlockStart,
   headingPrefix,
   image,
   joinBlocks,
@@ -234,11 +235,11 @@ const renderBlock = (
   const type = asString(node.nodeType) ?? "";
   const heading = HEADING.exec(type)?.groups?.level;
   if (heading) {
-    return `${headingPrefix(Number(heading))}${renderInlines(children(node), options)}`;
+    return `${headingPrefix(Number(heading))}${guardBlockStart(renderInlines(children(node), options))}`;
   }
   switch (type) {
     case "paragraph": {
-      return renderInlines(children(node), options);
+      return guardBlockStart(renderInlines(children(node), options));
     }
     case "blockquote": {
       return blockquote(

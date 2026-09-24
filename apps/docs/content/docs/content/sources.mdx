@@ -87,7 +87,7 @@ A heading that itself contains a link gets its manifest anchor from the heading'
 
 A link to an `index` note lands on its folder's route rather than a phantom `/index`. **An unresolved wikilink degrades to plain text with a build warning instead of failing the build**, so a vault mid-refactor still publishes. Single-line `%%comments%%` are stripped, a wikilink inside an HTML comment (`<!-- [[Draft]] -->`) is left alone since Obsidian hides it too, and a note with no `title` in its frontmatter is titled by its filename — the same rule Obsidian itself applies. An `index` note is the one exception: it names a route rather than a note, so its title falls through to Blume's usual derivation (first heading, then the humanized segment). Fenced, indented, and inline code passes through verbatim, so a note documenting the syntax survives.
 
-Dot-folders are skipped, including Obsidian's own `.obsidian` config directory and `.trash` — which the dev watcher also ignores, so moving a pane in the app or deleting a note to the trash doesn't rebuild your site. Editing a note does. The directories no content scan reads (`node_modules`, `dist`, `.git`, …) are skipped too, so a vault rooted at the project itself doesn't publish dependency READMEs. Symlinks inside the vault are followed, the way the filesystem source follows them, so a shared folder linked into the vault publishes with it. A vault that sits inside the filesystem source's root must be excluded from it (`filesystem({ root: "docs", exclude: ["vault/**"] })`); `blume version cut` then leaves it out of the snapshot, since the vault keeps publishing its own notes as current.
+Dot-folders are skipped, including Obsidian's own `.obsidian` config directory and `.trash` — which the dev watcher also ignores, so moving a pane in the app or deleting a note to the trash doesn't rebuild your site. Editing a note does. The directories no content scan reads (`node_modules`, `dist`, `.git`, …) are skipped too, so a vault rooted at the project itself doesn't publish dependency READMEs. Symlinks inside the vault are followed, the way the filesystem source follows them, so a shared folder linked into the vault publishes with it. A vault that sits inside the filesystem source's root must be excluded from it (`filesystem({ root: "docs", exclude: ["vault/**"] })`); [`blume version <id>`](/docs/cli/version) then leaves it out of the snapshot, since the vault keeps publishing its own notes as current.
 
 Not yet lowered: callouts (`> [!note]`) render as plain blockquotes, embeds (`![[image.png]]`) pass through untouched, multi-line `%%comments%%` are left in place, and there is no backlink graph.
 
@@ -138,7 +138,7 @@ export default defineConfig({
 });
 ```
 
-Each release maps to the changelog fields automatically: its name (or tag) becomes the title, its published date drives the timeline order, the tag becomes `changelog.version`, and prereleases are tagged `Prerelease` (others `Release`). The notes render as the entry body. Give the source a `prefix` so its release pages nest under a route like `/changelog/v1-2-0`.
+Each release maps to the changelog fields automatically: its name (or tag) becomes the title, its published date drives the timeline order, the tag becomes `changelog.version`, and prereleases are tagged `Prerelease` (others `Release`). The notes render as the entry body, with two changes to their links: a link that isn't a web, mail, phone, or relative address (a `javascript:` URL, say) keeps only its label, and a link back to your own [`deployment.site`](/docs/deployment) is rewritten to its root-relative path, so it follows preview deploys and your deployment base. Give the source a `prefix` so its release pages nest under a route like `/changelog/v1-2-0`.
 
 A private repo authenticates with the `GITHUB_TOKEN` environment variable — the same token the other GitHub features use, never inlined into your config; the adapter declares it, so a build without it warns. Like every remote source it's cached under `.blume/cache/<source>/` and served offline if the API is unreachable. Because a changelog is supplementary, a fetch failure with no cache (say a CI build without a token) degrades to an empty changelog with a warning rather than failing the build — set `GITHUB_TOKEN` in your CI and deploy environments to populate it.
 
@@ -171,7 +171,7 @@ A read token for a private dataset comes from the `SANITY_TOKEN` environment var
 
 ## Notion
 
-The built-in `notion()` adapter turns a Notion database into a collection: each row becomes a page, its properties become frontmatter, and its block tree becomes MDX. Callouts, toggles, columns, and code blocks map to the matching Blume components, and the text you type in Notion renders as written: a `{`, `<`, or Markdown character in a page is escaped rather than read as MDX, JSX, or formatting. Video blocks become a `<YouTube>` embed when they hold a YouTube link and a `<video>` player otherwise, with the block's caption as a `<Frame>` caption either way; a link to a video page rather than a media file (a Vimeo or Loom URL, say) is reported as a warning instead of embedded. The adapter declares `@notionhq/client` (v5 or later) as its runtime dependency — an optional peer; Blume reads the database through its first data source.
+The built-in `notion()` adapter turns a Notion database into a collection: each row becomes a page, its properties become frontmatter, and its block tree becomes MDX. Callouts, toggles, columns, and code blocks map to the matching Blume components, and the text you type in Notion renders as written: a `{`, `<`, or Markdown character in a page is escaped rather than read as MDX, JSX, or formatting. Video blocks become a `<YouTube>` embed when they hold a YouTube link and a `<video>` player otherwise, with the block's caption as a `<Frame>` caption either way. A link to a video page rather than a media file (a Vimeo or Loom URL, say) is reported as a build warning, and its `<video>` player keeps pointing at the page, which it can't play — link to that video from the text instead. The adapter declares `@notionhq/client` (v5 or later) as its runtime dependency — an optional peer; Blume reads the database through its first data source.
 
 ```ts blume.config.ts
 import { defineConfig } from "blume";
@@ -184,20 +184,24 @@ export default defineConfig({
       notion({
         prefix: "handbook",
         database: "8f2c1e0a4b7d4f3c9e6a5d2b1c0f9e8d", // the id in the database URL
-        // Property names default to the title-typed prop / Description / Slug / Order
-        // Set publishedValue to treat Status as a publish gate (opt-in)
-        publishedValue: "Published",
+        // Property names default to the title-typed prop / Description / Slug / Order / Status
+        // Pages whose Status isn't publishedValue (default "Published") import as drafts
+        publishedValue: "Done",
       }),
     ],
   },
 });
 ```
 
-The integration token comes from the `NOTION_TOKEN` environment variable (share the database with your integration); the adapter declares it, so a build without it warns. By default every page is imported; set `publishedValue` to make the `Status` property a publish gate — any other value then maps to `draft: true`, which production builds drop. **Notion image and video URLs are signed and expire**, so the adapter downloads them at build time into the site's assets and rewrites the references — a CMS asset never rots a static build. API calls are paced through a small request pool (3 at a time, matching Notion's per-integration rate limit) so databases with hundreds of pages import without tripping `429` responses; set `concurrency` on the source to tune it.
+The integration token comes from the `NOTION_TOKEN` environment variable (share the database with your integration); the adapter declares it, so a build without it warns.
+
+The `Status` property is a publish gate by default. A page whose Status (a status or select property) holds any value other than `publishedValue`, which defaults to `Published`, imports with `draft: true`, and production builds drop drafts. A page with no Status value is published, and a database without the property publishes every page. Notion's default status options are Not started, In progress, and Done, so a database that uses them has no `Published` value and publishes nothing until you set `publishedValue: "Done"` (or whichever option means published). `properties.status` names a differently named property; to import every page whatever its status, point it at a property the database doesn't have.
+
+**Notion image and video URLs are signed and expire**, so the adapter downloads them at build time into the site's assets and rewrites the references — a CMS asset never rots a static build. Only a file the server reports as an image or video is saved (or, when the response doesn't say, one whose URL names an image or video extension); anything else keeps its original URL with a build warning, so nothing but media is ever served from your site's origin. API calls are paced through a small request pool (3 at a time, matching Notion's per-integration rate limit) so databases with hundreds of pages import without tripping `429` responses; set `concurrency` on the source to tune it.
 
 ## Contentful
 
-The built-in `contentful()` adapter reads the entries of one content type through the Content Delivery API and lowers each entry's rich text body to Markdown: headings, marks, links, lists, quotes, tables, and embedded assets map to their Markdown equivalents, and a body held in a Markdown long-text field passes through as written. Nothing to install — the adapter speaks the REST API directly.
+The built-in `contentful()` adapter reads the entries of one content type through the Content Delivery API and lowers each entry's rich text body to Markdown: headings, marks, links, lists, quotes, tables, and embedded assets map to their Markdown equivalents, and a body held in a Markdown long-text field passes through as written, except that a link that isn't a web, mail, phone, or relative address (a `javascript:` URL, say) keeps only its label, as it does in rich text. Nothing to install — the adapter speaks the REST API directly.
 
 ```ts blume.config.ts
 import { defineConfig } from "blume";
@@ -227,7 +231,7 @@ The Delivery API token comes from the `CONTENTFUL_ACCESS_TOKEN` environment vari
 
 ## Payload
 
-The built-in `payload()` adapter reads a collection through the Payload REST API (`/api/<collection>`) and lowers each document's Lexical body to Markdown: paragraphs, headings, bullet, numbered, and check lists, quotes, links, uploads, and horizontal rules. A body held in a text field passes through as Markdown. Nothing to install.
+The built-in `payload()` adapter reads a collection through the Payload REST API (`/api/<collection>`) and lowers each document's Lexical body to Markdown: paragraphs, headings, bullet, numbered, and check lists, quotes, links, uploads, and horizontal rules. A body held in a text field passes through as Markdown, except that a link that isn't a web, mail, phone, or relative address keeps only its label. Nothing to install.
 
 ```ts blume.config.ts
 import { defineConfig } from "blume";
@@ -255,7 +259,7 @@ The API key comes from the `PAYLOAD_API_KEY` environment variable and is sent as
 
 ## Strapi
 
-The built-in `strapi()` adapter reads a content type through the Strapi REST API (`/api/<pluralApiId>`) and lowers each entry's Blocks body to Markdown: paragraphs, headings, lists, quotes, code blocks, images, and links. A Markdown rich text field passes through as written. Strapi 5 responses are read as-is, and the Strapi 4 `attributes` envelope is flattened so the same field paths apply. Nothing to install.
+The built-in `strapi()` adapter reads a content type through the Strapi REST API (`/api/<pluralApiId>`) and lowers each entry's Blocks body to Markdown: paragraphs, headings, lists, quotes, code blocks, images, and links. A Markdown rich text field passes through as written, except that a link that isn't a web, mail, phone, or relative address keeps only its label. Strapi 5 responses are read as-is, and the Strapi 4 `attributes` envelope is flattened so the same field paths apply. Nothing to install.
 
 ```ts blume.config.ts
 import { defineConfig } from "blume";

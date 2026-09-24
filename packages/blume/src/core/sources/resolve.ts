@@ -162,7 +162,10 @@ const buildSource = (
       );
     }
     case "github-releases": {
-      return githubReleasesSource({ ...adapter.options, name }, ctx());
+      return githubReleasesSource(
+        { ...adapter.options, name, site: config.deployment.options.site },
+        ctx()
+      );
     }
     default: {
       // Only `mdx-remote` is left, and TypeScript has narrowed `adapter` to it.

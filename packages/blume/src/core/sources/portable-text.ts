@@ -4,7 +4,14 @@
  * user-supplied serializer or are skipped with a noted comment. Output is
  * Markdown text that flows through Blume's normal pipeline.
  */
-import { escapeMarkdownText, image, unsupported, writesMdx } from "./lower.ts";
+import {
+  guardBlockStart,
+  image,
+  renderInline,
+  renderLink,
+  unsupported,
+  writesMdx,
+} from "./lower.ts";
 
 /**
  * A field value on a Portable Text node: the arbitrary JSON the CMS query
@@ -66,47 +73,29 @@ const HEADING_STYLES = new Map([
   ["h6", "###### "],
 ]);
 
-/** Wrap a span's text in Markdown for its marks (decorators + link defs). */
+/**
+ * A span as Markdown for its marks, through the shared lowering every CMS
+ * uses: prose is escaped, a code span outruns the backticks inside it, edge
+ * whitespace stays outside emphasis, and a link def wraps last (so its label
+ * keeps emphasis) only when its destination is safe to click.
+ */
 const renderSpan = (
   span: PortableTextSpan,
   defs: Map<string, PortableTextMarkDef>
 ): string => {
-  // Code spans stay verbatim: their text is literal inside the backticks,
-  // and backslash escapes would render as backslashes.
-  const isCode = span.marks?.includes("code") ?? false;
-  let text = isCode ? (span.text ?? "") : escapeMarkdownText(span.text ?? "");
-  if (!span.marks || span.marks.length === 0) {
-    return text;
-  }
-  // Decorators wrap inline; a link def wraps last so its label keeps emphasis.
-  let link: PortableTextMarkDef | undefined;
-  for (const mark of span.marks) {
-    switch (mark) {
-      case "strong": {
-        text = `**${text}**`;
-        break;
-      }
-      case "em": {
-        text = `*${text}*`;
-        break;
-      }
-      case "code": {
-        text = `\`${text}\``;
-        break;
-      }
-      case "strike-through": {
-        text = `~~${text}~~`;
-        break;
-      }
-      default: {
-        const def = defs.get(mark);
-        if (def?._type === "link") {
-          link = def;
-        }
-      }
-    }
-  }
-  return link?.href ? `[${text}](${link.href})` : text;
+  const marks = span.marks ?? [];
+  const link = marks
+    .map((mark) => defs.get(mark))
+    .findLast((def) => def?._type === "link");
+  return renderLink(
+    renderInline(span.text ?? "", {
+      bold: marks.includes("strong"),
+      code: marks.includes("code"),
+      italic: marks.includes("em"),
+      strike: marks.includes("strike-through"),
+    }),
+    link?.href
+  );
 };
 
 /** Render the inline children of a block to a single Markdown string. */
@@ -114,16 +103,45 @@ const renderChildren = (block: PortableTextBlock): string => {
   const defs = new Map(
     (block.markDefs ?? []).map((def) => [def._key, def] as const)
   );
-  return (block.children ?? []).map((span) => renderSpan(span, defs)).join("");
+  return guardBlockStart(
+    (block.children ?? []).map((span) => renderSpan(span, defs)).join("")
+  );
 };
 
 /** Whether an image block's `alt` field is usable alt text (CMS JSON may hold anything). */
 const isAltText = (value: PortableTextValue): value is string =>
   typeof value === "string";
 
+/** The marker a list block opens with. */
+const listMarker = (block: PortableTextBlock): string =>
+  block.listItem === "number" ? "1." : "-";
+
+/**
+ * How far each block is indented. Portable Text lists are flat blocks with a
+ * `level`, while Markdown nests an item by indenting it to its parent item's
+ * content column: two past a `-` item's indent, three past a `1.` item's. The
+ * column comes from the item actually above, so a skipped level nests under
+ * the deepest open item instead of indenting into a code block.
+ */
+const listIndents = (blocks: PortableTextBlock[]): number[] => {
+  const columns: number[] = [];
+  return blocks.map((block) => {
+    if (!block.listItem) {
+      columns.length = 0;
+      return 0;
+    }
+    const depth = Math.min(Math.max(0, (block.level ?? 1) - 1), columns.length);
+    const indent = columns[depth - 1] ?? 0;
+    columns.length = depth;
+    columns.push(indent + listMarker(block).length + 1);
+    return indent;
+  });
+};
+
 const renderBlock = (
   block: PortableTextBlock,
-  options: PortableTextOptions
+  options: PortableTextOptions,
+  indent: number
 ): string => {
   const custom = options.serializers?.[block._type];
   if (custom) {
@@ -143,9 +161,7 @@ const renderBlock = (
 
   const inline = renderChildren(block);
   if (block.listItem) {
-    const indent = "  ".repeat(Math.max(0, (block.level ?? 1) - 1));
-    const marker = block.listItem === "number" ? "1." : "-";
-    return `${indent}${marker} ${inline}`;
+    return `${" ".repeat(indent)}${listMarker(block)} ${inline}`;
   }
   if (block.style === "blockquote") {
     return `> ${inline}`;
@@ -158,7 +174,10 @@ export const portableTextToMarkdown = (
   blocks: PortableTextBlock[],
   options: PortableTextOptions = {}
 ): string => {
-  const lines = blocks.map((block) => renderBlock(block, options));
+  const indents = listIndents(blocks);
+  const lines = blocks.map((block, i) =>
+    renderBlock(block, options, indents[i] ?? 0)
+  );
   // List items are single-newline separated; everything else gets a blank line.
   const out: string[] = [];
   for (let i = 0; i < lines.length; i += 1) {

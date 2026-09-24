@@ -1,6 +1,7 @@
 import { join } from "pathe";
 
 import matter from "../frontmatter.ts";
+import { neutralizeUnsafeLinks } from "../safe-links.ts";
 import {
   hashText,
   loadWithCache,
@@ -193,7 +194,8 @@ export interface RemoteFieldMap {
  * when the slug field is missing or slugifies to nothing (pure punctuation),
  * so distinct documents never collapse onto one `untitled.md`; a slashed
  * slug keeps its segments. A string body is Markdown and passes through as
- * `.md`; any other shape goes to the CMS's lowerer, and is written as `.mdx`
+ * `.md`, its unsafe links reduced to their labels; any other shape goes to
+ * the CMS's lowerer, and is written as `.mdx`
  * when `lowersToMdx` (the source has serializers, see `writesMdx`).
  */
 export const documentEntry = (
@@ -222,7 +224,10 @@ export const documentEntry = (
   let markdown = "";
   let format: "md" | "mdx" = "md";
   if (isStringValue(body)) {
-    markdown = `${body.trimEnd()}\n`;
+    // The CMS's Markdown is its editors', not the site author's: a link whose
+    // destination isn't a web, mail, or relative address (`javascript:`)
+    // keeps only its label, as release notes do (see `safe-links.ts`).
+    markdown = neutralizeUnsafeLinks(`${body.trimEnd()}\n`);
   } else if (body !== undefined) {
     markdown = lower(body);
     format = lowersToMdx ? "mdx" : "md";

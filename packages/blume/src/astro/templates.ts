@@ -1596,15 +1596,26 @@ const TYPES: Record<string, string> = {
   ".ico": "image/x-icon",
   ".jpeg": "image/jpeg",
   ".jpg": "image/jpeg",
+  ".mov": "video/quicktime",
+  ".mp4": "video/mp4",
+  ".ogv": "video/ogg",
   ".png": "image/png",
   ".svg": "image/svg+xml",
   ".tiff": "image/tiff",
+  ".webm": "video/webm",
   ".webp": "image/webp",
 };
 
+const extensionOf = (path: string): string =>
+  path.slice(path.lastIndexOf(".")).toLowerCase();
+
 const contentType = (path: string): string =>
-  TYPES[path.slice(path.lastIndexOf(".")).toLowerCase()] ??
-  "application/octet-stream";
+  TYPES[extensionOf(path)] ?? "application/octet-stream";
+
+// A source downloads only images and videos; anything else in the staged
+// directory (a page an older build saved under its URL's extension) is never
+// published from the docs origin.
+const isMedia = (path: string): boolean => Object.hasOwn(TYPES, extensionOf(path));
 
 const stagedParams = async (): Promise<string[]> => {
   if (STAGED_DIR === null || !existsSync(STAGED_DIR)) {
@@ -1615,7 +1626,7 @@ const stagedParams = async (): Promise<string[]> => {
     withFileTypes: true,
   });
   return entries
-    .filter((entry) => entry.isFile())
+    .filter((entry) => entry.isFile() && isMedia(entry.name))
     .map((entry) =>
       relative(STAGED_DIR, join(entry.parentPath, entry.name)).replaceAll(
         "\\\\",
@@ -1648,7 +1659,7 @@ const resolveAsset = (asset: string): string | null => {
   // asset — and a bare prefix also admits a sibling directory that merely
   // shares the name.
   const rel = relative(STAGED_DIR, abs);
-  if (rel === "" || rel.startsWith("..") || isAbsolute(rel)) {
+  if (rel === "" || rel.startsWith("..") || isAbsolute(rel) || !isMedia(rel)) {
     return null;
   }
   return existsSync(abs) ? abs : null;

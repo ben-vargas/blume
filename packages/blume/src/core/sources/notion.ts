@@ -15,7 +15,13 @@ import {
   pollingWatch,
   snapshotCache,
 } from "./cache.ts";
-import { codeFence, image, renderInline, renderLink } from "./lower.ts";
+import {
+  codeFence,
+  guardBlockStart,
+  image,
+  renderInline,
+  renderLink,
+} from "./lower.ts";
 import { slugifyPath } from "./normalize.ts";
 import type {
   ContentSource,
@@ -217,12 +223,12 @@ const withNotionRetry = async <T>(
     if (status !== RATE_LIMITED || attempt === MAX_RETRIES) {
       throw error;
     }
-    // SAFETY: same APIResponseError shape — `headers` maps lower-cased HTTP
-    // header names to their values; a missing header yields `NaN` and falls
-    // back to exponential backoff.
-    const retryAfter = Number(
-      (error as { headers?: Record<string, string> }).headers?.["retry-after"]
-    );
+    // SAFETY: same APIResponseError shape — `headers` is the failed
+    // response's fetch `Headers`, read with `get()`; a missing header (or
+    // headers without `get`) yields no positive wait and falls back to
+    // exponential backoff.
+    const { headers } = error as { headers?: Headers };
+    const retryAfter = Number(headers?.get?.("retry-after"));
     const wait =
       retryAfter > 0
         ? retryAfter * SECOND_MS
@@ -266,6 +272,12 @@ const richToPlain = (rich: NotionRichText[] = []): string =>
  */
 const jsxString = (value: string): string => `{${JSON.stringify(value)}}`;
 
+// `<Frame>` renders its caption as Markdown after escaping `<` and `>` itself
+// (so a caption can't inject HTML), which turns the lowering's own `\<` into
+// a visible `&lt;`. Its caption drops those backslashes and leaves the
+// escaping to Frame; every other escape still applies.
+const FRAME_ESCAPED = /\\(?=[<>])/gu;
+
 const YOUTUBE_HOST = /(?:^|\.)(?:youtube(?:-nocookie)?\.com|youtu\.be)$/u;
 
 // `parseYouTubeId` is host-agnostic on purpose (the component accepts bare
@@ -300,14 +312,14 @@ const renderVideo = (data: NotionBlockPayload): string => {
     ? `<YouTube${title} url=${JSON.stringify(url)} />`
     : `<video controls src=${JSON.stringify(url)} />`;
   return caption
-    ? `<Frame caption=${jsxString(caption)}>\n${media}\n</Frame>`
+    ? `<Frame caption=${jsxString(caption.replaceAll(FRAME_ESCAPED, ""))}>\n${media}\n</Frame>`
     : media;
 };
 
 /** Render a leaf (non-container) block to Markdown, or null for containers. */
 const renderLeaf = (block: NotionBlock): string | null => {
   const data = payloadOf(block) ?? {};
-  const text = richToMarkdown(blockField(block));
+  const text = guardBlockStart(richToMarkdown(blockField(block)));
   switch (block.type) {
     case "paragraph": {
       return text;
@@ -440,7 +452,10 @@ export const notionSource = (
     };
 
     if (block.type === "callout") {
-      const body = [richToMarkdown(blockField(block)), await children(block)]
+      const body = [
+        guardBlockStart(richToMarkdown(blockField(block))),
+        await children(block),
+      ]
         .filter(Boolean)
         .join("\n\n");
       return `<Callout>\n${body}\n</Callout>`;

@@ -11,6 +11,7 @@ import type { InlineMarks } from "./lower.ts";
 import {
   absoluteUrl,
   blockquote,
+  guardBlockStart,
   headingPrefix,
   image,
   indent,
@@ -105,6 +106,10 @@ const renderInlineNode = (
   }
 };
 
+/** A text block's inline children, joined and guarded as one block. */
+const blockText = (node: JsonObject, options: LexicalOptions): string =>
+  guardBlockStart(renderInlines(children(node), options));
+
 const renderUpload = (node: JsonObject, options: LexicalOptions): string => {
   const value = asObject(node.value);
   const url = value ? asString(value.url) : undefined;
@@ -140,7 +145,7 @@ const renderList = (node: JsonObject, options: LexicalOptions): string => {
     if (listType === "check") {
       check = item.checked === true ? "[x] " : "[ ] ";
     }
-    const line = `${check}${renderInlines(inline, options)}`;
+    const line = `${check}${guardBlockStart(renderInlines(inline, options))}`;
     items.push(listItem(lastMarker, sub ? `${line}\n${sub}` : line));
     index += 1;
   }
@@ -150,14 +155,14 @@ const renderList = (node: JsonObject, options: LexicalOptions): string => {
 const renderBlock = (node: JsonObject, options: LexicalOptions): string => {
   switch (typeOf(node)) {
     case "paragraph": {
-      return renderInlines(children(node), options);
+      return blockText(node, options);
     }
     case "heading": {
       const level = Number((asString(node.tag) ?? "h1").slice(1));
-      return `${headingPrefix(level)}${renderInlines(children(node), options)}`;
+      return `${headingPrefix(level)}${blockText(node, options)}`;
     }
     case "quote": {
-      return blockquote(renderInlines(children(node), options));
+      return blockquote(blockText(node, options));
     }
     case "list": {
       return renderList(node, options);

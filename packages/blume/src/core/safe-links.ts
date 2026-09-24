@@ -1,6 +1,8 @@
 import type { Nodes, Root } from "mdast";
 import { fromMarkdown } from "mdast-util-from-markdown";
+import { gfmFromMarkdown } from "mdast-util-gfm";
 import { toString } from "mdast-util-to-string";
+import { gfm } from "micromark-extension-gfm";
 
 import { isSafeHref } from "./safe-href.ts";
 import { escapeMarkdownText } from "./sources/lower.ts";
@@ -54,10 +56,17 @@ export const unsafeLinkSpans = (tree: Root): UnsafeLinkSpan[] => {
 /**
  * Markdown with every unsafe link reduced to its label text and every unsafe
  * link definition removed. Everything else — safe links, raw HTML, code —
- * passes through as written.
+ * passes through as written. The Markdown is read as GitHub-flavored, the way
+ * the site renders it: a link inside a footnote definition or a table cell is
+ * only a link to a GFM parser.
  */
 export const neutralizeUnsafeLinks = (markdown: string): string => {
-  const spans = unsafeLinkSpans(fromMarkdown(markdown));
+  const spans = unsafeLinkSpans(
+    fromMarkdown(markdown, {
+      extensions: [gfm()],
+      mdastExtensions: [gfmFromMarkdown()],
+    })
+  );
   let out = "";
   let cursor = 0;
   for (const span of spans) {

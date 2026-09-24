@@ -1,4 +1,4 @@
-import type { Heading, Nodes } from "mdast";
+import type { Definition, Heading, Link, Nodes } from "mdast";
 import { fromMarkdown } from "mdast-util-from-markdown";
 import { gfmFromMarkdown } from "mdast-util-gfm";
 import { toString as mdastToString } from "mdast-util-to-string";
@@ -15,6 +15,7 @@ import {
   pollingWatch,
   snapshotCache,
 } from "./cache.ts";
+import { destination, escapeMarkdownText } from "./lower.ts";
 import type {
   ContentSource,
   SourceContext,
@@ -43,6 +44,11 @@ export interface GithubReleasesSourceOptions {
   prereleases?: boolean;
   /** Repository name. */
   repo: string;
+  /**
+   * The site's own URL (`deployment.site`). A link in the notes back to it
+   * becomes root-relative, the way a page links to another page.
+   */
+  site?: string;
 }
 
 /** The subset of the GitHub release payload the adapter reads. */
@@ -164,6 +170,92 @@ const liftHeadings = (body: string): string => {
   return lifted;
 };
 
+const WEB_PROTOCOL = /^https?:$/u;
+const TITLE_SPECIALS = /["\\]/gu;
+
+/** The origin of an http(s) site URL, or null when there is none. */
+const webOrigin = (site?: string): string | null => {
+  const parsed = site ? URL.parse(site) : null;
+  return parsed && WEB_PROTOCOL.test(parsed.protocol) ? parsed.origin : null;
+};
+
+/** A link title as Markdown carries it, or nothing when there is none. */
+const titleSuffix = (title?: string | null): string =>
+  title ? ` "${title.replaceAll(TITLE_SPECIALS, String.raw`\$&`)}"` : "";
+
+/**
+ * The Markdown a link or definition to one of the site's own pages becomes,
+ * pointing at `path` instead. An inline link keeps its label as written, and
+ * an autolink keeps showing the URL it was written as.
+ */
+const rewrittenLink = (
+  markdown: string,
+  node: Definition | Link,
+  path: string
+): string => {
+  const target = `${destination(path)}${titleSuffix(node.title)}`;
+  if (node.type === "definition") {
+    return `[${node.label ?? node.identifier}]: ${target}`;
+  }
+  const start = node.position?.start.offset ?? 0;
+  if (markdown[start] !== "[") {
+    return `[${escapeMarkdownText(mdastToString(node))}](${target})`;
+  }
+  const first = node.children.at(0)?.position?.start.offset ?? start + 1;
+  const last = node.children.at(-1)?.position?.end.offset ?? first;
+  return `[${markdown.slice(first, last)}](${target})`;
+};
+
+/**
+ * Point the notes' links to the site itself (`https://acme.dev/docs/x` when
+ * `deployment.site` is `https://acme.dev`) at the root-relative path, as a
+ * page on the site links to another: an absolute link hardcodes production,
+ * so it leaves a preview deploy and trips `blume audit`'s own-origin check.
+ */
+const relativizeOwnLinks = (markdown: string, site?: string): string => {
+  const origin = webOrigin(site);
+  if (!origin) {
+    return markdown;
+  }
+  const spans: { end: number; start: number; text: string }[] = [];
+  const visit = (node: Nodes): void => {
+    if (node.type === "link" || node.type === "definition") {
+      const parsed = URL.parse(node.url);
+      if (parsed?.origin === origin) {
+        spans.push({
+          // fromMarkdown stamps every node's position.
+          end: node.position?.end.offset ?? 0,
+          start: node.position?.start.offset ?? 0,
+          text: rewrittenLink(
+            markdown,
+            node,
+            `${parsed.pathname}${parsed.search}${parsed.hash}`
+          ),
+        });
+        return;
+      }
+    }
+    if ("children" in node) {
+      for (const child of node.children) {
+        visit(child);
+      }
+    }
+  };
+  visit(
+    fromMarkdown(markdown, {
+      extensions: [gfm()],
+      mdastExtensions: [gfmFromMarkdown()],
+    })
+  );
+  let out = "";
+  let cursor = 0;
+  for (const span of spans) {
+    out += markdown.slice(cursor, span.start) + span.text;
+    cursor = span.end;
+  }
+  return out + markdown.slice(cursor);
+};
+
 /** Slugify a tag into a stable, URL-safe source ref (`v1.2.0` -> `v1-2-0`). */
 const slugifyTag = (tag: string): string =>
   tag.toLowerCase().replaceAll(NON_SLUG, "-").replaceAll(EDGE_DASHES, "");
@@ -197,16 +289,22 @@ interface ChangelogFrontmatter {
  * generated `/changelog` timeline and RSS feed, and a summary derived from the
  * notes becomes the release page's meta description.
  */
-const releaseToEntry = (release: GithubRelease): SourceEntry => {
+const releaseToEntry = (release: GithubRelease, site?: string): SourceEntry => {
   const version = release.tag_name.replace(LEADING_V, "");
   const title = release.name?.trim() || release.tag_name;
   const date = release.published_at ?? release.created_at;
   const category = release.prerelease ? "Prerelease" : "Release";
   // Release notes are the repository's content, not the site author's, so a
   // link whose destination isn't a web, mail, or relative address
-  // (`javascript:`, `data:`) keeps only its label (see `safe-links.ts`).
+  // (`javascript:`, `data:`) keeps only its label (see `safe-links.ts`), and
+  // a link back to the site becomes root-relative.
   const body = liftHeadings(
-    neutralizeUnsafeLinks((release.body ?? "").replaceAll("\r\n", "\n")).trim()
+    relativizeOwnLinks(
+      neutralizeUnsafeLinks(
+        (release.body ?? "").replaceAll("\r\n", "\n")
+      ).trim(),
+      site
+    )
   );
   // A summary in `seo.description` gives each release page a unique meta
   // description (instead of the site-wide fallback) without also rendering the
@@ -295,7 +393,9 @@ export const githubReleasesSource = (
         cache,
         async () => {
           const releases = await fetchReleases();
-          return releases.map(releaseToEntry);
+          return releases.map((release) =>
+            releaseToEntry(release, options.site)
+          );
         },
         refresh
       );

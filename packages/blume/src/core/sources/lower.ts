@@ -22,29 +22,37 @@ const MARKDOWN_SPECIALS = /[\\`*_{}[\]~<]/gu;
 // it names rather than as written. A bare `&` is left alone.
 const CHARACTER_REFERENCE = /&(?=#?[a-z0-9]+;)/giu;
 
-// Block syntax is only syntax at the start of a line: `# `, `- `, `+ ` and
-// `1. `/`1) ` need the space (or line end) to become a heading or list item,
-// while `>` opens a quote on its own, and a line of only `=` or `-` turns the
-// line above it into a heading (or, alone, into a rule). A CMS paragraph that
-// begins with one of these — a soft break inside it counts as a line start
-// too — must stay prose.
+// Block syntax is only syntax at the start of a line: `# ` (through
+// `###### `), `- `, `+ ` and `1. `/`1) ` need the space (or line end) to
+// become a heading or list item, while `>` opens a quote on its own, and a
+// line of only `=` or `-` turns the line above it into a heading (or, alone,
+// into a rule). Indentation of up to three spaces still counts. A CMS
+// paragraph that begins with one of these — a soft break inside it counts as
+// a line start too — must stay prose.
 const BLOCK_START =
-  /^(?<marker>[#+-]|\d+[.)])(?=[ \t]|$)|^(?<quote>>)|^(?<rule>=+|-{2,})(?=[ \t]*$)/gmu;
+  /^(?<indent>[ \t]*)(?:(?<marker>#+|[+-]|\d+[.)])(?=[ \t]|$)|(?<quote>>)|(?<rule>=+|-{2,})(?=[ \t]*$))/gmu;
 
-// MDX reads a top-level paragraph that opens with `import ` or `export ` as an
-// ESM statement, and prose like "import the CSV first" then fails the whole
-// page. The keyword's first letter as a character reference renders the same
-// in `.md` and `.mdx`, and MDX no longer sees the keyword. Only a paragraph's
-// first line counts; a blank line inside a run starts a new paragraph.
-const ESM_START = /(?<=^|\n[ \t]*\n)(?<keyword>import|export)(?= )/gu;
+// MDX reads a top-level line that opens with `import` or `export` followed by
+// a space, a tab, `{`, or `*` as an ESM statement, and prose like "import the
+// CSV first" then fails the whole page. The keyword's first letter as a
+// character reference renders the same in `.md` and `.mdx`, and MDX no longer
+// sees the keyword. The keyword is escaped wherever a word ends on it, which
+// covers every character that opens a statement. Only a block's first line
+// counts; a blank line inside the text starts a new block.
+const ESM_START = /(?<=^|\n[ \t]*\n)(?<keyword>import|export)(?![\w$])/gu;
+
+// Whitespace opening a block: four columns of it (or a tab) make an indented
+// code block, and a paragraph drops it when it renders anyway.
+const BLOCK_INDENT = /(?<=^|\n[ \t]*\n)[ \t]+/gu;
 
 const escapeBlockStart = (text: string): string =>
-  text.replaceAll(BLOCK_START, (marker: string) => {
+  text.replaceAll(BLOCK_START, (match: string, indent: string) => {
     // A numbered marker escapes its punctuation (`1\.`), the rest themselves.
+    const marker = match.slice(indent.length);
     const index = marker.search(/[.)]/u);
     return index === -1
-      ? `\\${marker}`
-      : `${marker.slice(0, index)}\\${marker.slice(index)}`;
+      ? `${indent}\\${marker}`
+      : `${indent}${marker.slice(0, index)}\\${marker.slice(index)}`;
   });
 
 const escapeEsmStart = (text: string): string =>
@@ -92,6 +100,17 @@ export const codeSpan = (code: string): string => {
   return `${fence}${pad}${code}${pad}${fence}`;
 };
 
+/**
+ * A block's inline text, guarded where only the whole block can tell. Runs
+ * are escaped one at a time, but "import" ending one run and a space or code
+ * span opening the next form an MDX `import` statement only once they are
+ * joined, and whitespace the first runs put in front of a block turns it into
+ * an indented code block. Apply it to the joined text of a paragraph,
+ * heading, quote, or list item — never to code.
+ */
+export const guardBlockStart = (text: string): string =>
+  escapeEsmStart(text.replaceAll(BLOCK_INDENT, ""));
+
 const EDGE_SPACE = /^(?<lead>\s*)(?<body>[\s\S]*?)(?<trail>\s*)$/u;
 
 /**
@@ -122,13 +141,30 @@ export const renderInline = (text: string, marks: InlineMarks): string => {
   return `${lead}${out}${trail}`;
 };
 
-// A destination with whitespace or parentheses ends early in `[label](…)`;
-// CommonMark's pointy-bracket form carries it intact.
-const UNSAFE_DESTINATION = /[\s()]/u;
+// A destination with whitespace, a control character, or parentheses ends
+// early in `[label](…)`; CommonMark's pointy-bracket form carries it intact.
+// oxlint-disable-next-line no-control-regex -- control characters are exactly what the bare form refuses.
+const UNSAFE_DESTINATION = /[\s()\u0000-\u001F\u007F]/u;
 
-/** A link or image destination as Markdown can carry it verbatim. */
-export const destination = (url: string): string =>
-  UNSAFE_DESTINATION.test(url) ? `<${url}>` : url;
+// Markdown decodes a destination before the browser sees it: a backslash
+// escape or a character reference becomes its character, so
+// `java&#115;cript:` would reach the `href` as `javascript:` after the safety
+// check passed it. Escaping both — and `<`/`>`, which would close the
+// pointy form early and let the rest of the URL open a second link — keeps
+// the `href` exactly the URL the CMS holds.
+const DESTINATION_SPECIALS = /[\\<>]|&(?=#?[a-z0-9]+;)/giu;
+
+// A destination can't hold a line break, and the URL parser drops tabs and
+// line breaks anyway, so removing them leaves the same URL.
+const DESTINATION_IGNORED = /[\t\n\r]/gu;
+
+/** A link or image destination as Markdown carries it verbatim. */
+export const destination = (url: string): string => {
+  const escaped = url
+    .replaceAll(DESTINATION_IGNORED, "")
+    .replaceAll(DESTINATION_SPECIALS, String.raw`\$&`);
+  return UNSAFE_DESTINATION.test(escaped) ? `<${escaped}>` : escaped;
+};
 
 /**
  * A Markdown link, or the label alone when the target is missing — or unsafe:
@@ -172,10 +208,20 @@ export const indent = (text: string, width: number): string => {
     .join("\n");
 };
 
-/** A fenced code block whose fence outruns any backtick run in the code. */
+// A fence's language is one word of its info string. A backtick in it keeps
+// the fence from opening at all, so the code renders as Markdown and HTML,
+// and whitespace would start the meta Blume reads code titles from; a
+// language that isn't a single such word is dropped.
+const FENCE_LANGUAGE = /^[^\s`]+$/u;
+
+/**
+ * A fenced code block whose fence outruns any backtick run in the code,
+ * labeled with its language when that is one word a fence can carry.
+ */
 export const codeFence = (code: string, language = ""): string => {
   const fence = "`".repeat(Math.max(3, longestBacktickRun(code) + 1));
-  return `${fence}${language}\n${code}\n${fence}`;
+  const label = FENCE_LANGUAGE.test(language) ? language : "";
+  return `${fence}${label}\n${code}\n${fence}`;
 };
 
 /** A Markdown image; the alt is escaped so a `]` in a caption can't close it. */
@@ -193,12 +239,19 @@ export const writesMdx = <Node>(
   serializers?: Record<string, (node: Node) => string>
 ): boolean => serializers !== undefined && Object.keys(serializers).length > 0;
 
+// A node's type is the CMS's data too: a `*/` (or `--`) in it would close the
+// comment early and let the rest run as MDX (or render as HTML). A space
+// between the two characters keeps it inside.
+const COMMENT_END = /\*\/|--/gu;
+
 /**
  * A comment marking a node the lowerer has no Markdown for — an MDX comment
  * when the output is MDX, which rejects `<!-- -->`.
  */
-export const unsupported = (what: string, mdx = false): string =>
-  mdx ? `{/* unsupported ${what} */}` : `<!-- unsupported ${what} -->`;
+export const unsupported = (what: string, mdx = false): string => {
+  const label = what.replaceAll(COMMENT_END, (end) => [...end].join(" "));
+  return mdx ? `{/* unsupported ${label} */}` : `<!-- unsupported ${label} -->`;
+};
 
 /** Blocks separated by blank lines; empty blocks are dropped. */
 export const joinBlocks = (blocks: string[]): string =>
