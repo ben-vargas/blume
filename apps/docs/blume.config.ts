@@ -186,6 +186,26 @@ export default defineConfig({
     { from: "/ja/docs/configuration/seo", to: "/ja/docs/discoverability" },
     { from: "/pt/docs/configuration/ai", to: "/pt/docs/discoverability" },
     { from: "/pt/docs/configuration/seo", to: "/pt/docs/discoverability" },
+    {
+      from: "/docs/configuration/ask-ai",
+      to: "/docs/configuration/assistant",
+    },
+    {
+      from: "/de/docs/configuration/ask-ai",
+      to: "/de/docs/configuration/assistant",
+    },
+    {
+      from: "/hi/docs/configuration/ask-ai",
+      to: "/hi/docs/configuration/assistant",
+    },
+    {
+      from: "/ja/docs/configuration/ask-ai",
+      to: "/ja/docs/configuration/assistant",
+    },
+    {
+      from: "/pt/docs/configuration/ask-ai",
+      to: "/pt/docs/configuration/assistant",
+    },
   ],
   seo: {
     og: {

@@ -32,7 +32,7 @@ Befunde werden nach Check gruppiert statt pro Seite aufgelistet, sodass sich der
 - `--list-checks` – gibt jeden Check aus, den das Audit melden kann, und beendet sich dann.
 - `--verbose` – listet jede betroffene Seite mit allen Details jedes Befunds auf statt nur der ersten paar.
 - `--json` – gibt den Bericht als JSON auf stdout aus.
-- `--claude` / `--codex` – übergibt die Befunde an Claude Code oder Codex, damit du sie interaktiv beheben kannst.
+- `--codex` / `--claude` – übergibt die Befunde an Codex oder Claude Code, damit du sie interaktiv beheben kannst.
 
 ## CI fehlschlagen lassen [#failing-ci]
 
@@ -56,10 +56,10 @@ Ausgehende Links werden abgestuft bewertet, statt pauschal als Fehler zu gelten:
 
 ## Befunde mit einem Agenten beheben [#fixing-the-findings-with-an-agent]
 
-Wenn du [Claude Code](https://claude.com/claude-code) oder [Codex](https://developers.openai.com/codex/cli) nutzt, kann das Audit seine Befunde direkt daran übergeben:
+Wenn du [Codex](https://developers.openai.com/codex/cli) oder [Claude Code](https://claude.com/claude-code) nutzt, kann das Audit seine Befunde direkt daran übergeben:
 
 ```bash
-blume audit --claude   # or --codex
+blume audit --codex   # or --claude
 ```
 
 Dabei wird der vollständige JSON-Bericht – jede betroffene Seite, nicht die Drei-Seiten-Vorschau des Terminals – in eine Datei geschrieben und der Agent interaktiv mit einem Prompt gestartet, der ihn durch die Befunde führt: die Quelldatei bearbeiten, die jeder Befund nennt, den vorgeschlagenen Fix anwenden und dann `blume build` und `blume audit` erneut ausführen, bis der Bericht sauber ist. Die Session ist bewusst interaktiv: Du prüfst die Änderungen über den eigenen Freigabeablauf des Agenten, und der Agent wird angewiesen, einen Befund niemals durch das Löschen von Inhalten zu beheben.

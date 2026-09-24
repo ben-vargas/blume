@@ -14,7 +14,7 @@
 export const runtimeModuleDeclarations = (
   examplesModule: string
 ): string => `declare module "blume:ask" {
-  const Ask: typeof import("blume/components/islands/AskAI.astro").default;
+  const Ask: typeof import("blume/components/islands/Assistant.astro").default;
   export default Ask;
 }
 

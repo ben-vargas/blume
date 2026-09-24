@@ -1679,7 +1679,7 @@ describe("agent-readability.json", () => {
     ).toBeNull();
   });
 
-  it("advertises llms.txt, MCP, Ask AI, feeds, and content usage when configured", () => {
+  it("advertises llms.txt, MCP, the assistant, feeds, and content usage when configured", () => {
     const manifest = buildAgentReadability(
       makeProject([postPage("changes", "/blog/changes", "blog", {})], {
         agents: {
@@ -1687,7 +1687,7 @@ describe("agent-readability.json", () => {
           llmsTxt: true,
           mcp: { enabled: true },
         },
-        ai: { ask: { enabled: true } },
+        ai: { assistant: { enabled: true } },
         github: { owner: "inthhq", repo: "leadtype" },
       })
     );
@@ -1774,11 +1774,11 @@ describe("agent-readability.json", () => {
     expect(off?.contentUsage).toBeUndefined();
   });
 
-  it("advertises an external Ask AI endpoint without rewriting it under the docs base", () => {
+  it("advertises an external assistant endpoint without rewriting it under the docs base", () => {
     const manifest = buildAgentReadability(
       makeProject([], {
         ai: {
-          ask: {
+          assistant: {
             enabled: true,
             endpoint: "https://api.example.com/v1/docs/ask",
           },
@@ -1791,10 +1791,10 @@ describe("agent-readability.json", () => {
     });
   });
 
-  it("absolutizes a root-relative Ask AI endpoint against the site, not the base", () => {
+  it("absolutizes a root-relative assistant endpoint against the site, not the base", () => {
     const manifest = buildAgentReadability(
       makeProject([], {
-        ai: { ask: { enabled: true, endpoint: "/api/docs/ask" } },
+        ai: { assistant: { enabled: true, endpoint: "/api/docs/ask" } },
         deployment: { base: "/docs", site: "https://example.com" },
       })
     );
@@ -1806,7 +1806,7 @@ describe("agent-readability.json", () => {
     // still bypasses the base, which only applies to Blume-served artifacts.
     const relative = buildAgentReadability(
       makeProject([], {
-        ai: { ask: { enabled: true, endpoint: "/api/docs/ask" } },
+        ai: { assistant: { enabled: true, endpoint: "/api/docs/ask" } },
         deployment: { base: "/docs" },
       })
     );
@@ -1836,7 +1836,7 @@ describe("agent-readability.json", () => {
     const manifest = buildAgentReadability(
       makeProject([], {
         agents: { llmsTxt: true, mcp: { enabled: true } },
-        ai: { ask: { enabled: true } },
+        ai: { assistant: { enabled: true } },
         deployment: { base: "/docs" },
       })
     );

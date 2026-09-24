@@ -2,13 +2,13 @@
 // "Everything agents look for." — the agents page's tour of the agent
 // surface: a bento of the discoverability features, grouped rather than
 // listed, in one tray (the scorecards' container). From `lg` up the rows run
-// 2+1 / 1+1+1 / 1+2, so the reader-facing features (Ask AI, open in chat)
+// 2+1 / 1+1+1 / 1+2, so the reader-facing features (the assistant, open in chat)
 // bookend the machine-facing ones. Each card pairs a caption with an
 // illustration drawn from placeholder bars and the odd real label, so it
 // reads as UI without competing with the caption. A few of the mocks answer
 // the pointer — the robots.txt switches flip, the tools card's transport tabs
 // switch surfaces, the request toggles its Accept header, the copy menu
-// opens and closes, lists highlight the hovered row, and Ask AI's send
+// opens and closes, lists highlight the hovered row, and the assistant's send
 // button replays the answer. The art is decorative and hidden from assistive
 // tech, so these are pointer-only toys: plain elements, never focusable.
 import BentoCard from "../_home/BentoCard.astro";
@@ -146,11 +146,11 @@ const bentoScript = `(() => {
     class="rounded-[28px] bg-background p-2 shadow-[0_0_0_1px_var(--color-border)]"
   >
     <dl class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-      <!-- Ask AI: a question, a streamed answer, and the composer -->
+      <!-- Assistant: a question, a streamed answer, and the composer -->
       <BentoCard
         body="An assistant grounded in your docs answers readers in the page, streamed from the model you choose — the Vercel AI Gateway, OpenRouter, LLM Gateway, Inkeep, or any OpenAI-compatible endpoint."
         class="sm:col-span-2"
-        title="Ask AI, in the page."
+        title="An assistant, in the page."
       >
         <div class="flex w-full max-w-md flex-col gap-3 px-6">
           <p

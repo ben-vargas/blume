@@ -20,13 +20,13 @@ Blume takes a third path: **the framework is the template.** You point it at a f
 | **Hosting** | Anywhere — static or a server function | Their managed infrastructure | Anywhere; you build and deploy |
 | **You maintain** | Your Markdown | Your Markdown + platform config | Your Markdown + the app around it |
 | **Rendering** | Astro; core theme ships zero client JS | Their runtime | React/Next.js runtime |
-| **AI features** | `llms.txt`, raw Markdown, Ask AI, MCP — built in, no hosted service | Built in (hosted) | Bring your own |
+| **AI features** | `llms.txt`, raw Markdown, an in-page assistant, MCP — built in, no hosted service | Built in (hosted) | Bring your own |
 
 A few consequences worth calling out:
 
 - **You own the output.** `blume build` produces a plain site you host on Vercel, Netlify, Cloudflare, S3, or your own box. Nothing phones home.
 - **No lock-in, two ways out.** Your content is portable Markdown, and `blume eject` turns the project into a standalone Astro app that still uses the `blume` package when you want full control.
-- **Fast by default.** The core theme is React-free and renders static HTML, so pages score well on Core Web Vitals without tuning. You opt into server features (Ask AI, MCP) only when you need them.
+- **Fast by default.** The core theme is React-free and renders static HTML, so pages score well on Core Web Vitals without tuning. You opt into server features (the assistant, MCP) only when you need them.
 - **Type-safe configuration.** `blume.config.ts` and every `meta.ts` are real TypeScript validated by a schema — not loosely-typed YAML.
 
 :::note
@@ -49,7 +49,7 @@ Yes. Any page can be `.md` or `.mdx`, and MDX lets you drop in the [built-in com
 
 ## Where can I deploy it?
 
-Anywhere. `blume build` outputs static HTML by default, which you can serve from any static host or CDN — Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3, or your own server. Server-only features (Ask AI, the MCP server, on-demand rendering) need server output: name a host adapter from `blume/deploy` — `vercel()`, `netlify()`, `cloudflare()`, or `node()` — as `deployment`. See [Deployment](/docs/deployment).
+Anywhere. `blume build` outputs static HTML by default, which you can serve from any static host or CDN — Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3, or your own server. Server-only features (the assistant, the MCP server, on-demand rendering) need server output: name a host adapter from `blume/deploy` — `vercel()`, `netlify()`, `cloudflare()`, or `node()` — as `deployment`. See [Deployment](/docs/deployment).
 
 ## Does search need a hosted service?
 

@@ -5,7 +5,6 @@ export const da: UIStringsOverride = {
   actions: {
     addToCursor: "Føj til Cursor",
     addToVscode: "Føj til VS Code",
-    askAI: "Spørg AI om denne side",
     connectMcp: "Opret forbindelse til MCP",
     copied: "Kopieret!",
     copyClaudeCode: "Kopiér Claude Code-kommando",
@@ -24,7 +23,7 @@ export const da: UIStringsOverride = {
     openInChatPrompt: "Læs {url}, så jeg kan stille spørgsmål om denne side.",
     scrollToTop: "Tilbage til toppen",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "Ryd samtalen",
     close: "Luk",
@@ -35,7 +34,7 @@ export const da: UIStringsOverride = {
     placeholder: "Stil et spørgsmål…",
     send: "Send",
     tip: "Tip: Du kan åbne og lukke chatten med",
-    title: "Spørg AI",
+    title: "Assistent",
     you: "Du",
   },
   banner: { dismiss: "Luk meddelelsen" },
@@ -84,8 +83,8 @@ export const da: UIStringsOverride = {
   search: {
     all: "Alle",
     allLanguages: "Alle sprog",
-    askAi: "Spørg AI",
-    askAiHint: "Få et øjeblikkeligt svar fra AI",
+    assistant: "Assistent",
+    assistantHint: "Få et øjeblikkeligt svar fra AI",
     button: "Søg",
     devOnly: "Søgning er tilgængelig i produktionsbygningen.",
     error: "Noget gik galt. Prøv igen.",

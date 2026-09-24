@@ -182,6 +182,24 @@ describe("collectUpgradeFindings", () => {
     expect(findings[1]?.message).toContain('`true` became "git"');
   });
 
+  it("reports ai.ask, renamed to ai.assistant, at its line", async () => {
+    const root = await project({
+      "blume.config.ts": `export default {
+  ai: {
+    ask: { enabled: true },
+  },
+};
+`,
+    });
+    const findings = await collectUpgradeFindings(root);
+    expect(
+      findings.map((finding) => [finding.code, finding.line])
+    ).toStrictEqual([["BLUME_CONFIG_INVALID", 3]]);
+    expect(findings[0]?.message).toContain(
+      "ai.ask was renamed to ai.assistant."
+    );
+  });
+
   it("reports a package.json script that passes a removed build flag", async () => {
     const root = await project({
       "blume.config.ts": "export default {};\n",

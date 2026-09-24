@@ -119,7 +119,7 @@ export const syncDrawerInert = (): void => {
   });
   document.addEventListener("astro:after-swap", sync);
   document.addEventListener("keydown", (event) => {
-    // An open dialog (search, Ask AI) closes itself on Escape first.
+    // An open dialog (search, the assistant) closes itself on Escape first.
     if (
       event.key !== "Escape" ||
       !isOpen() ||

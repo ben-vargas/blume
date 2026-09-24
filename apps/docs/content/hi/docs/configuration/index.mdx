@@ -367,7 +367,7 @@ dateFormat: { year: "numeric", month: "2-digit", day: "2-digit" },
 
 ## SEO और एजेंट्स [#seo-and-agents]
 
-मेटाडेटा, Open Graph इमेज, RSS फ़ीड्स, JSON-LD, साइटमैप, और `robots.txt` `seo` के अंतर्गत रहते हैं; `llms.txt`, कच्चा Markdown, JSON API, MCP सर्वर, और डिस्कवरी मैनिफ़ेस्ट `agents` के अंतर्गत रहते हैं। दोनों को [खोज-योग्यता](/docs/discoverability) सेक्शन में पेज-दर-पेज कवर किया गया है, जो सर्च इंजनों और AI एजेंट्स को एक ही मशीन-पठनीय परत के दो दर्शक वर्गों की तरह देखता है। पाठकों के सामने आने वाले मॉडल फ़ीचर — Ask AI सहायक और Open in chat एक्शन — `ai` के अंतर्गत रहते हैं।
+मेटाडेटा, Open Graph इमेज, RSS फ़ीड्स, JSON-LD, साइटमैप, और `robots.txt` `seo` के अंतर्गत रहते हैं; `llms.txt`, कच्चा Markdown, JSON API, MCP सर्वर, और डिस्कवरी मैनिफ़ेस्ट `agents` के अंतर्गत रहते हैं। दोनों को [खोज-योग्यता](/docs/discoverability) सेक्शन में पेज-दर-पेज कवर किया गया है, जो सर्च इंजनों और AI एजेंट्स को एक ही मशीन-पठनीय परत के दो दर्शक वर्गों की तरह देखता है। पाठकों के सामने आने वाले मॉडल फ़ीचर — सहायक और Open in chat एक्शन — `ai` के अंतर्गत रहते हैं।
 
 ```ts blume.config.ts lineNumbers
 seo: {
@@ -432,7 +432,7 @@ export default defineConfig({
 | `search` | प्रोवाइडर (Orama, Pagefind, Algolia, और अन्य) और इंडेक्सिंग | [खोज](/docs/configuration/search) |
 | `markdown` | मार्कडाउन रेंडरिंग विकल्प — कोड ब्लॉक्स, हेडिंग एंकर, इमेज ज़ूम | [सिंटैक्स](/docs/content/syntax) |
 | `agents` | कोडिंग एजेंट्स के लिए `llms.txt`, Markdown मिरर, JSON API, होस्टेड MCP सर्वर, स्किल्स, और डिस्कवरी मैनिफ़ेस्ट | [SEO और AEO](/docs/discoverability) |
-| `ai` | पेज के भीतर मौजूद Ask AI सहायक और Open in chat एक्शन | [Ask AI](/docs/configuration/ask-ai) |
+| `ai` | पेज के भीतर मौजूद सहायक और Open in chat एक्शन | [सहायक](/docs/configuration/assistant) |
 | `reference` | API संदर्भ: `blume/reference` से `openapi()`, `asyncapi()`, `graphql()`, और `scalar()` अडैप्टर | [OpenAPI](/docs/references/openapi), [AsyncAPI](/docs/references/asyncapi), [GraphQL](/docs/references/graphql), [Scalar](/docs/references/scalar) |
 | `analytics` | `blume/analytics` से अडैप्टर — PostHog, Google Analytics, Plausible, Mixpanel, Segment, और अन्य — साथ ही कस्टम स्क्रिप्ट्स | [एनालिटिक्स](/docs/configuration/analytics) |
 | `seo` | मेटाडेटा, OG इमेज, फ़ीड्स, स्ट्रक्चर्ड डेटा, साइटमैप, robots | [SEO और AEO](/docs/discoverability) |

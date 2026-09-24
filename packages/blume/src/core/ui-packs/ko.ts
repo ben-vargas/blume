@@ -5,7 +5,6 @@ export const ko: UIStringsOverride = {
   actions: {
     addToCursor: "Cursor에 추가",
     addToVscode: "VS Code에 추가",
-    askAI: "이 페이지에 대해 AI에게 질문",
     connectMcp: "MCP에 연결",
     copied: "복사됨!",
     copyClaudeCode: "Claude Code 명령 복사",
@@ -25,7 +24,7 @@ export const ko: UIStringsOverride = {
       "{url} 페이지를 읽어 주세요. 이 페이지에 대해 질문하겠습니다.",
     scrollToTop: "맨 위로",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "대화 지우기",
     close: "닫기",
@@ -36,7 +35,7 @@ export const ko: UIStringsOverride = {
     placeholder: "질문하기…",
     send: "보내기",
     tip: "팁: 다음 키로 채팅을 열고 닫을 수 있습니다",
-    title: "AI에게 질문",
+    title: "어시스턴트",
     you: "나",
   },
   banner: { dismiss: "공지 닫기" },
@@ -85,8 +84,8 @@ export const ko: UIStringsOverride = {
   search: {
     all: "전체",
     allLanguages: "모든 언어",
-    askAi: "AI에게 질문",
-    askAiHint: "AI에게 즉시 답변 받기",
+    assistant: "어시스턴트",
+    assistantHint: "AI에게 즉시 답변 받기",
     button: "검색",
     devOnly: "검색은 프로덕션 빌드에서 사용할 수 있습니다.",
     error: "문제가 발생했습니다. 다시 시도해 주세요.",

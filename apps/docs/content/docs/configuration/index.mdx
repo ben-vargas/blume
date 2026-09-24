@@ -366,7 +366,7 @@ dateFormat: { year: "numeric", month: "2-digit", day: "2-digit" },
 
 ## SEO and agents
 
-Metadata, Open Graph images, RSS feeds, JSON-LD, the sitemap, and `robots.txt` live under `seo`; `llms.txt`, raw Markdown, the JSON API, the MCP server, and the discovery manifests live under `agents`. Both are covered page by page in the [Discoverability](/docs/discoverability) section, which treats search engines and AI agents as two audiences for the same machine-readable layer. The reader-facing model features — the Ask AI assistant and the Open in chat action — live under `ai`.
+Metadata, Open Graph images, RSS feeds, JSON-LD, the sitemap, and `robots.txt` live under `seo`; `llms.txt`, raw Markdown, the JSON API, the MCP server, and the discovery manifests live under `agents`. Both are covered page by page in the [Discoverability](/docs/discoverability) section, which treats search engines and AI agents as two audiences for the same machine-readable layer. The reader-facing model features — the assistant and the Open in chat action — live under `ai`.
 
 ```ts blume.config.ts lineNumbers
 seo: {
@@ -431,7 +431,7 @@ Each of these has its own guide. The config field is the entry point:
 | `search` | Provider (Orama, Pagefind, Algolia, and more) and indexing | [Search](/docs/configuration/search) |
 | `markdown` | Markdown rendering options — code blocks, heading anchors, image zoom | [Syntax](/docs/content/syntax) |
 | `agents` | `llms.txt`, Markdown mirrors, the JSON API, the hosted MCP server, skills, and discovery manifests for coding agents | [SEO and AEO](/docs/discoverability) |
-| `ai` | The in-page Ask AI assistant and the Open in chat action | [Ask AI](/docs/configuration/ask-ai) |
+| `ai` | The in-page assistant and the Open in chat action | [Assistant](/docs/configuration/assistant) |
 | `reference` | API references: `openapi()`, `asyncapi()`, `graphql()`, and `scalar()` adapters from `blume/reference` | [OpenAPI](/docs/references/openapi), [AsyncAPI](/docs/references/asyncapi), [GraphQL](/docs/references/graphql), [Scalar](/docs/references/scalar) |
 | `analytics` | Adapters from `blume/analytics` — PostHog, Google Analytics, Plausible, Mixpanel, Segment, and more — plus custom scripts | [Analytics](/docs/configuration/analytics) |
 | `seo` | Metadata, OG images, feeds, structured data, sitemap, robots | [SEO and AEO](/docs/discoverability) |

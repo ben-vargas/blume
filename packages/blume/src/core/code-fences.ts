@@ -1,6 +1,6 @@
 /**
  * Fenced-code state for line scanners. Kept free of imports so request-time
- * code (the Ask AI grounding excerpts) can share it with the build-time source
+ * code (the assistant's grounding excerpts) can share it with the build-time source
  * scanners without pulling the filesystem and schema modules along.
  *
  * CommonMark allows backtick *and* tilde fences, three or more characters

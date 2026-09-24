@@ -366,7 +366,7 @@ dateFormat: { year: "numeric", month: "2-digit", day: "2-digit" },
 
 ## SEO とエージェント [#seo-and-agents]
 
-メタデータ、Open Graph 画像、RSS フィード、JSON-LD、サイトマップ、`robots.txt` は `seo` の下にまとまっています。`llms.txt`、生の Markdown、JSON API、MCP サーバー、ディスカバリーマニフェストは `agents` の下です。どちらも [発見可能性](/docs/discoverability) セクションでページごとに解説しており、そこでは検索エンジンと AI エージェントを、同じ機械可読レイヤーに対する 2 つのオーディエンスとして扱っています。読者向けのモデル機能 — Ask AI アシスタントと Open in chat アクション — は `ai` の下にあります。
+メタデータ、Open Graph 画像、RSS フィード、JSON-LD、サイトマップ、`robots.txt` は `seo` の下にまとまっています。`llms.txt`、生の Markdown、JSON API、MCP サーバー、ディスカバリーマニフェストは `agents` の下です。どちらも [発見可能性](/docs/discoverability) セクションでページごとに解説しており、そこでは検索エンジンと AI エージェントを、同じ機械可読レイヤーに対する 2 つのオーディエンスとして扱っています。読者向けのモデル機能 — アシスタントと Open in chat アクション — は `ai` の下にあります。
 
 ```ts blume.config.ts lineNumbers
 seo: {
@@ -431,7 +431,7 @@ export default defineConfig({
 | `search` | プロバイダー（Orama、Pagefind、Algolia など）とインデックス作成 | [検索](/docs/configuration/search) |
 | `markdown` | Markdown のレンダリングオプション — コードブロック、見出しアンカー、画像ズーム | [構文](/docs/content/syntax) |
 | `agents` | `llms.txt`、Markdown ミラー、JSON API、ホスト型 MCP サーバー、スキル、そしてコーディングエージェント向けのディスカバリーマニフェスト | [SEO と AEO](/docs/discoverability) |
-| `ai` | ページ内の Ask AI アシスタントと Open in chat アクション | [Ask AI](/docs/configuration/ask-ai) |
+| `ai` | ページ内のアシスタントと Open in chat アクション | [アシスタント](/docs/configuration/assistant) |
 | `reference` | API リファレンス: `blume/reference` の `openapi()`、`asyncapi()`、`graphql()`、`scalar()` アダプター | [OpenAPI](/docs/references/openapi)、[AsyncAPI](/docs/references/asyncapi)、[GraphQL](/docs/references/graphql)、[Scalar](/docs/references/scalar) |
 | `analytics` | `blume/analytics` のアダプター — PostHog、Google Analytics、Plausible、Mixpanel、Segment など — とカスタムスクリプト | [アナリティクス](/docs/configuration/analytics) |
 | `seo` | メタデータ、OG 画像、フィード、構造化データ、サイトマップ、robots | [SEO と AEO](/docs/discoverability) |

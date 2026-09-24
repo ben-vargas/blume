@@ -1,7 +1,7 @@
 ---
 title: Zu Blume migrieren
 description: >-
-  Zieh eine Mintlify-, Fumadocs-, Docusaurus-, Starlight- oder Nextra-Seite mit einem einzigen Befehl zu Blume um. Der Befehl übergibt die Migration an Claude Code oder Codex.
+  Zieh eine Mintlify-, Fumadocs-, Docusaurus-, Starlight- oder Nextra-Seite mit einem einzigen Befehl zu Blume um. Der Befehl übergibt die Migration an Codex oder Claude Code.
 sidebar:
   label: Zu Blume migrieren
   order: 2.4
@@ -14,10 +14,10 @@ Eine Docs-Seite in idiomatisches Blume zu überführen, erfordert Entscheidungen
 Führ den Befehl im Stammverzeichnis des Docs-Projekts aus, das du migrierst:
 
 ```package-install
-npx blume migrate fumadocs --claude
+npx blume migrate fumadocs --codex
 ```
 
-Ersetze `fumadocs` durch dein Framework. Wenn du Codex verwenden willst, ersetze `--claude` durch `--codex`. Mit pnpm 12 fügst du `--allow-build=esbuild` nach `pnpm dlx` hinzu, weil pnpm 12 das Installationsskript von esbuild nicht ohne Freigabe ausführt. Der Agent öffnet sich interaktiv in deinem Terminal, und jede Änderung durchläuft seinen eigenen Freigabeprozess. Er ändert die Dateien direkt in deinem Projekt. Starte deshalb mit einem sauberen Working Tree und prüfe die gesamte Migration als einen einzigen Diff.
+Ersetze `fumadocs` durch dein Framework. Wenn du Claude Code verwenden willst, ersetze `--codex` durch `--claude`. Mit pnpm 12 fügst du `--allow-build=esbuild` nach `pnpm dlx` hinzu, weil pnpm 12 das Installationsskript von esbuild nicht ohne Freigabe ausführt. Der Agent öffnet sich interaktiv in deinem Terminal, und jede Änderung durchläuft seinen eigenen Freigabeprozess. Er ändert die Dateien direkt in deinem Projekt. Starte deshalb mit einem sauberen Working Tree und prüfe die gesamte Migration als einen einzigen Diff.
 
 ## Quellen [#sources]
 
@@ -48,7 +48,7 @@ Zum Schluss fasst er zusammen, was er migriert, weggelassen oder nur annähernd 
 
 ## Andere Agents [#other-agents]
 
-Ohne `--claude` oder `--codex` meldet der Befehl nur die erkannte Quelle und gibt den Pfad zum Playbook aus. Das Playbook ist der [Skill](/docs/advanced/skills) `blume-migrate`, der im Paket enthalten ist. Danach beendet sich der Befehl, ohne etwas zu ändern. Du kannst jeden anderen Agent auf diese `SKILL.md` verweisen. Oder du installierst den Skill mit dem ausgegebenen Befehl dort, wo dein Agent nach Skills sucht:
+Ohne `--codex` oder `--claude` meldet der Befehl nur die erkannte Quelle und gibt den Pfad zum Playbook aus. Das Playbook ist der [Skill](/docs/advanced/skills) `blume-migrate`, der im Paket enthalten ist. Danach beendet sich der Befehl, ohne etwas zu ändern. Du kannst jeden anderen Agent auf diese `SKILL.md` verweisen. Oder du installierst den Skill mit dem ausgegebenen Befehl dort, wo dein Agent nach Skills sucht:
 
 ```bash
 npx skills add haydenbleasel/blume --skill blume-migrate

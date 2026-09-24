@@ -113,10 +113,10 @@ Anker wandern mit dem Link mit, daher müssen Heading-IDs über alle Sprachen hi
 
 ## Übersetzen mit einem Agenten [#translating-with-an-agent]
 
-Du musst die Locales nicht von Hand ausfüllen. [`blume translate`](/docs/cli/translate) findet jede Seite, die in einer Locale fehlt oder veraltet ist, und übersetzt sie mit einer lokalen Agenten-CLI ([Claude Code](https://claude.com/claude-code) oder [Codex](https://developers.openai.com/codex/cli)):
+Du musst die Locales nicht von Hand ausfüllen. [`blume translate`](/docs/cli/translate) findet jede Seite, die in einer Locale fehlt oder veraltet ist, und übersetzt sie mit einer lokalen Agenten-CLI ([Codex](https://developers.openai.com/codex/cli) oder [Claude Code](https://claude.com/claude-code)):
 
 ```bash
-blume translate --claude
+blume translate --codex
 ```
 
 Blume validiert die Struktur jedes Ergebnisses – Frontmatter, Code-Fences, Links – und schreibt die Dateien selbst; der Agent übersetzt nur Text. Ein eingecheckter Ledger (`blume.translations.json`) verfolgt, aus welcher Quellrevision jede Übersetzung stammt, sodass erneute Läufe nur ändern, was sich geändert hat, und von Hand geschriebene Übersetzungen unverändert übernommen und nie überschrieben werden. In der CI schlägt `blume translate --check` fehl, wenn eine Quellseite ihren Übersetzungen vorausgeeilt ist.

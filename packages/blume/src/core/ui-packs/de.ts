@@ -5,7 +5,6 @@ export const de: UIStringsOverride = {
   actions: {
     addToCursor: "Zu Cursor hinzufügen",
     addToVscode: "Zu VS Code hinzufügen",
-    askAI: "KI zu dieser Seite fragen",
     connectMcp: "Mit MCP verbinden",
     copied: "Kopiert!",
     copyClaudeCode: "Claude-Code-Befehl kopieren",
@@ -25,7 +24,7 @@ export const de: UIStringsOverride = {
       "Lies {url}, damit ich dir Fragen zu dieser Seite stellen kann.",
     scrollToTop: "Nach oben scrollen",
   },
-  ask: {
+  assistant: {
     ai: "KI",
     clear: "Unterhaltung löschen",
     close: "Schließen",
@@ -36,7 +35,7 @@ export const de: UIStringsOverride = {
     placeholder: "Eine Frage stellen…",
     send: "Senden",
     tip: "Tipp: Du kannst den Chat öffnen und schließen mit",
-    title: "KI fragen",
+    title: "Assistent",
     you: "Du",
   },
   banner: { dismiss: "Ankündigung schließen" },
@@ -85,8 +84,8 @@ export const de: UIStringsOverride = {
   search: {
     all: "Alle",
     allLanguages: "Alle Sprachen",
-    askAi: "KI fragen",
-    askAiHint: "Erhalte sofort eine Antwort von der KI",
+    assistant: "Assistent",
+    assistantHint: "Erhalte sofort eine Antwort von der KI",
     button: "Suchen",
     devOnly: "Die Suche ist im Produktions-Build verfügbar.",
     error: "Etwas ist schiefgelaufen. Bitte versuche es erneut.",

@@ -2,7 +2,7 @@ import type { AstroIntegration } from "astro";
 import type { z } from "zod";
 
 import type { AskRetrievalOptions } from "../ai/ask-context.ts";
-import type { AskAdapter } from "../ai/ask.ts";
+import type { AssistantAdapter } from "../ai/ask.ts";
 import type { ComponentMarkdown } from "../ai/component-markdown.ts";
 import type { AnalyticsAdapter } from "../analytics/schema.ts";
 import type { DeploymentInput } from "../deploy/adapters/registry.ts";
@@ -488,16 +488,16 @@ export type SearchConfig = SearchProviderConfig | SearchOptions;
 // AI
 // ---------------------------------------------------------------------------
 
-/** An empty-state prompt shown before the first Ask AI question. */
-export interface AskSuggestion {
+/** An empty-state prompt shown before the first question to the assistant. */
+export interface AssistantSuggestion {
   /** Lucide icon name shown beside the suggestion. */
   icon?: string;
   /** The clickable suggestion text. */
   label: string;
 }
 
-/** How much retrieved documentation each Ask AI question carries. */
-export interface AskRetrievalConfig {
+/** How much retrieved documentation each question to the assistant carries. */
+export interface AssistantRetrievalConfig {
   /**
    * Total injected documentation characters, across all excerpts. Defaults to
    * `10000`. The single biggest lever on time-to-first-token — the model reads
@@ -518,8 +518,8 @@ export interface AskRetrievalConfig {
   maxResults?: number;
 }
 
-/** The Ask AI chat assistant. */
-export interface AskConfig {
+/** The chat assistant. */
+export interface AssistantConfig {
   /**
    * Origins allowed to call the generated endpoint from another site — a
    * marketing page that embeds an ask box, for example — or `"*"` to allow
@@ -532,10 +532,10 @@ export interface AskConfig {
    * combined with it.
    */
   cors?: string[];
-  /** Turn Ask AI on. Defaults to `false`. */
+  /** Turn the assistant on. Defaults to `false`. */
   enabled?: boolean;
   /**
-   * Existing Ask AI endpoint to call instead of generating one. This keeps a
+   * Existing assistant endpoint to call instead of generating one. This keeps a
    * Blume site static while an API backend owns retrieval, model access, rate
    * limiting, and streaming. Accepts an absolute URL or root-relative path.
    */
@@ -555,15 +555,15 @@ export interface AskConfig {
    * mapping, and `providerOptions` passthrough. Defaults to
    * `gateway({ model: "openai/gpt-5.5" })`.
    */
-  provider?: AskAdapter;
+  provider?: AssistantAdapter;
   /**
    * How much documentation each question carries into the model's prompt.
    * Lower values cut time-to-first-token — which dominates on a self-hosted
    * backend — at the cost of recall. Defaults keep the built-in behavior.
    */
-  retrieval?: AskRetrievalConfig;
+  retrieval?: AssistantRetrievalConfig;
   /** Starter prompts shown before the first question. */
-  suggestions?: AskSuggestion[];
+  suggestions?: AssistantSuggestion[];
 }
 
 /** What the AI Catalog (ARD) manifest carries. */
@@ -631,10 +631,10 @@ export interface McpConfig {
   route?: string;
 }
 
-/** Model-facing features: the Ask AI assistant and the "Open in chat" action. */
+/** Model-facing features: the assistant and the "Open in chat" action. */
 export interface AiConfig {
-  /** The Ask AI chat assistant. */
-  ask?: AskConfig;
+  /** The chat assistant. */
+  assistant?: AssistantConfig;
   /**
    * The "Open in chat" page action, which opens the current page in an AI
    * assistant pre-filled with a prompt pointing at its raw Markdown.
@@ -833,7 +833,7 @@ export type ContentSignalsConfig =
 /**
  * The machine-readable surface agents consume: the JSON API, `llms.txt`, the
  * MCP server, published skills, discovery manifests, and the robots.txt usage
- * policy. The reader-facing model features (Ask AI, Open in chat) live under
+ * policy. The reader-facing model features (the assistant, Open in chat) live under
  * `ai`.
  */
 export interface AgentsConfig {
@@ -1331,7 +1331,7 @@ export type TocConfig =
 export interface BlumeConfig {
   /** The machine-readable surface for agents: JSON API, `llms.txt`, MCP, skills, discovery. */
   agents?: AgentsConfig;
-  /** Model-facing features: the Ask AI assistant and the "Open in chat" action. */
+  /** Model-facing features: the assistant and the "Open in chat" action. */
   ai?: AiConfig;
   /**
    * Analytics adapters from `blume/analytics`, emitted into `<head>` of every
@@ -1452,10 +1452,10 @@ type _NoExtraOrMissingKeys = AssertExtends<
 // endpoint and silently ignored at request time). `Required` makes a rename in
 // either copy a missing property, which stops compiling.
 type _AskRetrievalMatchesRuntime = AssertExtends<
-  Required<AskRetrievalConfig>,
+  Required<AssistantRetrievalConfig>,
   Required<AskRetrievalOptions>
 >;
 type _AskRuntimeMatchesRetrieval = AssertExtends<
   Required<AskRetrievalOptions>,
-  Required<AskRetrievalConfig>
+  Required<AssistantRetrievalConfig>
 >;

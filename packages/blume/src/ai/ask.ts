@@ -9,7 +9,7 @@ import { unrecognizedKeysMessage } from "../core/unrecognized-keys.ts";
  * `reasoning` values minus `provider-default`, which is what omitting the
  * option means.
  */
-export const askReasoningLevels = [
+export const assistantReasoningLevels = [
   "none",
   "minimal",
   "low",
@@ -19,14 +19,17 @@ export const askReasoningLevels = [
 ] as const;
 
 /** How much the model reasons before answering (an adapter's `reasoning`). */
-export type AskReasoning = (typeof askReasoningLevels)[number];
+export type AssistantReasoning = (typeof assistantReasoningLevels)[number];
 
 /**
  * The AI SDK's `providerOptions` shape, forwarded to `streamText` verbatim:
  * `{ [provider]: { [option]: value } }`. The escape hatch for model controls
  * Blume doesn't name, so a new provider knob never needs a Blume field.
  */
-export type AskProviderOptions = Record<string, Record<string, JsonValue>>;
+export type AssistantProviderOptions = Record<
+  string,
+  Record<string, JsonValue>
+>;
 
 /** The AI SDK provider package the OpenAI-compatible adapters install. */
 const OPENAI_COMPATIBLE_DEP = "@ai-sdk/openai-compatible";
@@ -35,8 +38,8 @@ const OPENAI_COMPATIBLE_DEP = "@ai-sdk/openai-compatible";
 // Shared options
 // ---------------------------------------------------------------------------
 
-/** The options every Ask AI adapter accepts. */
-export interface AskAdapterOptions {
+/** The options every assistant adapter accepts. */
+export interface AssistantAdapterOptions {
   /**
    * Name of the env var holding the provider's API key. Each adapter has its
    * own default; set this only to point at a different variable.
@@ -53,7 +56,7 @@ export interface AskAdapterOptions {
    * Options passed to `streamText` as its `providerOptions`, untouched, in the
    * AI SDK's own shape (`{ openai: { textVerbosity: "low" } }`, say).
    */
-  providerOptions?: AskProviderOptions;
+  providerOptions?: AssistantProviderOptions;
 }
 
 /**
@@ -72,7 +75,7 @@ const sharedOptions = (apiKeyEnv: string) => ({
   providerOptions: providerOptionsSchema.optional(),
 });
 
-const reasoningOption = z.enum(askReasoningLevels).optional();
+const reasoningOption = z.enum(assistantReasoningLevels).optional();
 
 // ---------------------------------------------------------------------------
 // gateway()
@@ -83,7 +86,7 @@ const GATEWAY_API_KEY_ENV = "AI_GATEWAY_API_KEY";
 const DEFAULT_GATEWAY_MODEL = "openai/gpt-5.5";
 
 /** Options for {@link gateway}. */
-export interface AskGatewayOptions extends AskAdapterOptions {
+export interface AssistantGatewayOptions extends AssistantAdapterOptions {
   /** A `provider/model` id routed by the gateway. Defaults to `openai/gpt-5.5`. */
   model?: string;
   /**
@@ -92,7 +95,7 @@ export interface AskGatewayOptions extends AskAdapterOptions {
    * control (OpenAI's `reasoning_effort`, for example); the model has to
    * offer the level you pick. Omitted keeps the model's default.
    */
-  reasoning?: AskReasoning;
+  reasoning?: AssistantReasoning;
 }
 
 const gatewayOptionsSchema = z.strictObject({
@@ -101,7 +104,10 @@ const gatewayOptionsSchema = z.strictObject({
   reasoning: reasoningOption,
 });
 
-export type AskGatewayAdapter = AdapterDescriptor<"gateway", AskGatewayOptions>;
+export type AssistantGatewayAdapter = AdapterDescriptor<
+  "gateway",
+  AssistantGatewayOptions
+>;
 
 export const gatewayAdapterSchema = adapterDescriptorSchema(
   "gateway",
@@ -109,14 +115,14 @@ export const gatewayAdapterSchema = adapterDescriptorSchema(
 );
 
 /**
- * Route Ask AI through the Vercel AI Gateway (the default). `model` is a
+ * Route the assistant through the Vercel AI Gateway (the default). `model` is a
  * `provider/model` string; the key is `AI_GATEWAY_API_KEY`, or Vercel's OIDC
  * token when deployed there. Needs no provider SDK beyond the `ai` package
  * Blume ships.
  */
 export const gateway = (
-  options: AskGatewayOptions = {}
-): AskGatewayAdapter => ({
+  options: AssistantGatewayOptions = {}
+): AssistantGatewayAdapter => ({
   kind: "gateway",
   options,
   requiredSecrets: [options.apiKeyEnv ?? GATEWAY_API_KEY_ENV],
@@ -130,7 +136,7 @@ export const gateway = (
 const OPENROUTER_API_KEY_ENV = "OPENROUTER_API_KEY";
 
 /** Options for {@link openrouter}. */
-export interface AskOpenRouterOptions extends AskAdapterOptions {
+export interface AssistantOpenRouterOptions extends AssistantAdapterOptions {
   /** The OpenRouter model id (`anthropic/claude-sonnet-4-5`). */
   model: string;
   /**
@@ -138,7 +144,7 @@ export interface AskOpenRouterOptions extends AskAdapterOptions {
    * OpenRouter's `reasoning.effort`, because its provider ignores the AI
    * SDK's call-level option. Omitted keeps the model's default.
    */
-  reasoning?: AskReasoning;
+  reasoning?: AssistantReasoning;
 }
 
 const openrouterOptionsSchema = z.strictObject({
@@ -147,9 +153,9 @@ const openrouterOptionsSchema = z.strictObject({
   reasoning: reasoningOption,
 });
 
-export type AskOpenRouterAdapter = AdapterDescriptor<
+export type AssistantOpenRouterAdapter = AdapterDescriptor<
   "openrouter",
-  AskOpenRouterOptions
+  AssistantOpenRouterOptions
 >;
 
 export const openrouterAdapterSchema = adapterDescriptorSchema(
@@ -158,12 +164,12 @@ export const openrouterAdapterSchema = adapterDescriptorSchema(
 );
 
 /**
- * Route Ask AI through OpenRouter. Reads `OPENROUTER_API_KEY` and needs
+ * Route the assistant through OpenRouter. Reads `OPENROUTER_API_KEY` and needs
  * `@openrouter/ai-sdk-provider` installed in the project.
  */
 export const openrouter = (
-  options: AskOpenRouterOptions
-): AskOpenRouterAdapter => ({
+  options: AssistantOpenRouterOptions
+): AssistantOpenRouterAdapter => ({
   kind: "openrouter",
   options,
   requiredSecrets: [options.apiKeyEnv ?? OPENROUTER_API_KEY_ENV],
@@ -177,7 +183,7 @@ export const openrouter = (
 const LLMGATEWAY_API_KEY_ENV = "LLMGATEWAY_API_KEY";
 
 /** Options for {@link llmgateway}. */
-export interface AskLlmGatewayOptions extends AskAdapterOptions {
+export interface AssistantLlmGatewayOptions extends AssistantAdapterOptions {
   /** Overrides the preset endpoint (`https://api.llmgateway.io/v1`). */
   baseUrl?: string;
   /** The model id LLMGateway serves. */
@@ -186,7 +192,7 @@ export interface AskLlmGatewayOptions extends AskAdapterOptions {
    * How much the model reasons before answering, sent in the request as
    * `reasoning_effort`. Omitted keeps the model's default.
    */
-  reasoning?: AskReasoning;
+  reasoning?: AssistantReasoning;
 }
 
 const llmgatewayOptionsSchema = z.strictObject({
@@ -196,9 +202,9 @@ const llmgatewayOptionsSchema = z.strictObject({
   reasoning: reasoningOption,
 });
 
-export type AskLlmGatewayAdapter = AdapterDescriptor<
+export type AssistantLlmGatewayAdapter = AdapterDescriptor<
   "llmgateway",
-  AskLlmGatewayOptions
+  AssistantLlmGatewayOptions
 >;
 
 export const llmgatewayAdapterSchema = adapterDescriptorSchema(
@@ -207,12 +213,12 @@ export const llmgatewayAdapterSchema = adapterDescriptorSchema(
 );
 
 /**
- * Route Ask AI through LLMGateway's OpenAI-compatible endpoint. Reads
+ * Route the assistant through LLMGateway's OpenAI-compatible endpoint. Reads
  * `LLMGATEWAY_API_KEY` and needs `@ai-sdk/openai-compatible` installed.
  */
 export const llmgateway = (
-  options: AskLlmGatewayOptions
-): AskLlmGatewayAdapter => ({
+  options: AssistantLlmGatewayOptions
+): AssistantLlmGatewayAdapter => ({
   kind: "llmgateway",
   options,
   requiredSecrets: [options.apiKeyEnv ?? LLMGATEWAY_API_KEY_ENV],
@@ -229,7 +235,7 @@ const INKEEP_API_KEY_ENV = "INKEEP_API_KEY";
  * Options for {@link inkeep}. No `reasoning`: Inkeep runs its own QA pipeline
  * behind an OpenAI-compatible endpoint with no reasoning control.
  */
-export interface AskInkeepOptions extends AskAdapterOptions {
+export interface AssistantInkeepOptions extends AssistantAdapterOptions {
   /** Overrides the preset endpoint (`https://api.inkeep.com/v1`). */
   baseUrl?: string;
   /** The Inkeep QA model id. */
@@ -242,7 +248,10 @@ const inkeepOptionsSchema = z.strictObject({
   model: z.string().min(1),
 });
 
-export type AskInkeepAdapter = AdapterDescriptor<"inkeep", AskInkeepOptions>;
+export type AssistantInkeepAdapter = AdapterDescriptor<
+  "inkeep",
+  AssistantInkeepOptions
+>;
 
 export const inkeepAdapterSchema = adapterDescriptorSchema(
   "inkeep",
@@ -254,7 +263,9 @@ export const inkeepAdapterSchema = adapterDescriptorSchema(
  * dashboard, so Blume leaves it ungrounded and it takes no `reasoning`.
  * Reads `INKEEP_API_KEY` and needs `@ai-sdk/openai-compatible` installed.
  */
-export const inkeep = (options: AskInkeepOptions): AskInkeepAdapter => ({
+export const inkeep = (
+  options: AssistantInkeepOptions
+): AssistantInkeepAdapter => ({
   kind: "inkeep",
   options,
   requiredSecrets: [options.apiKeyEnv ?? INKEEP_API_KEY_ENV],
@@ -266,7 +277,7 @@ export const inkeep = (options: AskInkeepOptions): AskInkeepAdapter => ({
 // ---------------------------------------------------------------------------
 
 /** Options for {@link openaiCompatible}. */
-export interface AskOpenAICompatibleOptions extends AskAdapterOptions {
+export interface AssistantOpenAICompatibleOptions extends AssistantAdapterOptions {
   /** Name of the env var holding the endpoint's API key. */
   apiKeyEnv: string;
   /** The endpoint's base URL (`https://my-gateway.example.com/v1`). */
@@ -280,7 +291,7 @@ export interface AskOpenAICompatibleOptions extends AskAdapterOptions {
    * `reasoning_effort`, so the endpoint has to accept that parameter.
    * Omitted keeps the model's default.
    */
-  reasoning?: AskReasoning;
+  reasoning?: AssistantReasoning;
 }
 
 const openaiCompatibleOptionsSchema = z.strictObject({
@@ -293,9 +304,9 @@ const openaiCompatibleOptionsSchema = z.strictObject({
   reasoning: reasoningOption,
 });
 
-export type AskOpenAICompatibleAdapter = AdapterDescriptor<
+export type AssistantOpenAICompatibleAdapter = AdapterDescriptor<
   "openai-compatible",
-  AskOpenAICompatibleOptions
+  AssistantOpenAICompatibleOptions
 >;
 
 export const openaiCompatibleAdapterSchema = adapterDescriptorSchema(
@@ -304,13 +315,13 @@ export const openaiCompatibleAdapterSchema = adapterDescriptorSchema(
 );
 
 /**
- * Route Ask AI through any OpenAI-compatible endpoint: supply its `baseUrl`,
+ * Route the assistant through any OpenAI-compatible endpoint: supply its `baseUrl`,
  * the `model` it serves, and the env var holding its key. Needs
  * `@ai-sdk/openai-compatible` installed.
  */
 export const openaiCompatible = (
-  options: AskOpenAICompatibleOptions
-): AskOpenAICompatibleAdapter => ({
+  options: AssistantOpenAICompatibleOptions
+): AssistantOpenAICompatibleAdapter => ({
   kind: "openai-compatible",
   options,
   requiredSecrets: [options.apiKeyEnv],
@@ -318,16 +329,16 @@ export const openaiCompatible = (
 });
 
 // ---------------------------------------------------------------------------
-// The `ai.ask.provider` schema
+// The `ai.assistant.provider` schema
 // ---------------------------------------------------------------------------
 
-/** Which backend answers Ask AI: the value of `gateway()`, `openrouter()`, … */
-export type AskAdapter =
-  | AskGatewayAdapter
-  | AskOpenRouterAdapter
-  | AskLlmGatewayAdapter
-  | AskInkeepAdapter
-  | AskOpenAICompatibleAdapter;
+/** Which backend answers the assistant: the value of `gateway()`, `openrouter()`, … */
+export type AssistantAdapter =
+  | AssistantGatewayAdapter
+  | AssistantOpenRouterAdapter
+  | AssistantLlmGatewayAdapter
+  | AssistantInkeepAdapter
+  | AssistantOpenAICompatibleAdapter;
 
 // ---------------------------------------------------------------------------
 // Blume 1 hints
@@ -354,29 +365,29 @@ const MOVED_TO_PROVIDER: ReadonlySet<string> = new Set([
   "reasoning",
 ]);
 
-/** The provider an `ai.ask` object names: a 1.x string or a descriptor's `kind`. */
-const askProviderNameProbe = z.looseObject({
+/** The provider an `ai.assistant` object names: a 1.x string or a descriptor's `kind`. */
+const assistantProviderNameProbe = z.looseObject({
   provider: z.union([
     z.string(),
     z.looseObject({ kind: z.string() }).transform(({ kind }) => kind),
   ]),
 });
 
-/** The factory a failing `ai.ask` object's provider names, or the gateway. */
+/** The factory a failing `ai.assistant` object's provider names, or the gateway. */
 const providerFactory = (issue: z.core.$ZodRawIssue): string => {
-  const probe = askProviderNameProbe.safeParse(issue.input);
+  const probe = assistantProviderNameProbe.safeParse(issue.input);
   return (
     (probe.success && FACTORY_BY_PROVIDER.get(probe.data.provider)) || "gateway"
   );
 };
 
 /**
- * Error params for `ai.ask`: a 1.x flat provider field (`model`, `apiKeyEnv`,
+ * Error params for `ai.assistant`: a 1.x flat provider field (`model`, `apiKeyEnv`,
  * `baseUrl`, `headers`, `reasoning`) names the adapter call it moves into —
  * the one the object's `provider` picks, 1.x string or descriptor — instead
  * of Zod's bare "Unrecognized key"; any other unknown key keeps its wording.
  */
-export const askMovedFieldsHint = {
+export const assistantMovedFieldsHint = {
   error: (issue: z.core.$ZodRawIssue): string | undefined => {
     if (issue.code !== "unrecognized_keys") {
       return;
@@ -385,7 +396,7 @@ export const askMovedFieldsHint = {
     if (moved.length === 0) {
       return;
     }
-    const fields = moved.map((key) => `ai.ask.${key}`).join(", ");
+    const fields = moved.map((key) => `ai.assistant.${key}`).join(", ");
     const hint = `${fields} moved into the provider adapter: \`provider: ${providerFactory(issue)}({ ${moved.join(", ")} })\`, imported from "blume/ai".`;
     const others = issue.keys.filter((key) => !MOVED_TO_PROVIDER.has(key));
     return others.length > 0
@@ -394,27 +405,27 @@ export const askMovedFieldsHint = {
   },
 };
 
-/** A value that is a 1.x provider name, for the `ai.ask.provider` hint. */
+/** A value that is a 1.x provider name, for the `ai.assistant.provider` hint. */
 const providerNameProbe = z.string();
 
 /**
- * The message for an `ai.ask.provider` that isn't a descriptor: a 1.x
+ * The message for an `ai.assistant.provider` that isn't a descriptor: a 1.x
  * provider name names the factory that replaced it; anything else lists them.
  */
 const providerNotAdapterMessage = (issue: z.core.$ZodRawIssue): string => {
   const name = providerNameProbe.safeParse(issue.input);
   const factory = name.success ? FACTORY_BY_PROVIDER.get(name.data) : undefined;
   return factory
-    ? `ai.ask.provider takes an adapter from "blume/ai", not a provider name: \`provider: ${factory}({ model })\`. The 1.x model, apiKeyEnv, baseUrl, headers, and reasoning fields move into the call.`
-    : 'ai.ask.provider takes an adapter from "blume/ai": gateway(), openrouter(), llmgateway(), inkeep(), or openaiCompatible().';
+    ? `ai.assistant.provider takes an adapter from "blume/ai", not a provider name: \`provider: ${factory}({ model })\`. The 1.x model, apiKeyEnv, baseUrl, headers, and reasoning fields move into the call.`
+    : 'ai.assistant.provider takes an adapter from "blume/ai": gateway(), openrouter(), llmgateway(), inkeep(), or openaiCompatible().';
 };
 
 /**
- * `ai.ask.provider`: the descriptor an adapter factory returned, validated
+ * `ai.assistant.provider`: the descriptor an adapter factory returned, validated
  * against that adapter's own option schema. A value that isn't a descriptor
  * at all (a 1.x provider name) names the factory that replaced it.
  */
-export const askAdapterSchema = z.discriminatedUnion(
+export const assistantAdapterSchema = z.discriminatedUnion(
   "kind",
   [
     gatewayAdapterSchema,
@@ -434,12 +445,12 @@ export const askAdapterSchema = z.discriminatedUnion(
   }
 );
 
-/** A resolved (post-defaults) `ai.ask.provider` descriptor. */
-export type AskAdapterConfig = z.output<typeof askAdapterSchema>;
-export type AskAdapterKind = AskAdapterConfig["kind"];
+/** A resolved (post-defaults) `ai.assistant.provider` descriptor. */
+export type AssistantAdapterConfig = z.output<typeof assistantAdapterSchema>;
+export type AssistantAdapterKind = AssistantAdapterConfig["kind"];
 
-/** The provider when `ai.ask.provider` is unset: the gateway with its defaults. */
-export const DEFAULT_ASK_PROVIDER: AskAdapter = gateway();
+/** The provider when `ai.assistant.provider` is unset: the gateway with its defaults. */
+export const DEFAULT_ASSISTANT_PROVIDER: AssistantAdapter = gateway();
 
 // ---------------------------------------------------------------------------
 // Resolved backend
@@ -474,7 +485,7 @@ export interface AskBackendTemplate {
 export interface AskBackend {
   /** Whether Blume grounds answers in the docs (Inkeep retrieves itself). */
   grounded: boolean;
-  kind: AskAdapterKind;
+  kind: AssistantAdapterKind;
   /** Human-readable adapter name for diagnostics ("AI Gateway"). */
   label: string;
   /** Appended to the missing-secret warning (an alternative credential, say). */
@@ -499,7 +510,7 @@ const headersLine = (headers?: Record<string, string>): string =>
 /** Refuse a request up front when the adapter's key env var is unset. */
 const keyCheck = (env: string): string => `  if (!${secretExpr(env)}) {
     return new Response(
-      ${JSON.stringify(`Ask AI is not configured: set ${env}.`)},
+      ${JSON.stringify(`The assistant is not configured: set ${env}.`)},
       { status: 503 }
     );
   }`;
@@ -510,7 +521,7 @@ const keyCheck = (env: string): string => `  if (!${secretExpr(env)}) {
  */
 const callFields = (options: {
   providerOptions?: z.output<typeof providerOptionsSchema>;
-  reasoning?: AskReasoning;
+  reasoning?: AssistantReasoning;
 }): string[] => {
   const fields: string[] = [];
   if (options.reasoning) {
@@ -542,7 +553,7 @@ const gatewayBackend = (
     keyCheck: `  // The AI Gateway authenticates with an API key or Vercel's OIDC token.
   if (!(${secretExpr(options.apiKeyEnv)} || getSecret("VERCEL_OIDC_TOKEN"))) {
     return new Response(
-      ${JSON.stringify(`Ask AI is not configured: set ${options.apiKeyEnv} (or deploy on Vercel with OIDC).`)},
+      ${JSON.stringify(`The assistant is not configured: set ${options.apiKeyEnv} (or deploy on Vercel with OIDC).`)},
       { status: 503 }
     );
   }`,
@@ -587,7 +598,7 @@ const openrouterBackend = (
  * option as `reasoning_effort`.
  */
 const openaiCompatibleBackend = (
-  kind: AskAdapterKind,
+  kind: AssistantAdapterKind,
   label: string,
   grounded: boolean,
   options: {
@@ -597,7 +608,7 @@ const openaiCompatibleBackend = (
     model: string;
     name: string;
     providerOptions?: z.output<typeof providerOptionsSchema>;
-    reasoning?: AskReasoning;
+    reasoning?: AssistantReasoning;
   }
 ): AskBackend => ({
   grounded,
@@ -621,9 +632,11 @@ const openaiCompatibleBackend = (
   },
 });
 
-/** Resolve a parsed `ai.ask.provider` descriptor into its backend. */
+/** Resolve a parsed `ai.assistant.provider` descriptor into its backend. */
 export const resolveAskBackend = (
-  provider: AskAdapterConfig = askAdapterSchema.parse(DEFAULT_ASK_PROVIDER)
+  provider: AssistantAdapterConfig = assistantAdapterSchema.parse(
+    DEFAULT_ASSISTANT_PROVIDER
+  )
 ): AskBackend => {
   switch (provider.kind) {
     case "gateway": {

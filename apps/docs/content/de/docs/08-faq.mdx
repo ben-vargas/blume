@@ -21,13 +21,13 @@ Blume geht einen dritten Weg: **Das Framework ist die Vorlage.** Du richtest es 
 | **Hosting** | Überall — statisch oder als Serverfunktion | Ihre verwaltete Infrastruktur | Überall; du baust und veröffentlichst |
 | **Du pflegst** | Dein Markdown | Dein Markdown + Plattformkonfiguration | Dein Markdown + die App darum herum |
 | **Rendering** | Astro; das Kern-Theme liefert null Client-JS aus | Ihre Runtime | React-/Next.js-Runtime |
-| **KI-Funktionen** | `llms.txt`, rohes Markdown, Ask AI, MCP — eingebaut, ohne gehosteten Dienst | Eingebaut (gehostet) | Bring dein eigenes mit |
+| **KI-Funktionen** | `llms.txt`, rohes Markdown, ein Assistent auf der Seite, MCP — eingebaut, ohne gehosteten Dienst | Eingebaut (gehostet) | Bring dein eigenes mit |
 
 Ein paar Konsequenzen, die es hervorzuheben lohnt:
 
 - **Dir gehört das Ergebnis.** `blume build` erzeugt eine schlichte Website, die du auf Vercel, Netlify, Cloudflare, S3 oder deinem eigenen Rechner hostest. Nichts funkt nach Hause.
 - **Keine Bindung, zwei Auswege.** Deine Inhalte sind portables Markdown, und `blume eject` verwandelt das Projekt in eine eigenständige Astro-App, die weiterhin das `blume`-Paket nutzt, wenn du volle Kontrolle willst.
-- **Standardmäßig schnell.** Das Kern-Theme kommt ohne React aus und rendert statisches HTML, sodass Seiten ohne Feintuning bei den Core Web Vitals gut abschneiden. Serverfunktionen (Ask AI, MCP) schaltest du nur dann dazu, wenn du sie brauchst.
+- **Standardmäßig schnell.** Das Kern-Theme kommt ohne React aus und rendert statisches HTML, sodass Seiten ohne Feintuning bei den Core Web Vitals gut abschneiden. Serverfunktionen (der Assistent, MCP) schaltest du nur dann dazu, wenn du sie brauchst.
 - **Typsichere Konfiguration.** `blume.config.ts` und jede `meta.ts` sind echtes TypeScript, validiert durch ein Schema — kein lose typisiertes YAML.
 
 :::note
@@ -50,7 +50,7 @@ Ja. Jede Seite kann `.md` oder `.mdx` sein, und mit MDX kannst du die [eingebaut
 
 ## Wo kann ich es veröffentlichen? [#where-can-i-deploy-it]
 
-Überall. `blume build` gibt standardmäßig statisches HTML aus, das du von jedem statischen Host oder CDN ausliefern kannst — Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3 oder deinem eigenen Server. Reine Serverfunktionen (Ask AI, der MCP-Server, On-Demand-Rendering) brauchen eine Server-Ausgabe: Trage einen Host-Adapter aus `blume/deploy` — `vercel()`, `netlify()`, `cloudflare()` oder `node()` — als `deployment` ein. Siehe [Deployment](/docs/deployment).
+Überall. `blume build` gibt standardmäßig statisches HTML aus, das du von jedem statischen Host oder CDN ausliefern kannst — Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3 oder deinem eigenen Server. Reine Serverfunktionen (der Assistent, der MCP-Server, On-Demand-Rendering) brauchen eine Server-Ausgabe: Trage einen Host-Adapter aus `blume/deploy` — `vercel()`, `netlify()`, `cloudflare()` oder `node()` — als `deployment` ein. Siehe [Deployment](/docs/deployment).
 
 ## Braucht die Suche einen gehosteten Dienst? [#does-search-need-a-hosted-service]
 

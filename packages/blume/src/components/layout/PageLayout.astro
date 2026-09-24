@@ -78,11 +78,11 @@ interface Props {
   fontCssVars?: (string | FontHead)[];
   searchEnabled: boolean;
   /**
-   * Opt this page out of the header's Ask AI trigger. Defaults to whether Ask
-   * AI is configured, so a custom page gets the same trigger the docs pages have
+   * Opt this page out of the header's assistant trigger. Defaults to whether the
+   * assistant is configured, so a custom page gets the same trigger the docs pages have
    * without wiring anything up.
    */
-  askEnabled?: boolean;
+  assistantEnabled?: boolean;
   /**
    * Start the header see-through, with its chrome in white, so it can sit over
    * a dark hero at the top of the page; it returns to the frosted bar as soon
@@ -163,7 +163,7 @@ const {
   themeMode,
   fontCssVars,
   searchEnabled,
-  askEnabled,
+  assistantEnabled,
   transparentHeader,
   siteUrl,
   ogEnabled,
@@ -389,8 +389,8 @@ createIconSprite(Astro.locals);
     <span hidden id={NEW_TAB_HINT_ID}>{navStrings.opensInNewTab}</span>
     <Banner banner={banner} strings={strings.banner} />
     <Header
-      askEnabled={askEnabled}
-      askStrings={strings.ask}
+      assistantEnabled={assistantEnabled}
+      assistantStrings={strings.assistant}
       hasSidebar={false}
       locale={locale}
       localeSwitch={localeSwitch}

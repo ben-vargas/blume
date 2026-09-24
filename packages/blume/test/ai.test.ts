@@ -38,12 +38,12 @@ import {
 import { buildContentGraph } from "../src/core/graph.ts";
 import type { BlumeProject } from "../src/core/project-graph.ts";
 import {
-  askReasoningLevels,
+  assistantReasoningLevels,
   blumeConfigSchema,
   pageMetaSchema,
 } from "../src/core/schema.ts";
 import type {
-  AskAiConfig,
+  AssistantConfig,
   BlumeConfigInput,
   OpenInChatProvider,
 } from "../src/core/schema.ts";
@@ -56,19 +56,22 @@ import type {
 } from "../src/core/types.ts";
 import { node } from "../src/deploy/adapters/index.ts";
 
-/** The `ai.ask` block as the config schema accepts it, pre-parse. */
-type AskConfigInput = NonNullable<NonNullable<BlumeConfigInput["ai"]>["ask"]>;
+/** The `ai.assistant` block as the config schema accepts it, pre-parse. */
+type AskConfigInput = NonNullable<
+  NonNullable<BlumeConfigInput["ai"]>["assistant"]
+>;
 
-/** Parse an `ai.ask` block through the full schema so defaults are applied. */
-const askConfig = (ask: AskConfigInput): AskAiConfig =>
+/** Parse an `ai.assistant` block through the full schema so defaults are applied. */
+const askConfig = (ask: AskConfigInput): AssistantConfig =>
   // SAFETY: an explicit `ask` block was just passed in, so the parsed config
-  // always carries `ai.ask`.
-  blumeConfigSchema.parse({ ai: { ask } }).ai.ask as AskAiConfig;
+  // always carries `ai.assistant`.
+  blumeConfigSchema.parse({ ai: { assistant: ask } }).ai
+    .assistant as AssistantConfig;
 
-/** The runtime deps declared for a given `ai.ask` block (or default config). */
+/** The runtime deps declared for a given `ai.assistant` block (or default config). */
 const runtimeDeps = (ask?: AskConfigInput): string[] =>
   runtimeDependencies({
-    config: blumeConfigSchema.parse(ask ? { ai: { ask } } : {}),
+    config: blumeConfigSchema.parse(ask ? { ai: { assistant: ask } } : {}),
     needsReact: false,
   });
 
@@ -1925,7 +1928,7 @@ describe("sectionExcerpt", () => {
   });
 });
 
-/** The backend a schema-parsed `ai.ask` block resolves to. */
+/** The backend a schema-parsed `ai.assistant` block resolves to. */
 const backendFor = (ask?: AskConfigInput) =>
   resolveAskBackend(askConfig(ask ?? { enabled: true }).provider);
 
@@ -2079,7 +2082,7 @@ describe("resolveAskBackend", () => {
     expect(llm.template.setup).toContain('baseURL: "https://proxy.example/v1"');
     expect(llm.template.keyCheck).toContain('if (!getSecret("MY_KEY"))');
     expect(llm.template.keyCheck).toContain(
-      "Ask AI is not configured: set MY_KEY."
+      "The assistant is not configured: set MY_KEY."
     );
     expect(llm.template.keyCheck).toContain("{ status: 503 }");
 
@@ -2195,7 +2198,7 @@ describe("resolveAskBackend", () => {
   });
 });
 
-describe("ai.ask schema", () => {
+describe("ai.assistant schema", () => {
   it("defaults provider to the gateway with its model", () => {
     expect(askConfig({ enabled: true }).provider).toStrictEqual({
       kind: "gateway",
@@ -2203,7 +2206,7 @@ describe("ai.ask schema", () => {
       requiredSecrets: ["AI_GATEWAY_API_KEY"],
       runtimeDeps: [],
     });
-    expect(blumeConfigSchema.parse({}).ai.ask).toBeUndefined();
+    expect(blumeConfigSchema.parse({}).ai.assistant).toBeUndefined();
   });
 
   it("applies each adapter's defaults and keeps what was set", () => {
@@ -2273,7 +2276,9 @@ describe("ai.ask schema", () => {
       { kind: "gateway", options: {} },
     ]) {
       expect(() =>
-        blumeConfigSchema.parse({ ai: { ask: { enabled: true, provider } } })
+        blumeConfigSchema.parse({
+          ai: { assistant: { enabled: true, provider } },
+        })
       ).toThrow();
     }
   });
@@ -2282,13 +2287,13 @@ describe("ai.ask schema", () => {
     // The provider is a descriptor now, not a name.
     expect(() =>
       blumeConfigSchema.parse({
-        ai: { ask: { enabled: true, provider: "openrouter" } },
+        ai: { assistant: { enabled: true, provider: "openrouter" } },
       })
     ).toThrow();
     expect(() =>
       blumeConfigSchema.parse({
         ai: {
-          ask: {
+          assistant: {
             enabled: true,
             provider: { ...BARE, kind: "ollama", options: {} },
           },
@@ -2304,7 +2309,9 @@ describe("ai.ask schema", () => {
       { reasoning: "none" },
     ]) {
       expect(() =>
-        blumeConfigSchema.parse({ ai: { ask: { enabled: true, ...flat } } })
+        blumeConfigSchema.parse({
+          ai: { assistant: { enabled: true, ...flat } },
+        })
       ).toThrow(/moved into the provider adapter/u);
     }
     // Inkeep runs its own QA pipeline with no reasoning control, so its
@@ -2312,7 +2319,7 @@ describe("ai.ask schema", () => {
     expect(() =>
       blumeConfigSchema.parse({
         ai: {
-          ask: {
+          assistant: {
             enabled: true,
             provider: {
               ...BARE,
@@ -2326,7 +2333,7 @@ describe("ai.ask schema", () => {
   });
 
   it("accepts every reasoning level where an adapter maps it and rejects anything else", () => {
-    for (const reasoning of askReasoningLevels) {
+    for (const reasoning of assistantReasoningLevels) {
       expect(
         askConfig({ enabled: true, provider: gateway({ reasoning }) }).provider
           .options
@@ -2345,7 +2352,7 @@ describe("ai.ask schema", () => {
       expect(() =>
         blumeConfigSchema.parse({
           ai: {
-            ask: {
+            assistant: {
               enabled: true,
               provider: { ...BARE, kind: "gateway", options: { reasoning } },
             },
@@ -2365,7 +2372,7 @@ describe("ai.ask schema", () => {
     expect(() =>
       blumeConfigSchema.parse({
         ai: {
-          ask: {
+          assistant: {
             enabled: true,
             provider: {
               ...BARE,
@@ -2381,7 +2388,7 @@ describe("ai.ask schema", () => {
     expect(() =>
       blumeConfigSchema.parse({
         ai: {
-          ask: {
+          assistant: {
             enabled: true,
             provider: {
               ...BARE,
@@ -2395,7 +2402,7 @@ describe("ai.ask schema", () => {
     expect(() =>
       blumeConfigSchema.parse({
         ai: {
-          ask: {
+          assistant: {
             enabled: true,
             provider: {
               ...BARE,
@@ -2412,20 +2419,22 @@ describe("ai.ask schema", () => {
     expect(
       blumeConfigSchema.parse({
         ai: {
-          ask: {
+          assistant: {
             cors: ["https://www.example.com/docs/", "http://localhost:3000"],
             enabled: true,
           },
         },
-      }).ai.ask?.cors
+      }).ai.assistant?.cors
     ).toStrictEqual(["https://www.example.com", "http://localhost:3000"]);
     expect(
-      blumeConfigSchema.parse({ ai: { ask: { enabled: true } } }).ai.ask
+      blumeConfigSchema.parse({ ai: { assistant: { enabled: true } } }).ai
+        .assistant
     ).not.toHaveProperty("cors");
     // `"*"` admits every origin and rides through untouched.
     expect(
-      blumeConfigSchema.parse({ ai: { ask: { cors: ["*"], enabled: true } } })
-        .ai.ask?.cors
+      blumeConfigSchema.parse({
+        ai: { assistant: { cors: ["*"], enabled: true } },
+      }).ai.assistant?.cors
     ).toStrictEqual(["*"]);
     for (const cors of [
       ["example.com"],
@@ -2433,7 +2442,7 @@ describe("ai.ask schema", () => {
       "https://x.y",
     ]) {
       expect(() =>
-        blumeConfigSchema.parse({ ai: { ask: { cors, enabled: true } } })
+        blumeConfigSchema.parse({ ai: { assistant: { cors, enabled: true } } })
       ).toThrow();
     }
   });
@@ -2444,34 +2453,36 @@ describe("ai.ask schema", () => {
     expect(() =>
       blumeConfigSchema.parse({
         ai: {
-          ask: {
+          assistant: {
             cors: ["https://www.example.com"],
             enabled: true,
             endpoint: "https://api.example.com/ask",
           },
         },
       })
-    ).toThrow(/ai\.ask\.cors only applies to the generated route/u);
+    ).toThrow(/ai\.assistant\.cors only applies to the generated route/u);
   });
 
   it("accepts an external endpoint beside an adapter it then ignores", () => {
     const config = blumeConfigSchema.parse({
       ai: {
-        ask: {
+        assistant: {
           enabled: true,
           endpoint: "https://api.example.com/v1/docs/ask",
           provider: openrouter({ model: "x/y" }),
         },
       },
     });
-    expect(config.ai.ask?.endpoint).toBe("https://api.example.com/v1/docs/ask");
+    expect(config.ai.assistant?.endpoint).toBe(
+      "https://api.example.com/v1/docs/ask"
+    );
   });
 
   it("accepts root-relative endpoints and rejects malformed values", () => {
     const parsed = blumeConfigSchema.parse({
-      ai: { ask: { enabled: true, endpoint: "  /api/docs/ask  " } },
+      ai: { assistant: { enabled: true, endpoint: "  /api/docs/ask  " } },
     });
-    expect(parsed.ai.ask?.endpoint).toBe("/api/docs/ask");
+    expect(parsed.ai.assistant?.endpoint).toBe("/api/docs/ask");
 
     for (const endpoint of [
       " ",
@@ -2481,10 +2492,10 @@ describe("ai.ask schema", () => {
     ]) {
       expect(() =>
         blumeConfigSchema.parse({
-          ai: { ask: { enabled: true, endpoint } },
+          ai: { assistant: { enabled: true, endpoint } },
         })
       ).toThrow(
-        "ai.ask.endpoint must be an HTTP(S) URL or a root-relative path."
+        "ai.assistant.endpoint must be an HTTP(S) URL or a root-relative path."
       );
     }
   });
@@ -2535,15 +2546,17 @@ describe("askEndpointTemplate", () => {
     expect(out).toContain(
       'if (!(getSecret("AI_GATEWAY_API_KEY") || getSecret("VERCEL_OIDC_TOKEN")))'
     );
-    expect(out).toContain("Ask AI is not configured: set AI_GATEWAY_API_KEY");
+    expect(out).toContain(
+      "The assistant is not configured: set AI_GATEWAY_API_KEY"
+    );
     // The route exists but can't answer yet: unavailable, not a server fault.
     expect(out).toContain("{ status: 503 }");
-    expect(out.indexOf("Ask AI is not configured")).toBeLessThan(
+    expect(out.indexOf("The assistant is not configured")).toBeLessThan(
       out.indexOf("streamText({")
     );
     // Mid-stream provider errors are only observable via onError.
     expect(out).toContain("onError({ error })");
-    expect(out).toContain('console.error("Ask AI provider error:", error);');
+    expect(out).toContain('console.error("Assistant provider error:", error);');
   });
 
   it("guards the adapter's key env var for the non-gateway adapters", () => {
@@ -2552,7 +2565,7 @@ describe("askEndpointTemplate", () => {
     );
     expect(router).toContain('if (!getSecret("OPENROUTER_API_KEY"))');
     expect(router).toContain(
-      "Ask AI is not configured: set OPENROUTER_API_KEY."
+      "The assistant is not configured: set OPENROUTER_API_KEY."
     );
     expect(router).not.toContain("AI_GATEWAY_API_KEY");
 
@@ -2621,7 +2634,7 @@ describe("ask adapter runtime dependency", () => {
     ).toContain("@ai-sdk/openai-compatible");
   });
 
-  it("declares nothing when Ask AI is disabled or external", () => {
+  it("declares nothing when the assistant is disabled or external", () => {
     expect(
       runtimeDeps({ enabled: false, provider: openrouter({ model: "x/y" }) })
     ).not.toContain("@openrouter/ai-sdk-provider");

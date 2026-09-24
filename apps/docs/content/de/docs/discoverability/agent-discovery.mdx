@@ -16,7 +16,7 @@ agents: {
 }
 ```
 
-Das Manifest listet nur, was du aktiviert hast — das Spiegelmuster für [rohes Markdown](/docs/discoverability/markdown), die [JSON-API](/docs/discoverability/json-api) und ihre OpenAPI-Beschreibung, [`llms.txt`](/docs/discoverability/llms-txt) und `llms-full.txt`, den [MCP-Server](/docs/discoverability/mcp) und sein Discovery-Dokument, den [Ask-AI](/docs/configuration/ask-ai)-Endpunkt, die [Sitemap](/docs/discoverability/sitemap-and-robots#sitemap) und [RSS-Feeds](/docs/discoverability/rss) — zusammen mit deinem Site-Namen, der Beschreibung, dem Quell-Repository und der [Content-Signal](/docs/discoverability/sitemap-and-robots#content-signals)-Nutzungsrichtlinie. URLs sind absolut, wenn [`deployment.site`](/docs/deployment) gesetzt ist, und ansonsten root-relativ:
+Das Manifest listet nur, was du aktiviert hast — das Spiegelmuster für [rohes Markdown](/docs/discoverability/markdown), die [JSON-API](/docs/discoverability/json-api) und ihre OpenAPI-Beschreibung, [`llms.txt`](/docs/discoverability/llms-txt) und `llms-full.txt`, den [MCP-Server](/docs/discoverability/mcp) und sein Discovery-Dokument, den Endpunkt des [Assistenten](/docs/configuration/assistant), die [Sitemap](/docs/discoverability/sitemap-and-robots#sitemap) und [RSS-Feeds](/docs/discoverability/rss) — zusammen mit deinem Site-Namen, der Beschreibung, dem Quell-Repository und der [Content-Signal](/docs/discoverability/sitemap-and-robots#content-signals)-Nutzungsrichtlinie. URLs sind absolut, wenn [`deployment.site`](/docs/deployment) gesetzt ist, und ansonsten root-relativ:
 
 ```json agent-readability.json
 {
@@ -127,7 +127,7 @@ Wenn die Site APIs veröffentlicht, generiert Blume unter `/.well-known/api-cata
 }
 ```
 
-Eine Site ohne API-Referenzen, ohne MCP-Server und mit abgeschalteter [JSON-API](/docs/discoverability/json-api) gibt keinen Katalog aus — es stünde nichts darin. Wie überall gewinnt eine `public/.well-known/api-catalog`-Datei, die du selbst ausliefest, über die generierte.
+Eine Site ohne API-Referenzen, ohne MCP-Server und mit abgeschalteter [JSON-API](/docs/discoverability/json-api) gibt keinen Katalog aus — es stünde nichts darin. Wie überall gewinnt eine `public/.well-known/api-catalog`-Datei, die du selbst auslieferst, über die generierte.
 
 ## KI-Katalog [#ai-catalog]
 
@@ -201,7 +201,7 @@ export default defineConfig({
 });
 ```
 
-Eine Liste ersetzt die generierten Queries für diesen Eintrag; Einträge, die du nicht benennst, behalten ihre. Wie überall gewinnt eine `public/.well-known/ai-catalog.json` (oder `ard.json`), die du selbst ausliefest, über die generierte.
+Eine Liste ersetzt die generierten Queries für diesen Eintrag; Einträge, die du nicht benennst, behalten ihre. Wie überall gewinnt eine `public/.well-known/ai-catalog.json` (oder `ard.json`), die du selbst auslieferst, über die generierte.
 
 ## WebMCP
 
@@ -227,7 +227,7 @@ agents: {
 
 Der Pfad wird relativ zu deinem Projekt-Root aufgelöst, und jedes Unterverzeichnis mit einer `SKILL.md` wird zu einem veröffentlichten Skill. Ein Skill, der nur aus einer einzelnen `SKILL.md` besteht, wird wortgetreu nach `/.well-known/agent-skills/<name>/SKILL.md` kopiert (`type: "skill-md"`); ein Skill mit unterstützenden Ressourcen (`scripts/`, `references/`, `assets/`) wird in ein deterministisches `.tar.gz` gebündelt (`type: "archive"`), damit sich seine relativen Verweise nach dem Entpacken auflösen, wobei die Ausführungsbits von Skripten erhalten bleiben. Der Discovery-Index unter `/.well-known/agent-skills/index.json` trägt das `$schema` der Version v0.2.0 und pro Skill dessen Namen, Typ, Beschreibung (aus dem Frontmatter der `SKILL.md`), Artefakt-URL und den SHA-256-Digest, gegen den Clients Downloads verifizieren.
 
-Skills mit fehlendem oder spezifikationswidrigem `name`/`description` werden mit einer Build-Warnung übersprungen, statt kaputt veröffentlicht zu werden, und eine `public/.well-known/agent-skills/index.json`, die du selbst ausliefest, übernimmt die gesamte Oberfläche. Veröffentlichte Skills werden außerdem in [`llms.txt`](/docs/discoverability/llms-txt#generated-sections) aufgeführt.
+Skills mit fehlendem oder spezifikationswidrigem `name`/`description` werden mit einer Build-Warnung übersprungen, statt kaputt veröffentlicht zu werden, und eine `public/.well-known/agent-skills/index.json`, die du selbst auslieferst, übernimmt die gesamte Oberfläche. Veröffentlichte Skills werden außerdem in [`llms.txt`](/docs/discoverability/llms-txt#generated-sections) aufgeführt.
 
 ## DNS-basierte Discovery (DNS-AID) [#dns-based-discovery-dns-aid]
 

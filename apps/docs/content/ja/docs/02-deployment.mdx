@@ -82,7 +82,7 @@ basePath: "/docs",
 
 ## サーバーレンダリング [#server-rendering]
 
-静的出力でほとんどのドキュメントは事足ります。リクエスト時の機能 — 特に [Ask AI](/docs/configuration/ask-ai) エンドポイントと [MCP サーバー](/docs/discoverability/mcp) — が必要な場合はサーバー出力に切り替えます。切り替えるにはホストを指定します: `deployment` には `blume/deploy` からインポートしたアダプターを渡します。
+静的出力でほとんどのドキュメントは事足ります。リクエスト時の機能 — 特に [アシスタント](/docs/configuration/assistant) エンドポイントと [MCP サーバー](/docs/discoverability/mcp) — が必要な場合はサーバー出力に切り替えます。切り替えるにはホストを指定します: `deployment` には `blume/deploy` からインポートしたアダプターを渡します。
 
 ```ts blume.config.ts lineNumbers
 import { defineConfig } from "blume";
@@ -129,7 +129,7 @@ Vercel と Cloudflare では、サーバービルドによって [`Accept: text/
 :::
 
 :::note
-サーバー機能にはそれぞれ独自の設定があります — 例えば Ask AI にはモデルの API キーが必要です。セットアップについては [Ask AI ガイド](/docs/configuration/ask-ai) を参照してください。
+サーバー機能にはそれぞれ独自の設定があります — 例えばアシスタントにはモデルの API キーが必要です。セットアップについては [アシスタントガイド](/docs/configuration/assistant) を参照してください。
 :::
 
 ## リダイレクト [#redirects]
@@ -160,8 +160,8 @@ redirects: [{ from: "/old", to: "/new", status: 301 }],
 
 | 機能 | 変数 |
 | --- | --- |
-| Ask AI（AI Gateway） | `AI_GATEWAY_API_KEY`（または Vercel OIDC） |
-| Ask AI（その他のアダプター） | アダプターのデフォルトのキー環境変数（`OPENROUTER_API_KEY`、`LLMGATEWAY_API_KEY`、`INKEEP_API_KEY`）、またはアダプターに渡した `apiKeyEnv` |
+| アシスタント（AI Gateway） | `AI_GATEWAY_API_KEY`（または Vercel OIDC） |
+| アシスタント（その他のアダプター） | アダプターのデフォルトのキー環境変数（`OPENROUTER_API_KEY`、`LLMGATEWAY_API_KEY`、`INKEEP_API_KEY`）、またはアダプターに渡した `apiKeyEnv` |
 | Mixedbread 検索 | `MIXEDBREAD_API_KEY` |
 
 ローカル開発では `.env.local` に、本番ではホストの環境に設定してください。検索インデックスの同期（Algolia、Orama Cloud、Typesense）に必要なビルド時のシークレットについては、同期ステップで個別に警告されます。

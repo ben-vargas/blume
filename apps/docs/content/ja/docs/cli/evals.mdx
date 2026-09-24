@@ -11,22 +11,22 @@ blume eval
 ```
 
 ```
-blume eval  4 question(s) · Claude Code
+blume eval  4 question(s) · Codex
 
-  ✔ install-node-version         pass  1.00  14.2s  $0.14
-  ✔ custom-domain                pass  0.92  21.3s  $0.19
-  ✖ deploy-vercel                fail  0.40  38.9s  $0.31
+  ✔ install-node-version         pass  1.00  14.2s
+  ✔ custom-domain                pass  0.92  21.3s
+  ✖ deploy-vercel                fail  0.40  38.9s
       missing: deployment: vercel() from blume/deploy
   ⊘ search-providers             skipped
 
   fix: content/docs/deployment.mdx  Docs could not answer: "How do I deploy to Vercel?" — missing: deployment: vercel() from blume/deploy
 
-  2 passed · 1 failed · 1 skipped · 1m 42s · $0.64
+  2 passed · 1 failed · 1 skipped · 1m 42s
 ```
 
 ## 仕組み [#how-it-works]
 
-各質問は、インストール済みのエージェント CLI を使って 2 つのエージェントセッションで処理されます。デフォルトは [Claude Code](https://claude.com/claude-code) で、`--agent codex` を指定すると [Codex](https://developers.openai.com/codex/cli) を使います。Blume 自体は API キーを持たず、モデルを直接呼び出すこともありません。`--agent codex` の場合、両方のセッションで Codex のシェル・コマンド・画像ツールが無効になり、環境変数も一切引き継がれません。
+各質問は、インストール済みのエージェント CLI を使って 2 つのエージェントセッションで処理されます。デフォルトは [Codex](https://developers.openai.com/codex/cli) で、`--agent claude` を指定すると [Claude Code](https://claude.com/claude-code) を使います。Blume 自体は API キーを持たず、モデルを直接呼び出すこともありません。Codex を使う場合は、両方のセッションで Codex のシェル・コマンド・画像ツールも無効になり、環境変数も一切引き継がれません。
 
 1. **リーダー**は、*ドキュメントだけ*を使って質問に回答します。リーダーはファイル・シェル・Web ツールが無効な状態で空のディレクトリで動き、ドキュメントを提供するプライベートな [MCP サーバー](/docs/discoverability/mcp) に接続されます。これは、実際のエージェントがデプロイ済みのサイトに対して使うのと同じ `search_docs`/`get_page` ツールです。リポジトリは読めないため、リーダーは初めてのユーザーとまったく同じ立場でドキュメントを読みます。書かれていないことは、存在しないのと同じです。
 2. **ジャッジ**は、ツールを一切使わずに、あなたが列挙した事実と照らし合わせて回答を採点します。言い換えは合格になり、事実が抜けていたり矛盾していたりすると不合格になります。「ドキュメントには記載されていません」という回答も不合格です。
@@ -99,7 +99,7 @@ blume eval --fix
 
 ## フラグ [#flags]
 
-- `--agent claude|codex` — リーダーとジャッジを実行するエージェント CLI です。デフォルトは `claude` です。
+- `--agent codex|claude` — リーダーとジャッジを実行するエージェント CLI です。デフォルトは `codex` です。
 - `--file <path>` — 評価ファイルのパスです。デフォルトは `evals.yaml` です。
 - `--threshold <0..1>` — 必要な最低合格率です。これを下回ると、0 以外の終了コードで終了します。デフォルトは `1` です。
 - `--timeout <seconds>` — 質問ごとのリーダーの制限時間です。デフォルトは `180` です。

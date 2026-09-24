@@ -81,7 +81,7 @@ This is a distinct concept from the two paths above:
 
 ## Server rendering
 
-Static output covers most docs. Switch to server output when you need request-time features — most notably the [Ask AI](/docs/configuration/ask-ai) endpoint and the [MCP server](/docs/discoverability/mcp). You do that by naming the host: `deployment` takes an adapter imported from `blume/deploy`.
+Static output covers most docs. Switch to server output when you need request-time features — most notably the [assistant](/docs/configuration/assistant) endpoint and the [MCP server](/docs/discoverability/mcp). You do that by naming the host: `deployment` takes an adapter imported from `blume/deploy`.
 
 ```ts blume.config.ts lineNumbers
 import { defineConfig } from "blume";
@@ -128,7 +128,7 @@ On Vercel and Cloudflare, a server build also turns on [`Accept: text/markdown` 
 :::
 
 :::note
-Server features have their own configuration — for example, Ask AI needs a model API key. See the [Ask AI guide](/docs/configuration/ask-ai) for setup.
+Server features have their own configuration — for example, the assistant needs a model API key. See the [assistant guide](/docs/configuration/assistant) for setup.
 :::
 
 ## Redirects
@@ -159,8 +159,8 @@ When a feature needs a runtime secret, Blume warns at `blume dev`/`build` if it'
 
 | Feature | Variable |
 | --- | --- |
-| Ask AI (AI Gateway) | `AI_GATEWAY_API_KEY` (or Vercel OIDC) |
-| Ask AI (other adapters) | the adapter's default key env var (`OPENROUTER_API_KEY`, `LLMGATEWAY_API_KEY`, `INKEEP_API_KEY`), or the `apiKeyEnv` you passed it |
+| Assistant (AI Gateway) | `AI_GATEWAY_API_KEY` (or Vercel OIDC) |
+| Assistant (other adapters) | the adapter's default key env var (`OPENROUTER_API_KEY`, `LLMGATEWAY_API_KEY`, `INKEEP_API_KEY`), or the `apiKeyEnv` you passed it |
 | Mixedbread search | `MIXEDBREAD_API_KEY` |
 
 Set them in `.env.local` for local dev and in your host's environment for production. Build-time secrets for search-index sync (Algolia, Orama Cloud, Typesense) are warned about separately during the sync step.

@@ -5,7 +5,6 @@ export const ro: UIStringsOverride = {
   actions: {
     addToCursor: "Adaugă în Cursor",
     addToVscode: "Adaugă în VS Code",
-    askAI: "Întreabă AI despre această pagină",
     connectMcp: "Conectează-te la MCP",
     copied: "Copiat!",
     copyClaudeCode: "Copiază comanda Claude Code",
@@ -25,7 +24,7 @@ export const ro: UIStringsOverride = {
       "Citește {url} ca să îți pot pune întrebări despre această pagină.",
     scrollToTop: "Sus de tot",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "Șterge conversația",
     close: "Închide",
@@ -36,7 +35,7 @@ export const ro: UIStringsOverride = {
     placeholder: "Pune o întrebare…",
     send: "Trimite",
     tip: "Sfat: Poți deschide și închide chatul cu",
-    title: "Întreabă AI",
+    title: "Asistent",
     you: "Tu",
   },
   banner: { dismiss: "Închide anunțul" },
@@ -85,8 +84,8 @@ export const ro: UIStringsOverride = {
   search: {
     all: "Toate",
     allLanguages: "Toate limbile",
-    askAi: "Întreabă AI",
-    askAiHint: "Primește un răspuns instantaneu de la AI",
+    assistant: "Asistent",
+    assistantHint: "Primește un răspuns instantaneu de la AI",
     button: "Caută",
     devOnly: "Căutarea este disponibilă în versiunea de producție.",
     error: "Ceva nu a mers bine. Încearcă din nou.",

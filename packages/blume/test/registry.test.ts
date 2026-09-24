@@ -74,7 +74,7 @@ describe("eject", () => {
     ejectDirs.push(root);
     await writeFiles(root, {
       "blume.config.ts": `export default {
-        ai: { ask: { enabled: true, endpoint: "https://ask.example.com/api" } },
+        ai: { assistant: { enabled: true, endpoint: "https://ask.example.com/api" } },
         export: { epub: true },
       };\n`,
       "docs/index.md": "---\ntitle: Home\n---\n# Home\n",
@@ -84,7 +84,7 @@ describe("eject", () => {
 
     // `features.ts` loads the EPUB generator's browser bundle by bare name.
     expect(dependencies).toContain("epub-gen-memory");
-    // An external endpoint answers Ask AI, so no route imports the AI SDK.
+    // An external endpoint answers the assistant, so no route imports the AI SDK.
     expect(existsSync(join(root, "src/pages/api/ask.ts"))).toBe(false);
     expect(dependencies).not.toContain("ai");
     expect(
@@ -128,14 +128,14 @@ describe("eject", () => {
     const root = await mkdtemp(join(tmpdir(), "blume-eject-"));
     ejectDirs.push(root);
 
-    // A config that turns on every feature-gated eject branch: Ask AI, OG
+    // A config that turns on every feature-gated eject branch: the assistant, OG
     // images (via deployment.site), an OpenAPI reference, mixedbread search,
     // and the hosted MCP server.
     await writeFiles(root, {
       "blume.config.ts": `export default {
         agents: { mcp: { enabled: true } },
         ai: {
-          ask: {
+          assistant: {
             cors: ["https://www.example.com/"],
             enabled: true,
             instructions: "Answer in pirate speak.",
@@ -250,10 +250,10 @@ export default defineComponents({
         "@tailwindcss/vite",
         "@openrouter/ai-sdk-provider",
         "blume",
-        // React renders the islands and Ask AI, so the app depends on it.
+        // React renders the islands and the assistant, so the app depends on it.
         "react",
         "react-dom",
-        // The Ask AI route streams through the AI SDK by bare name.
+        // The assistant route streams through the AI SDK by bare name.
         "ai",
       ])
     );
@@ -264,12 +264,12 @@ export default defineComponents({
       bareImports(files).filter((name) => !dependencies.includes(name))
     ).toEqual([]);
 
-    // Feature-gated endpoints: Ask AI, OG images, mixedbread search, the RSS
+    // Feature-gated endpoints: the assistant, OG images, mixedbread search, the RSS
     // feed, and the OpenAPI reference page.
     expect(has("src/pages/api/ask.ts")).toBe(true);
-    // The custom `ai.ask.instructions` survive ejection in the endpoint's
+    // The custom `ai.assistant.instructions` survive ejection in the endpoint's
     // system prompt (they were previously dropped on this path), as do the
-    // configured `ai.ask.retrieval` sizes.
+    // configured `ai.assistant.retrieval` sizes.
     const ejectedAsk = readFileSync(
       join(root, "src/pages/api/ask.ts"),
       "utf-8"
@@ -277,7 +277,7 @@ export default defineComponents({
     expect(ejectedAsk).toContain("Answer in pirate speak.");
     expect(ejectedAsk).toContain('"contextBudget":2500');
     expect(ejectedAsk).toContain('"maxResults":3');
-    // ...and the `ai.ask.cors` origins, with their preflight handler.
+    // ...and the `ai.assistant.cors` origins, with their preflight handler.
     expect(ejectedAsk).toContain(
       'const ALLOWED_ORIGINS = ["https://www.example.com"];'
     );
@@ -291,7 +291,7 @@ export default defineComponents({
     );
     const parsedAsk = blumeConfigSchema.parse({
       ai: {
-        ask: {
+        assistant: {
           cors: ["https://www.example.com/"],
           enabled: true,
           instructions: "Answer in pirate speak.",
@@ -299,7 +299,7 @@ export default defineComponents({
           retrieval: { contextBudget: 2500, excerptChars: 1200, maxResults: 3 },
         },
       },
-    }).ai.ask;
+    }).ai.assistant;
     expect(ejectedAsk).toBe(
       askEndpointTemplate(resolveAskBackend(parsedAsk?.provider), {
         cors: parsedAsk?.cors,
@@ -384,7 +384,7 @@ export default defineComponents({
     await writeFiles(root, {
       "blume.config.ts": `export default {
         ai: {
-          ask: {
+          assistant: {
             enabled: true,
             provider: {
               kind: "inkeep",
@@ -408,12 +408,12 @@ export default defineComponents({
         resolveAskBackend(
           blumeConfigSchema.parse({
             ai: {
-              ask: {
+              assistant: {
                 enabled: true,
                 provider: inkeep({ model: "inkeep-qa-expert" }),
               },
             },
-          }).ai.ask?.provider
+          }).ai.assistant?.provider
         ),
         {}
       )
@@ -427,7 +427,7 @@ export default defineComponents({
     ejectDirs.push(root);
     await writeFiles(root, {
       "blume.config.ts": `export default {
-        ai: { ask: { enabled: true, endpoint: "/api/docs/ask" } },
+        ai: { assistant: { enabled: true, endpoint: "/api/docs/ask" } },
       };\n`,
       "docs/index.md": "---\ntitle: Home\n---\n# Home\n",
       "src/generated/ask-data.json": "{}\n",

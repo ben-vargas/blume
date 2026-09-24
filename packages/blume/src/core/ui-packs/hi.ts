@@ -5,7 +5,6 @@ export const hi: UIStringsOverride = {
   actions: {
     addToCursor: "Cursor में जोड़ें",
     addToVscode: "VS Code में जोड़ें",
-    askAI: "इस पेज के बारे में AI से पूछें",
     connectMcp: "MCP से कनेक्ट करें",
     copied: "कॉपी किया गया!",
     copyClaudeCode: "Claude Code कमांड कॉपी करें",
@@ -24,7 +23,7 @@ export const hi: UIStringsOverride = {
     openInChatPrompt: "{url} पढ़ें ताकि मैं इस पेज के बारे में प्रश्न पूछ सकूँ।",
     scrollToTop: "ऊपर जाएँ",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "बातचीत साफ़ करें",
     close: "बंद करें",
@@ -35,7 +34,7 @@ export const hi: UIStringsOverride = {
     placeholder: "एक प्रश्न पूछें…",
     send: "भेजें",
     tip: "सुझाव: चैट खोलने और बंद करने के लिए दबाएँ",
-    title: "AI से पूछें",
+    title: "सहायक",
     you: "आप",
   },
   banner: { dismiss: "घोषणा बंद करें" },
@@ -84,8 +83,8 @@ export const hi: UIStringsOverride = {
   search: {
     all: "सभी",
     allLanguages: "सभी भाषाएँ",
-    askAi: "AI से पूछें",
-    askAiHint: "AI से तुरंत जवाब पाएँ",
+    assistant: "सहायक",
+    assistantHint: "AI से तुरंत जवाब पाएँ",
     button: "खोजें",
     devOnly: "खोज प्रोडक्शन बिल्ड में उपलब्ध है।",
     error: "कुछ गलत हो गया। कृपया फिर से कोशिश करें।",

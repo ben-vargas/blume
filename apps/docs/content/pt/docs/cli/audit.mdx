@@ -32,7 +32,7 @@ Os achados são agrupados por verificação em vez de listados por página, ent�
 - `--list-checks`: imprime todas as verificações que a auditoria pode reportar e sai.
 - `--verbose`: lista cada página afetada com o detalhe completo de cada achado, em vez de só as primeiras.
 - `--json`: emite o relatório como JSON no stdout.
-- `--claude` / `--codex`: passa os achados para o Claude Code ou o Codex corrigirem de forma interativa.
+- `--codex` / `--claude`: passa os achados para o Codex ou o Claude Code corrigirem de forma interativa.
 
 ## Fazendo o CI falhar [#failing-ci]
 
@@ -56,10 +56,10 @@ Os links externos são classificados, em vez de simplesmente reprovados. Um 404 
 
 ## Corrigindo os achados com um agente [#fixing-the-findings-with-an-agent]
 
-Se você usa o [Claude Code](https://claude.com/claude-code) ou o [Codex](https://developers.openai.com/codex/cli), a auditoria pode passar os achados direto para ele:
+Se você usa o [Codex](https://developers.openai.com/codex/cli) ou o [Claude Code](https://claude.com/claude-code), a auditoria pode passar os achados direto para ele:
 
 ```bash
-blume audit --claude   # or --codex
+blume audit --codex   # or --claude
 ```
 
 Isso grava o relatório JSON completo em um arquivo, com todas as páginas afetadas e não só a prévia de três páginas do terminal. Depois, abre o agente de forma interativa com um prompt que o guia pelos achados: editar o arquivo-fonte que cada achado indica, aplicar a correção sugerida e rodar `blume build` e `blume audit` de novo até o relatório ficar limpo. A sessão é interativa de propósito: você revisa as edições pelo próprio fluxo de permissões do agente, e o agente é instruído a nunca corrigir um achado apagando conteúdo.

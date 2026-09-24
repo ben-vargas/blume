@@ -77,7 +77,7 @@ const mintlify: CompareTool = {
     },
     {
       answer:
-        "Yes. Ask AI answers readers in the page using the model and provider you choose, and an opt-in MCP server lets coding agents search and read your docs. Both run on a server deployment.",
+        "Yes. The assistant answers readers in the page using the model and provider you choose, and an opt-in MCP server lets coding agents search and read your docs. Both run on a server deployment.",
       question: "Does Blume have an AI assistant and an MCP server?",
     },
     {
@@ -122,7 +122,8 @@ const mintlify: CompareTool = {
       them: "A web editor, plus MDX synced from Git",
     },
     {
-      blume: "Ask AI on the model you choose, billed by your provider",
+      blume:
+        "An in-page assistant on the model you choose, billed by your provider",
       label: "AI assistant",
       them: "An assistant on Pro, metered in credits at 25 per answer",
     },
@@ -441,7 +442,8 @@ const docusaurus: CompareTool = {
       them: "Community plugins for llms.txt and Markdown routes; no official MCP server",
     },
     {
-      blume: "Ask AI on the model you choose, billed by your provider",
+      blume:
+        "An in-page assistant on the model you choose, billed by your provider",
       label: "AI assistant",
       them: "Ask AI through Algolia DocSearch, off by default",
     },
@@ -724,7 +726,8 @@ const nextra: CompareTool = {
       them: "A copy-page button with Open in ChatGPT and Claude; no llms.txt or MCP server",
     },
     {
-      blume: "Ask AI on the model you choose, billed by your provider",
+      blume:
+        "An in-page assistant on the model you choose, billed by your provider",
       label: "AI assistant",
       them: "A guide to adding Inkeep, a hosted service",
     },

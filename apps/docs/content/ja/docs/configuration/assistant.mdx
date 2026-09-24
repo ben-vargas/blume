@@ -1,5 +1,5 @@
 ---
-title: Ask AI
+title: アシスタント
 description: >-
   ドキュメントに基づいたページ内アシスタント — 推奨質問、カスタム指示、検索サイズの調整、Vercel AI Gateway から任意の OpenAI 互換エンドポイントまでのプロバイダーアダプター、そして必要となるサーバー出力について解説します。
 ---
@@ -8,7 +8,7 @@ description: >-
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
   },
 }
@@ -22,7 +22,7 @@ ai: {
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     suggestions: [
       { label: "What is Blume?", icon: "rocket" },
@@ -41,7 +41,7 @@ ai: {
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     instructions:
       "You are Bloomy, the Acme docs assistant. Answer in the language the question was asked in, and keep answers under three paragraphs.",
@@ -53,7 +53,7 @@ ai: {
 
 ## グラウンディング [#grounding]
 
-Ask AI は**ドキュメントに基づいて**動作します。質問ごとに最も関連性の高いページを取得し（オンページ検索を支えるものと同じ字句ベースの [Orama](/docs/configuration/search) インデックスを使用）、モデルのシステムプロンプトに挿入します。これにより、回答はモデル自身の知識ではなくコンテンツから生成されます。アシスタントには、取得したページのみに基づいて回答すること、扱われていない内容についてはその旨を伝えること、参照したページを引用することが指示されています。
+アシスタントは**ドキュメントに基づいて**動作します。質問ごとに最も関連性の高いページを取得し（オンページ検索を支えるものと同じ字句ベースの [Orama](/docs/configuration/search) インデックスを使用）、モデルのシステムプロンプトに挿入します。これにより、回答はモデル自身の知識ではなくコンテンツから生成されます。アシスタントには、取得したページのみに基づいて回答すること、扱われていない内容についてはその旨を伝えること、参照したページを引用することが指示されています。
 
 読者が現在閲覧しているページが最初にコンテキストへ追加され、そのページの言語に検索範囲を絞り込むために使用されます。これにより、ドキュメント内のどこにいても関連性の高い回答が得られます。検索はビルド時に焼き込まれたスナップショットからリクエスト時に実行されるため、[検索](/docs/configuration/search)プロバイダーに関係なく動作し（`search: false` の場合でも）、設定は不要です。
 
@@ -65,7 +65,7 @@ Ask AI は**ドキュメントに基づいて**動作します。質問ごとに
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     retrieval: {
       maxResults: 3, // fewer pages retrieved per question
@@ -92,7 +92,7 @@ ai: {
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     endpoint: "https://api.example.com/v1/docs/ask",
   },
@@ -116,7 +116,7 @@ Blume は組み込みルートと同じ `POST` ボディを送信します。
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     cors: ["https://www.example.com"],
   },
@@ -143,7 +143,7 @@ const response = await fetch("https://docs.example.com/api/ask", {
 
 ## サーバー出力が必要です [#server-output-required]
 
-Blume の組み込み Ask AI バックエンドはサーバールート（`POST /api/ask`）であるため、静的ビルドでは動作しません。`blume/deploy` からホストアダプターを指定して、サーバー出力に切り替えてください。
+Blume の組み込みアシスタントバックエンドはサーバールート（`POST /api/ask`）であるため、静的ビルドでは動作しません。`blume/deploy` からホストアダプターを指定して、サーバー出力に切り替えてください。
 
 ```ts blume.config.ts lineNumbers
 import { vercel } from "blume/deploy";
@@ -153,7 +153,7 @@ export default defineConfig({
 });
 ```
 
-Ask AI が有効で外部 `endpoint` が設定されていない静的ビルドは、ホストアダプターを設定するよう促すメッセージとともに即座に失敗します。アダプターについては [デプロイ](/docs/deployment) を参照してください。
+アシスタントが有効で外部 `endpoint` が設定されていない静的ビルドは、ホストアダプターを設定するよう促すメッセージとともに即座に失敗します。アダプターについては [デプロイ](/docs/deployment) を参照してください。
 
 ## アダプター [#adapters]
 
@@ -165,7 +165,7 @@ import { openrouter } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: openrouter({ model: "anthropic/claude-sonnet-4-5" }),
     },
@@ -195,7 +195,7 @@ import { gateway } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: gateway({ model: "anthropic/claude-sonnet-4-5" }),
     },
@@ -215,7 +215,7 @@ import { openrouter } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: openrouter({
         model: "anthropic/claude-sonnet-4-5",
@@ -236,7 +236,7 @@ import { llmgateway } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: llmgateway({ model: "openai/gpt-5.5" }),
     },
@@ -256,7 +256,7 @@ import { inkeep } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: inkeep({ model: "inkeep-qa-expert" }),
     },
@@ -276,7 +276,7 @@ import { openaiCompatible } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: openaiCompatible({
         baseUrl: "https://my-gateway.example.com/v1",
@@ -315,7 +315,7 @@ provider: gateway({
 }),
 ```
 
-Blume がマッピングするのは Blume 自身が定義するオプション（`model`、`reasoning`、`apiKeyEnv`、`headers`）のみで、`providerOptions` はそのまま転送します。そのため `providerOptions` はルートにインライン化される JSON である必要があり、基盤となるプロバイダーが想定するキー（ゲートウェイ経由の OpenAI モデルなら `openai`、OpenRouter なら `openrouter`）を使用する必要があります。Ask AI を有効にすると、ページ内アイランドのために React も有効になります。詳細は[カスタマイズ](/docs/configuration/customization#interactive-islands)を参照してください。
+Blume がマッピングするのは Blume 自身が定義するオプション（`model`、`reasoning`、`apiKeyEnv`、`headers`）のみで、`providerOptions` はそのまま転送します。そのため `providerOptions` はルートにインライン化される JSON である必要があり、基盤となるプロバイダーが想定するキー（ゲートウェイ経由の OpenAI モデルなら `openai`、OpenRouter なら `openrouter`）を使用する必要があります。アシスタントを有効にすると、ページ内アイランドのために React も有効になります。詳細は[カスタマイズ](/docs/configuration/customization#interactive-islands)を参照してください。
 
 ## 推論 [#reasoning]
 
@@ -325,7 +325,7 @@ Blume がマッピングするのは Blume 自身が定義するオプション�
 provider: gateway({ model: "openai/gpt-5.5", reasoning: "none" }),
 ```
 
-各アダプターはこのレベルをバックエンド自身の推論強度の制御として送信します。そのため、このオプションは `ask` ではなくアダプターに置かれています。
+各アダプターはこのレベルをバックエンド自身の推論強度の制御として送信します。そのため、このオプションは `assistant` ではなくアダプターに置かれています。
 
 | アダプター | レベルの変換先 |
 | --- | --- |
@@ -349,7 +349,7 @@ provider: gateway({ model: "openai/gpt-5.5", reasoning: "none" }),
 
 `path` は読者が質問したページ（配信されるパス名なので、フィードバックウィジェットや `base` の下でのページビューと一致します）、`questionChars` は質問の長さ、`ms` は質問の送信から最後のチャンクまでの時間、`chars` は回答の長さです。`status` は HTTP ステータスで、レスポンスがまったく届かなかった場合（オフライン、DNS、CORS）は `0`、レスポンス自体は正常だったものの回答の途中でストリームが途切れた場合（バックエンドがすでにヘッダーを送信済みのため、プロバイダーや認証情報のエラーはこの形で表面化します）や、何も配信されなかった場合は `200` になります。回答の途中で会話をクリアした場合は、いずれの結果も報告されません。
 
-質問のテキストがプロバイダーに届くことはありません。これは自由形式の読者入力（貼り付けられたキー、エラーログ、氏名など）であり、ほとんどのプロバイダーの利用規約や値ごとのサイズ制限に抵触するためです。テキストは `blume:track` の DOM イベント上でのみ、`detail.props` の `question` として送信されるため、ご自身で記述したリスナーで適切と判断した先へ転送できます。`blume/hooks` の `useAskAI` を使って構築したカスタムチャット UI も同じイベントを報告します。プロバイダーを設定していない場合、組み込みのプロバイダー呼び出しは何も行いませんが、`blume:track` イベントは引き続き発火するため、これを購読するカスタム連携は各イベントを受け取れます。
+質問のテキストがプロバイダーに届くことはありません。これは自由形式の読者入力（貼り付けられたキー、エラーログ、氏名など）であり、ほとんどのプロバイダーの利用規約や値ごとのサイズ制限に抵触するためです。テキストは `blume:track` の DOM イベント上でのみ、`detail.props` の `question` として送信されるため、ご自身で記述したリスナーで適切と判断した先へ転送できます。`blume/hooks` の `useAssistant` を使って構築したカスタムチャット UI も同じイベントを報告します。プロバイダーを設定していない場合、組み込みのプロバイダー呼び出しは何も行いませんが、`blume:track` イベントは引き続き発火するため、これを購読するカスタム連携は各イベントを受け取れます。
 
 ## レート制限 [#rate-limiting]
 

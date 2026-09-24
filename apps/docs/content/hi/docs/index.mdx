@@ -32,7 +32,7 @@ Blume, Astro और Vite पर बनता है और डिफ़ॉल्
 
 ### बॉक्स से बाहर ही AI-तैयार [#ai-ready-out-of-the-box]
 
-हर Blume साइट धाराप्रवाह मशीनी भाषा बोलती है। यह [`llms.txt` और `llms-full.txt`](/docs/discoverability/llms-txt) उत्सर्जित करती है, किसी भी पेज के URL में `.md` जोड़कर उसका कच्चा Markdown परोसती है, [OpenAPI द्वारा वर्णित एक JSON API](/docs/discoverability/json-api) उजागर करती है, और पाठकों को हर पेज पर **Copy as Markdown** और **Open in chat** क्रियाएँ देती है। एक वैकल्पिक इन-पेज **Ask AI** असिस्टेंट जोड़ें, या एक [**MCP सर्वर**](/docs/discoverability/mcp) होस्ट करें ताकि Claude Code और Cursor जैसे कोडिंग एजेंट आपके डॉक्स को सीधे सर्च और पढ़ सकें — कोई स्क्रैपिंग नहीं, कोई होस्टेड सर्विस नहीं। आपका Markdown इंसानों और मॉडल दोनों के लिए सत्य का स्रोत है।
+हर Blume साइट धाराप्रवाह मशीनी भाषा बोलती है। यह [`llms.txt` और `llms-full.txt`](/docs/discoverability/llms-txt) उत्सर्जित करती है, किसी भी पेज के URL में `.md` जोड़कर उसका कच्चा Markdown परोसती है, [OpenAPI द्वारा वर्णित एक JSON API](/docs/discoverability/json-api) उजागर करती है, और पाठकों को हर पेज पर **Copy as Markdown** और **Open in chat** क्रियाएँ देती है। एक वैकल्पिक इन-पेज **असिस्टेंट** जोड़ें, या एक [**MCP सर्वर**](/docs/discoverability/mcp) होस्ट करें ताकि Claude Code और Cursor जैसे कोडिंग एजेंट आपके डॉक्स को सीधे सर्च और पढ़ सकें — कोई स्क्रैपिंग नहीं, कोई होस्टेड सर्विस नहीं। आपका Markdown इंसानों और मॉडल दोनों के लिए सत्य का स्रोत है।
 
 ### शून्य कॉन्फ़िगरेशन — यहाँ तक कि टेम्पलेट भी [#zero-configuration--even-the-template]
 
@@ -46,7 +46,7 @@ Blume, Astro और Vite पर बनता है और डिफ़ॉल्
 
 - **कंपोनेंट्स** — कॉलआउट, कार्ड, स्टेप्स, टैब्स, अकॉर्डियन, बैज, फ़ाइल ट्री, और पैरामीटर टेबल, MDX में [बिना किसी इम्पोर्ट](/docs/content/components) के उपयोग योग्य।
 - **लोकल सर्च** — Orama डेव और प्रोडक्शन में काम करता है; बड़ी साइटों के लिए Pagefind एक एडेप्टर भर दूर है (`search: pagefind()`)। कोई होस्टेड इंडेक्स नहीं।
-- **AI** — [`llms.txt`, कच्चे Markdown URL, OpenAPI विवरण के साथ एक JSON API, Copy as Markdown, Open in chat, और एक होस्टेड MCP सर्वर](/docs/discoverability), साथ ही एक वैकल्पिक [Ask AI असिस्टेंट](/docs/configuration/ask-ai)।
+- **AI** — [`llms.txt`, कच्चे Markdown URL, OpenAPI विवरण के साथ एक JSON API, Copy as Markdown, Open in chat, और एक होस्टेड MCP सर्वर](/docs/discoverability), साथ ही एक वैकल्पिक [इन-पेज असिस्टेंट](/docs/configuration/assistant)।
 - **नेविगेशन** — फ़ाइलों से अनुमानित, `meta.ts` या कॉन्फ़िग से परिष्कृत।
 - **SEO** — मेटाडेटा, Open Graph इमेज, RSS फ़ीड, और JSON-LD, [बिल्ट इन](/docs/discoverability)।
 - **कस्टमाइज़ेशन** — कंपोनेंट ओवरराइड, React आइलैंड्स, कस्टम पेज, थीम टोकन्स, और `blume add` के ज़रिए एक सोर्स-कंपोनेंट रजिस्ट्री।

@@ -103,10 +103,10 @@ const context = (over: Partial<ProjectContext> = {}): ProjectContext => ({
   ...over,
 });
 
-// A parsed config whose `ai.ask` block is always present, so resolveAskBackend
+// A parsed config whose `ai.assistant` block is always present, so resolveAskBackend
 // receives a fully-resolved (schema-defaulted) backend config.
-const askConfig = (ask: NonNullable<BlumeConfig["ai"]>["ask"]) =>
-  blumeConfigSchema.parse({ ai: { ask } }).ai.ask;
+const askConfig = (ask: NonNullable<BlumeConfig["ai"]>["assistant"]) =>
+  blumeConfigSchema.parse({ ai: { assistant: ask } }).ai.assistant;
 
 const withProvider = (search: BlumeConfig["search"]) =>
   blumeConfigSchema.parse({ search });
@@ -299,12 +299,12 @@ return i18n.locales.map((l) => mountLocalized(logicalRoute, l.code));
     expect(out).toContain("exportEpub={true}");
   });
 
-  // The Ask AI trigger is the shared header's, not the page's — see
+  // The assistant trigger is the shared header's, not the page's — see
   // askComponentTemplate. A page that wired up its own would double-render it.
-  it("leaves the Ask AI trigger to the header", () => {
+  it("leaves the assistant trigger to the header", () => {
     const out = catchAllPageTemplate({ ...exportOpts, mathEnabled: true });
-    expect(out).not.toContain("AskAI");
-    expect(out).not.toContain("askEnabled");
+    expect(out).not.toContain("Assistant");
+    expect(out).not.toContain("assistantEnabled");
   });
 });
 
@@ -489,10 +489,10 @@ describe("changelogIndexTemplate", () => {
     expect(out).toContain('...(await getCollection("staged")),');
   });
 
-  it("leaves the Ask AI trigger to the header", () => {
+  it("leaves the assistant trigger to the header", () => {
     const out = changelogIndexTemplate({ ...changelogOpts, staged: false });
-    expect(out).not.toContain("AskAI");
-    expect(out).not.toContain("askEnabled");
+    expect(out).not.toContain("Assistant");
+    expect(out).not.toContain("assistantEnabled");
   });
 
   it("renders through the sidebar-less, TOC-less bare layout", () => {
@@ -841,7 +841,9 @@ describe("runtimeDependencies", () => {
 
   it("declares the React, Scalar and Ask provider deps", () => {
     const full = blumeConfigSchema.parse({
-      ai: { ask: { enabled: true, provider: openrouter({ model: "x/y" }) } },
+      ai: {
+        assistant: { enabled: true, provider: openrouter({ model: "x/y" }) },
+      },
       reference: [
         scalar({
           spec: "https://x.dev/openapi.json",
@@ -896,11 +898,11 @@ describe("askComponentTemplate", () => {
   it("renders the island, taking its suggestions from the data snapshot", () => {
     const out = askComponentTemplate(true);
     expect(out).toContain(
-      'import AskAI from "blume/components/islands/AskAI.astro"'
+      'import Assistant from "blume/components/islands/Assistant.astro"'
     );
-    expect(out).toContain("<AskAI");
-    expect(out).toContain("data.config.ask?.endpoint ?? undefined");
-    expect(out).toContain("data.config.ask?.suggestions ?? []");
+    expect(out).toContain("<Assistant");
+    expect(out).toContain("data.config.assistant?.endpoint ?? undefined");
+    expect(out).toContain("data.config.assistant?.suggestions ?? []");
   });
 
   // The reason this component exists: the header imports it unconditionally, so
@@ -908,7 +910,7 @@ describe("askComponentTemplate", () => {
   // renderer wired into its generated Astro config.
   it("imports no island when ask is off, and renders nothing", () => {
     const out = askComponentTemplate(false);
-    expect(out).not.toContain("AskAI");
+    expect(out).not.toContain("Assistant");
     expect(out).not.toMatch(/^import /mu);
     expect(out.replaceAll(/^---$[\S\s]*?^---$/gmu, "").trim()).toBe("");
   });
@@ -1755,8 +1757,8 @@ describe("stagedContentDir", () => {
   });
 });
 
-/** The backend a schema-parsed `ai.ask` block resolves to. */
-const backendFor = (ask: NonNullable<BlumeConfig["ai"]>["ask"]) =>
+/** The backend a schema-parsed `ai.assistant` block resolves to. */
+const backendFor = (ask: NonNullable<BlumeConfig["ai"]>["assistant"]) =>
   resolveAskBackend(askConfig(ask)?.provider);
 
 const COMPATIBLE = {
@@ -1790,7 +1792,7 @@ describe("askEndpointTemplate", () => {
     // No `reasoning` or `providerOptions`: the provider keeps its defaults.
     expect(out).not.toContain("reasoning");
     expect(out).not.toContain("providerOptions");
-    // No `ai.ask.cors`: no preflight handler, no wrapper around the POST.
+    // No `ai.assistant.cors`: no preflight handler, no wrapper around the POST.
     expect(out).not.toContain("OPTIONS");
     expect(out).not.toContain("blume/ai/cors.ts");
     expect(out).toContain(
@@ -1802,7 +1804,7 @@ describe("askEndpointTemplate", () => {
     );
   });
 
-  it("answers preflight and wraps the POST when ai.ask.cors is set", () => {
+  it("answers preflight and wraps the POST when ai.assistant.cors is set", () => {
     const out = askEndpointTemplate(resolveAskBackend(), {
       cors: ["https://www.example.com", "http://localhost:3000"],
     });
@@ -1966,7 +1968,7 @@ describe("askEndpointTemplate", () => {
       'const provider = createOpenAICompatible({\n  apiKey: getSecret("GW_KEY"),\n  baseURL: "https://api.example.com/v1",\n  name: "acme",\n});'
     );
     expect(out).toContain('if (!getSecret("GW_KEY"))');
-    expect(out).toContain("Ask AI is not configured: set GW_KEY.");
+    expect(out).toContain("The assistant is not configured: set GW_KEY.");
     expect(out).toContain("const ground = createAskContext(askData);");
     expect(out).toContain(
       'model: provider("m"),\n      instructions,\n      messages,\n      reasoning: "low",\n      onError({ error })'

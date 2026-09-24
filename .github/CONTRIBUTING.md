@@ -51,7 +51,7 @@ Blume ships as a single published package, `packages/blume`, with internal modul
 | `seo` | JSON-LD structured data |
 | `deploy` | Adapter output, sitemap, `robots.txt`, RSS, redirects |
 | `openapi` | OpenAPI/AsyncAPI parsing and reference rendering |
-| `ai` | `llms.txt` generation, Ask AI, MCP server |
+| `ai` | `llms.txt` generation, the assistant, MCP server |
 | `registry` | `blume add` registry and `blume eject` |
 | `runtime` | Public runtime helpers for custom pages and islands |
 

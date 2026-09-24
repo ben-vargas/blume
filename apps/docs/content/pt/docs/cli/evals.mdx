@@ -11,22 +11,22 @@ blume eval
 ```
 
 ```
-blume eval  4 question(s) · Claude Code
+blume eval  4 question(s) · Codex
 
-  ✔ install-node-version         pass  1.00  14.2s  $0.14
-  ✔ custom-domain                pass  0.92  21.3s  $0.19
-  ✖ deploy-vercel                fail  0.40  38.9s  $0.31
+  ✔ install-node-version         pass  1.00  14.2s
+  ✔ custom-domain                pass  0.92  21.3s
+  ✖ deploy-vercel                fail  0.40  38.9s
       missing: deployment: vercel() from blume/deploy
   ⊘ search-providers             skipped
 
   fix: content/docs/deployment.mdx  Docs could not answer: "How do I deploy to Vercel?" — missing: deployment: vercel() from blume/deploy
 
-  2 passed · 1 failed · 1 skipped · 1m 42s · $0.64
+  2 passed · 1 failed · 1 skipped · 1m 42s
 ```
 
 ## Como funciona [#how-it-works]
 
-Cada pergunta passa por duas sessões de agente, usando uma CLI de agente que você já tem instalada — [Claude Code](https://claude.com/claude-code) por padrão, ou [Codex](https://developers.openai.com/codex/cli) com `--agent codex`. O Blume não guarda nenhuma chave de API e não chama nenhum modelo por conta própria. Com `--agent codex`, as duas sessões também rodam sem as ferramentas de shell, de comandos e de imagens do Codex, e não herdam nenhuma das suas variáveis de ambiente.
+Cada pergunta passa por duas sessões de agente, usando uma CLI de agente que você já tem instalada — [Codex](https://developers.openai.com/codex/cli) por padrão, ou [Claude Code](https://claude.com/claude-code) com `--agent claude`. O Blume não guarda nenhuma chave de API e não chama nenhum modelo por conta própria. Com o Codex, as duas sessões também rodam sem as ferramentas de shell, de comandos e de imagens do Codex, e não herdam nenhuma das suas variáveis de ambiente.
 
 1. **O leitor** responde à pergunta usando _só_ a sua documentação. Ele roda em um diretório vazio, com as ferramentas de arquivo, shell e web desativadas, conectado a um [servidor MCP](/docs/discoverability/mcp) privado que serve a sua documentação — as mesmas ferramentas `search_docs`/`get_page` que um agente real usa no seu site publicado. Ele não consegue ler o seu repositório, então vivencia a documentação exatamente como um usuário novo: o que não está escrito não existe.
 2. **O juiz** avalia a resposta com base nos fatos que você listou, sem nenhuma ferramenta. Paráfrases passam; um fato ausente ou contradito falha — e "a documentação não diz" também falha.
@@ -99,7 +99,7 @@ Isso grava o relatório JSON completo em um arquivo e abre o agente no modo inte
 
 ## Flags
 
-- `--agent claude|codex` — qual CLI de agente roda o leitor e o juiz. O padrão é `claude`.
+- `--agent codex|claude` — qual CLI de agente roda o leitor e o juiz. O padrão é `codex`.
 - `--file <path>` — o arquivo de evals. O padrão é `evals.yaml`.
 - `--threshold <0..1>` — fração mínima de aprovação para que a execução não saia com código diferente de zero. O padrão é `1`.
 - `--timeout <seconds>` — limite de tempo do leitor por pergunta. O padrão é `180`.

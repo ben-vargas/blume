@@ -32,7 +32,7 @@ O Blume é construído sobre Astro e Vite e renderiza HTML estático por padrão
 
 ### Pronto para IA desde o início [#ai-ready-out-of-the-box]
 
-Todo site Blume fala a língua das máquinas com fluência. Ele gera [`llms.txt` e `llms-full.txt`](/docs/discoverability/llms-txt), serve o Markdown bruto de qualquer página adicionando `.md` à sua URL, expõe uma [API JSON descrita por OpenAPI](/docs/discoverability/json-api) e oferece aos leitores as ações **Copiar como Markdown** e **Abrir no chat** em todas as páginas. Adicione um assistente **Ask AI** opcional na página, ou hospede um [**servidor MCP**](/docs/discoverability/mcp) para que agentes de programação como Claude Code e Cursor possam pesquisar e ler sua documentação diretamente — sem scraping, sem serviço hospedado. Seu Markdown é a fonte da verdade tanto para humanos quanto para modelos.
+Todo site Blume fala a língua das máquinas com fluência. Ele gera [`llms.txt` e `llms-full.txt`](/docs/discoverability/llms-txt), serve o Markdown bruto de qualquer página adicionando `.md` à sua URL, expõe uma [API JSON descrita por OpenAPI](/docs/discoverability/json-api) e oferece aos leitores as ações **Copiar como Markdown** e **Abrir no chat** em todas as páginas. Adicione um **assistente** opcional na página, ou hospede um [**servidor MCP**](/docs/discoverability/mcp) para que agentes de programação como Claude Code e Cursor possam pesquisar e ler sua documentação diretamente — sem scraping, sem serviço hospedado. Seu Markdown é a fonte da verdade tanto para humanos quanto para modelos.
 
 ### Configuração zero — até o template [#zero-configuration--even-the-template]
 
@@ -46,7 +46,7 @@ Seu [`blume.config.ts`](/docs/configuration) e cada [`meta.ts`](/docs/content/me
 
 - **Componentes** — callouts, cards, steps, tabs, accordions, badges, árvores de arquivos e tabelas de parâmetros, utilizáveis em MDX [sem imports](/docs/content/components).
 - **Busca local** — o Orama funciona em dev e em produção; para sites grandes, o Pagefind está a um adaptador de distância (`search: pagefind()`). Sem índice hospedado.
-- **IA** — [`llms.txt`, URLs de Markdown bruto, uma API JSON com descrição OpenAPI, Copiar como Markdown, Abrir no chat e um servidor MCP hospedado](/docs/discoverability), além de um [assistente Ask AI](/docs/configuration/ask-ai) opcional.
+- **IA** — [`llms.txt`, URLs de Markdown bruto, uma API JSON com descrição OpenAPI, Copiar como Markdown, Abrir no chat e um servidor MCP hospedado](/docs/discoverability), além de um [assistente na página](/docs/configuration/assistant) opcional.
 - **Navegação** — inferida a partir dos arquivos, refinada com `meta.ts` ou configuração.
 - **SEO** — metadados, imagens Open Graph, feeds RSS e JSON-LD, [já integrados](/docs/discoverability).
 - **Personalização** — substituições de componentes, ilhas React, páginas personalizadas, tokens de tema e um registro de componentes-fonte via `blume add`.

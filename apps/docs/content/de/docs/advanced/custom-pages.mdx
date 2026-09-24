@@ -77,7 +77,7 @@ Das Modul stellt Folgendes bereit:
       type: "BlumeDataConfig",
       required: true,
       description:
-        "Aufgelöste Website-Einstellungen: title, description, logo, favicon, appleIcon, banner, theme, site, repoUrl, github (owner, repo, host und die REST-API-Basis — null, wenn nicht gesetzt), search, i18n, mcp, ask, og, analytics, feedback, structuredData, toc, codeThemes, codeWrap und imageZoom.",
+        "Aufgelöste Website-Einstellungen: title, description, logo, favicon, appleIcon, banner, theme, site, repoUrl, github (owner, repo, host und die REST-API-Basis — null, wenn nicht gesetzt), search, i18n, mcp, assistant, og, analytics, feedback, structuredData, toc, codeThemes, codeWrap und imageZoom.",
     },
     navigation: {
       type: "Navigation",
@@ -231,7 +231,7 @@ const { config } = data;
 </PageLayout>
 ```
 
-Die Kopfzeile, die eine benutzerdefinierte Seite erhält, ist dieselbe wie bei den Dokumentationsseiten, sodass das darin enthaltene Chrome mitkommt: Suche, der Theme-Umschalter, der Sprachwechsler und — wenn [Ask AI](/docs/configuration/ask-ai) konfiguriert ist — der Ask-AI-Auslöser. Nichts davon muss pro Seite eingerichtet werden. Übergib `askEnabled={false}`, um den Ask-Auslöser auf einer Seite wegzulassen und ihn überall sonst beizubehalten.
+Die Kopfzeile, die eine benutzerdefinierte Seite erhält, ist dieselbe wie bei den Dokumentationsseiten, sodass das darin enthaltene Chrome mitkommt: Suche, der Theme-Umschalter, der Sprachwechsler und — wenn der [Assistent](/docs/configuration/assistant) konfiguriert ist — dessen Auslöser. Nichts davon muss pro Seite eingerichtet werden. Übergib `assistantEnabled={false}`, um den Auslöser des Assistenten auf einer Seite wegzulassen und ihn überall sonst beizubehalten.
 
 Auch die [Agent-Discovery-Links im Head](/docs/discoverability/agent-discovery#discovery-link-header) kommen mit: Das Layout liest die aufgelöste Konfiguration, sodass eine benutzerdefinierte Seite dieselben `describedby`-, `ai-catalog`- und `ard`-Links wie die Dokumentationsseiten trägt, ohne dass du ein Prop übergeben musst. Die Startseite weist außerdem ihren Markdown-Spiegel `/index.md` als `text/markdown`-Alternative aus, da dieser Spiegel immer existiert; andere benutzerdefinierte Seiten haben keinen, daher wird auch keiner ausgewiesen. Übergib `discovery={null}`, um die Links auf einer Seite wegzulassen.
 

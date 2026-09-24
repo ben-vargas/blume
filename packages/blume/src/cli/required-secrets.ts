@@ -24,12 +24,12 @@ export const checkRequiredSecrets = (config: ResolvedConfig): Diagnostic[] => {
     });
   };
 
-  if (config.ai.ask?.enabled && !config.ai.ask.endpoint) {
+  if (config.ai.assistant?.enabled && !config.ai.assistant.endpoint) {
     // The adapter descriptor names the env vars its route reads.
-    const { provider } = config.ai.ask;
+    const { provider } = config.ai.assistant;
     const backend = resolveAskBackend(provider);
     for (const env of provider.requiredSecrets) {
-      requireSecret(`Ask AI (${backend.label})`, env, backend.secretNote);
+      requireSecret(`Assistant (${backend.label})`, env, backend.secretNote);
     }
   }
 

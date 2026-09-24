@@ -7,7 +7,7 @@ import { z } from "zod";
 /**
  * Kitchen-sink sandbox: every Blume feature enabled in one project, for
  * exercising the framework end to end — including the native OpenAPI and
- * AsyncAPI renderers, search, Ask AI, MCP, i18n, export, and OG images.
+ * AsyncAPI renderers, search, the assistant, MCP, i18n, export, and OG images.
  */
 export default defineConfig({
   agents: {
@@ -15,7 +15,7 @@ export default defineConfig({
     skills: "../../skills",
   },
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       suggestions: [
         { icon: "rocket", label: "How do I get started?" },

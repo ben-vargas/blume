@@ -122,10 +122,10 @@ export interface BlumeDataConfig {
   analytics: ResolvedConfig["analytics"];
   /** Apple touch icon, or `null` when none is configured/detected. */
   appleIcon: BlumeFavicon | null;
-  /** Ask AI empty-state suggestions, or `null` when Ask AI is off. */
-  ask: {
+  /** The assistant's empty-state suggestions, or `null` when the assistant is off. */
+  assistant: {
     endpoint: string | null;
-    suggestions: NonNullable<ResolvedConfig["ai"]["ask"]>["suggestions"];
+    suggestions: NonNullable<ResolvedConfig["ai"]["assistant"]>["suggestions"];
   } | null;
   banner: BlumeBanner | null;
   /** Site-wide route mount point, normalized to `""` or `/seg` (see config). */

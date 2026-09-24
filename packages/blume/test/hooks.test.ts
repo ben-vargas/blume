@@ -15,7 +15,7 @@ import type { TrackProps } from "../src/components/layout/analytics-client.ts";
  * generated virtual module, mocked the same way.
  */
 
-// hooks.ts resolves the Ask AI endpoint from `import.meta.env.BASE_URL` at
+// hooks.ts resolves the assistant endpoint from `import.meta.env.BASE_URL` at
 // module scope (Bun aliases `import.meta.env` to `process.env`).
 process.env.BASE_URL = "/";
 
@@ -136,7 +136,7 @@ afterAll(() => {
 });
 
 const hooks = await import("../src/components/islands/hooks.ts");
-const { useAskAI, useBlume, usePage, useSearch } = hooks;
+const { useAssistant, useBlume, usePage, useSearch } = hooks;
 
 /** A streaming 200 response delivering `chunks` through a ReadableStream. */
 const streamResponse = (chunks: string[]): Response => {
@@ -299,7 +299,7 @@ describe("useSearch", () => {
   });
 });
 
-describe("useAskAI", () => {
+describe("useAssistant", () => {
   const ERROR_MESSAGE =
     "Something went wrong answering that. Please try again.";
 
@@ -314,7 +314,7 @@ describe("useAskAI", () => {
       requests.push({ init, url });
       return Promise.resolve(streamResponse(["Hello ", "world"]));
     });
-    const { ask } = freshRender(useAskAI);
+    const { ask } = freshRender(useAssistant);
     await ask("What is Blume?");
     // The question and its outcome reach analytics, like page feedback.
     // Providers get the question's length; only the `blume:track` event
@@ -346,7 +346,7 @@ describe("useAskAI", () => {
     expect(body.messages).toStrictEqual([
       { content: "What is Blume?", role: "user" },
     ]);
-    const { loading, messages } = render(useAskAI);
+    const { loading, messages } = render(useAssistant);
     expect(loading).toBe(false);
     expect(messages).toStrictEqual([
       { content: "What is Blume?", role: "user" },
@@ -356,9 +356,9 @@ describe("useAskAI", () => {
 
   it("replaces the placeholder with an error notice on a non-OK response", async () => {
     setFetch(() => Promise.resolve(new Response("boom", { status: 500 })));
-    const { ask } = freshRender(useAskAI);
+    const { ask } = freshRender(useAssistant);
     await ask("broken?");
-    const { loading, messages } = render(useAskAI);
+    const { loading, messages } = render(useAssistant);
     expect(loading).toBe(false);
     expect(messages).toStrictEqual([
       { content: "broken?", role: "user" },
@@ -392,9 +392,9 @@ describe("useAskAI", () => {
         )
       )
     );
-    const { ask } = freshRender(useAskAI);
+    const { ask } = freshRender(useAssistant);
     await ask("mid-flight?");
-    expect(render(useAskAI).messages).toStrictEqual([
+    expect(render(useAssistant).messages).toStrictEqual([
       { content: "mid-flight?", role: "user" },
       { content: ERROR_MESSAGE, role: "assistant" },
     ]);
@@ -408,7 +408,7 @@ describe("useAskAI", () => {
     // No body at all, and a stream that closes without a byte: either way
     // the reader sees a blank bubble, so neither counts as an answer.
     setFetch(() => Promise.resolve(new Response(null, { status: 200 })));
-    const first = freshRender(useAskAI);
+    const first = freshRender(useAssistant);
     await first.ask("nothing?");
     expect(tracked.map((entry) => entry.event)).toStrictEqual([
       "ask",
@@ -418,7 +418,7 @@ describe("useAskAI", () => {
 
     tracked.length = 0;
     setFetch(() => Promise.resolve(streamResponse([])));
-    const second = freshRender(useAskAI);
+    const second = freshRender(useAssistant);
     await second.ask("still nothing?");
     expect(tracked.map((entry) => entry.event)).toStrictEqual([
       "ask",
@@ -441,7 +441,7 @@ describe("useAskAI", () => {
         requests.push({ init });
         return Promise.resolve(streamResponse(["ok"]));
       });
-      const { ask } = freshRender(useAskAI);
+      const { ask } = freshRender(useAssistant);
       await ask("based?");
       const body = JSON.parse(String(requests[0]?.init?.body));
       expect(body.page).toStrictEqual({ path: "/guide" });
@@ -455,11 +455,11 @@ describe("useAskAI", () => {
 
   it("recovers when fetch itself throws (offline)", async () => {
     setFetch(() => Promise.reject(new TypeError("Failed to fetch")));
-    const { ask } = freshRender(useAskAI);
+    const { ask } = freshRender(useAssistant);
     // The promise must resolve — a rejection would leave the pre-appended
     // empty assistant message stuck as a placeholder forever.
     await expect(ask("offline?")).resolves.toBeUndefined();
-    const { loading, messages } = render(useAskAI);
+    const { loading, messages } = render(useAssistant);
     expect(loading).toBe(false);
     expect(messages).toStrictEqual([
       { content: "offline?", role: "user" },
@@ -478,21 +478,21 @@ describe("useAskAI", () => {
       called = true;
       return Promise.resolve(streamResponse([]));
     });
-    const { ask } = freshRender(useAskAI);
+    const { ask } = freshRender(useAssistant);
     await ask("   ");
     expect(called).toBe(false);
-    expect(render(useAskAI).messages).toStrictEqual([]);
+    expect(render(useAssistant).messages).toStrictEqual([]);
     expect(tracked).toStrictEqual([]);
   });
 
   it("resets the conversation", async () => {
     setFetch(() => Promise.resolve(streamResponse(["ok"])));
-    const { ask } = freshRender(useAskAI);
+    const { ask } = freshRender(useAssistant);
     await ask("hi");
-    const { messages, reset } = render(useAskAI);
+    const { messages, reset } = render(useAssistant);
     expect(messages).toHaveLength(2);
     reset();
-    expect(render(useAskAI).messages).toStrictEqual([]);
+    expect(render(useAssistant).messages).toStrictEqual([]);
   });
 
   it("discards stream chunks that land after a mid-answer reset", async () => {
@@ -512,27 +512,27 @@ describe("useAskAI", () => {
     );
     // `ask` and `reset` must come from the same render so they share the
     // generation guard.
-    const { ask, reset } = freshRender(useAskAI);
+    const { ask, reset } = freshRender(useAssistant);
     const pending = ask("streaming?");
     await flush();
     controller?.enqueue(encoder.encode("Partial "));
     await flush();
     // Mid-answer: user bubble plus the streaming assistant bubble.
-    expect(render(useAskAI).messages).toStrictEqual([
+    expect(render(useAssistant).messages).toStrictEqual([
       { content: "streaming?", role: "user" },
       { content: "Partial ", role: "assistant" },
     ]);
 
     reset();
-    expect(render(useAskAI).messages).toStrictEqual([]);
-    expect(render(useAskAI).loading).toBe(false);
+    expect(render(useAssistant).messages).toStrictEqual([]);
+    expect(render(useAssistant).loading).toBe(false);
 
     // Chunks the revoked stream still delivers must not re-append the
     // assistant bubble onto the emptied conversation.
     controller?.enqueue(encoder.encode("late"));
     controller?.close();
     await pending;
-    const after = render(useAskAI);
+    const after = render(useAssistant);
     expect(after.messages).toStrictEqual([]);
     expect(after.loading).toBe(false);
     // A reset revokes the outcome along with the UI update: the question was
@@ -542,24 +542,24 @@ describe("useAskAI", () => {
 
   it("does not resurrect pre-reset history through the error path", async () => {
     setFetch(() => Promise.resolve(streamResponse(["ok"])));
-    const initial = freshRender(useAskAI);
+    const initial = freshRender(useAssistant);
     await initial.ask("hi");
     // Re-render so `ask` sees the settled conversation; `ask` and `reset`
     // share this render's generation guard.
-    const mid = render(useAskAI);
+    const mid = render(useAssistant);
     expect(mid.messages).toHaveLength(2);
 
     const gate = Promise.withResolvers<Response>();
     setFetch(() => gate.promise);
     const pending = mid.ask("more?");
     mid.reset();
-    expect(render(useAskAI).messages).toStrictEqual([]);
+    expect(render(useAssistant).messages).toStrictEqual([]);
 
     // The failure lands after the reset: its catch must not write the
     // pre-reset history (plus error notice) back into the emptied state.
     gate.reject(new TypeError("Failed to fetch"));
     await expect(pending).resolves.toBeUndefined();
-    const after = render(useAskAI);
+    const after = render(useAssistant);
     expect(after.messages).toStrictEqual([]);
     expect(after.loading).toBe(false);
   });

@@ -5,7 +5,6 @@ export const tr: UIStringsOverride = {
   actions: {
     addToCursor: "Cursor'a ekle",
     addToVscode: "VS Code'a ekle",
-    askAI: "Bu sayfa hakkında yapay zekâya sor",
     connectMcp: "MCP'ye bağlan",
     copied: "Kopyalandı!",
     copyClaudeCode: "Claude Code komutunu kopyala",
@@ -25,7 +24,7 @@ export const tr: UIStringsOverride = {
       "Bu sayfa hakkında sorular sorabilmem için {url} adresini okuyun.",
     scrollToTop: "Başa dön",
   },
-  ask: {
+  assistant: {
     ai: "Yapay zekâ",
     clear: "Konuşmayı temizle",
     close: "Kapat",
@@ -36,7 +35,7 @@ export const tr: UIStringsOverride = {
     placeholder: "Bir soru sorun…",
     send: "Gönder",
     tip: "İpucu: Sohbeti şu tuşla açıp kapatabilirsiniz:",
-    title: "Yapay zekâya sor",
+    title: "Asistan",
     you: "Siz",
   },
   banner: { dismiss: "Duyuruyu kapat" },
@@ -85,8 +84,8 @@ export const tr: UIStringsOverride = {
   search: {
     all: "Tümü",
     allLanguages: "Tüm diller",
-    askAi: "Yapay zekâya sor",
-    askAiHint: "Yapay zekâdan anında yanıt alın",
+    assistant: "Asistan",
+    assistantHint: "Yapay zekâdan anında yanıt alın",
     button: "Ara",
     devOnly: "Arama, üretim derlemesinde kullanılabilir.",
     error: "Bir şeyler ters gitti. Lütfen tekrar deneyin.",

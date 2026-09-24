@@ -144,7 +144,7 @@ export default function PageInfo() {
 | `useBlume()` | サイトの `{ config, navigation }`、マウント前は `null` |
 | `usePage()` | 現在のページの `{ route, title }`、マウント前は `null` |
 | `useSearch()` | `{ search, results, loading }` — 設定済みの検索プロバイダーに問い合わせます |
-| `useAskAI()` | `{ ask, messages, loading, reset }` — Ask AI エンドポイントからストリーミングします |
+| `useAssistant()` | `{ ask, messages, loading, reset }` — アシスタントエンドポイントからストリーミングします |
 
 `useBlume()` と `usePage()` は、アイランドがマウントされるまで `null` を返します(サーバーとクライアントが同じ最初のフレームをレンダリングするため) — ガードを入れてください。このスナップショットは React を配信するページでのみ出力されるため、完全に静的なサイトでは一切コストがかかりません。
 

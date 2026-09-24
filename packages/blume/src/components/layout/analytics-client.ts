@@ -96,7 +96,7 @@ const trackGlobals = (
  * @param props Properties every provider receives.
  * @param local Properties only the `blume:track` CustomEvent carries — free
  *   text a site may bridge to a provider on its own terms, but that must not
- *   reach third parties unasked (a reader's Ask AI question, for instance).
+ *   reach third parties unasked (a reader's question to the assistant, for instance).
  */
 export const track = (
   event: string,

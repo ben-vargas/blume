@@ -144,7 +144,7 @@ export default function PageInfo() {
 | `useBlume()` | `{ config, navigation }` do site, ou `null` antes da montagem |
 | `usePage()` | `{ route, title }` da página atual, ou `null` antes da montagem |
 | `useSearch()` | `{ search, results, loading }` — consulta o provedor de busca configurado |
-| `useAskAI()` | `{ ask, messages, loading, reset }` — transmite a partir do endpoint Ask AI |
+| `useAssistant()` | `{ ask, messages, loading, reset }` — transmite a partir do endpoint do assistente |
 
 `useBlume()` e `usePage()` retornam `null` até que a ilha seja montada (para que servidor e cliente renderizem o mesmo primeiro quadro) — proteja-se contra isso. O snapshot é emitido apenas em páginas que enviam React, então um site totalmente estático não paga nada.
 

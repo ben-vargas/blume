@@ -12,7 +12,7 @@ import { flattenPages } from "./nav-utils.ts";
 // `SearchFn` it returns. Only the configured provider's SDK is bundled.
 
 interface Props {
-  askEnabled?: boolean;
+  assistantEnabled?: boolean;
   navigation?: Navigation;
   /** Curated empty-state pages; falls back to the first sidebar pages when empty or omitted. */
   popularPages?: { icon?: string; label: string; route: string }[];
@@ -27,7 +27,7 @@ interface Props {
 }
 
 const {
-  askEnabled = false,
+  assistantEnabled = false,
   navigation,
   popularPages,
   strings,
@@ -60,10 +60,10 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
 
 <blume-search
   class="contents"
-  data-ask={askEnabled ? "" : undefined}
+  data-ask={assistantEnabled ? "" : undefined}
   data-i18n-all={s.all}
-  data-i18n-ask={s.askAi}
-  data-i18n-ask-hint={s.askAiHint}
+  data-i18n-ask={s.assistant}
+  data-i18n-ask-hint={s.assistantHint}
   data-i18n-dev={s.devOnly}
   data-i18n-empty={s.noResults}
   data-i18n-error={s.error}
@@ -309,7 +309,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
       loadFailed = false;
       /** First-open client/index load still in flight. */
       loading = false;
-      askEnabled = false;
+      assistantEnabled = false;
       popular: PopularPage[] = [];
       selectables: Selectable[] = [];
       selectedIndex = -1;
@@ -323,7 +323,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
       devOnlyMsg = "Search is available in the production build.";
       noResultsMsg = "No results found.";
       errorMsg = "Something went wrong. Please try again.";
-      askMsg = "Ask AI";
+      askMsg = "Assistant";
       askHintMsg = "Get an instant answer from AI";
       allMsg = "All";
       popularMsg = "Popular";
@@ -351,7 +351,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
           !event.shiftKey &&
           !event.altKey
         ) {
-          // ⌘K toggles, mirroring the Ask AI panel's ⌘I: pressing it with
+          // ⌘K toggles, mirroring the assistant panel's ⌘I: pressing it with
           // the dialog open must close it, not re-showModal an open dialog
           // (an InvalidStateError on older engines).
           event.preventDefault();
@@ -394,7 +394,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
         this.results = this.querySelector("[data-blume-search-results]")!;
         this.message = this.querySelector("[data-blume-search-message]")!;
         this.preview = this.querySelector("[data-blume-search-preview]")!;
-        this.askEnabled = this.hasAttribute("data-ask");
+        this.assistantEnabled = this.hasAttribute("data-ask");
 
         const popularScript = this.querySelector(
           "[data-blume-search-popular]"
@@ -636,7 +636,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
 
         this.renderFilters(result.sections);
 
-        if (this.askEnabled) {
+        if (this.assistantEnabled) {
           const group = this.addGroup(this.askMsg);
           const ask = this.createAskRow(query);
           group.appendChild(ask.el);
@@ -650,7 +650,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
             group.appendChild(item.el);
             this.selectables.push(item);
           }
-        } else if (!this.askEnabled) {
+        } else if (!this.assistantEnabled) {
           this.setMessage(this.noResultsMsg);
         }
 
@@ -658,7 +658,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
       }
 
       renderEmpty() {
-        if (this.askEnabled) {
+        if (this.assistantEnabled) {
           const group = this.addGroup(this.askMsg);
           const ask = this.createAskRow("");
           group.appendChild(ask.el);
@@ -874,7 +874,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
           const query = this.input.value.trim();
           this.dialog.close();
           window.dispatchEvent(
-            new CustomEvent("blume:open-ask-ai", { detail: { query } })
+            new CustomEvent("blume:open-assistant", { detail: { query } })
           );
         } else if (item.url) {
           // Close first so the dialog isn't left open over the transition;

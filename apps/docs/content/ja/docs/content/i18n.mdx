@@ -112,10 +112,10 @@ i18n: {
 
 ## エージェントによる翻訳 [#translating-with-an-agent]
 
-ロケールを手作業で埋める必要はありません。[`blume translate`](/docs/cli/translate) は各ロケールで欠落している、または古くなっているページをすべて見つけ出し、ローカルのエージェント CLI([Claude Code](https://claude.com/claude-code) または [Codex](https://developers.openai.com/codex/cli))で翻訳します:
+ロケールを手作業で埋める必要はありません。[`blume translate`](/docs/cli/translate) は各ロケールで欠落している、または古くなっているページをすべて見つけ出し、ローカルのエージェント CLI([Codex](https://developers.openai.com/codex/cli) または [Claude Code](https://claude.com/claude-code))で翻訳します:
 
 ```bash
-blume translate --claude
+blume translate --codex
 ```
 
 Blume は各結果の構造 — フロントマター、コードフェンス、リンク — を検証し、ファイルの書き込みも自身で行います。エージェントはテキストを翻訳するだけです。コミットされる台帳(`blume.translations.json`)が、各翻訳がどのソースリビジョンに由来するかを追跡するため、再実行時には変更があったものだけが対象となり、手作業で書いた翻訳はそのまま採用され、上書きされることはありません。CI では、ソースページが翻訳より先に進んでいる場合に `blume translate --check` が失敗します。

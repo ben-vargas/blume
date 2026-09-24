@@ -144,7 +144,7 @@ export default function PageInfo() {
 | `useBlume()` | साइट के लिए `{ config, navigation }`, या माउंट से पहले `null` |
 | `usePage()` | मौजूदा पेज के लिए `{ route, title }`, या माउंट से पहले `null` |
 | `useSearch()` | `{ search, results, loading }` — कॉन्फ़िगर किए गए सर्च प्रोवाइडर से क्वेरी करें |
-| `useAskAI()` | `{ ask, messages, loading, reset }` — Ask AI एंडपॉइंट से स्ट्रीम करें |
+| `useAssistant()` | `{ ask, messages, loading, reset }` — असिस्टेंट एंडपॉइंट से स्ट्रीम करें |
 
 `useBlume()` और `usePage()` तब तक `null` लौटाते हैं जब तक आइलैंड माउंट नहीं हो जाता (ताकि सर्वर और क्लाइंट एक ही पहला फ़्रेम रेंडर करें) — इसके लिए गार्ड लगाएँ। स्नैपशॉट केवल उन पेजों पर उत्सर्जित होता है जो React भेजते हैं, इसलिए पूरी तरह स्टैटिक साइट को कोई कीमत नहीं चुकानी पड़ती।
 

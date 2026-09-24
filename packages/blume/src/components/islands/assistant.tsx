@@ -7,7 +7,7 @@ import { createPortal } from "react-dom";
 import type { UIStrings } from "../../core/i18n-ui.ts";
 import { copyText } from "../copy-feedback.ts";
 import { joinBase, prefixBase } from "./base-path.ts";
-import { useAskAI } from "./hooks.ts";
+import { useAssistant } from "./hooks.ts";
 
 /** A resolved empty-state prompt; `icon` is ready-to-inline SVG (or null). */
 interface Suggestion {
@@ -16,10 +16,10 @@ interface Suggestion {
 }
 
 /**
- * The panel's chrome glyphs, resolved server-side in `AskAI.astro` and passed in
+ * The panel's chrome glyphs, resolved server-side in `Assistant.astro` and passed in
  * as ready-to-inline Lucide bodies so this client island ships no icon data.
  */
-interface AskIcons {
+interface AssistantIcons {
   arrowUp: string;
   chat: string;
   clear: string;
@@ -29,7 +29,7 @@ interface AskIcons {
 
 // Empty bodies so the island still renders (iconless) if instantiated without
 // the Astro wrapper that resolves the real Lucide glyphs.
-const EMPTY_ICONS: AskIcons = {
+const EMPTY_ICONS: AssistantIcons = {
   arrowUp: "",
   chat: "",
   clear: "",
@@ -38,7 +38,7 @@ const EMPTY_ICONS: AskIcons = {
 };
 
 // English fallback so the island renders even if no dictionary is passed.
-const DEFAULT_ASK: UIStrings["ask"] = {
+const DEFAULT_ASK: UIStrings["assistant"] = {
   ai: "AI",
   clear: "Clear conversation",
   close: "Close",
@@ -49,7 +49,7 @@ const DEFAULT_ASK: UIStrings["ask"] = {
   placeholder: "Ask a question…",
   send: "Send",
   tip: "Tip: You can open and close chat with",
-  title: "Ask AI",
+  title: "Assistant",
   you: "You",
 };
 
@@ -130,15 +130,15 @@ const ICON_BUTTON_CLASS =
 const ANSWER_CLASS =
   "prose prose-sm max-w-none text-foreground [&_a]:inline-flex [&_a]:items-center [&_a]:gap-1 [&_a]:rounded-full [&_a]:bg-muted [&_a]:px-2 [&_a]:py-1 [&_a]:align-middle [&_a]:font-medium [&_a]:text-[0.7rem] [&_a]:leading-none [&_a]:text-muted-foreground! [&_a]:no-underline! [&_a:hover]:text-foreground!";
 
-const AskAI = ({
+const Assistant = ({
   endpoint = DEFAULT_ASK_ENDPOINT,
   icons = EMPTY_ICONS,
   strings,
   suggestions = EMPTY_SUGGESTIONS,
 }: {
   endpoint?: string;
-  icons?: AskIcons;
-  strings?: UIStrings["ask"];
+  icons?: AssistantIcons;
+  strings?: UIStrings["assistant"];
   suggestions?: Suggestion[];
 }) => {
   // Merge per key (not `strings ?? …`) so a dictionary from a stale snapshot
@@ -147,14 +147,14 @@ const AskAI = ({
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
   // The streaming client — request shaping, optimistic assistant bubble,
-  // stale-stream/abort guards, error-body handling — is the public useAskAI
+  // stale-stream/abort guards, error-body handling — is the public useAssistant
   // hook, so the built-in panel and custom UIs share one implementation.
   const {
     ask,
     loading: busy,
     messages,
     reset,
-  } = useAskAI({ endpoint, errorMessage: t.error });
+  } = useAssistant({ endpoint, errorMessage: t.error });
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -167,7 +167,7 @@ const AskAI = ({
   // Null until mount (guards SSR), then refreshed on every client-router swap:
   // the island rides across navigations via transition:persist, but each swap
   // installs a NEW <body>, discarding the portaled panel with the old one and
-  // resetting the `data-blume-ask` push attribute to the incoming page's
+  // resetting the `data-blume-assistant` push attribute to the incoming page's
   // server-rendered set. Reading document.body inline in render would NOT
   // recover from that — it isn't a reactive value, so the memoized portal
   // keeps its stale (detached) container. State identity is what re-anchors
@@ -183,10 +183,10 @@ const AskAI = ({
     return () => document.removeEventListener("astro:after-swap", onSwap);
   }, []);
 
-  // The search modal forwards its query so "Ask AI: <query>" carries straight in.
+  // The search modal forwards its query so "Assistant: <query>" carries straight in.
   useEffect(() => {
     const handler = (event: Event) => {
-      // SAFETY: `blume:open-ask-ai` is only ever dispatched as a CustomEvent
+      // SAFETY: `blume:open-assistant` is only ever dispatched as a CustomEvent
       // whose optional detail carries the search query.
       const query = (event as CustomEvent<{ query?: string }>).detail?.query;
       if (query) {
@@ -194,8 +194,8 @@ const AskAI = ({
       }
       setOpen(true);
     };
-    window.addEventListener("blume:open-ask-ai", handler);
-    return () => window.removeEventListener("blume:open-ask-ai", handler);
+    window.addEventListener("blume:open-assistant", handler);
+    return () => window.removeEventListener("blume:open-assistant", handler);
   }, []);
 
   // ⌘I / Ctrl+I toggles the panel; Escape closes it. Shift/Alt chords are
@@ -226,17 +226,17 @@ const AskAI = ({
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  // Drive the desktop content push from a body attribute (see AskAI.astro CSS).
+  // Drive the desktop content push from a body attribute (see Assistant.astro CSS).
   useEffect(() => {
     if (open) {
       returnFocusRef.current =
         document.activeElement instanceof HTMLElement
           ? document.activeElement
           : null;
-      document.body.dataset.blumeAsk = "open";
+      document.body.dataset.blumeAssistant = "open";
       inputRef.current?.focus();
     } else {
-      delete document.body.dataset.blumeAsk;
+      delete document.body.dataset.blumeAssistant;
       // Return focus to the element that opened the panel (or the trigger when
       // it's gone), so closing doesn't strand keyboard focus in an inert tree.
       // `returnFocusRef` is only set on open, so initial mount is a no-op.
@@ -249,7 +249,7 @@ const AskAI = ({
       }
     }
     return () => {
-      delete document.body.dataset.blumeAsk;
+      delete document.body.dataset.blumeAssistant;
     };
   }, [open]);
 
@@ -261,7 +261,7 @@ const AskAI = ({
     // document.body (not portalTarget) so the compiler doesn't flag a state
     // mutation; by the time this runs for a swap, they are the same element.
     if (open && portalTarget) {
-      document.body.dataset.blumeAsk = "open";
+      document.body.dataset.blumeAssistant = "open";
     }
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- see above
   }, [open, portalTarget]);
@@ -387,7 +387,7 @@ const AskAI = ({
       // The closed panel is only translated off-screen; `inert` drops its
       // buttons/textarea from the tab order and the accessibility tree.
       inert={!open}
-      className={`border-border bg-background fixed inset-y-0 end-0 z-[60] flex w-[var(--blume-ask-width)] flex-col border-s shadow-2xl transition-transform duration-200 ease-out ${
+      className={`border-border bg-background fixed inset-y-0 end-0 z-[60] flex w-[var(--blume-assistant-width)] flex-col border-s shadow-2xl transition-transform duration-200 ease-out ${
         open ? "translate-x-0" : "translate-x-full rtl:-translate-x-full"
       }`}
     >
@@ -539,4 +539,4 @@ const AskAI = ({
   );
 };
 
-export default AskAI;
+export default Assistant;

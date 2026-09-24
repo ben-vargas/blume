@@ -5,7 +5,6 @@ export const hr: UIStringsOverride = {
   actions: {
     addToCursor: "Dodaj u Cursor",
     addToVscode: "Dodaj u VS Code",
-    askAI: "Pitaj AI o ovoj stranici",
     connectMcp: "Poveži se s MCP-om",
     copied: "Kopirano!",
     copyClaudeCode: "Kopiraj naredbu Claude Code",
@@ -25,7 +24,7 @@ export const hr: UIStringsOverride = {
       "Pročitajte {url} — postavljat ću pitanja o ovoj stranici.",
     scrollToTop: "Natrag na vrh",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "Očisti razgovor",
     close: "Zatvori",
@@ -36,7 +35,7 @@ export const hr: UIStringsOverride = {
     placeholder: "Postavite pitanje…",
     send: "Pošalji",
     tip: "Savjet: Chat možete otvoriti i zatvoriti pomoću",
-    title: "Pitaj AI",
+    title: "Asistent",
     you: "Vi",
   },
   banner: { dismiss: "Zatvori obavijest" },
@@ -85,8 +84,8 @@ export const hr: UIStringsOverride = {
   search: {
     all: "Sve",
     allLanguages: "Svi jezici",
-    askAi: "Pitaj AI",
-    askAiHint: "Dobijte trenutačni odgovor od AI-ja",
+    assistant: "Asistent",
+    assistantHint: "Dobijte trenutačni odgovor od AI-ja",
     button: "Pretraži",
     devOnly: "Pretraživanje je dostupno u produkcijskoj verziji.",
     error: "Nešto je pošlo po zlu. Pokušajte ponovno.",

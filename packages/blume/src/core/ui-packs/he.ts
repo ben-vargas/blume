@@ -5,7 +5,6 @@ export const he: UIStringsOverride = {
   actions: {
     addToCursor: "הוסף ל-Cursor",
     addToVscode: "הוסף ל-VS Code",
-    askAI: "שאל את ה-AI על העמוד הזה",
     connectMcp: "התחבר ל-MCP",
     copied: "הועתק!",
     copyClaudeCode: "העתק פקודת Claude Code",
@@ -24,7 +23,7 @@ export const he: UIStringsOverride = {
     openInChatPrompt: "קרא את {url} כדי שאוכל לשאול שאלות על העמוד הזה.",
     scrollToTop: "חזרה למעלה",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "נקה שיחה",
     close: "סגור",
@@ -35,7 +34,7 @@ export const he: UIStringsOverride = {
     placeholder: "שאל שאלה…",
     send: "שלח",
     tip: "טיפ: אפשר לפתוח ולסגור את הצ'אט באמצעות",
-    title: "שאל את ה-AI",
+    title: "עוזר",
     you: "אתה",
   },
   banner: { dismiss: "סגירת ההודעה" },
@@ -84,8 +83,8 @@ export const he: UIStringsOverride = {
   search: {
     all: "הכל",
     allLanguages: "כל השפות",
-    askAi: "שאל את ה-AI",
-    askAiHint: "קבל תשובה מיידית מה-AI",
+    assistant: "עוזר",
+    assistantHint: "קבל תשובה מיידית מה-AI",
     button: "חיפוש",
     devOnly: "החיפוש זמין בבנייה לייצור.",
     error: "משהו השתבש. נסה שוב.",

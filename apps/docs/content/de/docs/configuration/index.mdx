@@ -367,7 +367,7 @@ dateFormat: { year: "numeric", month: "2-digit", day: "2-digit" },
 
 ## SEO und Agents [#seo-and-agents]
 
-Metadaten, Open-Graph-Bilder, RSS-Feeds, JSON-LD, die Sitemap und `robots.txt` liegen unter `seo`; `llms.txt`, rohes Markdown, die JSON-API, der MCP-Server und die Discovery-Manifeste liegen unter `agents`. Beide werden Seite für Seite im Abschnitt [Auffindbarkeit](/docs/discoverability) behandelt, der Suchmaschinen und KI-Agents als zwei Zielgruppen derselben maschinenlesbaren Schicht betrachtet. Die modellbasierten Funktionen für Lesende — der Ask-AI-Assistent und die Aktion „Open in chat“ — liegen unter `ai`.
+Metadaten, Open-Graph-Bilder, RSS-Feeds, JSON-LD, die Sitemap und `robots.txt` liegen unter `seo`; `llms.txt`, rohes Markdown, die JSON-API, der MCP-Server und die Discovery-Manifeste liegen unter `agents`. Beide werden Seite für Seite im Abschnitt [Auffindbarkeit](/docs/discoverability) behandelt, der Suchmaschinen und KI-Agents als zwei Zielgruppen derselben maschinenlesbaren Schicht betrachtet. Die modellbasierten Funktionen für Lesende — der Assistent und die Aktion „Open in chat“ — liegen unter `ai`.
 
 ```ts blume.config.ts lineNumbers
 seo: {
@@ -432,7 +432,7 @@ Zu jeder dieser Optionen gibt es eine eigene Anleitung. Das Konfigurationsfeld i
 | `search` | Anbieter (Orama, Pagefind, Algolia und weitere) und Indizierung | [Suche](/docs/configuration/search) |
 | `markdown` | Optionen für das Markdown-Rendering — Codeblöcke, Überschriftenanker, Bildzoom | [Syntax](/docs/content/syntax) |
 | `agents` | `llms.txt`, Markdown-Spiegel, die JSON-API, der gehostete MCP-Server, Skills und Discovery-Manifeste für Coding-Agents | [SEO und AEO](/docs/discoverability) |
-| `ai` | Der Ask-AI-Assistent direkt auf der Seite und die Aktion „Open in chat“ | [Ask AI](/docs/configuration/ask-ai) |
+| `ai` | Der Assistent direkt auf der Seite und die Aktion „Open in chat“ | [Assistent](/docs/configuration/assistant) |
 | `reference` | API-Referenzen: die Adapter `openapi()`, `asyncapi()`, `graphql()` und `scalar()` aus `blume/reference` | [OpenAPI](/docs/references/openapi), [AsyncAPI](/docs/references/asyncapi), [GraphQL](/docs/references/graphql), [Scalar](/docs/references/scalar) |
 | `analytics` | Adapter aus `blume/analytics` — PostHog, Google Analytics, Plausible, Mixpanel, Segment und weitere — plus benutzerdefinierte Skripte | [Analytics](/docs/configuration/analytics) |
 | `seo` | Metadaten, OG-Bilder, Feeds, strukturierte Daten, Sitemap, robots | [SEO und AEO](/docs/discoverability) |

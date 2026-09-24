@@ -21,13 +21,13 @@ O Blume segue um terceiro caminho: **o framework é o template.** Você aponta e
 | **Hospedagem** | Em qualquer lugar — estático ou uma função de servidor | A infraestrutura gerenciada deles | Em qualquer lugar; você faz o build e publica |
 | **Você mantém** | O seu Markdown | O seu Markdown + configuração da plataforma | O seu Markdown + o app em volta dele |
 | **Renderização** | Astro; o tema principal não envia nenhum JS de cliente | O runtime deles | Runtime React/Next.js |
-| **Recursos de IA** | `llms.txt`, Markdown bruto, Ask AI, MCP — integrados, sem serviço hospedado | Integrados (hospedados) | Traga os seus |
+| **Recursos de IA** | `llms.txt`, Markdown bruto, um assistente na página, MCP — integrados, sem serviço hospedado | Integrados (hospedados) | Traga os seus |
 
 Vale destacar algumas consequências:
 
 - **O resultado é seu.** O `blume build` gera um site simples que você hospeda na Vercel, Netlify, Cloudflare, S3 ou na sua própria máquina. Nada manda dados para casa.
 - **Sem dependência de fornecedor, com duas saídas.** O seu conteúdo é Markdown portátil, e o `blume eject` transforma o projeto em um app Astro autônomo que continua usando o pacote `blume` quando você quiser controle total.
-- **Rápido por padrão.** O tema principal não usa React e renderiza HTML estático, então as páginas vão bem nos Core Web Vitals sem ajuste nenhum. Você adota os recursos de servidor (Ask AI, MCP) só quando precisa deles.
+- **Rápido por padrão.** O tema principal não usa React e renderiza HTML estático, então as páginas vão bem nos Core Web Vitals sem ajuste nenhum. Você adota os recursos de servidor (o assistente, MCP) só quando precisa deles.
 - **Configuração com segurança de tipos.** O `blume.config.ts` e cada `meta.ts` são TypeScript real validado por um schema — e não YAML de tipagem frouxa.
 
 :::note
@@ -50,7 +50,7 @@ Sim. Qualquer página pode ser `.md` ou `.mdx`, e o MDX permite inserir os [comp
 
 ## Onde posso publicar? [#where-can-i-deploy-it]
 
-Em qualquer lugar. O `blume build` gera HTML estático por padrão, que você pode servir de qualquer hospedagem estática ou CDN — Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3 ou o seu próprio servidor. Os recursos exclusivos de servidor (Ask AI, o servidor MCP, renderização sob demanda) precisam de saída de servidor: informe um adaptador de hospedagem do `blume/deploy` — `vercel()`, `netlify()`, `cloudflare()` ou `node()` — como `deployment`. Veja [Publicação](/docs/deployment).
+Em qualquer lugar. O `blume build` gera HTML estático por padrão, que você pode servir de qualquer hospedagem estática ou CDN — Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3 ou o seu próprio servidor. Os recursos exclusivos de servidor (o assistente, o servidor MCP, renderização sob demanda) precisam de saída de servidor: informe um adaptador de hospedagem do `blume/deploy` — `vercel()`, `netlify()`, `cloudflare()` ou `node()` — como `deployment`. Veja [Publicação](/docs/deployment).
 
 ## A busca precisa de um serviço hospedado? [#does-search-need-a-hosted-service]
 

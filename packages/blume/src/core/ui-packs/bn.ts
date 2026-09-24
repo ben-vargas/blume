@@ -5,7 +5,6 @@ export const bn: UIStringsOverride = {
   actions: {
     addToCursor: "Cursor-এ যোগ করুন",
     addToVscode: "VS Code-এ যোগ করুন",
-    askAI: "এই পৃষ্ঠা সম্পর্কে AI-কে জিজ্ঞাসা করুন",
     connectMcp: "MCP-তে সংযোগ করুন",
     copied: "অনুলিপি করা হয়েছে!",
     copyClaudeCode: "Claude Code কমান্ড অনুলিপি করুন",
@@ -24,7 +23,7 @@ export const bn: UIStringsOverride = {
     openInChatPrompt: "{url} পড়ুন, যাতে আমি এই পৃষ্ঠা সম্পর্কে প্রশ্ন করতে পারি।",
     scrollToTop: "উপরে যান",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "কথোপকথন মুছুন",
     close: "বন্ধ করুন",
@@ -35,7 +34,7 @@ export const bn: UIStringsOverride = {
     placeholder: "একটি প্রশ্ন করুন…",
     send: "পাঠান",
     tip: "টিপ: চ্যাট খুলতে ও বন্ধ করতে চাপুন",
-    title: "AI-কে জিজ্ঞাসা করুন",
+    title: "সহকারী",
     you: "আপনি",
   },
   banner: { dismiss: "ঘোষণা বন্ধ করুন" },
@@ -84,8 +83,8 @@ export const bn: UIStringsOverride = {
   search: {
     all: "সব",
     allLanguages: "সব ভাষা",
-    askAi: "AI-কে জিজ্ঞাসা করুন",
-    askAiHint: "AI থেকে তাৎক্ষণিক উত্তর পান",
+    assistant: "সহকারী",
+    assistantHint: "AI থেকে তাৎক্ষণিক উত্তর পান",
     button: "অনুসন্ধান",
     devOnly: "অনুসন্ধান প্রোডাকশন বিল্ডে উপলব্ধ।",
     error: "কিছু একটা ভুল হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।",

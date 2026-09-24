@@ -14,7 +14,7 @@ import { Marked } from "marked";
  * `marked` rather than the site's own Markdown pipeline: the pipeline is async, plugin-laden and
  * built for whole documents, while these are thousands of short strings per build — a large
  * reference renders tens of thousands of them. `marked` is synchronous, already a dependency,
- * and already how the Ask AI island renders model Markdown.
+ * and already how the assistant island renders model Markdown.
  */
 const TABLE = /<table>[\s\S]*?<\/table>/gu;
 
@@ -30,7 +30,7 @@ const escapeHtml = (text: string): string =>
   text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 
 const markdown = new Marked({
-  // `breaks` is deliberately NOT set, unlike the Ask AI island. Docstring prose is hard-wrapped at
+  // `breaks` is deliberately NOT set, unlike the assistant island. Docstring prose is hard-wrapped at
   // 72 or 79 columns, so honouring single newlines would break every sentence mid-flow at exactly
   // the width the source file happened to use.
   breaks: false,

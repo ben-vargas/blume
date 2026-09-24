@@ -5,7 +5,6 @@ export const pl: UIStringsOverride = {
   actions: {
     addToCursor: "Dodaj do Cursor",
     addToVscode: "Dodaj do VS Code",
-    askAI: "Zapytaj AI o tę stronę",
     connectMcp: "Połącz z MCP",
     copied: "Skopiowano!",
     copyClaudeCode: "Kopiuj polecenie Claude Code",
@@ -25,7 +24,7 @@ export const pl: UIStringsOverride = {
       "Przeczytaj {url}, aby móc odpowiadać na pytania dotyczące tej strony.",
     scrollToTop: "Wróć na górę",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "Wyczyść rozmowę",
     close: "Zamknij",
@@ -36,7 +35,7 @@ export const pl: UIStringsOverride = {
     placeholder: "Zadaj pytanie…",
     send: "Wyślij",
     tip: "Wskazówka: czat możesz otwierać i zamykać za pomocą",
-    title: "Zapytaj AI",
+    title: "Asystent",
     you: "Ty",
   },
   banner: { dismiss: "Zamknij ogłoszenie" },
@@ -85,8 +84,8 @@ export const pl: UIStringsOverride = {
   search: {
     all: "Wszystkie",
     allLanguages: "Wszystkie języki",
-    askAi: "Zapytaj AI",
-    askAiHint: "Uzyskaj natychmiastową odpowiedź od AI",
+    assistant: "Asystent",
+    assistantHint: "Uzyskaj natychmiastową odpowiedź od AI",
     button: "Szukaj",
     devOnly: "Wyszukiwanie jest dostępne w kompilacji produkcyjnej.",
     error: "Coś poszło nie tak. Spróbuj ponownie.",

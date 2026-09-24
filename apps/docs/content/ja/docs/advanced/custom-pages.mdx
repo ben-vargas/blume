@@ -77,7 +77,7 @@ const indexable = (data: BlumeData): BlumeRoute[] =>
       type: "BlumeDataConfig",
       required: true,
       description:
-        "解決済みのサイト設定: title、description、logo、favicon、appleIcon、banner、theme、site、repoUrl、github（owner、repo、host、および REST api のベース — 未設定の場合は null）、search、i18n、mcp、ask、og、analytics、feedback、structuredData、toc、codeThemes、codeWrap、imageZoom。",
+        "解決済みのサイト設定: title、description、logo、favicon、appleIcon、banner、theme、site、repoUrl、github（owner、repo、host、および REST api のベース — 未設定の場合は null）、search、i18n、mcp、assistant、og、analytics、feedback、structuredData、toc、codeThemes、codeWrap、imageZoom。",
     },
     navigation: {
       type: "Navigation",
@@ -231,7 +231,7 @@ const { config } = data;
 </PageLayout>
 ```
 
-カスタムページが得るヘッダーはドキュメントページのものと同じなので、そこにあるクロームも一緒についてきます: 検索、テーマ切り替え、言語スイッチャー、そして [Ask AI](/docs/configuration/ask-ai) が設定されている場合は Ask AI のトリガーです。どれもページごとに配線する必要はありません。あるページだけ Ask トリガーを無効にし、他のすべてでは有効なままにするには `askEnabled={false}` を渡します。
+カスタムページが得るヘッダーはドキュメントページのものと同じなので、そこにあるクロームも一緒についてきます: 検索、テーマ切り替え、言語スイッチャー、そして[アシスタント](/docs/configuration/assistant)が設定されている場合はそのトリガーです。どれもページごとに配線する必要はありません。あるページだけアシスタントのトリガーを無効にし、他のすべてでは有効なままにするには `assistantEnabled={false}` を渡します。
 
 [エージェント検出用の head リンク](/docs/discoverability/agent-discovery#discovery-link-header)も一緒についてきます: レイアウトが解決済みの設定を読み取るため、カスタムページは props を渡さなくても、ドキュメントページと同じ `describedby`、`ai-catalog`、`ard` リンクを持ちます。ホームページはさらに、`/index.md` の Markdown ミラーを `text/markdown` の代替として告知します。このミラーは常に存在するためです。他のカスタムページにはミラーがないため、何も告知されません。あるページからこれらのリンクを取り除くには `discovery={null}` を渡します。
 

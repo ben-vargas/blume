@@ -1,5 +1,5 @@
 ---
-title: Ask AI
+title: Assistent
 description: >-
   Ein In-Page-Assistent, der in deinen Docs verankert ist — vorgeschlagene Fragen, eigene Anweisungen, Dimensionierung des Retrievals, Provider-Adapter vom Vercel AI Gateway bis zu jedem OpenAI-kompatiblen Endpunkt und die Server-Ausgabe, die er braucht.
 ---
@@ -8,7 +8,7 @@ Füge einen Assistenten hinzu, der Leserfragen in einem In-Page-Chat-Panel beant
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
   },
 }
@@ -22,7 +22,7 @@ Fülle den leeren Zustand mit ein paar Einstiegs-Prompts. Jeder wird als klickba
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     suggestions: [
       { label: "What is Blume?", icon: "rocket" },
@@ -41,7 +41,7 @@ Ergänze deinen eigenen System-Prompt-Text mit `instructions` — Identität, Sp
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     instructions:
       "You are Bloomy, the Acme docs assistant. Answer in the language the question was asked in, and keep answers under three paragraphs.",
@@ -53,7 +53,7 @@ Dein Text wird an die eingebauten Anweisungen **angehängt** und ersetzt sie nic
 
 ## Grounding
 
-Ask AI ist **in deinen Docs verankert**. Für jede Frage ruft es die relevantesten Seiten ab — über denselben lexikalischen [Orama](/docs/configuration/search)-Index, der auch die Suche auf der Seite antreibt — und injiziert sie in den System-Prompt des Modells, sodass Antworten aus deinen Inhalten statt aus dem Eigenwissen des Modells kommen. Der Assistent wird angewiesen, nur anhand der abgerufenen Seiten zu antworten, zu sagen, wenn etwas nicht abgedeckt ist, und die Seiten zu zitieren, aus denen er geschöpft hat.
+Der Assistent ist **in deinen Docs verankert**. Für jede Frage ruft er die relevantesten Seiten ab — über denselben lexikalischen [Orama](/docs/configuration/search)-Index, der auch die Suche auf der Seite antreibt — und injiziert sie in den System-Prompt des Modells, sodass Antworten aus deinen Inhalten statt aus dem Eigenwissen des Modells kommen. Der Assistent wird angewiesen, nur anhand der abgerufenen Seiten zu antworten, zu sagen, wenn etwas nicht abgedeckt ist, und die Seiten zu zitieren, aus denen er geschöpft hat.
 
 Die Seite, auf der sich der Leser gerade befindet, wird dem Kontext zuerst hinzugefügt und dient dazu, das Retrieval auf die Sprache dieser Seite zu beschränken, damit Antworten relevant für die aktuelle Stelle in den Docs bleiben. Das Retrieval läuft zur Anfragezeit aus einem in den Build eingebackenen Snapshot, funktioniert also unabhängig von deinem [Such](/docs/configuration/search)-Provider — selbst mit `search: false` — und braucht keine Konfiguration.
 
@@ -65,7 +65,7 @@ Wie viel Dokumentation eine Frage mitträgt, ist der größte Hebel dafür, wie 
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     retrieval: {
       maxResults: 3, // fewer pages retrieved per question
@@ -92,7 +92,7 @@ Du hast schon ein API-Backend für AI? Richte das Panel darauf aus und halte den
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     endpoint: "https://api.example.com/v1/docs/ask",
   },
@@ -116,7 +116,7 @@ Der generierte Endpunkt antwortet dem In-Page-Assistenten auf dessen eigenem Ori
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     cors: ["https://www.example.com"],
   },
@@ -143,7 +143,7 @@ Der Content-Type ist entscheidend: Astros Cross-Site-Request-Prüfung weist eine
 
 ## Server-Ausgabe erforderlich [#server-output-required]
 
-Blumes eingebautes Ask-AI-Backend ist eine Server-Route (`POST /api/ask`) und kann daher nicht auf einem statischen Build laufen. Gib einen Host-Adapter aus `blume/deploy` an, um zur Server-Ausgabe zu wechseln:
+Blumes eingebautes Assistenten-Backend ist eine Server-Route (`POST /api/ask`) und kann daher nicht auf einem statischen Build laufen. Gib einen Host-Adapter aus `blume/deploy` an, um zur Server-Ausgabe zu wechseln:
 
 ```ts blume.config.ts lineNumbers
 import { vercel } from "blume/deploy";
@@ -153,7 +153,7 @@ export default defineConfig({
 });
 ```
 
-Ein statischer Build mit aktiviertem Ask AI und ohne externen `endpoint` schlägt sofort fehl, mit einer Meldung, die dich auffordert, einen Host-Adapter zu setzen. Die Adapter findest du unter [Deployment](/docs/deployment).
+Ein statischer Build mit aktiviertem Assistenten und ohne externen `endpoint` schlägt sofort fehl, mit einer Meldung, die dich auffordert, einen Host-Adapter zu setzen. Die Adapter findest du unter [Deployment](/docs/deployment).
 
 ## Adapter [#adapters]
 
@@ -165,7 +165,7 @@ import { openrouter } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: openrouter({ model: "anthropic/claude-sonnet-4-5" }),
     },
@@ -195,7 +195,7 @@ import { gateway } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: gateway({ model: "anthropic/claude-sonnet-4-5" }),
     },
@@ -215,7 +215,7 @@ import { openrouter } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: openrouter({
         model: "anthropic/claude-sonnet-4-5",
@@ -236,7 +236,7 @@ import { llmgateway } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: llmgateway({ model: "openai/gpt-5.5" }),
     },
@@ -256,7 +256,7 @@ import { inkeep } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: inkeep({ model: "inkeep-qa-expert" }),
     },
@@ -276,7 +276,7 @@ import { openaiCompatible } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: openaiCompatible({
         baseUrl: "https://my-gateway.example.com/v1",
@@ -315,7 +315,7 @@ provider: gateway({
 }),
 ```
 
-Blume bildet nur die Optionen ab, die es benennt (`model`, `reasoning`, `apiKeyEnv`, `headers`), und leitet `providerOptions` unverändert weiter. Es muss also JSON sein — es wird in die Route eingebettet — und den Key verwenden, den der zugrunde liegende Provider erwartet (`openai` für ein OpenAI-Modell hinter dem Gateway, `openrouter` bei OpenRouter). Ask AI zu aktivieren schaltet außerdem React für die In-Page-Island ein — siehe [Customization](/docs/configuration/customization#interactive-islands).
+Blume bildet nur die Optionen ab, die es benennt (`model`, `reasoning`, `apiKeyEnv`, `headers`), und leitet `providerOptions` unverändert weiter. Es muss also JSON sein — es wird in die Route eingebettet — und den Key verwenden, den der zugrunde liegende Provider erwartet (`openai` für ein OpenAI-Modell hinter dem Gateway, `openrouter` bei OpenRouter). Den Assistenten zu aktivieren schaltet außerdem React für die In-Page-Island ein — siehe [Customization](/docs/configuration/customization#interactive-islands).
 
 ## Reasoning
 
@@ -325,7 +325,7 @@ Reasoning-Modelle denken nach, bevor sie antworten, und wie viel sie das standar
 provider: gateway({ model: "openai/gpt-5.5", reasoning: "none" }),
 ```
 
-Jeder Adapter sendet die Stufe als die eigene Reasoning-Steuerung seines Backends, deshalb liegt sie beim Adapter statt bei `ask`:
+Jeder Adapter sendet die Stufe als die eigene Reasoning-Steuerung seines Backends, deshalb liegt sie beim Adapter statt bei `assistant`:
 
 | Adapter | Was aus der Stufe wird |
 | --- | --- |
@@ -349,7 +349,7 @@ Mit einem konfigurierten [Analytics-Provider](/docs/configuration/analytics) mel
 
 `path` ist die Seite, von der aus der Leser gefragt hat (der ausgelieferte Pfadname, er stimmt also mit dem Feedback-Widget und deinen Seitenaufrufen unter einem `base` überein), `questionChars` die Länge der Frage, `ms` die Zeit vom Absenden der Frage bis zum letzten Chunk und `chars` die Länge der Antwort. `status` ist der HTTP-Status: `0`, wenn überhaupt keine Antwort ankam (offline, DNS, CORS), und `200`, wenn die Antwort in Ordnung war, ihr Stream aber mitten in der Antwort abbrach — so zeigt sich ein Provider- oder Credential-Fehler, da das Backend seine Header schon gesendet hat — oder nichts lieferte. Wird die Konversation mitten in der Antwort geleert, wird keines der beiden Ergebnisse gemeldet.
 
-Der Text der Frage erreicht nie einen Provider: Es ist freie Lesereingabe (eingefügte Keys, Fehlerlogs, Namen), die gegen die Bedingungen und die Größenlimits pro Wert der meisten Provider verstoßen würde. Er reist nur auf dem DOM-Event `blume:track`, als `question` in `detail.props`, sodass ein Listener, den du schreibst, ihn dorthin weiterleiten kann, wo er nach deiner Entscheidung hingehört. Eine eigene Chat-UI, die auf `useAskAI` aus `blume/hooks` aufbaut, meldet dieselben Ereignisse. Ist kein Provider konfiguriert, sind die eingebauten Provider-Aufrufe No-ops, aber das `blume:track`-Event wird trotzdem ausgelöst, sodass eine eigene Integration, die darauf lauscht, sie erhält.
+Der Text der Frage erreicht nie einen Provider: Es ist freie Lesereingabe (eingefügte Keys, Fehlerlogs, Namen), die gegen die Bedingungen und die Größenlimits pro Wert der meisten Provider verstoßen würde. Er reist nur auf dem DOM-Event `blume:track`, als `question` in `detail.props`, sodass ein Listener, den du schreibst, ihn dorthin weiterleiten kann, wo er nach deiner Entscheidung hingehört. Eine eigene Chat-UI, die auf `useAssistant` aus `blume/hooks` aufbaut, meldet dieselben Ereignisse. Ist kein Provider konfiguriert, sind die eingebauten Provider-Aufrufe No-ops, aber das `blume:track`-Event wird trotzdem ausgelöst, sodass eine eigene Integration, die darauf lauscht, sie erhält.
 
 ## Rate Limiting
 

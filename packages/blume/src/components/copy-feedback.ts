@@ -1,6 +1,6 @@
 /**
  * Shared clipboard + "Copied" feedback used by every copy affordance (code
- * blocks, page actions, color swatches, prompts, API panels, Ask AI). One
+ * blocks, page actions, color swatches, prompts, API panels, the assistant). One
  * implementation owns the invariants each site used to hand-roll:
  *
  * - the clipboard write is guarded and a confirmation must never lie: a

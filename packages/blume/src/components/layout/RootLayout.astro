@@ -122,10 +122,10 @@ interface Props {
   canonical?: string | null;
   editUrl?: string | null;
   /**
-   * Opt this page out of the header's Ask AI trigger. Defaults to whether Ask
-   * AI is configured, so pages never wire the trigger up themselves.
+   * Opt this page out of the header's assistant trigger. Defaults to whether the
+   * assistant is configured, so pages never wire the trigger up themselves.
    */
-  askEnabled?: boolean;
+  assistantEnabled?: boolean;
   /** Show the "Was this page helpful?" rating below the content. */
   feedback?: boolean;
   exportPdf?: boolean;
@@ -248,7 +248,7 @@ const {
   x,
   canonical,
   editUrl,
-  askEnabled,
+  assistantEnabled,
   feedback = false,
   exportPdf,
   exportEpub,
@@ -582,8 +582,8 @@ createIconSprite(Astro.locals);
     <Banner banner={banner} strings={strings.banner} />
     <VersionBanner notice={versionNotice ?? null} />
     <HeaderSlot
-      askEnabled={askEnabled}
-      askStrings={strings.ask}
+      assistantEnabled={assistantEnabled}
+      assistantStrings={strings.assistant}
       layout={layout}
       locale={locale}
       localeSwitch={localeSwitch}

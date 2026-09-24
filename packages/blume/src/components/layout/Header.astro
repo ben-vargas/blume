@@ -39,13 +39,13 @@ interface Props {
    */
   locale?: string;
   /**
-   * Whether the search modal offers an "Ask AI" hand-off. Defaults to whether
-   * Ask AI is configured, so no page has to pass it; a layout can still opt a
+   * Whether the search modal offers a hand-off to the assistant. Defaults to whether
+   * the assistant is configured, so no page has to pass it; a layout can still opt a
    * shell out explicitly.
    */
-  askEnabled?: boolean;
-  /** Localized Ask AI strings for the active locale. */
-  askStrings?: UIStrings["ask"];
+  assistantEnabled?: boolean;
+  /** Localized assistant strings for the active locale. */
+  assistantStrings?: UIStrings["assistant"];
   // The mobile menu button toggles the docs sidebar drawer; custom pages
   // without a sidebar (e.g. a landing page) pass `false` to hide it.
   hasSidebar?: boolean;
@@ -91,11 +91,11 @@ const {
   route,
   searchEnabled,
   locale,
-  // `config.ask` is null whenever Ask AI is off, so the header is the one place
+  // `config.assistant` is null whenever the assistant is off, so the header is the one place
   // that has to know — the Ask trigger below and the search modal's hand-off to
   // it both switch on this, and every page gets both for free.
-  askEnabled = Boolean(data.config.ask),
-  askStrings,
+  assistantEnabled = Boolean(data.config.assistant),
+  assistantStrings,
   hasSidebar = true,
   hasDrawer = true,
   searchStrings,
@@ -250,7 +250,7 @@ const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-b
   {
     searchEnabled && (
       <SearchSlot
-        askEnabled={askEnabled}
+        assistantEnabled={assistantEnabled}
         locale={searchLocale}
         navigation={navigation}
         popularPages={data.config.search.popular}
@@ -314,7 +314,7 @@ const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-b
       <span class="inline-flex dark:hidden"><Icon name="sun" size={18} /></span>
       <span class="hidden dark:inline-flex"><Icon name="moon" size={18} /></span>
     </button>
-    {askEnabled && <Ask strings={askStrings} />}
+    {assistantEnabled && <Ask strings={assistantStrings} />}
   </div>
 </header>
 <script is:inline set:html={clickScript} />

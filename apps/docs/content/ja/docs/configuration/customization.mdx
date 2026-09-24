@@ -91,7 +91,7 @@ export default defineComponents({
 | `Layout` | ページシェル全体（`RootLayout`） | 組み込みレイアウトが受け取るすべて、加えて `layout` マップ |
 | `Header` | 上部のナビゲーションバー | `site`、`logo`、`navigation`、`route`、`searchEnabled` など |
 | `Logo` | ヘッダー内のブランドリンク（マーク＋タイトル） | `site`、`logo`、`locale` |
-| `Search` | ヘッダーの検索トリガー＋モーダル | `navigation`、`strings`、`locale`、`askEnabled` |
+| `Search` | ヘッダーの検索トリガー＋モーダル | `navigation`、`strings`、`locale`、`assistantEnabled` |
 | `Sidebar` | 主要なナビゲーションツリー | `items`、`currentRoute` |
 | `MobileNav` | モバイルドロワー内のナビゲーション（デフォルトは `Sidebar`） | `items`、`currentRoute` |
 | `Breadcrumbs` | パンくずリスト | `crumbs` |
@@ -184,7 +184,7 @@ npx blume eject --yes
 
 イジェクトは一方向のステップです。隠れた `.blume/` ランタイムが、あなたが所有し直接変更できる通常の Astro アプリになります。`blume` パッケージは引き続きインポート可能なので、そのコンポーネント、テーマ、Markdown プロセッサはそのまま使えます。
 
-イジェクトは `package.json` のスクリプトを `astro dev` と `astro build` に向け、Astro アプリが名前でインポートするパッケージ — `astro`、`@tailwindcss/vite`、設定が組み込む検索クライアント・インテグレーション・アダプター、アイランド・サンプル・Ask AI が使用する場合の React、Ask AI ルート用の `ai`、EPUB エクスポート用の `epub-gen-memory` — を、Blume 自身が使用しているバージョン範囲で追加します。`dev` や `build` の前にインストールを実行してください。追加されたパッケージはイジェクト時に一覧表示されます。イジェクトされたアプリ内のパスはすべて相対パスであるため、CI を含むどのチェックアウトからでもビルドできます。
+イジェクトは `package.json` のスクリプトを `astro dev` と `astro build` に向け、Astro アプリが名前でインポートするパッケージ — `astro`、`@tailwindcss/vite`、設定が組み込む検索クライアント・インテグレーション・アダプター、アイランド・サンプル・アシスタントが使用する場合の React、アシスタントルート用の `ai`、EPUB エクスポート用の `epub-gen-memory` — を、Blume 自身が使用しているバージョン範囲で追加します。`dev` や `build` の前にインストールを実行してください。追加されたパッケージはイジェクト時に一覧表示されます。イジェクトされたアプリ内のパスはすべて相対パスであるため、CI を含むどのチェックアウトからでもビルドできます。
 
 それ以降は、アプリ独自のスクリプト（`npm run dev`、`npm run build`）で実行してください。イジェクトされたプロジェクトでは `blume dev` と `blume build` は停止し、それらのスクリプトを使うよう案内します。`blume eject` を再度実行した場合も、編集内容を上書きしてしまうため拒否されます。それでもアプリを再生成したい場合は `--force` を指定してください。
 

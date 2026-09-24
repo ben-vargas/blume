@@ -2,9 +2,9 @@ import type { AstroIntegration } from "astro";
 import { z } from "zod";
 
 import {
-  askAdapterSchema,
-  askMovedFieldsHint,
-  DEFAULT_ASK_PROVIDER,
+  assistantAdapterSchema,
+  assistantMovedFieldsHint,
+  DEFAULT_ASSISTANT_PROVIDER,
 } from "../ai/ask.ts";
 import type { ComponentMarkdown } from "../ai/component-markdown.ts";
 import { analyticsConfigSchema } from "../analytics/schema.ts";
@@ -744,7 +744,7 @@ const mcpConfigSchema = z.strictObject({
   route: z.string().default("/mcp").transform(normalizeRoute),
 });
 
-const askEndpointSchema = z
+const assistantEndpointSchema = z
   .string()
   .trim()
   .min(1)
@@ -762,7 +762,7 @@ const askEndpointSchema = z
     },
     {
       message:
-        "ai.ask.endpoint must be an HTTP(S) URL or a root-relative path.",
+        "ai.assistant.endpoint must be an HTTP(S) URL or a root-relative path.",
     }
   );
 
@@ -799,7 +799,7 @@ type AiCatalogResolved = z.output<typeof aiCatalogObjectSchema>;
 
 /**
  * The keys that moved from `ai` to `agents`: `ai` now holds only what faces a
- * model at read time (Ask AI, Open in chat), and the machine-readable surface
+ * model at read time (the assistant, Open in chat), and the machine-readable surface
  * agents consume lives under `agents`.
  */
 const MOVED_TO_AGENTS = [
@@ -821,9 +821,9 @@ const movedToAgentsHints = (from: string): Record<string, string> =>
     ])
   );
 
-/** Model-facing config: the Ask AI assistant and the "Open in chat" action. */
+/** Model-facing config: the assistant and the "Open in chat" action. */
 const aiConfigFields = {
-  ask: z
+  assistant: z
     .strictObject(
       {
         // Origins allowed to call the generated `/api/ask` from another site (a
@@ -843,9 +843,9 @@ const aiConfigFields = {
           .optional(),
         enabled: z.boolean().default(false),
         // Optional external endpoint for projects that keep their docs static
-        // and host Ask AI in an existing backend. Absolute URLs and root-relative
+        // and host the assistant in an existing backend. Absolute URLs and root-relative
         // paths are both valid; the built-in request/stream contract is unchanged.
-        endpoint: askEndpointSchema.optional(),
+        endpoint: assistantEndpointSchema.optional(),
         // Extra system-prompt text (identity, language, tone) appended to the
         // built-in instructions, so the grounding contract — answer from the
         // retrieved excerpts, cite pages as Markdown links — stays intact.
@@ -853,9 +853,9 @@ const aiConfigFields = {
         // The adapter descriptor a `gateway()`/`openrouter()`/... factory
         // returns; each adapter validates its own options (model, key env var,
         // reasoning mapping, `providerOptions` passthrough) in `ai/ask.ts`.
-        // Unset means the gateway with its default model, so zero-config Ask AI
+        // Unset means the gateway with its default model, so the zero-config assistant
         // is unchanged.
-        provider: askAdapterSchema.prefault(DEFAULT_ASK_PROVIDER),
+        provider: assistantAdapterSchema.prefault(DEFAULT_ASSISTANT_PROVIDER),
         // How much documentation each question carries. Injected characters are
         // the dominant term in time-to-first-token on a self-hosted backend, so
         // these trade recall for latency. No zod defaults here: only what the
@@ -880,7 +880,7 @@ const aiConfigFields = {
           )
           .default([]),
       },
-      askMovedFieldsHint
+      assistantMovedFieldsHint
     )
     .superRefine((value, ctx) => {
       // `cors` configures the generated route, which an external `endpoint`
@@ -889,7 +889,7 @@ const aiConfigFields = {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message:
-            "ai.ask.cors only applies to the generated route; with ai.ask.endpoint, CORS is that backend's job.",
+            "ai.assistant.cors only applies to the generated route; with ai.assistant.endpoint, CORS is that backend's job.",
           path: ["cors"],
         });
       }
@@ -921,7 +921,10 @@ const aiConfigFields = {
 
 const aiConfigSchema = z.strictObject(
   aiConfigFields,
-  removedKeysHint(movedToAgentsHints("ai"))
+  removedKeysHint({
+    ...movedToAgentsHints("ai"),
+    ask: "ai.ask was renamed to ai.assistant.",
+  })
 );
 
 /**
@@ -988,9 +991,11 @@ const navigationConfigSchema = z.strictObject({
   tabs: z.array(navTabSchema).default([]),
 });
 
-export { askReasoningLevels } from "../ai/ask.ts";
-export type { AskReasoning } from "../ai/ask.ts";
-export type AskAiConfig = NonNullable<z.infer<typeof aiConfigSchema>["ask"]>;
+export { assistantReasoningLevels } from "../ai/ask.ts";
+export type { AssistantReasoning } from "../ai/ask.ts";
+export type AssistantConfig = NonNullable<
+  z.infer<typeof aiConfigSchema>["assistant"]
+>;
 export { openInChatProviders } from "./open-in-chat.ts";
 export type { OpenInChatProvider } from "./open-in-chat.ts";
 
@@ -1415,7 +1420,7 @@ const seoConfigSchema = z.strictObject(
 /**
  * The machine-readable surface agents consume: the JSON API, `llms.txt`, the
  * MCP server, published skills, discovery manifests, and the robots.txt
- * usage policy. Everything reader-facing that talks to a model (Ask AI, Open
+ * usage policy. Everything reader-facing that talks to a model (the assistant, Open
  * in chat) stays under `ai`.
  */
 const agentsConfigSchema = z.strictObject({
@@ -1731,7 +1736,7 @@ const reactConfigSchema = z.strictObject({
   /**
    * Auto-memoize React components/hooks with the React Compiler
    * (`babel-plugin-react-compiler`). On by default whenever React is enabled
-   * (a project `.tsx`/`.jsx`, a React island/example/override, or Ask AI); set
+   * (a project `.tsx`/`.jsx`, a React island/example/override, or the assistant); set
    * to `false` to skip the compiler's babel pass.
    */
   compiler: z.boolean().default(true),

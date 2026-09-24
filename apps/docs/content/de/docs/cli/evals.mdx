@@ -11,22 +11,22 @@ blume eval
 ```
 
 ```
-blume eval  4 question(s) · Claude Code
+blume eval  4 question(s) · Codex
 
-  ✔ install-node-version         pass  1.00  14.2s  $0.14
-  ✔ custom-domain                pass  0.92  21.3s  $0.19
-  ✖ deploy-vercel                fail  0.40  38.9s  $0.31
+  ✔ install-node-version         pass  1.00  14.2s
+  ✔ custom-domain                pass  0.92  21.3s
+  ✖ deploy-vercel                fail  0.40  38.9s
       missing: deployment: vercel() from blume/deploy
   ⊘ search-providers             skipped
 
   fix: content/docs/deployment.mdx  Docs could not answer: "How do I deploy to Vercel?" — missing: deployment: vercel() from blume/deploy
 
-  2 passed · 1 failed · 1 skipped · 1m 42s · $0.64
+  2 passed · 1 failed · 1 skipped · 1m 42s
 ```
 
 ## So funktioniert es [#how-it-works]
 
-Jede Frage durchläuft zwei Agent-Sessions, und zwar mit einer Agent-CLI, die du bereits installiert hast – standardmäßig [Claude Code](https://claude.com/claude-code) oder mit `--agent codex` [Codex](https://developers.openai.com/codex/cli). Blume speichert keine API-Keys und ruft selbst kein Modell auf. Mit `--agent codex` laufen beide Sessions außerdem ohne die Shell-, Befehls- und Bild-Tools von Codex und erben keine deiner Umgebungsvariablen.
+Jede Frage durchläuft zwei Agent-Sessions, und zwar mit einer Agent-CLI, die du bereits installiert hast – standardmäßig [Codex](https://developers.openai.com/codex/cli) oder mit `--agent claude` [Claude Code](https://claude.com/claude-code). Blume speichert keine API-Keys und ruft selbst kein Modell auf. Mit Codex laufen beide Sessions außerdem ohne die Shell-, Befehls- und Bild-Tools von Codex und erben keine deiner Umgebungsvariablen.
 
 1. **Der Reader** beantwortet die Frage _ausschließlich_ anhand deiner Dokumentation. Er läuft in einem leeren Verzeichnis mit deaktivierten Datei-, Shell- und Web-Tools und ist mit einem privaten [MCP-Server](/docs/discoverability/mcp) verbunden, der deine Doku bereitstellt – mit denselben `search_docs`/`get_page`-Tools, die ein echter Agent auf deiner deployten Seite verwendet. Er kann dein Repo nicht lesen und erlebt die Doku daher genau wie ein neuer Nutzer: Was nicht dasteht, existiert nicht.
 2. **Der Judge** bewertet die Antwort anhand der Fakten, die du aufgeführt hast, und hat dabei gar keine Tools. Umschreibungen bestehen; ein fehlender oder widersprochener Fakt fällt durch – genau wie „die Dokumentation sagt dazu nichts“.
@@ -99,7 +99,7 @@ Das schreibt den vollständigen JSON-Report in eine Datei und öffnet den Agente
 
 ## Flags
 
-- `--agent claude|codex` – welche Agent-CLI den Reader und den Judge ausführt. Standardmäßig `claude`.
+- `--agent codex|claude` – welche Agent-CLI den Reader und den Judge ausführt. Standardmäßig `codex`.
 - `--file <path>` – die Evals-Datei. Standardmäßig `evals.yaml`.
 - `--threshold <0..1>` – Mindestanteil bestandener Fragen. Liegt der Anteil darunter, endet der Lauf mit einem Exit-Code ungleich null. Standardmäßig `1`.
 - `--timeout <seconds>` – Zeitlimit des Readers pro Frage. Standardmäßig `180`.

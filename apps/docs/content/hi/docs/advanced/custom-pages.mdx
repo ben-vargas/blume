@@ -77,7 +77,7 @@ const indexable = (data: BlumeData): BlumeRoute[] =>
       type: "BlumeDataConfig",
       required: true,
       description:
-        "Resolved site settings: title, description, logo, favicon, appleIcon, banner, theme, site, repoUrl, github (owner, repo, host, and the REST api base — null when unset), search, i18n, mcp, ask, og, analytics, feedback, structuredData, toc, codeThemes, codeWrap, and imageZoom.",
+        "Resolved site settings: title, description, logo, favicon, appleIcon, banner, theme, site, repoUrl, github (owner, repo, host, and the REST api base — null when unset), search, i18n, mcp, assistant, og, analytics, feedback, structuredData, toc, codeThemes, codeWrap, and imageZoom.",
     },
     navigation: {
       type: "Navigation",
@@ -231,7 +231,7 @@ const { config } = data;
 </PageLayout>
 ```
 
-कस्टम पेज को वही हेडर मिलता है जो डॉक्स पेजों को मिलता है, इसलिए उसमें रहने वाला क्रोम भी साथ आता है: सर्च, थीम टॉगल, भाषा स्विचर, और — जब [Ask AI](/docs/configuration/ask-ai) कॉन्फ़िगर हो — Ask AI ट्रिगर। इनमें से किसी को भी प्रति पेज जोड़ने की ज़रूरत नहीं। किसी एक पेज पर Ask ट्रिगर बंद रखने और बाकी हर जगह चालू रखने के लिए `askEnabled={false}` पास करें।
+कस्टम पेज को वही हेडर मिलता है जो डॉक्स पेजों को मिलता है, इसलिए उसमें रहने वाला क्रोम भी साथ आता है: सर्च, थीम टॉगल, भाषा स्विचर, और — जब [असिस्टेंट](/docs/configuration/assistant) कॉन्फ़िगर हो — उसका ट्रिगर। इनमें से किसी को भी प्रति पेज जोड़ने की ज़रूरत नहीं। किसी एक पेज पर असिस्टेंट ट्रिगर बंद रखने और बाकी हर जगह चालू रखने के लिए `assistantEnabled={false}` पास करें।
 
 [एजेंट-डिस्कवरी हेड लिंक](/docs/discoverability/agent-discovery#discovery-link-header) भी साथ आते हैं: लेआउट रिज़ॉल्व किया गया कॉन्फ़िग पढ़ता है, इसलिए किसी कस्टम पेज में बिना कोई प्रॉप पास किए वही `describedby`, `ai-catalog` और `ard` लिंक होते हैं जो डॉक्स पेजों में होते हैं। होम पेज अपने `/index.md` Markdown मिरर को भी एक `text/markdown` वैकल्पिक रूप (alternate) के रूप में घोषित करता है, क्योंकि वह मिरर हमेशा मौजूद रहता है; अन्य कस्टम पेजों का कोई मिरर नहीं होता, इसलिए कोई घोषित नहीं किया जाता। किसी एक पेज से ये लिंक हटाने के लिए `discovery={null}` पास करें।
 

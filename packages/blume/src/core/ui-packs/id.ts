@@ -5,7 +5,6 @@ export const id: UIStringsOverride = {
   actions: {
     addToCursor: "Tambahkan ke Cursor",
     addToVscode: "Tambahkan ke VS Code",
-    askAI: "Tanya AI tentang halaman ini",
     connectMcp: "Hubungkan ke MCP",
     copied: "Disalin!",
     copyClaudeCode: "Salin perintah Claude Code",
@@ -25,7 +24,7 @@ export const id: UIStringsOverride = {
       "Baca {url} agar saya bisa mengajukan pertanyaan tentang halaman ini.",
     scrollToTop: "Kembali ke atas",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "Hapus percakapan",
     close: "Tutup",
@@ -36,7 +35,7 @@ export const id: UIStringsOverride = {
     placeholder: "Ajukan pertanyaan…",
     send: "Kirim",
     tip: "Tips: Anda dapat membuka dan menutup obrolan dengan",
-    title: "Tanya AI",
+    title: "Asisten",
     you: "Anda",
   },
   banner: { dismiss: "Tutup pengumuman" },
@@ -85,8 +84,8 @@ export const id: UIStringsOverride = {
   search: {
     all: "Semua",
     allLanguages: "Semua bahasa",
-    askAi: "Tanya AI",
-    askAiHint: "Dapatkan jawaban instan dari AI",
+    assistant: "Asisten",
+    assistantHint: "Dapatkan jawaban instan dari AI",
     button: "Cari",
     devOnly: "Pencarian tersedia di build produksi.",
     error: "Terjadi kesalahan. Silakan coba lagi.",

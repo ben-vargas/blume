@@ -636,7 +636,7 @@ describe("layout chrome sources", () => {
 
   it("toggles the search dialog on ⌘K and guards re-entrant opens", async () => {
     const source = await layoutSource("Search.astro");
-    // ⌘K closes an open dialog (mirroring Ask AI's ⌘I toggle) instead of
+    // ⌘K closes an open dialog (mirroring the assistant's ⌘I toggle) instead of
     // calling showModal on it — a no-op on evergreen browsers but an
     // InvalidStateError on older ones.
     expect(source).toContain("this.dialog.close();");

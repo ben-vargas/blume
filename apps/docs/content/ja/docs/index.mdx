@@ -32,7 +32,7 @@ Blume は Astro と Vite の上に構築され、デフォルトで静的 HTML �
 
 ### すぐに使える AI 対応 [#ai-ready-out-of-the-box]
 
-すべての Blume サイトは機械にも流暢に語りかけます。[`llms.txt` と `llms-full.txt`](/docs/discoverability/llms-txt) を出力し、URL に `.md` を付けるだけで任意のページの生の Markdown を提供し、[OpenAPI で記述された JSON API](/docs/discoverability/json-api) を公開し、すべてのページで **Copy as Markdown** と **Open in chat** のアクションを読者に提供します。オプションのページ内 **Ask AI** アシスタントを追加したり、[**MCP サーバー**](/docs/discoverability/mcp) をホストすれば、Claude Code や Cursor などのコーディングエージェントがドキュメントを直接検索して読み取れます。スクレイピングも、ホスト型サービスも不要です。あなたの Markdown が、人間にとってもモデルにとっても信頼できる唯一の情報源になります。
+すべての Blume サイトは機械にも流暢に語りかけます。[`llms.txt` と `llms-full.txt`](/docs/discoverability/llms-txt) を出力し、URL に `.md` を付けるだけで任意のページの生の Markdown を提供し、[OpenAPI で記述された JSON API](/docs/discoverability/json-api) を公開し、すべてのページで **Copy as Markdown** と **Open in chat** のアクションを読者に提供します。オプションのページ内 **アシスタント** を追加したり、[**MCP サーバー**](/docs/discoverability/mcp) をホストすれば、Claude Code や Cursor などのコーディングエージェントがドキュメントを直接検索して読み取れます。スクレイピングも、ホスト型サービスも不要です。あなたの Markdown が、人間にとってもモデルにとっても信頼できる唯一の情報源になります。
 
 ### ゼロコンフィグ — テンプレートさえも [#zero-configuration--even-the-template]
 
@@ -46,7 +46,7 @@ Blume は Astro と Vite の上に構築され、デフォルトで静的 HTML �
 
 - **コンポーネント** — コールアウト、カード、ステップ、タブ、アコーディオン、バッジ、ファイルツリー、パラメータテーブルが、MDX で[インポート不要](/docs/content/components)で使えます。
 - **ローカル検索** — Orama が開発環境でも本番環境でも動作します。大規模サイト向けには Pagefind がアダプター 1 つで利用できます（`search: pagefind()`）。ホスト型インデックスは不要です。
-- **AI** — [`llms.txt`、生の Markdown URL、OpenAPI 記述付きの JSON API、Copy as Markdown、Open in chat、ホスト型 MCP サーバー](/docs/discoverability)。さらにオプションの [Ask AI アシスタント](/docs/configuration/ask-ai)。
+- **AI** — [`llms.txt`、生の Markdown URL、OpenAPI 記述付きの JSON API、Copy as Markdown、Open in chat、ホスト型 MCP サーバー](/docs/discoverability)。さらにオプションの [ページ内アシスタント](/docs/configuration/assistant)。
 - **ナビゲーション** — ファイルから推論され、`meta.ts` や設定で調整できます。
 - **SEO** — メタデータ、Open Graph 画像、RSS フィード、JSON-LD を[標準搭載](/docs/discoverability)。
 - **カスタマイズ** — コンポーネントのオーバーライド、React アイランド、カスタムページ、テーマトークン、そして `blume add` によるソースコンポーネントレジストリ。

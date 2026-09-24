@@ -76,7 +76,7 @@ The module exposes:
       type: "BlumeDataConfig",
       required: true,
       description:
-        "Resolved site settings: title, description, logo, favicon, appleIcon, banner, theme, site, repoUrl, github (owner, repo, host, and the REST api base — null when unset), search, i18n, mcp, ask, og, analytics, feedback, structuredData, toc, codeThemes, codeWrap, and imageZoom.",
+        "Resolved site settings: title, description, logo, favicon, appleIcon, banner, theme, site, repoUrl, github (owner, repo, host, and the REST api base — null when unset), search, i18n, mcp, assistant, og, analytics, feedback, structuredData, toc, codeThemes, codeWrap, and imageZoom.",
     },
     navigation: {
       type: "Navigation",
@@ -230,7 +230,7 @@ const { config } = data;
 </PageLayout>
 ```
 
-The header a custom page gets is the same one the docs pages get, so the chrome that lives in it comes along: search, the theme toggle, the language switcher, and — when [Ask AI](/docs/configuration/ask-ai) is configured — the Ask AI trigger. None of it needs wiring up per page. Pass `askEnabled={false}` to leave the Ask trigger off one page while keeping it everywhere else.
+The header a custom page gets is the same one the docs pages get, so the chrome that lives in it comes along: search, the theme toggle, the language switcher, and — when the [assistant](/docs/configuration/assistant) is configured — its trigger. None of it needs wiring up per page. Pass `assistantEnabled={false}` to leave the assistant trigger off one page while keeping it everywhere else.
 
 The [agent-discovery head links](/docs/discoverability/agent-discovery#discovery-link-header) come along too: the layout reads the resolved config, so a custom page carries the same `describedby`, `ai-catalog`, and `ard` links the docs pages do without passing a prop. The homepage also advertises its `/index.md` Markdown mirror as a `text/markdown` alternate, since that mirror always exists; other custom pages have none, so none is advertised. Pass `discovery={null}` to drop the links from one page.
 

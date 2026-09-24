@@ -5,7 +5,6 @@ export const cs: UIStringsOverride = {
   actions: {
     addToCursor: "Přidat do Cursoru",
     addToVscode: "Přidat do VS Code",
-    askAI: "Zeptat se AI na tuto stránku",
     connectMcp: "Připojit k MCP",
     copied: "Zkopírováno!",
     copyClaudeCode: "Kopírovat příkaz Claude Code",
@@ -24,7 +23,7 @@ export const cs: UIStringsOverride = {
     openInChatPrompt: "Přečtěte si {url}, ať se mohu ptát na tuto stránku.",
     scrollToTop: "Zpět nahoru",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "Vymazat konverzaci",
     close: "Zavřít",
@@ -35,7 +34,7 @@ export const cs: UIStringsOverride = {
     placeholder: "Položit otázku…",
     send: "Odeslat",
     tip: "Tip: Chat můžete otevřít a zavřít pomocí",
-    title: "Zeptat se AI",
+    title: "Asistent",
     you: "Vy",
   },
   banner: { dismiss: "Zavřít oznámení" },
@@ -84,8 +83,8 @@ export const cs: UIStringsOverride = {
   search: {
     all: "Vše",
     allLanguages: "Všechny jazyky",
-    askAi: "Zeptat se AI",
-    askAiHint: "Získejte okamžitou odpověď od AI",
+    assistant: "Asistent",
+    assistantHint: "Získejte okamžitou odpověď od AI",
     button: "Hledat",
     devOnly: "Vyhledávání je dostupné v produkčním buildu.",
     error: "Něco se pokazilo. Zkuste to prosím znovu.",

@@ -157,13 +157,13 @@ describe("agents", () => {
     ]);
   });
 
-  it("keeps ask and openInChat under ai", () => {
+  it("keeps assistant and openInChat under ai", () => {
     const { ai } = blumeConfigSchema.parse({
-      ai: { ask: { enabled: true }, openInChat: ["claude"] },
+      ai: { assistant: { enabled: true }, openInChat: ["claude"] },
     });
-    expect(ai.ask?.enabled).toBe(true);
+    expect(ai.assistant?.enabled).toBe(true);
     expect(ai.openInChat).toEqual(["claude"]);
-    expect(Object.keys(ai).toSorted()).toEqual(["ask", "openInChat"]);
+    expect(Object.keys(ai).toSorted()).toEqual(["assistant", "openInChat"]);
   });
 
   it("resolves the agents defaults", () => {
@@ -204,13 +204,13 @@ describe("agents", () => {
   });
 
   it("rejects a model-facing key placed under agents with the default message", () => {
-    expect(messages(parse({ agents: { ask: { enabled: true } } }))[0]).toMatch(
-      /Unrecognized key/u
-    );
+    expect(
+      messages(parse({ agents: { assistant: { enabled: true } } }))[0]
+    ).toMatch(/Unrecognized key/u);
   });
 });
 
-describe("ai.ask provider", () => {
+describe("ai.assistant provider", () => {
   /** An inline `blume/ai` descriptor, as the factories return it. */
   const inkeepDescriptor = {
     kind: "inkeep",
@@ -221,27 +221,31 @@ describe("ai.ask provider", () => {
 
   it("names the factory that replaced a 1.x provider name", () => {
     expect(
-      messages(parse({ ai: { ask: { provider: "openrouter" } } }))
+      messages(parse({ ai: { assistant: { provider: "openrouter" } } }))
     ).toEqual([
-      'ai.ask.provider takes an adapter from "blume/ai", not a provider name: `provider: openrouter({ model })`. The 1.x model, apiKeyEnv, baseUrl, headers, and reasoning fields move into the call.',
+      'ai.assistant.provider takes an adapter from "blume/ai", not a provider name: `provider: openrouter({ model })`. The 1.x model, apiKeyEnv, baseUrl, headers, and reasoning fields move into the call.',
     ]);
     expect(
-      messages(parse({ ai: { ask: { provider: "openai-compatible" } } }))[0]
+      messages(
+        parse({ ai: { assistant: { provider: "openai-compatible" } } })
+      )[0]
     ).toContain("`provider: openaiCompatible({ model })`");
   });
 
   it("lists the adapters for a provider value that was never a 1.x name", () => {
     const hint =
-      'ai.ask.provider takes an adapter from "blume/ai": gateway(), openrouter(), llmgateway(), inkeep(), or openaiCompatible().';
-    expect(messages(parse({ ai: { ask: { provider: "anthropic" } } }))).toEqual(
-      [hint]
-    );
-    expect(messages(parse({ ai: { ask: { provider: 42 } } }))).toEqual([hint]);
+      'ai.assistant.provider takes an adapter from "blume/ai": gateway(), openrouter(), llmgateway(), inkeep(), or openaiCompatible().';
+    expect(
+      messages(parse({ ai: { assistant: { provider: "anthropic" } } }))
+    ).toEqual([hint]);
+    expect(messages(parse({ ai: { assistant: { provider: 42 } } }))).toEqual([
+      hint,
+    ]);
   });
 
   it("keeps Zod's message for a descriptor with an unknown kind", () => {
     expect(
-      messages(parse({ ai: { ask: { provider: { kind: "nope" } } } }))[0]
+      messages(parse({ ai: { assistant: { provider: { kind: "nope" } } } }))[0]
     ).toMatch(/discriminator/iu);
   });
 
@@ -250,7 +254,7 @@ describe("ai.ask provider", () => {
       messages(
         parse({
           ai: {
-            ask: {
+            assistant: {
               model: "anthropic/claude-sonnet-4-5",
               provider: "openrouter",
               reasoning: "none",
@@ -259,44 +263,93 @@ describe("ai.ask provider", () => {
         })
       )
     ).toEqual([
-      'ai.ask.provider takes an adapter from "blume/ai", not a provider name: `provider: openrouter({ model })`. The 1.x model, apiKeyEnv, baseUrl, headers, and reasoning fields move into the call.',
-      'ai.ask.model, ai.ask.reasoning moved into the provider adapter: `provider: openrouter({ model, reasoning })`, imported from "blume/ai".',
+      'ai.assistant.provider takes an adapter from "blume/ai", not a provider name: `provider: openrouter({ model })`. The 1.x model, apiKeyEnv, baseUrl, headers, and reasoning fields move into the call.',
+      'ai.assistant.model, ai.assistant.reasoning moved into the provider adapter: `provider: openrouter({ model, reasoning })`, imported from "blume/ai".',
     ]);
   });
 
   it("names the descriptor's own adapter, or the gateway when unset", () => {
     expect(
       messages(
-        parse({ ai: { ask: { model: "x", provider: inkeepDescriptor } } })
+        parse({ ai: { assistant: { model: "x", provider: inkeepDescriptor } } })
       )
     ).toEqual([
-      'ai.ask.model moved into the provider adapter: `provider: inkeep({ model })`, imported from "blume/ai".',
+      'ai.assistant.model moved into the provider adapter: `provider: inkeep({ model })`, imported from "blume/ai".',
     ]);
     expect(
-      messages(parse({ ai: { ask: { apiKeyEnv: "KEY", headers: {} } } }))
+      messages(parse({ ai: { assistant: { apiKeyEnv: "KEY", headers: {} } } }))
     ).toEqual([
-      'ai.ask.apiKeyEnv, ai.ask.headers moved into the provider adapter: `provider: gateway({ apiKeyEnv, headers })`, imported from "blume/ai".',
+      'ai.assistant.apiKeyEnv, ai.assistant.headers moved into the provider adapter: `provider: gateway({ apiKeyEnv, headers })`, imported from "blume/ai".',
     ]);
   });
 
   it("keeps reporting a plain unknown key beside a moved field", () => {
     expect(
-      messages(parse({ ai: { ask: { baseUrl: "https://x.dev", colour: 1 } } }))
+      messages(
+        parse({ ai: { assistant: { baseUrl: "https://x.dev", colour: 1 } } })
+      )
     ).toEqual([
-      'ai.ask.baseUrl moved into the provider adapter: `provider: gateway({ baseUrl })`, imported from "blume/ai". Unrecognized key: "colour"',
+      'ai.assistant.baseUrl moved into the provider adapter: `provider: gateway({ baseUrl })`, imported from "blume/ai". Unrecognized key: "colour"',
     ]);
   });
 
   it("keeps the default message for an unknown key alone", () => {
-    expect(messages(parse({ ai: { ask: { colour: 1 } } }))[0]).toMatch(
+    expect(messages(parse({ ai: { assistant: { colour: 1 } } }))[0]).toMatch(
       /^Unrecognized key/u
     );
   });
 
-  it("keeps Zod's own message when ai.ask isn't an object", () => {
-    expect(messages(parse({ ai: { ask: "yes" } }))[0]).toMatch(
+  it("keeps Zod's own message when ai.assistant isn't an object", () => {
+    expect(messages(parse({ ai: { assistant: "yes" } }))[0]).toMatch(
       /expected object/iu
     );
+  });
+});
+
+describe("ai.ask", () => {
+  it("rejects the old key with a hint naming ai.assistant", () => {
+    expect(messages(parse({ ai: { ask: { enabled: true } } }))).toEqual([
+      "ai.ask was renamed to ai.assistant.",
+    ]);
+  });
+
+  it("rejects the old UI string keys with hints naming their new ones", () => {
+    const result = parse({
+      i18n: {
+        locales: [{ code: "en", label: "English" }],
+        ui: {
+          en: {
+            ask: { title: "Chat" },
+            search: { askAi: "Chat", askAiHint: "Ask the docs", button: "Go" },
+          },
+        },
+      },
+    });
+    expect(messages(result)).toEqual([
+      "i18n.ui.en.ask was renamed to i18n.ui.en.assistant.",
+      "i18n.ui.en.search.askAi was renamed to i18n.ui.en.search.assistant.",
+      "i18n.ui.en.search.askAiHint was renamed to i18n.ui.en.search.assistantHint.",
+    ]);
+    expect(result.error?.issues.map((issue) => issue.path)).toEqual([
+      ["i18n", "ui", "en", "ask"],
+      ["i18n", "ui", "en", "search", "askAi"],
+      ["i18n", "ui", "en", "search", "askAiHint"],
+    ]);
+  });
+
+  it("accepts the renamed UI string keys", () => {
+    const result = parse({
+      i18n: {
+        locales: [{ code: "en", label: "English" }],
+        ui: {
+          en: {
+            assistant: { title: "Chat" },
+            search: { assistant: "Chat", assistantHint: "Ask the docs" },
+          },
+        },
+      },
+    });
+    expect(result.success).toBe(true);
   });
 });
 

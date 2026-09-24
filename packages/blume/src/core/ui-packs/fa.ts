@@ -5,7 +5,6 @@ export const fa: UIStringsOverride = {
   actions: {
     addToCursor: "افزودن به Cursor",
     addToVscode: "افزودن به VS Code",
-    askAI: "از هوش مصنوعی درباره این صفحه بپرسید",
     connectMcp: "اتصال به MCP",
     copied: "کپی شد!",
     copyClaudeCode: "کپی دستور Claude Code",
@@ -24,7 +23,7 @@ export const fa: UIStringsOverride = {
     openInChatPrompt: "{url} را بخوانید تا بتوانم درباره این صفحه سؤال بپرسم.",
     scrollToTop: "بازگشت به بالا",
   },
-  ask: {
+  assistant: {
     ai: "هوش مصنوعی",
     clear: "پاک کردن گفتگو",
     close: "بستن",
@@ -35,7 +34,7 @@ export const fa: UIStringsOverride = {
     placeholder: "یک سؤال بپرسید…",
     send: "ارسال",
     tip: "نکته: باز و بسته کردن گفتگو با",
-    title: "از هوش مصنوعی بپرسید",
+    title: "دستیار",
     you: "شما",
   },
   banner: { dismiss: "بستن اطلاعیه" },
@@ -84,8 +83,8 @@ export const fa: UIStringsOverride = {
   search: {
     all: "همه",
     allLanguages: "همه زبان‌ها",
-    askAi: "از هوش مصنوعی بپرسید",
-    askAiHint: "پاسخی فوری از هوش مصنوعی دریافت کنید",
+    assistant: "دستیار",
+    assistantHint: "پاسخی فوری از هوش مصنوعی دریافت کنید",
     button: "جستجو",
     devOnly: "جستجو در نسخه تولید در دسترس است.",
     error: "مشکلی پیش آمد. لطفاً دوباره تلاش کنید.",

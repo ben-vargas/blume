@@ -14,15 +14,15 @@ blume doctor
 - **The Node version** against the range the installed `blume` package supports, read from its own `engines` field. A version outside it is a warning: things may work, but it isn't a combination Blume tests.
 - **`blume.config.ts`**, with the same validation a build runs. A removed or renamed key fails with a hint naming its replacement rather than a bare "unrecognized key".
 - **Every content page and folder meta**: the diagnostics `blume dev` and `blume build` print as they load the project — invalid frontmatter, navigation problems, missing include targets, and the rest — collected in one report.
-- **Features that need a server** on a site configured for static output — Ask AI, the MCP server, or the Try it playground's built-in proxy: an error naming the feature, with the deployment adapter to switch to (or, when a host adapter is set to `output: "static"`, telling you to drop that option).
-- **Packages your config needs** that aren't installed — the SDK a search, content source, or Ask AI adapter imports, a deployment adapter's `@astrojs/*` package, or the renderer for Vue or Svelte islands: an error naming each package, with the install command for your package manager. `blume build` stops on the same check.
+- **Features that need a server** on a site configured for static output — the assistant, the MCP server, or the Try it playground's built-in proxy: an error naming the feature, with the deployment adapter to switch to (or, when a host adapter is set to `output: "static"`, telling you to drop that option).
+- **Packages your config needs** that aren't installed — the SDK a search, content source, or assistant adapter imports, a deployment adapter's `@astrojs/*` package, or the renderer for Vue or Svelte islands: an error naming each package, with the install command for your package manager. `blume build` stops on the same check.
 - **`components.ts` overrides** Blume can't plan — an inline or computed entry, or an import whose file doesn't exist: an error for each, at its line.
 - **A version-shaped folder** (`v1.0/`) on a site with no `versions` configured, which would otherwise build as ordinary content: a warning pointing at [`blume version`](/docs/cli/version).
 - **Secrets an enabled feature reads** that aren't set, such as `ALGOLIA_ADMIN_API_KEY` or `OPENROUTER_API_KEY`: a warning naming the variable. Doctor loads `.env` and `.env.local` first, like `blume dev` and `blume build`.
 
 ## The summary
 
-After the diagnostics, doctor prints what the project resolved to, so a mismatch between what you think is configured and what Blume sees is visible at a glance: the page count, the output mode and deployment adapter, the search provider, the configured reference, analytics, and content source adapters, and whether Ask AI is on and which backend it uses.
+After the diagnostics, doctor prints what the project resolved to, so a mismatch between what you think is configured and what Blume sees is visible at a glance: the page count, the output mode and deployment adapter, the search provider, the configured reference, analytics, and content source adapters, and whether the assistant is on and which backend it uses.
 
 ## Exit code and JSON
 

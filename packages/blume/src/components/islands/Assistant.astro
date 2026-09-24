@@ -1,7 +1,7 @@
 ---
 import type { UIStrings } from "../../core/i18n-ui.ts";
 import { resolveIcon } from "../../theme/icons.ts";
-import AskAI from "./ask-ai.tsx";
+import Assistant from "./assistant.tsx";
 
 interface Suggestion {
   icon?: string;
@@ -10,7 +10,7 @@ interface Suggestion {
 
 interface Props {
   endpoint?: string;
-  strings?: UIStrings["ask"];
+  strings?: UIStrings["assistant"];
   suggestions?: Suggestion[];
 }
 
@@ -48,19 +48,19 @@ const icons = {
     the draft input, and the open panel — across client-router navigations
     instead of remounting it empty on every page. The island re-portals its
     panel and re-stamps the body push attribute itself on astro:after-swap
-    (see ask-ai.tsx), since the swap replaces <body> wholesale. */}
-<AskAI
+    (see assistant.tsx), since the swap replaces <body> wholesale. */}
+<Assistant
   client:load
   endpoint={endpoint}
   icons={icons}
   strings={strings}
   suggestions={items}
-  transition:persist="blume-ask"
+  transition:persist="blume-assistant"
 />
 
 <style is:global>
   :root {
-    --blume-ask-width: min(30rem, 100vw);
+    --blume-assistant-width: min(30rem, 100vw);
   }
 
   /* Desktop docks the panel and shrinks the page to fit, like vercel.com/docs.
@@ -70,8 +70,8 @@ const icons = {
       transition: padding-inline-end 0.2s ease-out;
     }
 
-    body[data-blume-ask="open"] {
-      padding-inline-end: var(--blume-ask-width);
+    body[data-blume-assistant="open"] {
+      padding-inline-end: var(--blume-assistant-width);
     }
   }
 
@@ -81,11 +81,11 @@ const icons = {
      changelog index) is single-column, and forcing the sidebar tracks onto it
      would squeeze its only item — <main> — into the 17.5rem track. */
   @media (min-width: 1280px) {
-    body[data-blume-ask="open"] [data-blume-toc] {
+    body[data-blume-assistant="open"] [data-blume-toc] {
       display: none;
     }
 
-    body[data-blume-ask="open"] [data-blume-doc-grid]:has([data-blume-toc]) {
+    body[data-blume-assistant="open"] [data-blume-doc-grid]:has([data-blume-toc]) {
       grid-template-columns: 17.5rem minmax(0, 1fr);
     }
   }

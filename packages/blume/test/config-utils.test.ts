@@ -10,20 +10,24 @@ describe("serverFeatures", () => {
     expect(serverFeatures(blumeConfigSchema.parse({}))).toStrictEqual([]);
   });
 
-  it("lists Ask AI when it is enabled", () => {
-    const config = blumeConfigSchema.parse({ ai: { ask: { enabled: true } } });
-    expect(serverFeatures(config)).toStrictEqual(["Ask AI"]);
+  it("lists the assistant when it is enabled", () => {
+    const config = blumeConfigSchema.parse({
+      ai: { assistant: { enabled: true } },
+    });
+    expect(serverFeatures(config)).toStrictEqual(["Assistant"]);
   });
 
-  it("ignores Ask AI when present but disabled", () => {
-    const config = blumeConfigSchema.parse({ ai: { ask: { enabled: false } } });
+  it("ignores the assistant when present but disabled", () => {
+    const config = blumeConfigSchema.parse({
+      ai: { assistant: { enabled: false } },
+    });
     expect(serverFeatures(config)).toStrictEqual([]);
   });
 
-  it("keeps Ask AI static when an external endpoint is configured", () => {
+  it("keeps the assistant static when an external endpoint is configured", () => {
     const config = blumeConfigSchema.parse({
       ai: {
-        ask: {
+        assistant: {
           enabled: true,
           endpoint: "https://api.example.com/v1/docs/ask",
         },
@@ -35,15 +39,17 @@ describe("serverFeatures", () => {
 
 describe("ask retrieval config", () => {
   it("stays undefined when not configured, so generated endpoints keep tracking the built-in defaults", () => {
-    const config = blumeConfigSchema.parse({ ai: { ask: { enabled: true } } });
-    expect(config.ai.ask?.retrieval).toBeUndefined();
+    const config = blumeConfigSchema.parse({
+      ai: { assistant: { enabled: true } },
+    });
+    expect(config.ai.assistant?.retrieval).toBeUndefined();
   });
 
   it("carries only the fields the user set", () => {
     const config = blumeConfigSchema.parse({
-      ai: { ask: { enabled: true, retrieval: { maxResults: 3 } } },
+      ai: { assistant: { enabled: true, retrieval: { maxResults: 3 } } },
     });
-    expect(config.ai.ask?.retrieval).toStrictEqual({ maxResults: 3 });
+    expect(config.ai.assistant?.retrieval).toStrictEqual({ maxResults: 3 });
   });
 });
 

@@ -6,7 +6,7 @@ import { join } from "pathe";
 
 import { openaiCompatible, openrouter } from "../src/ai/ask.ts";
 import {
-  askProviderDependencies,
+  assistantProviderDependencies,
   deploymentAdapterDependencies,
   islandFrameworkDependencies,
   missingDependencyDiagnostic,
@@ -33,11 +33,11 @@ afterEach(async () => {
   await rm(root, { force: true, recursive: true });
 });
 
-// A parsed (schema-defaulted) `ai.ask` block, the shape the check receives
+// A parsed (schema-defaulted) `ai.assistant` block, the shape the check receives
 // from the resolved config.
 const parsedAsk = (
-  ask: NonNullable<NonNullable<BlumeConfigInput["ai"]>["ask"]>
-) => blumeConfigSchema.parse({ ai: { ask } }).ai.ask;
+  ask: NonNullable<NonNullable<BlumeConfigInput["ai"]>["assistant"]>
+) => blumeConfigSchema.parse({ ai: { assistant: ask } }).ai.assistant;
 
 describe("searchProviderDependencies", () => {
   it("reports the search adapter's SDK when it isn't installed anywhere", () => {
@@ -55,29 +55,29 @@ describe("searchProviderDependencies", () => {
   });
 });
 
-describe("askProviderDependencies", () => {
-  it("reports the Ask AI provider SDK when it isn't installed anywhere", () => {
+describe("assistantProviderDependencies", () => {
+  it("reports the assistant provider SDK when it isn't installed anywhere", () => {
     const ask = parsedAsk({
       enabled: true,
       provider: openrouter({ model: "x/y" }),
     });
-    expect(askProviderDependencies(ask, root, root)).toEqual([
+    expect(assistantProviderDependencies(ask, root, root)).toEqual([
       {
         dep: "@openrouter/ai-sdk-provider",
         install: ["@openrouter/ai-sdk-provider"],
-        owner: 'Ask AI provider "openrouter"',
+        owner: 'Assistant provider "openrouter"',
       },
     ]);
   });
 
-  it("stays quiet for the gateway backend, an external endpoint, and disabled Ask AI", () => {
+  it("stays quiet for the gateway backend, an external endpoint, and a disabled assistant", () => {
     // Gateway needs only the core `ai` package, which ships with Blume.
     expect(
-      askProviderDependencies(parsedAsk({ enabled: true }), root, root)
+      assistantProviderDependencies(parsedAsk({ enabled: true }), root, root)
     ).toEqual([]);
     // An external endpoint means the provider route is never generated.
     expect(
-      askProviderDependencies(
+      assistantProviderDependencies(
         parsedAsk({
           enabled: true,
           endpoint: "https://api.example.com/ask",
@@ -87,10 +87,10 @@ describe("askProviderDependencies", () => {
         root
       )
     ).toEqual([]);
-    expect(askProviderDependencies(undefined, root, root)).toEqual([]);
+    expect(assistantProviderDependencies(undefined, root, root)).toEqual([]);
   });
 
-  it("stays quiet when the Ask AI provider SDK is resolvable", () => {
+  it("stays quiet when the assistant provider SDK is resolvable", () => {
     const ask = parsedAsk({
       enabled: true,
       provider: openaiCompatible({
@@ -100,7 +100,7 @@ describe("askProviderDependencies", () => {
       }),
     });
     // Blume's own package resolves the workspace-installed SDK.
-    expect(askProviderDependencies(ask, root)).toEqual([]);
+    expect(assistantProviderDependencies(ask, root)).toEqual([]);
   });
 });
 
@@ -133,7 +133,9 @@ describe("islandFrameworkDependencies", () => {
 
 describe("missingDependencyDiagnostic", () => {
   const config = blumeConfigSchema.parse({
-    ai: { ask: { enabled: true, provider: openrouter({ model: "x/y" }) } },
+    ai: {
+      assistant: { enabled: true, provider: openrouter({ model: "x/y" }) },
+    },
     search: algolia({ apiKey: "k", appId: "a", indexName: "i" }),
   });
 
@@ -170,7 +172,7 @@ describe("missingDependencyDiagnostic", () => {
     ).toEqual({
       code: "BLUME_DEPENDENCY_MISSING",
       message:
-        'These packages aren\'t installed: Search adapter "algolia" needs "algoliasearch"; Ask AI provider "openrouter" needs "@openrouter/ai-sdk-provider"; Island framework "svelte" needs "@astrojs/svelte".',
+        'These packages aren\'t installed: Search adapter "algolia" needs "algoliasearch"; Assistant provider "openrouter" needs "@openrouter/ai-sdk-provider"; Island framework "svelte" needs "@astrojs/svelte".',
       severity: "error",
       suggestion:
         "Install them: `pnpm add algoliasearch @openrouter/ai-sdk-provider @astrojs/svelte svelte`.",

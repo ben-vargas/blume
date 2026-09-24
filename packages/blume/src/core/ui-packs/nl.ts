@@ -5,7 +5,6 @@ export const nl: UIStringsOverride = {
   actions: {
     addToCursor: "Toevoegen aan Cursor",
     addToVscode: "Toevoegen aan VS Code",
-    askAI: "AI vragen over deze pagina",
     connectMcp: "Verbinden met MCP",
     copied: "Gekopieerd!",
     copyClaudeCode: "Claude Code-opdracht kopiëren",
@@ -25,7 +24,7 @@ export const nl: UIStringsOverride = {
       "Lees {url}, zodat ik je vragen kan stellen over deze pagina.",
     scrollToTop: "Naar boven scrollen",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "Gesprek wissen",
     close: "Sluiten",
@@ -36,7 +35,7 @@ export const nl: UIStringsOverride = {
     placeholder: "Stel een vraag…",
     send: "Verzenden",
     tip: "Tip: Je kunt de chat openen en sluiten met",
-    title: "AI vragen",
+    title: "Assistent",
     you: "Jij",
   },
   banner: { dismiss: "Aankondiging sluiten" },
@@ -85,8 +84,8 @@ export const nl: UIStringsOverride = {
   search: {
     all: "Alle",
     allLanguages: "Alle talen",
-    askAi: "AI vragen",
-    askAiHint: "Krijg direct antwoord van AI",
+    assistant: "Assistent",
+    assistantHint: "Krijg direct antwoord van AI",
     button: "Zoeken",
     devOnly: "Zoeken is beschikbaar in de productiebuild.",
     error: "Er is iets misgegaan. Probeer het opnieuw.",

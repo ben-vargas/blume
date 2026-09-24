@@ -5,7 +5,6 @@ export const ar: UIStringsOverride = {
   actions: {
     addToCursor: "إضافة إلى Cursor",
     addToVscode: "إضافة إلى VS Code",
-    askAI: "اسأل الذكاء الاصطناعي عن هذه الصفحة",
     connectMcp: "الاتصال بـ MCP",
     copied: "تم النسخ!",
     copyClaudeCode: "نسخ أمر Claude Code",
@@ -24,7 +23,7 @@ export const ar: UIStringsOverride = {
     openInChatPrompt: "اقرأ {url} حتى أتمكن من طرح أسئلة حول هذه الصفحة.",
     scrollToTop: "العودة إلى الأعلى",
   },
-  ask: {
+  assistant: {
     ai: "الذكاء الاصطناعي",
     clear: "مسح المحادثة",
     close: "إغلاق",
@@ -35,7 +34,7 @@ export const ar: UIStringsOverride = {
     placeholder: "اطرح سؤالاً…",
     send: "إرسال",
     tip: "نصيحة: يمكنك فتح المحادثة وإغلاقها باستخدام",
-    title: "اسأل الذكاء الاصطناعي",
+    title: "المساعد",
     you: "أنت",
   },
   banner: { dismiss: "إغلاق الإعلان" },
@@ -84,8 +83,8 @@ export const ar: UIStringsOverride = {
   search: {
     all: "الكل",
     allLanguages: "جميع اللغات",
-    askAi: "اسأل الذكاء الاصطناعي",
-    askAiHint: "احصل على إجابة فورية من الذكاء الاصطناعي",
+    assistant: "المساعد",
+    assistantHint: "احصل على إجابة فورية من الذكاء الاصطناعي",
     button: "بحث",
     devOnly: "البحث متاح في إصدار الإنتاج.",
     error: "حدث خطأ ما. يرجى المحاولة مرة أخرى.",

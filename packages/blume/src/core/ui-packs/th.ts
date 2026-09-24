@@ -5,7 +5,6 @@ export const th: UIStringsOverride = {
   actions: {
     addToCursor: "เพิ่มไปยัง Cursor",
     addToVscode: "เพิ่มไปยัง VS Code",
-    askAI: "ถาม AI เกี่ยวกับหน้านี้",
     connectMcp: "เชื่อมต่อกับ MCP",
     copied: "คัดลอกแล้ว!",
     copyClaudeCode: "คัดลอกคำสั่ง Claude Code",
@@ -24,7 +23,7 @@ export const th: UIStringsOverride = {
     openInChatPrompt: "อ่าน {url} เพื่อให้ฉันถามคำถามเกี่ยวกับหน้านี้ได้",
     scrollToTop: "กลับไปด้านบน",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "ล้างการสนทนา",
     close: "ปิด",
@@ -35,7 +34,7 @@ export const th: UIStringsOverride = {
     placeholder: "ถามคำถาม…",
     send: "ส่ง",
     tip: "เคล็ดลับ: คุณสามารถเปิดและปิดแชทได้ด้วย",
-    title: "ถาม AI",
+    title: "ผู้ช่วย",
     you: "คุณ",
   },
   banner: { dismiss: "ปิดประกาศ" },
@@ -84,8 +83,8 @@ export const th: UIStringsOverride = {
   search: {
     all: "ทั้งหมด",
     allLanguages: "ทุกภาษา",
-    askAi: "ถาม AI",
-    askAiHint: "รับคำตอบทันทีจาก AI",
+    assistant: "ผู้ช่วย",
+    assistantHint: "รับคำตอบทันทีจาก AI",
     button: "ค้นหา",
     devOnly: "การค้นหาพร้อมใช้งานในบิลด์โปรดักชัน",
     error: "เกิดข้อผิดพลาดบางอย่าง โปรดลองอีกครั้ง",

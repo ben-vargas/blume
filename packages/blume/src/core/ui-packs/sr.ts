@@ -5,7 +5,6 @@ export const sr: UIStringsOverride = {
   actions: {
     addToCursor: "Додај у Cursor",
     addToVscode: "Додај у VS Code",
-    askAI: "Питајте AI о овој страници",
     connectMcp: "Повежи се са MCP-ом",
     copied: "Копирано!",
     copyClaudeCode: "Копирај Claude Code команду",
@@ -24,7 +23,7 @@ export const sr: UIStringsOverride = {
     openInChatPrompt: "Прочитајте {url} — постављаћу питања о овој страници.",
     scrollToTop: "Назад на врх",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "Обриши разговор",
     close: "Затвори",
@@ -35,7 +34,7 @@ export const sr: UIStringsOverride = {
     placeholder: "Поставите питање…",
     send: "Пошаљи",
     tip: "Савет: Ћаскање можете отворити и затворити помоћу",
-    title: "Питајте AI",
+    title: "Асистент",
     you: "Ви",
   },
   banner: { dismiss: "Затвори обавештење" },
@@ -84,8 +83,8 @@ export const sr: UIStringsOverride = {
   search: {
     all: "Све",
     allLanguages: "Сви језици",
-    askAi: "Питајте AI",
-    askAiHint: "Добијте тренутан одговор од AI-ја",
+    assistant: "Асистент",
+    assistantHint: "Добијте тренутан одговор од AI-ја",
     button: "Претражи",
     devOnly: "Претрага је доступна у продукцијској верзији.",
     error: "Нешто је пошло наопако. Покушајте поново.",

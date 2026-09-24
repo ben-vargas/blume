@@ -13,12 +13,12 @@ const terminal =
   "overflow-hidden rounded-xl bg-[#0d0f12] font-mono text-[0.6875rem]/5 text-zinc-400 shadow-lg shadow-[rgb(28_40_64/0.12)] outline-1 -outline-offset-1 outline-white/10 dark:shadow-none sm:text-xs/5";
 
 // A few lines of the summary `blume doctor` prints (what the project resolved
-// to), for a static site that turns on Ask AI and the MCP server.
+// to), for a static site that turns on the assistant and the MCP server.
 const doctorSummary = [
   "Pages: 24",
   "Output: static",
   "Search: orama",
-  "Ask AI: gateway",
+  "Assistant: gateway",
 ];
 ---
 
@@ -121,7 +121,7 @@ const doctorSummary = [
               <span class="font-medium text-red-400">
                 BLUME_SERVER_FEATURE_REQUIRED
               </span>{" "}
-              Ask AI, MCP server require server output.
+              Assistant, MCP server require server output.
             </p>
             <p
               class="reveal-fade whitespace-normal pl-4 text-cyan-300"

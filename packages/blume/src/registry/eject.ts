@@ -116,16 +116,16 @@ const ejectOpenApiData = (project: BlumeProject): OpenApiData => {
 };
 
 /**
- * The Ask AI endpoint plus, unless the backend runs its own retrieval (Inkeep),
- * its grounding snapshot. Empty when Ask AI is disabled.
+ * The assistant endpoint plus, unless the backend runs its own retrieval (Inkeep),
+ * its grounding snapshot. Empty when the assistant is disabled.
  */
 const askFiles = async (
   project: BlumeProject,
   srcDir: string,
   genDir: string
 ): Promise<{ content: string; path: string }[]> => {
-  const { ask } = project.config.ai;
-  if (!(ask?.enabled && !ask.endpoint)) {
+  const { assistant } = project.config.ai;
+  if (!(assistant?.enabled && !assistant.endpoint)) {
     const endpointPath = join(srcDir, "pages", "api", "ask.ts");
     if (existsSync(endpointPath)) {
       const content = await readFile(endpointPath, "utf-8");
@@ -136,13 +136,13 @@ const askFiles = async (
     await rm(join(genDir, "ask-data.json"), { force: true });
     return [];
   }
-  const backend = resolveAskBackend(ask.provider);
+  const backend = resolveAskBackend(assistant.provider);
   const files = [
     {
       content: askEndpointTemplate(backend, {
-        cors: ask.cors,
-        instructions: ask.instructions,
-        retrieval: ask.retrieval,
+        cors: assistant.cors,
+        instructions: assistant.instructions,
+        retrieval: assistant.retrieval,
       }),
       path: join(srcDir, "pages", "api", "ask.ts"),
     },
@@ -310,20 +310,20 @@ const examplesPreviewFiles = (
 /**
  * The packages the ejected app imports by bare name: Astro, Tailwind's Vite
  * plugin, `blume` itself, the integrations the config wires in, whatever the
- * configured adapters declare, and React when islands, examples, or Ask AI
+ * configured adapters declare, and React when islands, examples, or the assistant
  * render with it (Blume ships React, so projects rarely list it). They have
  * to be the project's own dependencies after eject — under a strict linker
  * such as pnpm nothing else makes them resolvable, and `astro build` fails.
  * The hidden runtime reaches the same packages through its `node_modules`
  * junction into Blume's own, so only eject declares the ones its generated
- * files import directly: the AI SDK the Ask AI route streams through (unless
- * `ai.ask.endpoint` points elsewhere, when no route is written) and the EPUB
+ * files import directly: the AI SDK the assistant route streams through (unless
+ * `ai.assistant.endpoint` points elsewhere, when no route is written) and the EPUB
  * generator's browser bundle `features.ts` loads.
  */
 const ejectDependencies = (
   options: Parameters<typeof runtimeDependencies>[0]
 ): string[] => {
-  const { ask } = options.config.ai;
+  const { assistant } = options.config.ai;
   return [
     ...new Set([
       "astro",
@@ -331,7 +331,7 @@ const ejectDependencies = (
       "blume",
       ...runtimeDependencies(options),
       ...(options.needsReact ? ["react", "react-dom"] : []),
-      ...(ask?.enabled && !ask.endpoint ? ["ai"] : []),
+      ...(assistant?.enabled && !assistant.endpoint ? ["ai"] : []),
       ...(options.config.export.epub ? ["epub-gen-memory"] : []),
     ]),
   ];
@@ -364,7 +364,7 @@ export const eject = async (
 
   const srcDir = join(root, "src");
   const genDir = join(srcDir, "generated");
-  const askEnabled = config.ai.ask?.enabled ?? false;
+  const assistantEnabled = config.ai.assistant?.enabled ?? false;
   const exportPdf = config.export.pdf;
   const exportEpub = config.export.epub;
 
@@ -402,13 +402,14 @@ export const eject = async (
     relativeTo: genDir,
   });
   // Island/example/override frameworks drive which Astro renderers the ejected
-  // config wires in; React also switches on for project `.tsx`/`.jsx` and Ask AI.
+  // config wires in; React also switches on for project `.tsx`/`.jsx` and the assistant.
   const frameworks = new Set<string>([
     ...islands.islands.map((island) => island.framework),
     ...examples.examples.map((example) => example.framework),
     ...slotPlan.frameworks,
   ]);
-  const needsReact = needsReactRaw || askEnabled || frameworks.has("react");
+  const needsReact =
+    needsReactRaw || assistantEnabled || frameworks.has("react");
   const needsVue = frameworks.has("vue");
   const needsSvelte = frameworks.has("svelte");
 
@@ -550,7 +551,7 @@ export const eject = async (
     // The header's Ask trigger behind the `blume:ask` alias. Always written — it
     // renders nothing when Ask is off — so the alias always resolves.
     {
-      content: askComponentTemplate(askEnabled),
+      content: askComponentTemplate(assistantEnabled),
       path: join(genDir, "Ask.astro"),
     },
     {
@@ -580,7 +581,7 @@ export const eject = async (
     },
   ];
 
-  if (askEnabled) {
+  if (assistantEnabled) {
     files.push(...(await askFiles(project, srcDir, genDir)));
   }
 

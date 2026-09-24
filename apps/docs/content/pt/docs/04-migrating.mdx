@@ -1,7 +1,7 @@
 ---
 title: Migre para o Blume
 description: >-
-  Mova um site em Mintlify, Fumadocs, Docusaurus, Starlight ou Nextra para o Blume com um único comando que entrega a migração ao Claude Code ou ao Codex.
+  Mova um site em Mintlify, Fumadocs, Docusaurus, Starlight ou Nextra para o Blume com um único comando que entrega a migração ao Codex ou ao Claude Code.
 sidebar:
   label: Migre para o Blume
   order: 2.4
@@ -14,10 +14,10 @@ Migrar um site de documentação para um Blume idiomático exige decisões que u
 Rode o comando a partir da raiz do projeto de documentação que você está migrando:
 
 ```package-install
-npx blume migrate fumadocs --claude
+npx blume migrate fumadocs --codex
 ```
 
-Troque `fumadocs` pelo seu framework, e `--claude` por `--codex` para usar o Codex. Com o pnpm 12, adicione `--allow-build=esbuild` depois de `pnpm dlx`, já que o pnpm 12 não executa o script de instalação do esbuild sem aprovação. O agente abre de forma interativa no seu terminal, então cada edição passa pelo fluxo de permissões dele. Ele trabalha direto nos arquivos, então comece com uma working tree limpa e revise a migração inteira como um único diff.
+Troque `fumadocs` pelo seu framework, e `--codex` por `--claude` para usar o Claude Code. Com o pnpm 12, adicione `--allow-build=esbuild` depois de `pnpm dlx`, já que o pnpm 12 não executa o script de instalação do esbuild sem aprovação. O agente abre de forma interativa no seu terminal, então cada edição passa pelo fluxo de permissões dele. Ele trabalha direto nos arquivos, então comece com uma working tree limpa e revise a migração inteira como um único diff.
 
 ## Origens [#sources]
 
@@ -48,7 +48,7 @@ Ele termina com um resumo do que foi migrado, descartado ou aproximado, como lin
 
 ## Outros agentes [#other-agents]
 
-Sem `--claude` ou `--codex`, o comando informa a origem que detectou, mostra o caminho para o playbook (a [skill](/docs/advanced/skills) `blume-migrate` que vem incluída no pacote) e encerra sem alterar nada. Aponte qualquer outro agente para esse `SKILL.md`, ou instale a skill onde o seu agente procura skills, com o comando que ele mostra:
+Sem `--codex` ou `--claude`, o comando informa a origem que detectou, mostra o caminho para o playbook (a [skill](/docs/advanced/skills) `blume-migrate` que vem incluída no pacote) e encerra sem alterar nada. Aponte qualquer outro agente para esse `SKILL.md`, ou instale a skill onde o seu agente procura skills, com o comando que ele mostra:
 
 ```bash
 npx skills add haydenbleasel/blume --skill blume-migrate

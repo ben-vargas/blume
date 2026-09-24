@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 /**
  * Tests for the shared clipboard + "Copied" feedback helpers
  * (`src/components/copy-feedback.ts`). Browser globals are faked the same way
- * ask-ai.test.ts fakes them; the originals are restored so later test files
+ * assistant.test.ts fakes them; the originals are restored so later test files
  * see the environment they expect.
  */
 

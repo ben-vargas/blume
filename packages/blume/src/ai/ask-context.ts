@@ -4,7 +4,7 @@ import type { FenceState } from "../core/code-fences.ts";
 import { buildOramaIndex, queryOramaIndex } from "../search/orama-index.ts";
 import type { OramaDoc } from "../search/orama-index.ts";
 
-/** A chat message as posted by the Ask AI island (`{ role, content }`). */
+/** A chat message as posted by the assistant island (`{ role, content }`). */
 export interface AskMessage {
   content: string;
   role: string;
@@ -16,7 +16,7 @@ export interface AskPage {
 }
 
 /**
- * The self-contained snapshot the grounded Ask AI endpoint imports. Bundles the
+ * The self-contained snapshot the assistant's grounded endpoint imports. Bundles the
  * search documents so retrieval works regardless of the configured search
  * provider and needs no filesystem access at request time. Serialized to
  * `generated/ask-data.json` and built by {@link buildAskData}.
@@ -47,7 +47,7 @@ const CONTEXT_BUDGET = 10_000;
 const MIN_EXCERPT_CHARS = 200;
 
 /**
- * How much retrieved documentation a question carries (the `ai.ask.retrieval`
+ * How much retrieved documentation a question carries (the `ai.assistant.retrieval`
  * config). Every field falls back to the built-in default, so a partial object
  * only changes what it names. Injected characters dominate time-to-first-token
  * on a self-hosted backend, and the three knobs aren't interchangeable: the
@@ -309,7 +309,7 @@ const interleave = (lists: OramaDoc[][], limit: number): OramaDoc[] => {
  *
  * Pages are indexed whole (one document each), so a naive head slice of a long
  * page returns its intro and misses sections below the fold — the exact failure
- * where "How does Ask AI work?" retrieves the right page but only sees its
+ * where "How does the assistant work?" retrieves the right page but only sees its
  * opening paragraph. This centers the window on the densest cluster of query
  * terms so the injected text is the part that actually answers the question.
  * Exported for testing; {@link createAskContext} is the runtime entry point.
@@ -585,7 +585,7 @@ export const sectionExcerpt = (
 ): string => excerptPage(parsePage(content), query, max);
 
 /**
- * Build the request-time grounding function for the Ask AI endpoint.
+ * Build the request-time grounding function for the assistant endpoint.
  *
  * Lexical retrieval over Orama (the same index/ranking the search dialog and MCP
  * server use). The index is built once and memoized across requests. Returns a
@@ -593,12 +593,12 @@ export const sectionExcerpt = (
  * viewing — or `undefined` when there is nothing to ground on, so the endpoint
  * can fall back to its plain prompt.
  *
- * `options.instructions` (the `ai.ask.instructions` config) is appended after
+ * `options.instructions` (the `ai.assistant.instructions` config) is appended after
  * the base instruction rather than replacing it: the base carries the
  * functional contract (answer only from the excerpts, cite pages as Markdown
  * links) that the panel's citation rendering depends on.
  *
- * `options.retrieval` (the `ai.ask.retrieval` config) sizes how much
+ * `options.retrieval` (the `ai.assistant.retrieval` config) sizes how much
  * documentation each question carries; omitted fields keep today's defaults.
  */
 export const createAskContext = (

@@ -5,7 +5,6 @@ export const el: UIStringsOverride = {
   actions: {
     addToCursor: "Προσθήκη στο Cursor",
     addToVscode: "Προσθήκη στο VS Code",
-    askAI: "Ρωτήστε την AI για αυτή τη σελίδα",
     connectMcp: "Σύνδεση με MCP",
     copied: "Αντιγράφηκε!",
     copyClaudeCode: "Αντιγραφή εντολής Claude Code",
@@ -25,7 +24,7 @@ export const el: UIStringsOverride = {
       "Διαβάστε το {url} για να μπορώ να κάνω ερωτήσεις για αυτή τη σελίδα.",
     scrollToTop: "Επιστροφή στην κορυφή",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "Εκκαθάριση συνομιλίας",
     close: "Κλείσιμο",
@@ -36,7 +35,7 @@ export const el: UIStringsOverride = {
     placeholder: "Κάντε μια ερώτηση…",
     send: "Αποστολή",
     tip: "Συμβουλή: Μπορείτε να ανοίγετε και να κλείνετε τη συνομιλία με",
-    title: "Ρωτήστε την AI",
+    title: "Βοηθός",
     you: "Εσείς",
   },
   banner: { dismiss: "Κλείσιμο ανακοίνωσης" },
@@ -85,8 +84,8 @@ export const el: UIStringsOverride = {
   search: {
     all: "Όλα",
     allLanguages: "Όλες οι γλώσσες",
-    askAi: "Ρωτήστε την AI",
-    askAiHint: "Λάβετε άμεση απάντηση από την AI",
+    assistant: "Βοηθός",
+    assistantHint: "Λάβετε άμεση απάντηση από την AI",
     button: "Αναζήτηση",
     devOnly: "Η αναζήτηση είναι διαθέσιμη στην έκδοση παραγωγής.",
     error: "Κάτι πήγε στραβά. Δοκιμάστε ξανά.",

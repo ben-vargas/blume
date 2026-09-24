@@ -1226,7 +1226,7 @@ describe("buildRuntimeData", () => {
 const KITCHEN_SINK = {
   "blume.config.ts": `export default {
   agents: { mcp: { enabled: true } },
-  ai: { ask: { cors: ["https://www.example.com"], enabled: true } },
+  ai: { assistant: { cors: ["https://www.example.com"], enabled: true } },
   deployment: { site: "https://example.com" },
   export: true,
   github: { dir: "site", owner: "acme", repo: "docs" },
@@ -1389,7 +1389,7 @@ describe("generateRuntime", () => {
       await writeProject({
         "blume.config.ts": `export default {
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: {
         kind: "openrouter",
@@ -1429,7 +1429,7 @@ describe("generateRuntime", () => {
       await writeProject({
         "blume.config.ts": `export default {
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: {
         kind: "inkeep",
@@ -1471,7 +1471,7 @@ describe("generateRuntime", () => {
 
     // Feature-gated files.
     expect(has("src/pages/api/ask.ts")).toBe(true);
-    // The `ai.ask.cors` origins reach the generated route.
+    // The `ai.assistant.cors` origins reach the generated route.
     expect(
       await readFile(join(out, "src/pages/api/ask.ts"), "utf-8")
     ).toContain('const ALLOWED_ORIGINS = ["https://www.example.com"];');
@@ -1525,7 +1525,7 @@ describe("generateRuntime", () => {
     // Blume's own deps — the preflight checks there too and stays quiet.
     expect(result.warnings.some((w) => w.includes("@orama/orama"))).toBe(false);
 
-    // The catch-all wires in Math for this project. The Ask AI trigger is the
+    // The catch-all wires in Math for this project. The assistant trigger is the
     // header's, reached through the generated `blume:ask` component, so no page
     // template mentions it.
     const catchAll = await readFile(
@@ -1533,10 +1533,10 @@ describe("generateRuntime", () => {
       "utf-8"
     );
     expect(catchAll).toContain("Math.astro");
-    expect(catchAll).not.toContain("AskAI");
+    expect(catchAll).not.toContain("Assistant");
 
     const ask = await readFile(join(out, "src/generated/Ask.astro"), "utf-8");
-    expect(ask).toContain("AskAI.astro");
+    expect(ask).toContain("Assistant.astro");
     const astroConfig = await readFile(join(out, "astro.config.mjs"), "utf-8");
     expect(astroConfig).toContain('"blume:ask"');
     // Normal layout: the watcher must see `.astro/data-store.json` — Astro's

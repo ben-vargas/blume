@@ -82,7 +82,7 @@ Dies ist ein anderes Konzept als die beiden obigen Pfade:
 
 ## Server-Rendering
 
-Statische Ausgabe deckt die meisten Dokumentationen ab. Wechsle zur Server-Ausgabe, wenn du Funktionen zur Anfragezeit benötigst — insbesondere den [Ask AI](/docs/configuration/ask-ai)-Endpunkt und den [MCP-Server](/docs/discoverability/mcp). Dazu gibst du den Host an: `deployment` nimmt einen aus `blume/deploy` importierten Adapter entgegen.
+Statische Ausgabe deckt die meisten Dokumentationen ab. Wechsle zur Server-Ausgabe, wenn du Funktionen zur Anfragezeit benötigst — insbesondere den Endpunkt des [Assistenten](/docs/configuration/assistant) und den [MCP-Server](/docs/discoverability/mcp). Dazu gibst du den Host an: `deployment` nimmt einen aus `blume/deploy` importierten Adapter entgegen.
 
 ```ts blume.config.ts lineNumbers
 import { defineConfig } from "blume";
@@ -129,7 +129,7 @@ Auf Vercel und Cloudflare aktiviert ein Server-Build außerdem die [Content Nego
 :::
 
 :::note
-Serverfunktionen haben ihre eigene Konfiguration — Ask AI benötigt beispielsweise einen API-Schlüssel für ein Modell. Zur Einrichtung siehe den [Ask-AI-Leitfaden](/docs/configuration/ask-ai).
+Serverfunktionen haben ihre eigene Konfiguration — der Assistent benötigt beispielsweise einen API-Schlüssel für ein Modell. Zur Einrichtung siehe den [Assistenten-Leitfaden](/docs/configuration/assistant).
 :::
 
 ## Weiterleitungen [#redirects]
@@ -160,8 +160,8 @@ Wenn eine Funktion ein Laufzeit-Secret benötigt, warnt Blume bei `blume dev`/`b
 
 | Funktion | Variable |
 | --- | --- |
-| Ask AI (AI Gateway) | `AI_GATEWAY_API_KEY` (oder Vercel OIDC) |
-| Ask AI (andere Adapter) | die Standard-Schlüssel-Umgebungsvariable des Adapters (`OPENROUTER_API_KEY`, `LLMGATEWAY_API_KEY`, `INKEEP_API_KEY`) oder das `apiKeyEnv`, das du ihm übergeben hast |
+| Assistent (AI Gateway) | `AI_GATEWAY_API_KEY` (oder Vercel OIDC) |
+| Assistent (andere Adapter) | die Standard-Schlüssel-Umgebungsvariable des Adapters (`OPENROUTER_API_KEY`, `LLMGATEWAY_API_KEY`, `INKEEP_API_KEY`) oder das `apiKeyEnv`, das du ihm übergeben hast |
 | Mixedbread-Suche | `MIXEDBREAD_API_KEY` |
 
 Setze sie in `.env.local` für die lokale Entwicklung und in der Umgebung deines Hosts für die Produktion. Vor fehlenden Build-Zeit-Secrets für die Synchronisierung des Suchindex (Algolia, Orama Cloud, Typesense) wird separat während des Sync-Schritts gewarnt.

@@ -5,7 +5,6 @@ export const zh: UIStringsOverride = {
   actions: {
     addToCursor: "添加到 Cursor",
     addToVscode: "添加到 VS Code",
-    askAI: "向 AI 询问此页面",
     connectMcp: "连接到 MCP",
     copied: "已复制！",
     copyClaudeCode: "复制 Claude Code 命令",
@@ -24,7 +23,7 @@ export const zh: UIStringsOverride = {
     openInChatPrompt: "请阅读 {url} 以便我就此页面提问。",
     scrollToTop: "回到顶部",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "清空对话",
     close: "关闭",
@@ -35,7 +34,7 @@ export const zh: UIStringsOverride = {
     placeholder: "提出问题…",
     send: "发送",
     tip: "提示：可通过以下快捷键打开和关闭聊天",
-    title: "向 AI 提问",
+    title: "助手",
     you: "你",
   },
   banner: { dismiss: "关闭公告" },
@@ -84,8 +83,8 @@ export const zh: UIStringsOverride = {
   search: {
     all: "全部",
     allLanguages: "所有语言",
-    askAi: "向 AI 提问",
-    askAiHint: "从 AI 即时获取答案",
+    assistant: "助手",
+    assistantHint: "从 AI 即时获取答案",
     button: "搜索",
     devOnly: "搜索在生产构建中可用。",
     error: "出了点问题，请重试。",

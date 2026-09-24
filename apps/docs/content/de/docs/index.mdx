@@ -32,7 +32,7 @@ Blume baut auf Astro und Vite auf und rendert standardmäßig statisches HTML �
 
 ### Sofort KI-fähig [#ai-ready-out-of-the-box]
 
-Jede Blume-Website spricht fließend Maschine. Sie gibt [`llms.txt` und `llms-full.txt`](/docs/discoverability/llms-txt) aus, liefert das rohe Markdown jeder Seite, indem du `.md` an deren URL anhängst, stellt eine [von OpenAPI beschriebene JSON-API](/docs/discoverability/json-api) bereit und bietet Lesern auf jeder Seite die Aktionen **Copy as Markdown** und **Open in chat**. Ergänze einen optionalen **Ask AI**-Assistenten auf der Seite oder hoste einen [**MCP-Server**](/docs/discoverability/mcp), damit Coding-Agenten wie Claude Code und Cursor deine Dokumentation direkt durchsuchen und lesen können — kein Scraping, kein gehosteter Dienst. Dein Markdown ist die maßgebliche Quelle für Menschen wie für Modelle.
+Jede Blume-Website spricht fließend Maschine. Sie gibt [`llms.txt` und `llms-full.txt`](/docs/discoverability/llms-txt) aus, liefert das rohe Markdown jeder Seite, indem du `.md` an deren URL anhängst, stellt eine [von OpenAPI beschriebene JSON-API](/docs/discoverability/json-api) bereit und bietet Lesern auf jeder Seite die Aktionen **Copy as Markdown** und **Open in chat**. Ergänze einen optionalen **Assistenten** auf der Seite oder hoste einen [**MCP-Server**](/docs/discoverability/mcp), damit Coding-Agenten wie Claude Code und Cursor deine Dokumentation direkt durchsuchen und lesen können — kein Scraping, kein gehosteter Dienst. Dein Markdown ist die maßgebliche Quelle für Menschen wie für Modelle.
 
 ### Keine Konfiguration — nicht einmal das Template [#zero-configuration--even-the-template]
 
@@ -46,7 +46,7 @@ Deine [`blume.config.ts`](/docs/configuration) und jede [`meta.ts`](/docs/conten
 
 - **Komponenten** — Callouts, Cards, Steps, Tabs, Accordions, Badges, Dateibäume und Parametertabellen, in MDX nutzbar [ohne Imports](/docs/content/components).
 - **Lokale Suche** — Orama funktioniert in Dev und Produktion; für große Websites ist Pagefind nur einen Adapter entfernt (`search: pagefind()`). Kein gehosteter Index.
-- **KI** — [`llms.txt`, rohe Markdown-URLs, eine JSON-API mit OpenAPI-Beschreibung, Copy as Markdown, Open in chat und ein gehosteter MCP-Server](/docs/discoverability), dazu ein optionaler [Ask-AI-Assistent](/docs/configuration/ask-ai).
+- **KI** — [`llms.txt`, rohe Markdown-URLs, eine JSON-API mit OpenAPI-Beschreibung, Copy as Markdown, Open in chat und ein gehosteter MCP-Server](/docs/discoverability), dazu ein optionaler [Assistent auf der Seite](/docs/configuration/assistant).
 - **Navigation** — aus Dateien abgeleitet, verfeinert mit `meta.ts` oder Konfiguration.
 - **SEO** — Metadaten, Open-Graph-Bilder, RSS-Feeds und JSON-LD, [eingebaut](/docs/discoverability).
 - **Anpassung** — Komponenten-Overrides, React-Islands, eigene Seiten, Theme-Tokens und eine Registry für Quellkomponenten über `blume add`.

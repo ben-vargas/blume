@@ -298,7 +298,7 @@ const segmentingTokenizer = (locale?: string): Tokenizer | undefined => {
 
 /**
  * Build an in-memory Orama full-text index from search documents. Shared by the
- * Orama client loader (browser), the MCP server, and Ask AI grounding (Node),
+ * Orama client loader (browser), the MCP server, and assistant grounding (Node),
  * so ranking is identical wherever docs are queried. `locale` — the site's
  * `i18n.defaultLocale` — swaps in a word-segmenting tokenizer for every
  * non-Latin script, all of which Orama's default tokenizer reduces to zero

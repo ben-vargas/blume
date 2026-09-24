@@ -1085,7 +1085,7 @@ describe("UI dictionaries", () => {
     expect(EN_UI.search.results).toBe("Results");
     expect(EN_UI.search.error).toBe("Something went wrong. Please try again.");
     expect(EN_UI.content.diagramError).toBe("Could not render this diagram.");
-    expect(EN_UI.ask.you).toBe("You");
+    expect(EN_UI.assistant.you).toBe("You");
     // A locale with no shipped pack still resolves every key to English.
     const dict = resolveUIStrings("xx", { defaultLocale: "en" });
     expect(dict.nav.back).toBe("Back");

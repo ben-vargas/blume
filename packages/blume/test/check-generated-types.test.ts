@@ -54,7 +54,7 @@ paths:
 
 // Each file turns on a generated template: the changelog index, the sidebar
 // fragments of a drill-in group, the Mermaid loader, an OpenAPI reference,
-// the Ask AI and Mixedbread search routes (server output), and
+// the assistant and Mixedbread search routes (server output), and
 // `components.ts` / `islands/` hydration wrappers.
 const FILES = {
   "blume.config.ts": `import { defineConfig } from "blume";
@@ -63,7 +63,7 @@ import { openapi } from "blume/reference";
 import { mixedbread } from "blume/search";
 
 export default defineConfig({
-  ai: { ask: { enabled: true } },
+  ai: { assistant: { enabled: true } },
   deployment: node({ site: "https://docs.example.com" }),
   reference: [openapi({ route: "/api", spec: "./openapi.yaml" })],
   search: mixedbread({ storeId: "docs" }),

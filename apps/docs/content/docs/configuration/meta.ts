@@ -6,7 +6,7 @@ export default defineMeta({
     "theming",
     "customization",
     "search",
-    "ask-ai",
+    "assistant",
     "analytics",
     "export",
   ],

@@ -7,22 +7,22 @@ description: >-
 [i18n](/docs/content/i18n) を有効にすると、ソースページを編集するたびに、その翻訳は気づかないうちに古くなっていきます。`blume translate` はこの問題を解決します。各ロケールで欠けているページや古くなっているページを正確に割り出し、ローカルのエージェント CLI を使ってヘッドレスで翻訳し、その内容をコミット対象の台帳に記録します。これにより、次回の実行時にも CI でも、どの翻訳が最新なのかを判断できます。
 
 ```bash
-blume translate --claude
+blume translate --codex
 ```
 
 ```
-blume translate  3 item(s) · 2 locale(s) · Claude Code
+blume translate  3 item(s) · 2 locale(s) · Codex
 
-  ✔ docs/guides/install.mdx → fr 24.2s $0.11
-  ✔ docs/guides/install.mdx → de 22.8s $0.10
-  ✔ meta titles (2) → de 4.1s $0.01
+  ✔ docs/guides/install.mdx → fr 24.2s
+  ✔ docs/guides/install.mdx → de 22.8s
+  ✔ meta titles (2) → de 4.1s
 
-  Translated 3 files into 2 locales · 1 adopted · 14 already up to date · 51.1s · $0.22
+  Translated 3 files into 2 locales · 1 adopted · 14 already up to date · 51.1s
 ```
 
 ## 仕組み [#how-it-works]
 
-パイプラインは Blume が管理し、エージェントはテキストの翻訳だけを担当します。Blume は、翻訳が必要なファイルごとに翻訳プロンプトを組み立てます。次に、ファイル・シェル・Web の各ツールを無効にした状態でエージェント CLI をヘッドレスで実行し、応答の構造を検証してから、ターゲットファイルを Blume 自身が書き込みます。使用するエージェントは、`--claude` の場合は [Claude Code](https://claude.com/claude-code)、`--codex` の場合は [Codex](https://developers.openai.com/codex/cli) です。Blume は API キーを保持せず、モデルを直接呼び出すこともありません。
+パイプラインは Blume が管理し、エージェントはテキストの翻訳だけを担当します。Blume は、翻訳が必要なファイルごとに翻訳プロンプトを組み立てます。次に、ファイル・シェル・Web の各ツールを無効にした状態でエージェント CLI をヘッドレスで実行し、応答の構造を検証してから、ターゲットファイルを Blume 自身が書き込みます。使用するエージェントは、`--codex` の場合は [Codex](https://developers.openai.com/codex/cli)、`--claude` の場合は [Claude Code](https://claude.com/claude-code) です。Blume は API キーを保持せず、モデルを直接呼び出すこともありません。
 
 検証を通過した書き込みはすべて、プロジェクトルートの `blume.translations.json` に記録されます。ソースファイルとロケールの組み合わせごとに、翻訳した時点のソースのハッシュが保存されます。**このファイルはコミットしてください。** 再実行時に「翻訳済み」と「翻訳済みだが、その後ソースが変更された」を区別するためにこのファイルが使われます。CI ゲートもこのファイルがあるからこそ実現できています。
 
@@ -73,7 +73,7 @@ JSON レポートは、`blume validate --json`、`blume audit --json`、`blume e
 
 ## フラグ [#flags]
 
-- `--claude` / `--codex` — 翻訳に使用するエージェント CLI です。どちらか 1 つだけを指定する必要があります (`--check` 使用時を除く)。
+- `--codex` / `--claude` — 翻訳に使用するエージェント CLI です。どちらか 1 つだけを指定する必要があります (`--check` 使用時を除く)。
 - `--check` — ファイルを書き込まずにずれを報告し、ゼロ以外の終了コードで終了します。
 - `--concurrency <n>` — 並列に実行するエージェントセッションの数です。デフォルトは `4`、最大は `16` です。
 - `--locale <codes>` — 翻訳先のロケールをカンマ区切りで指定します (デフォルトは、デフォルトロケール以外のすべてのロケールです)。

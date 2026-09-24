@@ -410,7 +410,7 @@ describe("reference config", () => {
   it("locates a removed nested key at its own line", async () => {
     const dir = await makeDir(`export default {
   ai: {
-    ask: { enabled: true },
+    assistant: { enabled: true },
     llmsTxt: true,
   },
 };

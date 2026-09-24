@@ -144,7 +144,7 @@ export default function PageInfo() {
 | `useBlume()` | `{ config, navigation }` für die Website, oder `null` vor dem Mount |
 | `usePage()` | `{ route, title }` für die aktuelle Seite, oder `null` vor dem Mount |
 | `useSearch()` | `{ search, results, loading }` — den konfigurierten Suchanbieter abfragen |
-| `useAskAI()` | `{ ask, messages, loading, reset }` — vom Ask-AI-Endpunkt streamen |
+| `useAssistant()` | `{ ask, messages, loading, reset }` — vom Assistenten-Endpunkt streamen |
 
 `useBlume()` und `usePage()` geben `null` zurück, bis die Island mountet (damit Server und Client denselben ersten Frame rendern) — sichere das ab. Der Snapshot wird nur auf Seiten ausgegeben, die React ausliefern, eine vollständig statische Website zahlt also nichts dafür.
 

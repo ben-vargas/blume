@@ -82,7 +82,7 @@ Este é um conceito distinto dos dois caminhos acima:
 
 ## Renderização no servidor [#server-rendering]
 
-A saída estática atende à maioria das documentações. Mude para a saída de servidor quando precisar de recursos em tempo de requisição — sobretudo o endpoint [Ask AI](/docs/configuration/ask-ai) e o [servidor MCP](/docs/discoverability/mcp). Você faz isso indicando o host: `deployment` recebe um adaptador importado de `blume/deploy`.
+A saída estática atende à maioria das documentações. Mude para a saída de servidor quando precisar de recursos em tempo de requisição — sobretudo o endpoint do [assistente](/docs/configuration/assistant) e o [servidor MCP](/docs/discoverability/mcp). Você faz isso indicando o host: `deployment` recebe um adaptador importado de `blume/deploy`.
 
 ```ts blume.config.ts lineNumbers
 import { defineConfig } from "blume";
@@ -129,7 +129,7 @@ Na Vercel e na Cloudflare, um build de servidor também ativa a [negociação de
 :::
 
 :::note
-Os recursos de servidor têm sua própria configuração — por exemplo, o Ask AI precisa de uma chave de API de modelo. Consulte o [guia do Ask AI](/docs/configuration/ask-ai) para a configuração.
+Os recursos de servidor têm sua própria configuração — por exemplo, o assistente precisa de uma chave de API de modelo. Consulte o [guia do assistente](/docs/configuration/assistant) para a configuração.
 :::
 
 ## Redirecionamentos [#redirects]
@@ -160,8 +160,8 @@ Quando um recurso precisa de um segredo em tempo de execução, o Blume avisa no
 
 | Recurso | Variável |
 | --- | --- |
-| Ask AI (AI Gateway) | `AI_GATEWAY_API_KEY` (ou OIDC da Vercel) |
-| Ask AI (outros adaptadores) | a variável de ambiente padrão da chave do adaptador (`OPENROUTER_API_KEY`, `LLMGATEWAY_API_KEY`, `INKEEP_API_KEY`), ou o `apiKeyEnv` que você passou a ele |
+| Assistente (AI Gateway) | `AI_GATEWAY_API_KEY` (ou OIDC da Vercel) |
+| Assistente (outros adaptadores) | a variável de ambiente padrão da chave do adaptador (`OPENROUTER_API_KEY`, `LLMGATEWAY_API_KEY`, `INKEEP_API_KEY`), ou o `apiKeyEnv` que você passou a ele |
 | Busca Mixedbread | `MIXEDBREAD_API_KEY` |
 
 Defina-as no `.env.local` para o desenvolvimento local e no ambiente do seu host para produção. Os segredos em tempo de build para a sincronização do índice de busca (Algolia, Orama Cloud, Typesense) são avisados separadamente durante a etapa de sincronização.

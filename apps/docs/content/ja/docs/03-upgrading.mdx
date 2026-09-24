@@ -1,13 +1,13 @@
 ---
 title: Blume 2 へのアップグレード
 description: >-
-  1 つのコマンドで Blume 1 のサイトを Blume 2 に移行し、設定の変更ごとにこのガイドを参照してください。アップグレード全体を Claude Code や Codex に任せることもできます。
+  1 つのコマンドで Blume 1 のサイトを Blume 2 に移行し、設定の変更ごとにこのガイドを参照してください。アップグレード全体を Codex や Claude Code に任せることもできます。
 sidebar:
   label: Blume 2 へのアップグレード
   order: 2.5
 ---
 
-Blume 2 で変わるのは設定だけで、コンテンツは変わりません。削除された `search.boost` フロントマターフィールドを設定しているページを除き（[フロントマター](#frontmatter) を参照）、Markdown や MDX のページを編集する必要はありません。以前は名前付きの文字列やキー付きのブロックで指定していた設定は、`blume/*` サブパスからインポートして呼び出す**アダプター**になりました。対象は検索プロバイダー、デプロイ先、コンテンツソース、API リファレンス、アナリティクス、Ask AI のバックエンドです。機械可読な設定は `ai` から新しい `agents` キーに移動しました。また、`components.ts` のオーバーライドはビルド前にチェックされるようになりました。ゼロコンフィグのサイトや、これらの設定をどれも使っていないサイトでは、バージョンを上げるだけで済みます。
+Blume 2 で変わるのは設定だけで、コンテンツは変わりません。削除された `search.boost` フロントマターフィールドを設定しているページを除き（[フロントマター](#frontmatter) を参照）、Markdown や MDX のページを編集する必要はありません。以前は名前付きの文字列やキー付きのブロックで指定していた設定は、`blume/*` サブパスからインポートして呼び出す**アダプター**になりました。対象は検索プロバイダー、デプロイ先、コンテンツソース、API リファレンス、アナリティクス、アシスタントのモデルバックエンドです。Ask AI はアシスタントに名称が変わったため、`ai.ask` は `ai.assistant` になります。機械可読な設定は `ai` から新しい `agents` キーに移動しました。また、`components.ts` のオーバーライドはビルド前にチェックされるようになりました。ゼロコンフィグのサイトや、これらの設定をどれも使っていないサイトでは、バージョンを上げるだけで済みます。
 
 ## 1 つのコマンドでアップグレードする [#upgrade-with-one-command]
 
@@ -19,10 +19,10 @@ npx blume@latest upgrade
 
 このコマンドは `package.json` 内の `blume` を 2 に上げ、プロジェクトで使っているパッケージマネージャーでインストールします。その後、設定と `components.ts` が Blume 2 に対応しているかをチェックします。まだ必要な変更はすべて、ファイル、行、置き換え内容とともに一覧表示されます。削除された `blume build` フラグをまだ渡している `package.json` のスクリプトもここに含まれます。変更が残っている間は、コマンドは 0 以外の終了コードで終了します。設定も `blume` の依存関係もないフォルダーで実行した場合は、エラーで停止します。`blume` ではなく `npx blume@latest` で実行してください。このコマンドは Blume 2 に含まれているため、まだ 1 を使っているプロジェクトにはありません。pnpm 12 では、`pnpm dlx` の後に `--allow-build=esbuild` を追加してください。pnpm 12 は、承認されていない esbuild のインストールスクリプトを実行しないためです。
 
-変更をコーディングエージェントに任せる場合は、`--claude` または `--codex` を追加します：
+変更をコーディングエージェントに任せる場合は、`--codex` または `--claude` を追加します：
 
 ```package-install
-npx blume@latest upgrade --claude
+npx blume@latest upgrade --codex
 ```
 
 エージェントは、検出結果とこのガイドを読み込んだ状態で対話モードで起動します。各変更を適用し、`blume doctor` と `blume build` の両方が成功するまで実行を繰り返します。すべての編集はエージェント自身の権限フローを通るため、1 つずつ確認できます。インストールせずに `package.json` のバージョンだけを上げるには、`--no-install` を渡します。
@@ -202,9 +202,9 @@ export default defineConfig({
 
 `cloudflare: { token }` は `cloudflare({ token })` になり、`scripts[]` の各エントリーは `script({ … })` になります。
 
-## Ask AI
+## アシスタント [#assistant]
 
-`ai.ask.provider` には `blume/ai` のアダプターを渡します。モデルと、それに関連するフィールドはアダプター側で指定します。
+Ask AI はアシスタントという名前になり、設定もその名前に合わせて移動します: `ai.ask` は `ai.assistant` になります。`provider` には `blume/ai` のアダプターを渡します。モデルと、それに関連するフィールドはアダプター側で指定します。
 
 <CodeGroup>
 
@@ -227,7 +227,7 @@ import { openrouter } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: openrouter({
         model: "anthropic/claude-sonnet-4-5",
@@ -240,7 +240,20 @@ export default defineConfig({
 
 </CodeGroup>
 
-使用できるアダプターは `gateway()`、`openrouter()`、`llmgateway()`、`inkeep()`、`openaiCompatible({ baseUrl, name, model, apiKeyEnv })` です。`model`、`apiKeyEnv`、`baseUrl`、`headers`、`reasoning` はアダプターに移動します。`enabled`、`instructions`、`retrieval`、`suggestions`、`cors`、`endpoint` は `ai.ask` に残ります。`provider` を指定しない場合は、これまでどおり AI Gateway が使われます。
+使用できるアダプターは `gateway()`、`openrouter()`、`llmgateway()`、`inkeep()`、`openaiCompatible({ baseUrl, name, model, apiKeyEnv })` です。`model`、`apiKeyEnv`、`baseUrl`、`headers`、`reasoning` はアダプターに移動します。`enabled`、`instructions`、`retrieval`、`suggestions`、`cors`、`endpoint` は、そのまま `ai.assistant` に移動します。`provider` を指定しない場合は、これまでどおり AI Gateway が使われます。
+
+この名前の変更は、Ask AI を指していたすべての名前に及びます：
+
+- `i18n.ui` のオーバーライド: `ask` グループは `assistant` になり、`search.askAi` と `search.askAiHint` はそれぞれ `search.assistant` と `search.assistantHint` になります。
+- `blume/hooks` の `useAskAI` は `useAssistant` になり、型も `UseAssistant` と `UseAssistantOptions` になります。
+- `PageLayout`、`RootLayout`、`Header`、および `Search` のオーバーライドの `askEnabled` プロパティは `assistantEnabled` になります。
+- [`blume:data`](/docs/advanced/custom-pages) モジュールでは、`config.ask` は `config.assistant` に、`ui.ask` は `ui.assistant` になります。`blume` の `UIStrings` 型もこれに合わせて変わります。
+- `blume/ai` のアダプター型は、接頭辞が `Ask` から `Assistant` に変わります（`AskAdapter` は `AssistantAdapter` に、`AskGatewayOptions` は `AssistantGatewayOptions` になります）。また、`blume/schema` の `askReasoningLevels` と `AskReasoning` は、それぞれ `assistantReasoningLevels` と `AssistantReasoning` になります。
+- window イベント `blume:open-ask-ai` は `blume:open-assistant` に、`<body>` の `data-blume-ask` 属性は `data-blume-assistant` になります。
+
+生成される `/api/ask` ルートと、`ask`、`ask_answer`、`ask_error` の [アナリティクスイベント](/docs/configuration/assistant#analytics) は名前が変わらないため、呼び出し側やダッシュボードを変更する必要はありません。`blume upgrade` と `blume doctor` は、見つかった古い設定キーを、`ai.ask` か `i18n.ui` のキーかにかかわらず、置き換え先とともに表示します。
+
+すでに Blume 2.0.0 にアップグレードしていますか？ 2.0.0 はまだ `ai.ask` を読み込んでいたため、通常どおり `blume` を更新し、同じ名前の変更を行ってください。
 
 ## エージェントとその他の設定の移動 [#agents-and-other-config-moves]
 
@@ -271,7 +284,7 @@ export default defineConfig({
 
 </CodeGroup>
 
-- `ai.api`、`ai.catalog`、`ai.llmsTxt`、`ai.markdownComponents`、`ai.mcp`、`ai.skills`、`ai.webBotAuth`、`ai.webmcp` は `agents.*` に移動します。`seo.agentReadability` と `seo.contentSignals` も同様です。`ai` に残るのは `ask` と `openInChat` だけです。
+- `ai.api`、`ai.catalog`、`ai.llmsTxt`、`ai.markdownComponents`、`ai.mcp`、`ai.skills`、`ai.webBotAuth`、`ai.webmcp` は `agents.*` に移動します。`seo.agentReadability` と `seo.contentSignals` も同様です。`ai` に残るのは `assistant`（旧 `ask`）と `openInChat` だけです。
 - `lastModified` には単純な値を指定します。`true` は `"git"` になり、`{ type: "git" }` や `{ type: "frontmatter" }` はその文字列だけを指定します。
 - `markdown.codeBlocks` は `markdown.code` に統合されます。
 - `theme.layout` は廃止されました。もともと参照されていなかったため、削除してください。

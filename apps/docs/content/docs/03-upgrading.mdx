@@ -6,7 +6,7 @@ sidebar:
   order: 2.5
 ---
 
-Blume 2 changes configuration, not content: your Markdown and MDX pages need no edits, unless one sets the removed `search.boost` frontmatter field (see [Frontmatter](#frontmatter)). Settings that used to be a named string or a keyed block — the search provider, the deployment target, content sources, API references, analytics, and the Ask AI backend — are now **adapters** you import from a `blume/*` subpath and call. The machine-readable settings move from `ai` to a new `agents` key, and `components.ts` overrides are checked before the build. A zero-config site, or one that sets none of these, only needs the version bump.
+Blume 2 changes configuration, not content: your Markdown and MDX pages need no edits, unless one sets the removed `search.boost` frontmatter field (see [Frontmatter](#frontmatter)). Settings that used to be a named string or a keyed block — the search provider, the deployment target, content sources, API references, analytics, and the assistant's model backend — are now **adapters** you import from a `blume/*` subpath and call. Ask AI is renamed the assistant, so `ai.ask` becomes `ai.assistant`. The machine-readable settings move from `ai` to a new `agents` key, and `components.ts` overrides are checked before the build. A zero-config site, or one that sets none of these, only needs the version bump.
 
 ## Upgrade with one command
 
@@ -201,9 +201,9 @@ export default defineConfig({
 
 `cloudflare: { token }` becomes `cloudflare({ token })`, and each `scripts[]` entry becomes `script({ … })`.
 
-## Ask AI
+## Assistant
 
-`ai.ask.provider` takes an adapter from `blume/ai`, which owns the model and the fields that went with it.
+Ask AI is now called the assistant, and its config moves with the name: `ai.ask` becomes `ai.assistant`. Its `provider` takes an adapter from `blume/ai`, which owns the model and the fields that went with it.
 
 <CodeGroup>
 
@@ -226,7 +226,7 @@ import { openrouter } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: openrouter({
         model: "anthropic/claude-sonnet-4-5",
@@ -239,7 +239,20 @@ export default defineConfig({
 
 </CodeGroup>
 
-The adapters are `gateway()`, `openrouter()`, `llmgateway()`, `inkeep()`, and `openaiCompatible({ baseUrl, name, model, apiKeyEnv })`. `model`, `apiKeyEnv`, `baseUrl`, `headers`, and `reasoning` move into the adapter; `enabled`, `instructions`, `retrieval`, `suggestions`, `cors`, and `endpoint` stay on `ai.ask`. Leaving `provider` unset still uses the AI Gateway.
+The adapters are `gateway()`, `openrouter()`, `llmgateway()`, `inkeep()`, and `openaiCompatible({ baseUrl, name, model, apiKeyEnv })`. `model`, `apiKeyEnv`, `baseUrl`, `headers`, and `reasoning` move into the adapter; `enabled`, `instructions`, `retrieval`, `suggestions`, `cors`, and `endpoint` move to `ai.assistant` unchanged. Leaving `provider` unset still uses the AI Gateway.
+
+The rename reaches every name that said Ask AI:
+
+- `i18n.ui` overrides: the `ask` group becomes `assistant`, and `search.askAi` and `search.askAiHint` become `search.assistant` and `search.assistantHint`.
+- `useAskAI` from `blume/hooks` becomes `useAssistant`, with its `UseAssistant` and `UseAssistantOptions` types.
+- The `askEnabled` prop on `PageLayout`, `RootLayout`, `Header`, and a `Search` override becomes `assistantEnabled`.
+- In the [`blume:data`](/docs/advanced/custom-pages) module, `config.ask` becomes `config.assistant` and `ui.ask` becomes `ui.assistant`, and the `UIStrings` type from `blume` follows.
+- The adapter types from `blume/ai` swap their `Ask` prefix for `Assistant` (`AskAdapter` becomes `AssistantAdapter`, `AskGatewayOptions` becomes `AssistantGatewayOptions`), and `askReasoningLevels` and `AskReasoning` from `blume/schema` become `assistantReasoningLevels` and `AssistantReasoning`.
+- The `blume:open-ask-ai` window event becomes `blume:open-assistant`, and the `data-blume-ask` attribute on `<body>` becomes `data-blume-assistant`.
+
+The generated `/api/ask` route and the `ask`, `ask_answer`, and `ask_error` [analytics events](/docs/configuration/assistant#analytics) keep their names, so callers and dashboards need no change. `blume upgrade` and `blume doctor` name each old config key they find, `ai.ask` and the `i18n.ui` keys alike, with its replacement.
+
+Upgraded to Blume 2.0.0 already? It still read `ai.ask`, so update `blume` as usual and make the same rename.
 
 ## Agents and other config moves
 
@@ -270,7 +283,7 @@ export default defineConfig({
 
 </CodeGroup>
 
-- `ai.api`, `ai.catalog`, `ai.llmsTxt`, `ai.markdownComponents`, `ai.mcp`, `ai.skills`, `ai.webBotAuth`, and `ai.webmcp` become `agents.*`, and so do `seo.agentReadability` and `seo.contentSignals`. `ai` keeps only `ask` and `openInChat`.
+- `ai.api`, `ai.catalog`, `ai.llmsTxt`, `ai.markdownComponents`, `ai.mcp`, `ai.skills`, `ai.webBotAuth`, and `ai.webmcp` become `agents.*`, and so do `seo.agentReadability` and `seo.contentSignals`. `ai` keeps only `assistant` (formerly `ask`) and `openInChat`.
 - `lastModified` is a flat value: `true` becomes `"git"`, and `{ type: "git" }` or `{ type: "frontmatter" }` becomes the bare string.
 - `markdown.codeBlocks` merges into `markdown.code`.
 - `theme.layout` is gone. Nothing read it, so delete it.

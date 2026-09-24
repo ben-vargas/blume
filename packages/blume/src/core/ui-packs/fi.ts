@@ -5,7 +5,6 @@ export const fi: UIStringsOverride = {
   actions: {
     addToCursor: "Lisää Cursoriin",
     addToVscode: "Lisää VS Codeen",
-    askAI: "Kysy tekoälyltä tästä sivusta",
     connectMcp: "Yhdistä MCP:hen",
     copied: "Kopioitu!",
     copyClaudeCode: "Kopioi Claude Code -komento",
@@ -24,7 +23,7 @@ export const fi: UIStringsOverride = {
     openInChatPrompt: "Lue {url}, jotta voin kysyä kysymyksiä tästä sivusta.",
     scrollToTop: "Takaisin ylös",
   },
-  ask: {
+  assistant: {
     ai: "Tekoäly",
     clear: "Tyhjennä keskustelu",
     close: "Sulje",
@@ -35,7 +34,7 @@ export const fi: UIStringsOverride = {
     placeholder: "Kysy kysymys…",
     send: "Lähetä",
     tip: "Vinkki: Voit avata ja sulkea keskustelun näppäimillä",
-    title: "Kysy tekoälyltä",
+    title: "Avustaja",
     you: "Sinä",
   },
   banner: { dismiss: "Sulje ilmoitus" },
@@ -84,8 +83,8 @@ export const fi: UIStringsOverride = {
   search: {
     all: "Kaikki",
     allLanguages: "Kaikki kielet",
-    askAi: "Kysy tekoälyltä",
-    askAiHint: "Saat välittömän vastauksen tekoälyltä",
+    assistant: "Avustaja",
+    assistantHint: "Saat välittömän vastauksen tekoälyltä",
     button: "Hae",
     devOnly: "Haku on käytettävissä tuotantokäännöksessä.",
     error: "Jokin meni pieleen. Yritä uudelleen.",

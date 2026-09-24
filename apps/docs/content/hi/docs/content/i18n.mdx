@@ -113,10 +113,10 @@ i18n: {
 
 ## एजेंट से अनुवाद करना [#translating-with-an-agent]
 
-आपको लोकेल हाथ से भरने की ज़रूरत नहीं है। [`blume translate`](/docs/cli/translate) हर उस पृष्ठ को ढूँढता है जो प्रत्येक लोकेल में गायब या पुराना है और उसे एक लोकल एजेंट CLI ([Claude Code](https://claude.com/claude-code) या [Codex](https://developers.openai.com/codex/cli)) से अनूदित करता है:
+आपको लोकेल हाथ से भरने की ज़रूरत नहीं है। [`blume translate`](/docs/cli/translate) हर उस पृष्ठ को ढूँढता है जो प्रत्येक लोकेल में गायब या पुराना है और उसे एक लोकल एजेंट CLI ([Codex](https://developers.openai.com/codex/cli) या [Claude Code](https://claude.com/claude-code)) से अनूदित करता है:
 
 ```bash
-blume translate --claude
+blume translate --codex
 ```
 
 Blume हर परिणाम की संरचना — फ़्रंटमैटर, कोड फ़ेंस, लिंक — को मान्य करता है और फ़ाइलें खुद लिखता है; एजेंट केवल टेक्स्ट का अनुवाद करता है। एक कमिट किया गया लेजर (`blume.translations.json`) ट्रैक करता है कि हर अनुवाद किस स्रोत रिवीज़न से आया था, इसलिए दोबारा चलाने पर केवल वही छुआ जाता है जो बदला है, और जो अनुवाद आपने हाथ से लिखे हैं उन्हें ज्यों-का-त्यों अपनाया जाता है, कभी ओवरराइट नहीं किया जाता। CI में, `blume translate --check` तब विफल होता है जब कोई स्रोत पृष्ठ अपने अनुवादों से आगे खिसक गया हो।

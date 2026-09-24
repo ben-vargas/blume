@@ -44,7 +44,7 @@ const listItem = (
  * the body plus one of these components, deliberately: the structured UI is the
  * component's job, and the prose stays Markdown so it indexes. That split is
  * right for the rendered page and lossy everywhere else — `<route>.md`,
- * llms-full.txt, MCP `get_page` and the Ask AI corpus all downlevel components
+ * llms-full.txt, MCP `get_page` and the assistant corpus all downlevel components
  * to Markdown, and these three had no serializer, so an operation page reached
  * an agent as its description followed by a bare tag. On a site whose reference
  * is most of the corpus, that is most of the corpus: measured on one 449-page

@@ -6,7 +6,7 @@ import { openapiComponentSerializers } from "./openapi-components.ts";
 
 /**
  * Every serializer a project brings to a downlevel pass, layered once for all
- * the agent surfaces (`<route>.md`, llms-full.txt, the search and Ask AI
+ * the agent surfaces (`<route>.md`, llms-full.txt, the search and assistant
  * corpora): the built-in families that read project data — examples, then the
  * API reference — under the user's `agents.markdownComponents`, which is spread
  * last so an entry of the same name still wins. One layering, so a new family

@@ -5,7 +5,6 @@ export const pt: UIStringsOverride = {
   actions: {
     addToCursor: "Adicionar ao Cursor",
     addToVscode: "Adicionar ao VS Code",
-    askAI: "Perguntar à IA sobre esta página",
     connectMcp: "Ligar ao MCP",
     copied: "Copiado!",
     copyClaudeCode: "Copiar comando do Claude Code",
@@ -25,7 +24,7 @@ export const pt: UIStringsOverride = {
       "Leia {url} para que eu possa fazer perguntas sobre esta página.",
     scrollToTop: "Voltar ao topo",
   },
-  ask: {
+  assistant: {
     ai: "IA",
     clear: "Limpar a conversa",
     close: "Fechar",
@@ -36,7 +35,7 @@ export const pt: UIStringsOverride = {
     placeholder: "Faça uma pergunta…",
     send: "Enviar",
     tip: "Dica: pode abrir e fechar o chat com",
-    title: "Perguntar à IA",
+    title: "Assistente",
     you: "Você",
   },
   banner: { dismiss: "Fechar o anúncio" },
@@ -85,8 +84,8 @@ export const pt: UIStringsOverride = {
   search: {
     all: "Todos",
     allLanguages: "Todos os idiomas",
-    askAi: "Perguntar à IA",
-    askAiHint: "Obtenha uma resposta instantânea da IA",
+    assistant: "Assistente",
+    assistantHint: "Obtenha uma resposta instantânea da IA",
     button: "Pesquisar",
     devOnly: "A pesquisa está disponível na compilação de produção.",
     error: "Algo correu mal. Tente novamente.",

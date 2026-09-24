@@ -509,7 +509,7 @@ describe("buildSearchDocuments", () => {
       projectWith([page({ description: "Desc A", id: "a.md" })], [route({})]),
       { content: "markdown" }
     );
-    // The fenced example the plain extraction drops is kept for Ask AI grounding…
+    // The fenced example the plain extraction drops is kept for assistant grounding…
     expect(doc?.content).toContain("const secret = 1;");
     expect(doc?.content).toContain("```js");
     // …along with heading marks and other Markdown structure.

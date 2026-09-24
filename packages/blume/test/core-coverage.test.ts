@@ -188,11 +188,11 @@ describe("server features", () => {
   it("lists every enabled server-only feature", () => {
     const config = blumeConfigSchema.parse({
       agents: { mcp: { enabled: true } },
-      ai: { ask: { enabled: true } },
+      ai: { assistant: { enabled: true } },
       search: mixedbread({ storeId: "store-1" }),
     });
     expect(serverFeatures(config)).toStrictEqual([
-      "Ask AI",
+      "Assistant",
       "MCP server",
       "Search (mixedbread)",
     ]);
@@ -264,10 +264,10 @@ describe("config schema validators", () => {
     ).toContainEqual(["search", "provider", "options", "appId"]);
   });
 
-  it("requires a baseUrl for the openaiCompatible Ask AI adapter", () => {
+  it("requires a baseUrl for the openaiCompatible assistant adapter", () => {
     const result = blumeConfigSchema.safeParse({
       ai: {
-        ask: {
+        assistant: {
           enabled: true,
           provider: {
             kind: "openai-compatible",
@@ -283,7 +283,7 @@ describe("config schema validators", () => {
       result.success
         ? []
         : result.error.issues.map((issue) => issue.path.join("."))
-    ).toContainEqual("ai.ask.provider.options.baseUrl");
+    ).toContainEqual("ai.assistant.provider.options.baseUrl");
   });
 
   it("accepts a custom content source via the ContentSource validator", () => {

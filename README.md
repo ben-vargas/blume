@@ -39,7 +39,7 @@ Moving from another docs framework? `npx blume migrate` hands a Mintlify, Fumado
 - **Type-safe config** — `blume.config.ts` and every `meta.ts` are real TypeScript, validated by a schema and authored with `defineConfig` / `defineMeta`, so your editor catches mistakes before a build.
 - **Components, no imports** — cards, columns, steps, tabs, accordions, badges, code groups, frames, file trees, type tables, live component previews, diffs, and more, usable in any MDX page.
 - **Local search** — Orama runs in dev and production with no hosted service; FlexSearch, Pagefind, Algolia, Typesense, Orama Cloud, and Mixedbread are one adapter away (`search: pagefind()` from `blume/search`).
-- **AI-ready** — `llms.txt` / `llms-full.txt`, raw Markdown at any `.md` URL, a JSON docs API, Copy as Markdown, Open in chat, an optional Ask AI assistant, and a hosted MCP server so coding agents can search and read your docs directly.
+- **AI-ready** — `llms.txt` / `llms-full.txt`, raw Markdown at any `.md` URL, a JSON docs API, Copy as Markdown, Open in chat, an optional in-page assistant, and a hosted MCP server so coding agents can search and read your docs directly.
 - **Agent skills** — Blume ships [agent skills](https://useblume.dev/docs/advanced/skills) that teach a coding agent to scaffold, write, and maintain your docs site.
 - **Content sources** — mix local files with remote MDX, GitHub Releases, Notion, Sanity, Contentful, Payload, Strapi, or any custom backend into a single site.
 - **Internationalization** — drop translated files into place for locale-aware routing, per-language navigation, translated UI, and SEO.
@@ -78,7 +78,7 @@ The Blume CLI loads `blume.config.ts`, scans your content into a graph, and gene
 
 ## Deployment
 
-`blume build` outputs static HTML to `dist/` — deploy to any static host (Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3 + CloudFront, or any CDN). For request-time features like Ask AI or the MCP server, name a host adapter from `blume/deploy` in `blume.config.ts`, which switches the build to server output:
+`blume build` outputs static HTML to `dist/` — deploy to any static host (Vercel, Netlify, Cloudflare Pages, GitHub Pages, S3 + CloudFront, or any CDN). For request-time features like the assistant or the MCP server, name a host adapter from `blume/deploy` in `blume.config.ts`, which switches the build to server output:
 
 ```ts
 import { defineConfig } from "blume";

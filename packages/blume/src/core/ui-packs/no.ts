@@ -5,7 +5,6 @@ export const no: UIStringsOverride = {
   actions: {
     addToCursor: "Legg til i Cursor",
     addToVscode: "Legg til i VS Code",
-    askAI: "Spør AI om denne siden",
     connectMcp: "Koble til MCP",
     copied: "Kopiert!",
     copyClaudeCode: "Kopier Claude Code-kommando",
@@ -25,7 +24,7 @@ export const no: UIStringsOverride = {
       "Les {url}, slik at jeg kan stille spørsmål om denne siden.",
     scrollToTop: "Til toppen",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "Tøm samtalen",
     close: "Lukk",
@@ -36,7 +35,7 @@ export const no: UIStringsOverride = {
     placeholder: "Still et spørsmål…",
     send: "Send",
     tip: "Tips: Du kan åpne og lukke chatten med",
-    title: "Spør AI",
+    title: "Assistent",
     you: "Du",
   },
   banner: { dismiss: "Lukk kunngjøringen" },
@@ -85,8 +84,8 @@ export const no: UIStringsOverride = {
   search: {
     all: "Alle",
     allLanguages: "Alle språk",
-    askAi: "Spør AI",
-    askAiHint: "Få et umiddelbart svar fra AI",
+    assistant: "Assistent",
+    assistantHint: "Få et umiddelbart svar fra AI",
     button: "Søk",
     devOnly: "Søk er tilgjengelig i produksjonsbygget.",
     error: "Noe gikk galt. Prøv igjen.",

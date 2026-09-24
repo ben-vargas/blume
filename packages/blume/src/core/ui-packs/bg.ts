@@ -5,7 +5,6 @@ export const bg: UIStringsOverride = {
   actions: {
     addToCursor: "Добави в Cursor",
     addToVscode: "Добави във VS Code",
-    askAI: "Попитай ИИ за тази страница",
     connectMcp: "Свържи се с MCP",
     copied: "Копирано!",
     copyClaudeCode: "Копирай командата на Claude Code",
@@ -25,7 +24,7 @@ export const bg: UIStringsOverride = {
       "Прочетете {url}, за да мога да задавам въпроси за тази страница.",
     scrollToTop: "Нагоре",
   },
-  ask: {
+  assistant: {
     ai: "ИИ",
     clear: "Изчисти разговора",
     close: "Затвори",
@@ -36,7 +35,7 @@ export const bg: UIStringsOverride = {
     placeholder: "Задайте въпрос…",
     send: "Изпрати",
     tip: "Съвет: Можете да отваряте и затваряте чата с",
-    title: "Попитай ИИ",
+    title: "Асистент",
     you: "Вие",
   },
   banner: { dismiss: "Затваряне на съобщението" },
@@ -85,8 +84,8 @@ export const bg: UIStringsOverride = {
   search: {
     all: "Всички",
     allLanguages: "Всички езици",
-    askAi: "Попитай ИИ",
-    askAiHint: "Получете незабавен отговор от ИИ",
+    assistant: "Асистент",
+    assistantHint: "Получете незабавен отговор от ИИ",
     button: "Търсене",
     devOnly: "Търсенето е достъпно в производствената компилация.",
     error: "Нещо се обърка. Моля, опитайте отново.",

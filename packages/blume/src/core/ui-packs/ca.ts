@@ -5,7 +5,6 @@ export const ca: UIStringsOverride = {
   actions: {
     addToCursor: "Afegeix a Cursor",
     addToVscode: "Afegeix a VS Code",
-    askAI: "Pregunta a la IA sobre aquesta pàgina",
     connectMcp: "Connecta a MCP",
     copied: "Copiat!",
     copyClaudeCode: "Copia l'ordre de Claude Code",
@@ -25,7 +24,7 @@ export const ca: UIStringsOverride = {
       "Llegeix {url} perquè pugui fer-te preguntes sobre aquesta pàgina.",
     scrollToTop: "Torna a dalt",
   },
-  ask: {
+  assistant: {
     ai: "IA",
     clear: "Esborra la conversa",
     close: "Tanca",
@@ -36,7 +35,7 @@ export const ca: UIStringsOverride = {
     placeholder: "Fes una pregunta…",
     send: "Envia",
     tip: "Consell: pots obrir i tancar el xat amb",
-    title: "Pregunta a la IA",
+    title: "Assistent",
     you: "Tu",
   },
   banner: { dismiss: "Tanca l'anunci" },
@@ -85,8 +84,8 @@ export const ca: UIStringsOverride = {
   search: {
     all: "Tots",
     allLanguages: "Tots els idiomes",
-    askAi: "Pregunta a la IA",
-    askAiHint: "Obtén una resposta instantània de la IA",
+    assistant: "Assistent",
+    assistantHint: "Obtén una resposta instantània de la IA",
     button: "Cerca",
     devOnly: "La cerca està disponible a la compilació de producció.",
     error: "Alguna cosa ha anat malament. Torna-ho a provar.",

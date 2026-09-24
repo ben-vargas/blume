@@ -20,13 +20,13 @@ Blume は第三の道を選びます: **フレームワークがテンプレー�
 | **ホスティング** | どこでも — 静的またはサーバー関数 | 彼らのマネージドインフラ | どこでも。自分でビルドしデプロイ |
 | **メンテナンス対象** | あなたの Markdown | あなたの Markdown + プラットフォーム設定 | あなたの Markdown + その周りのアプリ |
 | **レンダリング** | Astro。コアテーマはクライアント JS ゼロで配信 | 彼らのランタイム | React/Next.js ランタイム |
-| **AI 機能** | `llms.txt`、生の Markdown、Ask AI、MCP — 組み込み、ホスト型サービス不要 | 組み込み（ホスト型） | 自分で用意 |
+| **AI 機能** | `llms.txt`、生の Markdown、ページ内アシスタント、MCP — 組み込み、ホスト型サービス不要 | 組み込み（ホスト型） | 自分で用意 |
 
 特筆すべき帰結がいくつかあります:
 
 - **出力はあなたのものです。** `blume build` は、Vercel、Netlify、Cloudflare、S3、あるいは自前のマシンでホストできるプレーンなサイトを生成します。外部への通信は一切ありません。
 - **ロックインなし、出口は 2 つ。** コンテンツはポータブルな Markdown であり、`blume eject` はプロジェクトを、完全な制御が欲しくなったときに引き続き `blume` パッケージを使うスタンドアロンの Astro アプリへと変換します。
-- **デフォルトで高速。** コアテーマは React を使わず静的 HTML をレンダリングするため、チューニングなしで Core Web Vitals のスコアが良好です。サーバー機能（Ask AI、MCP）は必要なときにだけオプトインします。
+- **デフォルトで高速。** コアテーマは React を使わず静的 HTML をレンダリングするため、チューニングなしで Core Web Vitals のスコアが良好です。サーバー機能（アシスタント、MCP）は必要なときにだけオプトインします。
 - **型安全な設定。** `blume.config.ts` とすべての `meta.ts` は、スキーマで検証される本物の TypeScript です — 型の緩い YAML ではありません。
 
 :::note
@@ -49,7 +49,7 @@ Blume は第三の道を選びます: **フレームワークがテンプレー�
 
 ## どこにデプロイできますか？ [#where-can-i-deploy-it]
 
-どこにでも。`blume build` はデフォルトで静的 HTML を出力するので、任意の静的ホストや CDN — Vercel、Netlify、Cloudflare Pages、GitHub Pages、S3、あるいは自前のサーバー — から配信できます。サーバー専用の機能（Ask AI、MCP サーバー、オンデマンドレンダリング）にはサーバー出力が必要です: `blume/deploy` のホストアダプタ — `vercel()`、`netlify()`、`cloudflare()`、または `node()` — を `deployment` に指定してください。[デプロイ](/docs/deployment)をご覧ください。
+どこにでも。`blume build` はデフォルトで静的 HTML を出力するので、任意の静的ホストや CDN — Vercel、Netlify、Cloudflare Pages、GitHub Pages、S3、あるいは自前のサーバー — から配信できます。サーバー専用の機能（アシスタント、MCP サーバー、オンデマンドレンダリング）にはサーバー出力が必要です: `blume/deploy` のホストアダプタ — `vercel()`、`netlify()`、`cloudflare()`、または `node()` — を `deployment` に指定してください。[デプロイ](/docs/deployment)をご覧ください。
 
 ## 検索にはホスト型サービスが必要ですか？ [#does-search-need-a-hosted-service]
 

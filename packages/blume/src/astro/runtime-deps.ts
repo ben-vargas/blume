@@ -85,18 +85,18 @@ export const sourceAdapterDependencies = (
   );
 
 /**
- * The Ask AI adapter's provider SDK, when missing — only `gateway` needs
+ * The assistant adapter's provider SDK, when missing — only `gateway` needs
  * nothing beyond the core `ai` package Blume ships. An external `endpoint`
  * means no generated route, so no SDK is imported.
  */
-export const askProviderDependencies = (
-  ask: ResolvedConfig["ai"]["ask"],
+export const assistantProviderDependencies = (
+  ask: ResolvedConfig["ai"]["assistant"],
   root: string,
   pkgDir: string = packageRoot()
 ): MissingDependency[] =>
   ask?.enabled && !ask.endpoint
     ? unresolved(
-        `Ask AI provider "${ask.provider.kind}"`,
+        `Assistant provider "${ask.provider.kind}"`,
         ask.provider.runtimeDeps,
         root,
         pkgDir
@@ -152,7 +152,7 @@ export const islandFrameworkDependencies = (
 /**
  * Every package the resolved config's adapters (and the given island
  * frameworks) import that isn't installed: the search SDK, content source
- * SDKs, the Ask AI provider SDK, the deployment adapter, and island
+ * SDKs, the assistant provider SDK, the deployment adapter, and island
  * integrations. The adapters' `runtimeDeps` are the one place that knows.
  */
 export const missingRuntimeDependencies = (
@@ -163,7 +163,7 @@ export const missingRuntimeDependencies = (
 ): MissingDependency[] => [
   ...searchProviderDependencies(config.search.provider, root, pkgDir),
   ...sourceAdapterDependencies(config.content.sources, root, pkgDir),
-  ...askProviderDependencies(config.ai.ask, root, pkgDir),
+  ...assistantProviderDependencies(config.ai.assistant, root, pkgDir),
   ...deploymentAdapterDependencies(config.deployment, root, pkgDir),
   ...islandFrameworkDependencies(frameworks, root),
 ];

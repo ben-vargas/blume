@@ -149,7 +149,7 @@ const parseMarkdown = (
   format === "mdx" ? parseMdx(markdown) : markdownToMdast(markdown, MD_PARSE);
 
 // Fenced code is excluded from the plain index by default (ranking noise) —
-// the "markdown" extraction keeps it for Ask AI grounding. Code-heavy docs opt
+// the "markdown" extraction keeps it for assistant grounding. Code-heavy docs opt
 // in via `search.indexing.includeCodeBlocks`, which indexes the fence body and
 // its rendered title (```ts blume.config.ts) but never the fence markers,
 // language, or other meta keywords.
@@ -383,7 +383,7 @@ const pageBody = async (
  *
  * `content` selects the extraction: `"plain"` (default) strips Markdown to bare
  * searchable text; `"markdown"` keeps the body's Markdown — code blocks, lists,
- * headings — for Ask AI grounding, where fenced examples are often the answer
+ * headings — for assistant grounding, where fenced examples are often the answer
  * and stripping them makes the model unable to cite content the docs do contain.
  * The `"markdown"` body is agent-facing, so components are downleveled with the
  * same serializers the `.md` mirror, llms-full.txt and MCP `get_page` use: a

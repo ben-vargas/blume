@@ -1,5 +1,5 @@
 ---
-title: Ask AI
+title: Assistente
 description: >-
   Um assistente na própria página fundamentado na sua documentação — perguntas sugeridas, instruções personalizadas, dimensionamento da recuperação, adaptadores de provedor do Vercel AI Gateway a qualquer endpoint compatível com OpenAI, e a saída de servidor que ele exige.
 ---
@@ -8,7 +8,7 @@ Adicione um assistente que responde às perguntas dos leitores num painel de cha
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
   },
 }
@@ -22,7 +22,7 @@ Preencha o estado vazio com alguns prompts iniciais. Cada um aparece como uma su
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     suggestions: [
       { label: "What is Blume?", icon: "rocket" },
@@ -41,7 +41,7 @@ Adicione o seu próprio texto de system prompt com `instructions` — identidade
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     instructions:
       "You are Bloomy, the Acme docs assistant. Answer in the language the question was asked in, and keep answers under three paragraphs.",
@@ -53,7 +53,7 @@ Seu texto é **acrescentado às** instruções internas em vez de substituí-las
 
 ## Fundamentação [#grounding]
 
-O Ask AI é **fundamentado na sua documentação**. Para cada pergunta ele recupera as páginas mais relevantes — usando o mesmo índice léxico do [Orama](/docs/configuration/search) que alimenta a busca na página — e as injeta no system prompt do modelo, de forma que as respostas venham do seu conteúdo e não do conhecimento próprio do modelo. O assistente é instruído a responder apenas a partir das páginas recuperadas, a dizer quando algo não está coberto e a citar as páginas de onde tirou a informação.
+O assistente é **fundamentado na sua documentação**. Para cada pergunta ele recupera as páginas mais relevantes — usando o mesmo índice léxico do [Orama](/docs/configuration/search) que alimenta a busca na página — e as injeta no system prompt do modelo, de forma que as respostas venham do seu conteúdo e não do conhecimento próprio do modelo. O assistente é instruído a responder apenas a partir das páginas recuperadas, a dizer quando algo não está coberto e a citar as páginas de onde tirou a informação.
 
 A página em que o leitor está no momento é adicionada primeiro ao contexto e usada para limitar a recuperação ao idioma daquela página, para que as respostas continuem relevantes ao ponto em que ele está na documentação. A recuperação roda no momento da requisição a partir de um snapshot embutido no build, então funciona independentemente do seu provedor de [busca](/docs/configuration/search) — até mesmo com `search: false` — e não precisa de configuração.
 
@@ -65,7 +65,7 @@ Quanta documentação uma pergunta carrega é a maior alavanca sobre quanto temp
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     retrieval: {
       maxResults: 3, // fewer pages retrieved per question
@@ -92,7 +92,7 @@ Já tem um backend de API para IA? Aponte o painel para ele e mantenha o build d
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     endpoint: "https://api.example.com/v1/docs/ask",
   },
@@ -116,7 +116,7 @@ O endpoint gerado responde ao assistente na página, na própria origem dele. Pa
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     cors: ["https://www.example.com"],
   },
@@ -143,7 +143,7 @@ O content type importa: a verificação de requisição entre sites do Astro rej
 
 ## Saída de servidor obrigatória [#server-output-required]
 
-O backend interno do Ask AI no Blume é uma rota de servidor (`POST /api/ask`), então ele não pode rodar num build estático. Indique um adaptador de host de `blume/deploy` para mudar para saída de servidor:
+O backend interno do assistente do Blume é uma rota de servidor (`POST /api/ask`), então ele não pode rodar num build estático. Indique um adaptador de host de `blume/deploy` para mudar para saída de servidor:
 
 ```ts blume.config.ts lineNumbers
 import { vercel } from "blume/deploy";
@@ -153,7 +153,7 @@ export default defineConfig({
 });
 ```
 
-Um build estático com o Ask AI ativado e sem um `endpoint` externo falha imediatamente com uma mensagem dizendo para você definir um adaptador de host. Veja [Implantação](/docs/deployment) para os adaptadores.
+Um build estático com o assistente ativado e sem um `endpoint` externo falha imediatamente com uma mensagem dizendo para você definir um adaptador de host. Veja [Implantação](/docs/deployment) para os adaptadores.
 
 ## Adaptadores [#adapters]
 
@@ -165,7 +165,7 @@ import { openrouter } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: openrouter({ model: "anthropic/claude-sonnet-4-5" }),
     },
@@ -195,7 +195,7 @@ import { gateway } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: gateway({ model: "anthropic/claude-sonnet-4-5" }),
     },
@@ -215,7 +215,7 @@ import { openrouter } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: openrouter({
         model: "anthropic/claude-sonnet-4-5",
@@ -236,7 +236,7 @@ import { llmgateway } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: llmgateway({ model: "openai/gpt-5.5" }),
     },
@@ -256,7 +256,7 @@ import { inkeep } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: inkeep({ model: "inkeep-qa-expert" }),
     },
@@ -276,7 +276,7 @@ import { openaiCompatible } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: openaiCompatible({
         baseUrl: "https://my-gateway.example.com/v1",
@@ -315,7 +315,7 @@ provider: gateway({
 }),
 ```
 
-O Blume mapeia apenas as opções que ele nomeia (`model`, `reasoning`, `apiKeyEnv`, `headers`) e repassa `providerOptions` literalmente, então ele precisa ser JSON — ele é embutido na rota — e precisa usar a chave que o provedor subjacente espera (`openai` para um modelo da OpenAI atrás do gateway, `openrouter` no OpenRouter). Ativar o Ask AI também liga o React para a ilha na página — veja [Personalização](/docs/configuration/customization#interactive-islands).
+O Blume mapeia apenas as opções que ele nomeia (`model`, `reasoning`, `apiKeyEnv`, `headers`) e repassa `providerOptions` literalmente, então ele precisa ser JSON — ele é embutido na rota — e precisa usar a chave que o provedor subjacente espera (`openai` para um modelo da OpenAI atrás do gateway, `openrouter` no OpenRouter). Ativar o assistente também liga o React para a ilha na página — veja [Personalização](/docs/configuration/customization#interactive-islands).
 
 ## Raciocínio [#reasoning]
 
@@ -325,7 +325,7 @@ Modelos de raciocínio pensam antes de responder, e o quanto eles fazem isso por
 provider: gateway({ model: "openai/gpt-5.5", reasoning: "none" }),
 ```
 
-Cada adaptador envia o nível como o controle de esforço de raciocínio do próprio backend, e é por isso que a opção fica no adaptador, e não em `ask`:
+Cada adaptador envia o nível como o controle de esforço de raciocínio do próprio backend, e é por isso que a opção fica no adaptador, e não em `assistant`:
 
 | Adaptador | O que o nível vira |
 | --- | --- |
@@ -349,7 +349,7 @@ Com um [provedor de analytics](/docs/configuration/analytics) configurado, o ass
 
 `path` é a página de onde o leitor perguntou (o pathname servido, então ele corresponde ao widget de feedback e às suas visualizações de página sob um `base`), `questionChars` o comprimento da pergunta, `ms` o tempo entre o envio da pergunta e o último chunk, e `chars` o comprimento da resposta. `status` é o status HTTP: `0` quando nenhuma resposta chegou (offline, DNS, CORS), e `200` quando a resposta estava certa mas o fluxo dela quebrou no meio da resposta — como um erro de provedor ou de credencial se manifesta, já que o backend já enviou os cabeçalhos — ou não entregou nada. Limpar a conversa no meio de uma resposta não reporta nenhum dos dois resultados.
 
-O texto da pergunta nunca chega a um provedor: é entrada livre do leitor (chaves coladas, logs de erro, nomes) que violaria os termos e os limites de tamanho por valor da maioria dos provedores. Ele viaja apenas no evento de DOM `blume:track`, como `question` em `detail.props`, então um listener que você escreva pode encaminhá-lo para onde você decidir que ele pertence. Uma interface de chat personalizada construída sobre o `useAskAI` de `blume/hooks` reporta os mesmos eventos. Sem nenhum provedor configurado, as chamadas ao provedor interno não fazem nada, mas o evento `blume:track` ainda é disparado, então uma integração personalizada que o escute recebe esses eventos.
+O texto da pergunta nunca chega a um provedor: é entrada livre do leitor (chaves coladas, logs de erro, nomes) que violaria os termos e os limites de tamanho por valor da maioria dos provedores. Ele viaja apenas no evento de DOM `blume:track`, como `question` em `detail.props`, então um listener que você escreva pode encaminhá-lo para onde você decidir que ele pertence. Uma interface de chat personalizada construída sobre o `useAssistant` de `blume/hooks` reporta os mesmos eventos. Sem nenhum provedor configurado, as chamadas ao provedor interno não fazem nada, mas o evento `blume:track` ainda é disparado, então uma integração personalizada que o escute recebe esses eventos.
 
 ## Limitação de taxa [#rate-limiting]
 

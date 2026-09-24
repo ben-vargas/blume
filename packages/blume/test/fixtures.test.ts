@@ -12,12 +12,12 @@ import { serverFeatures } from "../src/core/server-features.ts";
 import { node } from "../src/deploy/adapters/index.ts";
 
 /**
- * An Ask AI config with the given `deployment` literal. The descriptor is
+ * An assistant config with the given `deployment` literal. The descriptor is
  * plain data, so the server fixture inlines its JSON instead of importing
  * the adapter from `blume/deploy`.
  */
 const askConfig = (deployment: string): string =>
-  `export default { ai: { ask: { enabled: true } }, deployment: ${deployment} };\n`;
+  `export default { ai: { assistant: { enabled: true } }, deployment: ${deployment} };\n`;
 
 /**
  * Fixture matrix: whole projects exercised end-to-end through the core pipeline,
@@ -122,8 +122,8 @@ describe("fixture matrix", () => {
       scanProject(staticRoot, { mode: "build" }),
       scanProject(serverRoot, { mode: "build" }),
     ]);
-    // Ask AI is a server feature: it can't ship in a static build.
-    expect(serverFeatures(staticProject.config)).toContain("Ask AI");
+    // The assistant is a server feature: it can't ship in a static build.
+    expect(serverFeatures(staticProject.config)).toContain("Assistant");
     expect(staticProject.config.deployment.options.output).toBe("static");
     expect(serverProject.config.deployment.options.output).toBe("server");
   });

@@ -143,7 +143,7 @@ export default function PageInfo() {
 | `useBlume()` | `{ config, navigation }` for the site, or `null` before mount |
 | `usePage()` | `{ route, title }` for the current page, or `null` before mount |
 | `useSearch()` | `{ search, results, loading }` — query the configured search provider |
-| `useAskAI()` | `{ ask, messages, loading, reset }` — stream from the Ask AI endpoint |
+| `useAssistant()` | `{ ask, messages, loading, reset }` — stream from the assistant endpoint |
 
 `useBlume()` and `usePage()` return `null` until the island mounts (so server and client render the same first frame) — guard for it. The snapshot is emitted only on pages that ship React, so a fully static site pays nothing.
 

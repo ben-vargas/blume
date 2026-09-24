@@ -28,19 +28,23 @@ describe("checkRequiredSecrets", () => {
     expect(checkRequiredSecrets(blumeConfigSchema.parse({}))).toEqual([]);
   });
 
-  it("warns when Ask AI (gateway) has no AI_GATEWAY_API_KEY", () => {
+  it("warns when the assistant (gateway) has no AI_GATEWAY_API_KEY", () => {
     Reflect.deleteProperty(process.env, "AI_GATEWAY_API_KEY");
-    const config = blumeConfigSchema.parse({ ai: { ask: { enabled: true } } });
+    const config = blumeConfigSchema.parse({
+      ai: { assistant: { enabled: true } },
+    });
     const result = checkRequiredSecrets(config);
     expect(result[0]?.code).toBe("BLUME_MISSING_SECRET");
     expect(result[0]?.message).toBe(
-      "Ask AI (AI Gateway) is enabled but AI_GATEWAY_API_KEY is not set (on Vercel the gateway can also authenticate via OIDC)."
+      "Assistant (AI Gateway) is enabled but AI_GATEWAY_API_KEY is not set (on Vercel the gateway can also authenticate via OIDC)."
     );
   });
 
   it("is satisfied when the key is set", () => {
     process.env.AI_GATEWAY_API_KEY = "sk-test";
-    const config = blumeConfigSchema.parse({ ai: { ask: { enabled: true } } });
+    const config = blumeConfigSchema.parse({
+      ai: { assistant: { enabled: true } },
+    });
     expect(checkRequiredSecrets(config)).toEqual([]);
   });
 
@@ -48,7 +52,7 @@ describe("checkRequiredSecrets", () => {
     Reflect.deleteProperty(process.env, "OPENROUTER_API_KEY");
     const config = blumeConfigSchema.parse({
       ai: {
-        ask: {
+        assistant: {
           enabled: true,
           provider: {
             kind: "openrouter",
@@ -64,14 +68,14 @@ describe("checkRequiredSecrets", () => {
         (d) =>
           d.code === "BLUME_MISSING_SECRET" &&
           d.message ===
-            "Ask AI (OpenRouter) is enabled but OPENROUTER_API_KEY is not set."
+            "Assistant (OpenRouter) is enabled but OPENROUTER_API_KEY is not set."
       )
     ).toBe(true);
     // An overridden env var name is what gets checked.
     Reflect.deleteProperty(process.env, "OR_KEY");
     const renamed = blumeConfigSchema.parse({
       ai: {
-        ask: {
+        assistant: {
           enabled: true,
           provider: {
             kind: "openrouter",
@@ -91,7 +95,7 @@ describe("checkRequiredSecrets", () => {
     Reflect.deleteProperty(process.env, "OPENROUTER_API_KEY");
     const config = blumeConfigSchema.parse({
       ai: {
-        ask: {
+        assistant: {
           enabled: true,
           endpoint: "https://api.example.com/ask",
           provider: {

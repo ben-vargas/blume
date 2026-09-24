@@ -1,5 +1,5 @@
 /**
- * CORS for the generated Ask AI route (`ai.ask.cors`).
+ * CORS for the assistant's generated route (`ai.assistant.cors`).
  *
  * A browser only lets a page on another origin read a response that names
  * that origin, and a JSON `POST` preflights first. `preflightResponse` answers
@@ -8,12 +8,12 @@
  * rather than stamping each `return`, keeps the next return site added to the
  * handler from shipping an opaque failure for that one status.
  *
- * `allowed` is the `ai.ask.cors` list: origins already reduced to their
+ * `allowed` is the `ai.assistant.cors` list: origins already reduced to their
  * `scheme://host[:port]` form by the config schema, or the single entry `"*"`
  * to admit every origin.
  */
 
-/** The `ai.ask.cors` entry that admits every origin. */
+/** The `ai.assistant.cors` entry that admits every origin. */
 export const ANY_ORIGIN = "*";
 
 /** The headers a response carries for a cross-origin caller. */

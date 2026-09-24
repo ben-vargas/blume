@@ -15,7 +15,6 @@ const uiStringsObject = z.object({
     .object({
       addToCursor: z.string().default("Add to Cursor"),
       addToVscode: z.string().default("Add to VS Code"),
-      askAI: z.string().default("Ask AI about this page"),
       connectMcp: z.string().default("Connect to MCP"),
       copied: z.string().default("Copied!"),
       copyClaudeCode: z.string().default("Copy Claude Code command"),
@@ -40,7 +39,7 @@ const uiStringsObject = z.object({
       scrollToTop: z.string().default("Scroll to top"),
     })
     .prefault({}),
-  ask: z
+  assistant: z
     .object({
       ai: z.string().default("AI"),
       clear: z.string().default("Clear conversation"),
@@ -52,7 +51,7 @@ const uiStringsObject = z.object({
       placeholder: z.string().default("Ask a question…"),
       send: z.string().default("Send"),
       tip: z.string().default("Tip: You can open and close chat with"),
-      title: z.string().default("Ask AI"),
+      title: z.string().default("Assistant"),
       you: z.string().default("You"),
     })
     .prefault({}),
@@ -142,8 +141,8 @@ const uiStringsObject = z.object({
       all: z.string().default("All"),
       allLanguages: z.string().default("All languages"),
       allVersions: z.string().default("All versions"),
-      askAi: z.string().default("Ask AI"),
-      askAiHint: z.string().default("Get an instant answer from AI"),
+      assistant: z.string().default("Assistant"),
+      assistantHint: z.string().default("Get an instant answer from AI"),
       button: z.string().default("Search"),
       devOnly: z
         .string()
@@ -204,11 +203,38 @@ export const uiStringsOverrideSchema = z.record(
 
 export type UIStringsOverride = z.infer<typeof uiStringsOverrideSchema>;
 
+/**
+ * UI string keys renamed when Ask AI became the assistant, as `group` or
+ * `group.key`, each with its new name. Unknown keys merge harmlessly, so an
+ * override under an old name would otherwise be dropped without a word.
+ */
+const RENAMED_UI_KEYS = new Map([
+  ["ask", "assistant"],
+  ["search.askAi", "search.assistant"],
+  ["search.askAiHint", "search.assistantHint"],
+]);
+
 /** Per-locale UI overrides supplied in `i18n.ui`. */
-export const uiLocaleOverridesSchema = z.record(
-  z.string(),
-  uiStringsOverrideSchema
-);
+export const uiLocaleOverridesSchema = z
+  .record(z.string(), uiStringsOverrideSchema)
+  .superRefine((value, ctx) => {
+    for (const [locale, override] of Object.entries(value)) {
+      const keys = Object.entries(override).flatMap(([group, strings]) => [
+        group,
+        ...Object.keys(strings).map((key) => `${group}.${key}`),
+      ]);
+      for (const key of keys) {
+        const renamed = RENAMED_UI_KEYS.get(key);
+        if (renamed) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `i18n.ui.${locale}.${key} was renamed to i18n.ui.${locale}.${renamed}.`,
+            path: [locale, ...key.split(".")],
+          });
+        }
+      }
+    }
+  });
 
 /** Merge an override's string leaves onto a base dictionary (two levels deep). */
 const mergeUI = (base: UIStrings, override?: UIStringsOverride): UIStrings => {

@@ -1,6 +1,6 @@
 /**
  * Read a request body under a size cap, for the unauthenticated endpoints a
- * server build exposes (the Ask AI route, the API playground proxy). A
+ * server build exposes (the assistant route, the API playground proxy). A
  * self-hosted Node server buffers whatever a client sends, so an endpoint that
  * starts with `request.json()` or `arrayBuffer()` lets one oversized POST
  * allocate hundreds of megabytes before any validation runs. A declared

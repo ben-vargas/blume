@@ -367,7 +367,7 @@ dateFormat: { year: "numeric", month: "2-digit", day: "2-digit" },
 
 ## SEO e agentes [#seo-and-agents]
 
-Metadados, imagens Open Graph, feeds RSS, JSON-LD, o sitemap e o `robots.txt` ficam em `seo`; o `llms.txt`, o Markdown bruto, a API JSON, o servidor MCP e os manifestos de descoberta ficam em `agents`. Os dois são abordados página a página na seção [Descoberta](/docs/discoverability), que trata os buscadores e os agentes de IA como dois públicos da mesma camada legível por máquina. As funcionalidades de modelo voltadas para o leitor — o assistente Ask AI e a ação Abrir no chat — ficam em `ai`.
+Metadados, imagens Open Graph, feeds RSS, JSON-LD, o sitemap e o `robots.txt` ficam em `seo`; o `llms.txt`, o Markdown bruto, a API JSON, o servidor MCP e os manifestos de descoberta ficam em `agents`. Os dois são abordados página a página na seção [Descoberta](/docs/discoverability), que trata os buscadores e os agentes de IA como dois públicos da mesma camada legível por máquina. As funcionalidades de modelo voltadas para o leitor — o assistente e a ação Abrir no chat — ficam em `ai`.
 
 ```ts blume.config.ts lineNumbers
 seo: {
@@ -432,7 +432,7 @@ Cada uma delas tem seu próprio guia. O campo de configuração é o ponto de en
 | `search` | Provedor (Orama, Pagefind, Algolia, entre outros) e indexação | [Busca](/docs/configuration/search) |
 | `markdown` | Opções de renderização de Markdown — blocos de código, âncoras de títulos, zoom em imagens | [Sintaxe](/docs/content/syntax) |
 | `agents` | `llms.txt`, espelhos em Markdown, a API JSON, o servidor MCP hospedado, skills e manifestos de descoberta para agentes de programação | [SEO e AEO](/docs/discoverability) |
-| `ai` | O assistente Ask AI dentro da página e a ação Abrir no chat | [Ask AI](/docs/configuration/ask-ai) |
+| `ai` | O assistente dentro da página e a ação Abrir no chat | [Assistente](/docs/configuration/assistant) |
 | `reference` | Referências de API: adaptadores `openapi()`, `asyncapi()`, `graphql()` e `scalar()` de `blume/reference` | [OpenAPI](/docs/references/openapi), [AsyncAPI](/docs/references/asyncapi), [GraphQL](/docs/references/graphql), [Scalar](/docs/references/scalar) |
 | `analytics` | Adaptadores de `blume/analytics` — PostHog, Google Analytics, Plausible, Mixpanel, Segment, entre outros — além de scripts personalizados | [Analytics](/docs/configuration/analytics) |
 | `seo` | Metadados, imagens OG, feeds, dados estruturados, sitemap, robots | [SEO e AEO](/docs/discoverability) |

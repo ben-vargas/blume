@@ -1,5 +1,5 @@
 ---
-title: Ask AI
+title: Assistant
 description: An in-page assistant grounded in your docs — suggested questions, custom instructions, retrieval sizing, provider adapters from the Vercel AI Gateway to any OpenAI-compatible endpoint, and the server output it needs.
 ---
 
@@ -7,7 +7,7 @@ Add an assistant that answers reader questions in an in-page chat panel, backed 
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
   },
 }
@@ -21,7 +21,7 @@ Seed the empty state with a few starter prompts. Each renders as a clickable sug
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     suggestions: [
       { label: "What is Blume?", icon: "rocket" },
@@ -40,7 +40,7 @@ Add your own system-prompt text with `instructions` — identity, language, tone
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     instructions:
       "You are Bloomy, the Acme docs assistant. Answer in the language the question was asked in, and keep answers under three paragraphs.",
@@ -52,7 +52,7 @@ Your text is **appended to** the built-in instructions rather than replacing the
 
 ## Grounding
 
-Ask AI is **grounded in your docs**. For each question it retrieves the most relevant pages — using the same lexical [Orama](/docs/configuration/search) index that powers on-page search — and injects them into the model's system prompt, so answers come from your content instead of the model's own knowledge. The assistant is told to answer only from the retrieved pages, to say when something isn't covered, and to cite the pages it drew from.
+The assistant is **grounded in your docs**. For each question it retrieves the most relevant pages — using the same lexical [Orama](/docs/configuration/search) index that powers on-page search — and injects them into the model's system prompt, so answers come from your content instead of the model's own knowledge. The assistant is told to answer only from the retrieved pages, to say when something isn't covered, and to cite the pages it drew from.
 
 The page the reader is currently on is added to the context first and used to scope retrieval to that page's language, so answers stay relevant to where they are in the docs. Retrieval runs at request time from a snapshot baked into the build, so it works regardless of your [search](/docs/configuration/search) provider — even with `search: false` — and needs no configuration.
 
@@ -64,7 +64,7 @@ How much documentation a question carries is the biggest lever on how long the r
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     retrieval: {
       maxResults: 3, // fewer pages retrieved per question
@@ -91,7 +91,7 @@ Already have an API backend for AI? Point the panel at it and keep the docs buil
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     endpoint: "https://api.example.com/v1/docs/ask",
   },
@@ -115,7 +115,7 @@ The generated endpoint answers the in-page assistant on its own origin. To call 
 
 ```ts blume.config.ts lineNumbers
 ai: {
-  ask: {
+  assistant: {
     enabled: true,
     cors: ["https://www.example.com"],
   },
@@ -142,7 +142,7 @@ The content type matters: Astro's cross-site request check rejects a cross-origi
 
 ## Server output required
 
-Blume's built-in Ask AI backend is a server route (`POST /api/ask`), so it can't run on a static build. Name a host adapter from `blume/deploy` to switch to server output:
+Blume's built-in assistant backend is a server route (`POST /api/ask`), so it can't run on a static build. Name a host adapter from `blume/deploy` to switch to server output:
 
 ```ts blume.config.ts lineNumbers
 import { vercel } from "blume/deploy";
@@ -152,7 +152,7 @@ export default defineConfig({
 });
 ```
 
-A static build with Ask AI enabled and no external `endpoint` fails fast with a message telling you to set a host adapter. See [Deployment](/docs/deployment) for the adapters.
+A static build with the assistant enabled and no external `endpoint` fails fast with a message telling you to set a host adapter. See [Deployment](/docs/deployment) for the adapters.
 
 ## Adapters
 
@@ -164,7 +164,7 @@ import { openrouter } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: openrouter({ model: "anthropic/claude-sonnet-4-5" }),
     },
@@ -194,7 +194,7 @@ import { gateway } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: gateway({ model: "anthropic/claude-sonnet-4-5" }),
     },
@@ -214,7 +214,7 @@ import { openrouter } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: openrouter({
         model: "anthropic/claude-sonnet-4-5",
@@ -235,7 +235,7 @@ import { llmgateway } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: llmgateway({ model: "openai/gpt-5.5" }),
     },
@@ -255,7 +255,7 @@ import { inkeep } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: inkeep({ model: "inkeep-qa-expert" }),
     },
@@ -275,7 +275,7 @@ import { openaiCompatible } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: openaiCompatible({
         baseUrl: "https://my-gateway.example.com/v1",
@@ -314,7 +314,7 @@ provider: gateway({
 }),
 ```
 
-Blume maps only the options it names (`model`, `reasoning`, `apiKeyEnv`, `headers`) and forwards `providerOptions` verbatim, so it has to be JSON — it's inlined into the route — and it has to use the key the underlying provider expects (`openai` for an OpenAI model behind the gateway, `openrouter` on OpenRouter). Enabling Ask AI also turns on React for the in-page island — see [Customization](/docs/configuration/customization#interactive-islands).
+Blume maps only the options it names (`model`, `reasoning`, `apiKeyEnv`, `headers`) and forwards `providerOptions` verbatim, so it has to be JSON — it's inlined into the route — and it has to use the key the underlying provider expects (`openai` for an OpenAI model behind the gateway, `openrouter` on OpenRouter). Enabling the assistant also turns on React for the in-page island — see [Customization](/docs/configuration/customization#interactive-islands).
 
 ## Reasoning
 
@@ -324,7 +324,7 @@ Reasoning models think before they answer, and how much they do so by default va
 provider: gateway({ model: "openai/gpt-5.5", reasoning: "none" }),
 ```
 
-Each adapter sends the level as its backend's own reasoning control, which is why it lives on the adapter rather than on `ask`:
+Each adapter sends the level as its backend's own reasoning control, which is why it lives on the adapter rather than on `assistant`:
 
 | Adapter | What the level becomes |
 | --- | --- |
@@ -348,7 +348,7 @@ With an [analytics provider](/docs/configuration/analytics) configured, the assi
 
 `path` is the page the reader asked from (the served pathname, so it matches the feedback widget and your pageviews under a `base`), `questionChars` the question's length, `ms` the time from sending the question to the last chunk, and `chars` the answer's length. `status` is the HTTP status: `0` when no response arrived at all (offline, DNS, CORS), and `200` when the response was fine but its stream broke mid-answer — how a provider or credential error surfaces, since the backend has already sent its headers — or delivered nothing. Clearing the conversation mid-answer reports neither outcome.
 
-The question's text never reaches a provider: it is free-form reader input (pasted keys, error logs, names) that would breach most providers' terms and per-value size limits. It travels only on the `blume:track` DOM event, as `question` in `detail.props`, so a listener you write can forward it wherever you decide it belongs. A custom chat UI built on `useAskAI` from `blume/hooks` reports the same events. With no provider configured the built-in provider calls are no-ops, but the `blume:track` event still fires, so a custom integration listening for it receives them.
+The question's text never reaches a provider: it is free-form reader input (pasted keys, error logs, names) that would breach most providers' terms and per-value size limits. It travels only on the `blume:track` DOM event, as `question` in `detail.props`, so a listener you write can forward it wherever you decide it belongs. A custom chat UI built on `useAssistant` from `blume/hooks` reports the same events. With no provider configured the built-in provider calls are no-ops, but the `blume:track` event still fires, so a custom integration listening for it receives them.
 
 ## Rate limiting
 

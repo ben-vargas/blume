@@ -484,7 +484,7 @@ export const upgradePrompt = (options: {
 }): string =>
   `Upgrade this Blume project to Blume ${options.version}. \`blume upgrade\` has bumped the \`blume\` dependency in package.json where it could; what's left is the config.
 
-The upgrade guide is at ${options.guidePath} (online at ${UPGRADE_GUIDE_URL}). It covers every change between Blume 1 and 2 with before-and-after examples: search, deployment, content sources, API references, analytics, and Ask AI become adapters imported from \`blume/*\` subpaths; the machine-readable settings move from \`ai\` to \`agents\`; and \`components.ts\` entries must be one of the static forms.
+The upgrade guide is at ${options.guidePath} (online at ${UPGRADE_GUIDE_URL}). It covers every change between Blume 1 and 2 with before-and-after examples: search, deployment, content sources, API references, analytics, and the assistant's model provider become adapters imported from \`blume/*\` subpaths; the machine-readable settings move from \`ai\` to \`agents\`; Ask AI is renamed the assistant, so \`ai.ask\` becomes \`ai.assistant\`; and \`components.ts\` entries must be one of the static forms.
 
 \`blume upgrade\` found:
 

@@ -67,7 +67,7 @@ export const applyAudienceVisibility = (
 
 /**
  * Resolve `<Visibility>` blocks for agent-facing Markdown (llms-full.txt, the
- * `.md`/`.mdx` mirrors, MCP tools, Ask AI grounding): `for="web"` content is
+ * `.md`/`.mdx` mirrors, MCP tools, assistant grounding): `for="web"` content is
  * removed and `for="agents"` content is unwrapped.
  */
 export const applyAgentVisibility = (markdown: string): string =>

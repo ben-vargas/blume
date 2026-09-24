@@ -32,7 +32,7 @@ blume audit
 - `--list-checks` — 監査が報告できるすべてのチェックを出力して終了します。
 - `--verbose` — 最初の数件だけでなく、影響を受けるすべてのページを各指摘の詳細とともに一覧表示します。
 - `--json` — レポートを JSON として標準出力に出力します。
-- `--claude` / `--codex` — 指摘を Claude Code または Codex に渡し、対話形式で修正させます。
+- `--codex` / `--claude` — 指摘を Codex または Claude Code に渡し、対話形式で修正させます。
 
 ## CI を失敗させる [#failing-ci]
 
@@ -56,10 +56,10 @@ blume audit --url https://docs.example.com --external   # also probe outbound li
 
 ## エージェントで指摘を修正する [#fixing-the-findings-with-an-agent]
 
-[Claude Code](https://claude.com/claude-code) や [Codex](https://developers.openai.com/codex/cli) を使っている場合は、監査の指摘をそのまま渡せます。
+[Codex](https://developers.openai.com/codex/cli) や [Claude Code](https://claude.com/claude-code) を使っている場合は、監査の指摘をそのまま渡せます。
 
 ```bash
-blume audit --claude   # or --codex
+blume audit --codex   # or --claude
 ```
 
 このコマンドは完全な JSON レポートをファイルに書き出します。ターミナルに表示される 3 ページ分のプレビューではなく、影響を受けるすべてのページが含まれます。続いて、指摘を順に処理させるプロンプトとともにエージェントを対話モードで起動します。エージェントは、各指摘が示すソースファイルを編集して提案どおりに修正し、レポートがクリーンになるまで `blume build` と `blume audit` を再実行します。このセッションは意図的に対話型にしています。編集内容はエージェント自身の権限フローで確認できます。また、コンテンツを削除して指摘を解消しないよう、エージェントに指示しています。

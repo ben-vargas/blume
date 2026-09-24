@@ -1,7 +1,7 @@
 import { afterAll, describe, expect, it, mock } from "bun:test";
 
 /**
- * Tests for the Ask AI island (`src/components/islands/ask-ai.tsx`).
+ * Tests for the assistant island (`src/components/islands/assistant.tsx`).
  *
  * Like hooks.test.ts, `react` is module-mocked with a minimal hook runtime
  * (state cells persisting across renders, effects flushed after each render,
@@ -11,7 +11,7 @@ import { afterAll, describe, expect, it, mock } from "bun:test";
  * rendered tree can be traversed and its handlers driven without a DOM.
  */
 
-// ask-ai.tsx resolves the Ask endpoint from `import.meta.env.BASE_URL` at
+// assistant.tsx resolves the Ask endpoint from `import.meta.env.BASE_URL` at
 // module scope (Bun aliases `import.meta.env` to `process.env`).
 process.env.BASE_URL = "/";
 
@@ -30,7 +30,7 @@ const isUpdater = <T>(
 ): next is (current: T) => T => typeof next === "function";
 
 mock.module("react", () => ({
-  // Not used by ask-ai.tsx, but module mocks leak across test files and the
+  // Not used by assistant.tsx, but module mocks leak across test files and the
   // "react" namespace keeps the export names of whichever mock instantiates
   // it first. hooks.test.ts imports useCallback from the same mock, so this
   // mock must export it too or that import dies when this file runs first
@@ -195,7 +195,7 @@ const fakeWindow = {
   addEventListener(type: string, listener: Listener) {
     windowListeners.set(type, [...(windowListeners.get(type) ?? []), listener]);
   },
-  // `track()` in `useAskAI` dispatches its universal hook on the window.
+  // `track()` in `useAssistant` dispatches its universal hook on the window.
   dispatchEvent: () => true,
   location: { pathname: "/guide" },
   matchMedia: (_query: string) => ({
@@ -221,7 +221,7 @@ browserGlobals.window = fakeWindow;
 /** The `document.body` fields the island's overlay sweep touches. */
 interface FakeBody {
   children: FakeElement[];
-  dataset: { blumeAsk?: string };
+  dataset: { blumeAssistant?: string };
 }
 const fakeBody: FakeBody = { children: [], dataset: {} };
 
@@ -307,9 +307,10 @@ Object.defineProperty(globalThis, "navigator", {
   },
 });
 
-const { default: AskAI } = await import("../src/components/islands/ask-ai.tsx");
+const { default: Assistant } =
+  await import("../src/components/islands/assistant.tsx");
 
-type AskProps = Parameters<typeof AskAI>[0];
+type AskProps = Parameters<typeof Assistant>[0];
 
 // --- render harness ---------------------------------------------------------
 
@@ -330,7 +331,7 @@ let props: AskProps = {};
 const render = (): StubNode => {
   cursor = 0;
   effects = [];
-  const tree = AskAI(props);
+  const tree = Assistant(props);
   runCleanups();
   for (const effect of effects) {
     const cleanup = effect();
@@ -350,7 +351,7 @@ const fresh = (nextProps: AskProps = {}): StubNode => {
   mediaListeners = [];
   mutationObservers = [];
   fakeBody.children = [];
-  delete fakeBody.dataset.blumeAsk;
+  delete fakeBody.dataset.blumeAssistant;
   fakeDocument.activeElement = null;
   fakeDocument.body = fakeBody;
   cells = [];
@@ -531,7 +532,7 @@ afterAll(() => {
 
 // --- tests ------------------------------------------------------------------
 
-describe("AskAI empty state", () => {
+describe("Assistant empty state", () => {
   it("renders the prompt and the Apple shortcut hint without suggestions", () => {
     const tree = fresh();
     expect(
@@ -586,20 +587,20 @@ describe("AskAI empty state", () => {
   });
 });
 
-describe("AskAI open/close", () => {
+describe("Assistant open/close", () => {
   it("toggles via the trigger, ⌘I / Ctrl+I, and Escape, driving the body attribute", () => {
     let tree = fresh();
-    expect(byLabel(tree, "Ask AI").props["aria-expanded"]).toBe(false);
-    byLabel(tree, "Ask AI").props.onClick();
+    expect(byLabel(tree, "Assistant").props["aria-expanded"]).toBe(false);
+    byLabel(tree, "Assistant").props.onClick();
     tree = render();
-    expect(byLabel(tree, "Ask AI").props["aria-expanded"]).toBe(true);
+    expect(byLabel(tree, "Assistant").props["aria-expanded"]).toBe(true);
     expect(aside(tree).props.inert).toBe(false);
-    expect(fakeBody.dataset.blumeAsk).toBe("open");
+    expect(fakeBody.dataset.blumeAssistant).toBe("open");
 
     dispatch("keydown", { ctrlKey: false, key: "Escape", metaKey: false });
     tree = render();
     expect(aside(tree).props.inert).toBe(true);
-    expect(fakeBody.dataset.blumeAsk).toBeUndefined();
+    expect(fakeBody.dataset.blumeAssistant).toBeUndefined();
 
     let prevented = 0;
     const preventDefault = () => {
@@ -632,7 +633,7 @@ describe("AskAI open/close", () => {
 
   it("ignores an Escape aimed at a modal surface stacked on top", () => {
     let tree = fresh();
-    byLabel(tree, "Ask AI").props.onClick();
+    byLabel(tree, "Assistant").props.onClick();
     tree = render();
     expect(aside(tree).props.inert).toBe(false);
 
@@ -662,9 +663,9 @@ describe("AskAI open/close", () => {
 
   it("re-anchors onto the new body and re-stamps the push attribute after a client-router swap", () => {
     let tree = fresh();
-    byLabel(tree, "Ask AI").props.onClick();
+    byLabel(tree, "Assistant").props.onClick();
     tree = render();
-    expect(fakeBody.dataset.blumeAsk).toBe("open");
+    expect(fakeBody.dataset.blumeAssistant).toBe("open");
 
     // A swap installs a brand-new <body>: the push attribute arrives unset and
     // the previous portal container is a detached element. The island's
@@ -675,7 +676,7 @@ describe("AskAI open/close", () => {
     dispatchDocument("astro:after-swap", {});
     tree = render();
     expect(aside(tree).props.inert).toBe(false);
-    expect(swappedBody.dataset.blumeAsk).toBe("open");
+    expect(swappedBody.dataset.blumeAssistant).toBe("open");
 
     // With the panel closed, a swap leaves the incoming body unstamped.
     dispatch("keydown", { ctrlKey: false, key: "Escape", metaKey: false });
@@ -685,12 +686,12 @@ describe("AskAI open/close", () => {
     dispatchDocument("astro:after-swap", {});
     tree = render();
     expect(aside(tree).props.inert).toBe(true);
-    expect(closedSwapBody.dataset.blumeAsk).toBeUndefined();
+    expect(closedSwapBody.dataset.blumeAssistant).toBeUndefined();
   });
 
   it("accepts the search handoff event, with and without a forwarded query", () => {
     let tree = fresh();
-    dispatch("blume:open-ask-ai", { detail: { query: "from search" } });
+    dispatch("blume:open-assistant", { detail: { query: "from search" } });
     tree = render();
     expect(aside(tree).props.inert).toBe(false);
     expect(byLabel(tree, "Ask a question").props.value).toBe("from search");
@@ -699,7 +700,7 @@ describe("AskAI open/close", () => {
     tree = render();
     expect(aside(tree).props.inert).toBe(true);
 
-    dispatch("blume:open-ask-ai", {});
+    dispatch("blume:open-assistant", {});
     tree = render();
     expect(aside(tree).props.inert).toBe(false);
     expect(byLabel(tree, "Ask a question").props.value).toBe("from search");
@@ -716,7 +717,7 @@ describe("AskAI open/close", () => {
     let tree = fresh();
     mediaMatches = false;
     fakeBody.children = [sibling, alreadyInert];
-    byLabel(tree, "Ask AI").props.onClick();
+    byLabel(tree, "Assistant").props.onClick();
     tree = render();
     expect(sibling.hasAttribute("inert")).toBe(true);
     expect(alreadyInert.hasAttribute("inert")).toBe(true);
@@ -732,7 +733,7 @@ describe("AskAI open/close", () => {
     let tree = fresh();
     mediaMatches = false;
     fakeBody.children = [sibling];
-    byLabel(tree, "Ask AI").props.onClick();
+    byLabel(tree, "Assistant").props.onClick();
     tree = render();
     expect(sibling.hasAttribute("inert")).toBe(true);
     expect(mediaListeners).toHaveLength(1);
@@ -763,7 +764,7 @@ describe("AskAI open/close", () => {
   it("sweeps nodes portaled into body while the overlay is open", () => {
     let tree = fresh();
     mediaMatches = false;
-    byLabel(tree, "Ask AI").props.onClick();
+    byLabel(tree, "Assistant").props.onClick();
     tree = render();
     // SAFETY: opening the panel just constructed exactly one observer through
     // the mocked MutationObserver, so the list is non-empty.
@@ -792,7 +793,7 @@ describe("AskAI open/close", () => {
   it("leaves additions interactive while the desktop dock is active", () => {
     let tree = fresh();
     mediaMatches = false;
-    byLabel(tree, "Ask AI").props.onClick();
+    byLabel(tree, "Assistant").props.onClick();
     tree = render();
     // SAFETY: opening the panel just constructed exactly one observer through
     // the mocked MutationObserver, so the list is non-empty.
@@ -813,7 +814,7 @@ describe("AskAI open/close", () => {
     let tree = fresh();
     const opener = new FakeElement();
     fakeDocument.activeElement = opener;
-    byLabel(tree, "Ask AI").props.onClick();
+    byLabel(tree, "Assistant").props.onClick();
     tree = render();
     byLabel(tree, "Close").props.onClick();
     tree = render();
@@ -822,7 +823,7 @@ describe("AskAI open/close", () => {
     const stale = new FakeElement();
     stale.isConnected = false;
     fakeDocument.activeElement = stale;
-    byLabel(tree, "Ask AI").props.onClick();
+    byLabel(tree, "Assistant").props.onClick();
     tree = render();
     byLabel(tree, "Close").props.onClick();
     tree = render();
@@ -830,7 +831,7 @@ describe("AskAI open/close", () => {
   });
 });
 
-describe("AskAI conversation", () => {
+describe("Assistant conversation", () => {
   it("streams a suggestion's answer, grounding the request and basing citations", async () => {
     const requests: { init?: RequestInit; url: string }[] = [];
     setFetch((url, init) => {
@@ -943,11 +944,14 @@ describe("AskAI conversation", () => {
     expect(
       await ask(
         () =>
-          new Response("Ask AI is not configured: set AI_GATEWAY_API_KEY.", {
-            status: 503,
-          })
+          new Response(
+            "The assistant is not configured: set AI_GATEWAY_API_KEY.",
+            {
+              status: 503,
+            }
+          )
       )
-    ).toContain("Ask AI is not configured: set AI_GATEWAY_API_KEY.");
+    ).toContain("The assistant is not configured: set AI_GATEWAY_API_KEY.");
     // Any other 503 body (a host's error page) keeps the generic notice.
     expect(
       await ask(
@@ -984,7 +988,7 @@ describe("AskAI conversation", () => {
   });
 });
 
-describe("AskAI clear during a streaming answer", () => {
+describe("Assistant clear during a streaming answer", () => {
   it("aborts the request and keeps late chunks from resurrecting an orphaned bubble", async () => {
     // The signal is deliberately not wired to the stream: even if the abort
     // never reaches the network layer, the cleared generation must stop the

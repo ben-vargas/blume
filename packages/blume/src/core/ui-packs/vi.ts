@@ -5,7 +5,6 @@ export const vi: UIStringsOverride = {
   actions: {
     addToCursor: "Thêm vào Cursor",
     addToVscode: "Thêm vào VS Code",
-    askAI: "Hỏi AI về trang này",
     connectMcp: "Kết nối với MCP",
     copied: "Đã sao chép!",
     copyClaudeCode: "Sao chép lệnh Claude Code",
@@ -24,7 +23,7 @@ export const vi: UIStringsOverride = {
     openInChatPrompt: "Hãy đọc {url} để tôi có thể đặt câu hỏi về trang này.",
     scrollToTop: "Lên đầu trang",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "Xóa cuộc trò chuyện",
     close: "Đóng",
@@ -35,7 +34,7 @@ export const vi: UIStringsOverride = {
     placeholder: "Đặt câu hỏi…",
     send: "Gửi",
     tip: "Mẹo: Bạn có thể mở và đóng trò chuyện bằng",
-    title: "Hỏi AI",
+    title: "Trợ lý",
     you: "Bạn",
   },
   banner: { dismiss: "Đóng thông báo" },
@@ -84,8 +83,8 @@ export const vi: UIStringsOverride = {
   search: {
     all: "Tất cả",
     allLanguages: "Tất cả ngôn ngữ",
-    askAi: "Hỏi AI",
-    askAiHint: "Nhận câu trả lời tức thì từ AI",
+    assistant: "Trợ lý",
+    assistantHint: "Nhận câu trả lời tức thì từ AI",
     button: "Tìm kiếm",
     devOnly: "Tìm kiếm có sẵn trong bản dựng production.",
     error: "Đã xảy ra sự cố. Vui lòng thử lại.",

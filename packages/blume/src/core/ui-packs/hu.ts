@@ -5,7 +5,6 @@ export const hu: UIStringsOverride = {
   actions: {
     addToCursor: "Hozzáadás a Cursorhoz",
     addToVscode: "Hozzáadás a VS Code-hoz",
-    askAI: "Kérdezd az AI-t erről az oldalról",
     connectMcp: "Kapcsolódás az MCP-hez",
     copied: "Másolva!",
     copyClaudeCode: "Claude Code parancs másolása",
@@ -25,7 +24,7 @@ export const hu: UIStringsOverride = {
       "Olvasd el a következőt: {url}, hogy kérdéseket tehessek fel erről az oldalról.",
     scrollToTop: "Vissza a tetejére",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "Beszélgetés törlése",
     close: "Bezárás",
@@ -36,7 +35,7 @@ export const hu: UIStringsOverride = {
     placeholder: "Tegyél fel egy kérdést…",
     send: "Küldés",
     tip: "Tipp: A csevegést ezzel nyithatod meg és zárhatod be:",
-    title: "Kérdezd az AI-t",
+    title: "Asszisztens",
     you: "Te",
   },
   banner: { dismiss: "Közlemény bezárása" },
@@ -85,8 +84,8 @@ export const hu: UIStringsOverride = {
   search: {
     all: "Összes",
     allLanguages: "Összes nyelv",
-    askAi: "Kérdezd az AI-t",
-    askAiHint: "Kapj azonnali választ az AI-tól",
+    assistant: "Asszisztens",
+    assistantHint: "Kapj azonnali választ az AI-tól",
     button: "Keresés",
     devOnly: "A keresés az éles buildben érhető el.",
     error: "Hiba történt. Próbáld újra.",

@@ -1,7 +1,7 @@
 ---
 title: Blume への移行
 description: >-
-  Mintlify、Fumadocs、Docusaurus、Starlight、Nextra のサイトを、Claude Code または Codex に移行作業を任せる 1 つのコマンドで Blume に移行します。
+  Mintlify、Fumadocs、Docusaurus、Starlight、Nextra のサイトを、Codex または Claude Code に移行作業を任せる 1 つのコマンドで Blume に移行します。
 sidebar:
   label: Blume への移行
   order: 2.4
@@ -14,10 +14,10 @@ sidebar:
 移行するドキュメントプロジェクトのルートで実行します:
 
 ```package-install
-npx blume migrate fumadocs --claude
+npx blume migrate fumadocs --codex
 ```
 
-`fumadocs` はお使いのフレームワークに置き換えてください。Codex を使う場合は `--claude` を `--codex` に置き換えます。pnpm 12 は承認なしに esbuild のインストールスクリプトを実行しないため、pnpm 12 では `pnpm dlx` の後に `--allow-build=esbuild` を追加してください。エージェントはターミナル内で対話的に起動するため、すべての編集はエージェント自身の許可フローを通ります。エージェントはファイルを直接編集するため、クリーンなワーキングツリーから始め、移行全体を 1 つの diff としてレビューしてください。
+`fumadocs` はお使いのフレームワークに置き換えてください。Claude Code を使う場合は `--codex` を `--claude` に置き換えます。pnpm 12 は承認なしに esbuild のインストールスクリプトを実行しないため、pnpm 12 では `pnpm dlx` の後に `--allow-build=esbuild` を追加してください。エージェントはターミナル内で対話的に起動するため、すべての編集はエージェント自身の許可フローを通ります。エージェントはファイルを直接編集するため、クリーンなワーキングツリーから始め、移行全体を 1 つの diff としてレビューしてください。
 
 ## 移行元 [#sources]
 
@@ -48,7 +48,7 @@ npx blume migrate fumadocs --claude
 
 ## その他のエージェント [#other-agents]
 
-`--claude` または `--codex` を指定しない場合、コマンドは検出した移行元を報告し、プレイブック(パッケージに同梱されている `blume-migrate` [スキル](/docs/advanced/skills))のパスを表示して、何も変更せずに終了します。他のエージェントにはその `SKILL.md` を参照させるか、表示されるコマンドを使って、エージェントがスキルを探す場所にスキルをインストールしてください:
+`--codex` または `--claude` を指定しない場合、コマンドは検出した移行元を報告し、プレイブック(パッケージに同梱されている `blume-migrate` [スキル](/docs/advanced/skills))のパスを表示して、何も変更せずに終了します。他のエージェントにはその `SKILL.md` を参照させるか、表示されるコマンドを使って、エージェントがスキルを探す場所にスキルをインストールしてください:
 
 ```bash
 npx skills add haydenbleasel/blume --skill blume-migrate

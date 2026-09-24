@@ -636,7 +636,7 @@ const writeIfChanged = async (
 
 /**
  * Delete generated files under `srcDir` that this pass didn't (re)write. The
- * generator emits many files conditionally — an Ask AI endpoint, OG images, a
+ * generator emits many files conditionally — an assistant endpoint, OG images, a
  * search index, RSS feeds, reference pages, the MCP server — so toggling a
  * feature off would otherwise leave a stale file behind, and a leftover
  * server-rendered endpoint breaks the static build. `writeIfChanged` only ever
@@ -1114,10 +1114,10 @@ export const buildRuntimeData = (project: BlumeProject): string => {
     config: {
       analytics: config.analytics,
       appleIcon: resolveAppleIcon(project),
-      ask: config.ai.ask?.enabled
+      assistant: config.ai.assistant?.enabled
         ? {
-            endpoint: config.ai.ask.endpoint ?? null,
-            suggestions: config.ai.ask.suggestions,
+            endpoint: config.ai.assistant.endpoint ?? null,
+            suggestions: config.ai.assistant.suggestions,
           }
         : null,
       banner: resolveBanner(config),
@@ -1580,9 +1580,9 @@ const proxyAllowlistWarnings = (
 };
 
 /**
- * Write the Ask AI endpoint and, unless the backend runs its own retrieval
+ * Write the assistant endpoint and, unless the backend runs its own retrieval
  * (Inkeep), the grounding snapshot the endpoint queries at request time. A no-op
- * when Ask AI is disabled.
+ * when the assistant is disabled.
  */
 const writeAskFiles = async (
   project: BlumeProject,
@@ -1590,20 +1590,20 @@ const writeAskFiles = async (
   write: (path: string, content: string) => Promise<boolean>,
   modules: RuntimeModules
 ): Promise<void> => {
-  const { ask } = project.config.ai;
-  if (!(ask?.enabled && !ask.endpoint)) {
+  const { assistant } = project.config.ai;
+  if (!(assistant?.enabled && !assistant.endpoint)) {
     return;
   }
-  const backend = resolveAskBackend(ask.provider);
+  const backend = resolveAskBackend(assistant.provider);
   if (backend.grounded) {
     modules.set("blume:ask-data", JSON.stringify(await buildAskData(project)));
   }
   await write(
     join(srcDir, "pages", "api", "ask.ts"),
     askEndpointTemplate(backend, {
-      cors: ask.cors,
-      instructions: ask.instructions,
-      retrieval: ask.retrieval,
+      cors: assistant.cors,
+      instructions: assistant.instructions,
+      retrieval: assistant.retrieval,
     })
   );
 };
@@ -1645,7 +1645,7 @@ export const diagnosticWarning = (diagnostic: Diagnostic): string =>
 
 /**
  * Missing-dependency preflight: the search provider's SDK, content source
- * SDKs, the Ask AI backend's provider SDK, the deployment adapter's package,
+ * SDKs, the assistant backend's provider SDK, the deployment adapter's package,
  * and — since React ships with Blume while Vue/Svelte don't — any island
  * framework's Astro integration. A build fails here, before anything is
  * written, with the install command for the project's package manager —
@@ -1845,7 +1845,7 @@ export const generateRuntime = async (
   const homeLinkHeader =
     buildHomeLinkHeader(config, contentRoutes) ?? undefined;
 
-  const askEnabled = config.ai.ask?.enabled ?? false;
+  const assistantEnabled = config.ai.assistant?.enabled ?? false;
   const exportPdf = config.export.pdf;
   const exportEpub = config.export.epub;
   // Every route's source Markdown: published as `blume:raw-markdown` below,
@@ -1897,7 +1897,7 @@ export const generateRuntime = async (
   project.examples = exampleMarkdownLookup(exampleDiscovery.examples);
 
   // Each island/example framework enables its Astro renderer. React also
-  // switches on for any project `.tsx`/`.jsx` and for Ask AI; Vue/Svelte are
+  // switches on for any project `.tsx`/`.jsx` and for the assistant; Vue/Svelte are
   // island/example-driven. `.astro` examples need no renderer. Component
   // overrides referencing a framework component enable its renderer too.
   const frameworks = new Set<string>([
@@ -1906,7 +1906,8 @@ export const generateRuntime = async (
     ...slotPlan.frameworks,
   ]);
   const dependencyWarnings = await dependencyPreflight(project, frameworks);
-  const needsReact = detectedReact || askEnabled || frameworks.has("react");
+  const needsReact =
+    detectedReact || assistantEnabled || frameworks.has("react");
   const needsVue = frameworks.has("vue");
   const needsSvelte = frameworks.has("svelte");
 
@@ -2025,7 +2026,7 @@ export const generateRuntime = async (
       // The header's Ask trigger, behind the `blume:ask` alias. Always written
       // (even when Ask is off, as a component that renders nothing) so the alias
       // resolves — the same contract as `blume:search-client`.
-      write(askPath, askComponentTemplate(askEnabled)),
+      write(askPath, askComponentTemplate(assistantEnabled)),
       write(join(srcDir, "generated", "components.ts"), slotPlan.module),
       write(
         join(srcDir, "generated", "examples.ts"),
@@ -2288,7 +2289,7 @@ export const generateRuntime = async (
     writeStagedContent(out, staged),
   ]);
 
-  // Remove anything under `.blume/src` this pass didn't write — e.g. an Ask AI
+  // Remove anything under `.blume/src` this pass didn't write — e.g. an assistant
   // endpoint left behind after the feature was switched off.
   await pruneOrphans(srcDir, written);
 

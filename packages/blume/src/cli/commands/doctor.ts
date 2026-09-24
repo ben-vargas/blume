@@ -153,12 +153,14 @@ export const doctorCommand = defineCommand({
         logger.info(
           `Sources: ${config.content.sources.map((source) => source.kind).join(", ")}`
         );
-        const { ask } = config.ai;
-        let askSummary = "off";
-        if (ask?.enabled) {
-          askSummary = ask.endpoint ? "external endpoint" : ask.provider.kind;
+        const { assistant } = config.ai;
+        let assistantSummary = "off";
+        if (assistant?.enabled) {
+          assistantSummary = assistant.endpoint
+            ? "external endpoint"
+            : assistant.provider.kind;
         }
-        logger.info(`Ask AI: ${askSummary}`);
+        logger.info(`Assistant: ${assistantSummary}`);
       }
     } catch (error) {
       if (error instanceof BlumeError) {

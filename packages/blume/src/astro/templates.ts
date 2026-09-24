@@ -196,10 +196,10 @@ export const runtimeDependencies = (options: {
       }
     }
   }
-  // Ask AI's provider SDK, as its adapter declares it (the gateway needs
+  // The assistant's provider SDK, as its adapter declares it (the gateway needs
   // nothing beyond core `ai`, so it declares none).
-  if (config.ai.ask?.enabled && !config.ai.ask.endpoint) {
-    deps.push(...config.ai.ask.provider.runtimeDeps);
+  if (config.ai.assistant?.enabled && !config.ai.assistant.endpoint) {
+    deps.push(...config.ai.assistant.provider.runtimeDeps);
   }
   // The deployment adapter's `@astrojs/*` package, for a server build; the
   // descriptor declares it (and nothing for a static build).
@@ -727,7 +727,7 @@ export const astroConfigTemplate = (options: {
     hasFonts: fontEntries.length > 0,
   });
 
-  // Framework renderers are only wired in when an island (or Ask AI, for React)
+  // Framework renderers are only wired in when an island (or the assistant, for React)
   // needs them. The core theme is Astro-first and ships no client JS.
   const reactImport = needsReact ? `import react from "@astrojs/react";\n` : "";
   const vueImport = needsVue ? `import vue from "@astrojs/vue";\n` : "";
@@ -1064,17 +1064,17 @@ export const collections = { docs${options.staged ? ", staged" : ""} };
 const ASK_FALLBACK_PROMPT =
   "You are a helpful documentation assistant. Answer using the project's documentation.";
 
-/** The `ai.ask` values the generated endpoint has to carry with it. */
+/** The `ai.assistant` values the generated endpoint has to carry with it. */
 export interface AskEndpointOptions {
-  /** `ai.ask.cors` — origins allowed to call the route from another site. */
+  /** `ai.assistant.cors` — origins allowed to call the route from another site. */
   cors?: string[];
-  /** `ai.ask.instructions` — extra system-prompt text. */
+  /** `ai.assistant.instructions` — extra system-prompt text. */
   instructions?: string;
-  /** `ai.ask.retrieval` — how much documentation each question carries. */
+  /** `ai.assistant.retrieval` — how much documentation each question carries. */
   retrieval?: AskRetrievalOptions;
 }
 
-/** The pieces `askEndpointTemplate` splices in for `ai.ask.cors`. */
+/** The pieces `askEndpointTemplate` splices in for `ai.assistant.cors`. */
 interface AskCorsTemplate {
   /** The route's closing token: `});` when the POST is wrapped, `};` otherwise. */
   close: string;
@@ -1087,7 +1087,7 @@ interface AskCorsTemplate {
 }
 
 /**
- * `ai.ask.cors`: a browser only lets another origin read the stream when the
+ * `ai.assistant.cors`: a browser only lets another origin read the stream when the
  * response names that origin, and a JSON POST preflights first, so the route
  * answers `OPTIONS` and wraps the `POST` in `withCors`, which stamps a listed
  * origin on every response — errors included, so a cross-origin caller can
@@ -1114,14 +1114,14 @@ export const OPTIONS: APIRoute = ({ request }) =>
     : { close: "};", imports: [], open: "async ({ request }) => {", setup: "" };
 
 /**
- * Largest request body the Ask AI route reads: 64 KB, well above the
+ * Largest request body the assistant route reads: 64 KB, well above the
  * 24,000-character message budget it validates next, so a real conversation
  * never meets it.
  */
 const ASK_BODY_LIMIT_BYTES = 65_536;
 
 /**
- * Generate the Ask AI server endpoint (`.blume/src/pages/api/ask.ts`).
+ * Generate the assistant server endpoint (`.blume/src/pages/api/ask.ts`).
  *
  * The provider-specific pieces — imports, the provider factory call, the model
  * expression, the credential guard, and the adapter's reasoning mapping and
@@ -1130,11 +1130,11 @@ const ASK_BODY_LIMIT_BYTES = 65_536;
  * `blume.config.ts`. `backend.grounded` decides whether answers are grounded
  * in the retrieved docs (every adapter but Inkeep, which retrieves itself).
  *
- * `options.instructions` (the `ai.ask.instructions` config) is appended to the
+ * `options.instructions` (the `ai.assistant.instructions` config) is appended to the
  * built-in prompt on every path: the grounded prompt via `createAskContext`,
- * and the plain fallback here. `options.retrieval` (the `ai.ask.retrieval`
+ * and the plain fallback here. `options.retrieval` (the `ai.assistant.retrieval`
  * config) is forwarded to `createAskContext` on the grounded path, where it
- * sizes retrieval. `options.cors` (the `ai.ask.cors` config) adds a preflight
+ * sizes retrieval. `options.cors` (the `ai.assistant.cors` config) adds a preflight
  * handler and wraps the `POST` so every response names a listed origin. All
  * three travel in one options object so a new call site can't silently drop
  * one of them.
@@ -1232,7 +1232,7 @@ export const askEndpointTemplate = (
   // Provider errors surface mid-stream, after the 200 is committed; this is
   // the only place they can be observed server-side.
   const onError = `      onError({ error }) {
-        console.error("Ask AI provider error:", error);
+        console.error("Assistant provider error:", error);
       },`;
   // The `streamText` argument list, built once so the grounded and plain
   // paths can't drift: they differ only in where the instructions come from.
@@ -1281,9 +1281,9 @@ ${handler}
  * Generate `.blume/src/generated/Ask.astro` — the component behind the
  * `blume:ask` alias that the shared header renders in place of a per-page slot.
  *
- * The header can't import the Ask AI island directly: it's a React component, so
+ * The header can't import the assistant island directly: it's a React component, so
  * the import alone would drag the JSX renderer into the module graph of every
- * project — including the ones that never enable Ask AI and therefore have no
+ * project — including the ones that never enable the assistant and therefore have no
  * React integration wired into their generated Astro config (see `needsReact`).
  * Routing the import through a generated component keeps that dependency behind
  * the config switch: enabled projects get the island, disabled ones get a
@@ -1293,25 +1293,25 @@ ${handler}
  * state suggestions are read straight from the data snapshot, which is why no
  * page has to pass them.
  */
-export const askComponentTemplate = (askEnabled: boolean): string =>
-  askEnabled
+export const askComponentTemplate = (assistantEnabled: boolean): string =>
+  assistantEnabled
     ? `---
 // Generated by Blume. Do not edit.
-import AskAI from "blume/components/islands/AskAI.astro";
+import Assistant from "blume/components/islands/Assistant.astro";
 import data from "blume:data";
 
 const { strings } = Astro.props;
 ---
 
-<AskAI
-  endpoint={data.config.ask?.endpoint ?? undefined}
-  strings={strings ?? data.ui.ask}
-  suggestions={data.config.ask?.suggestions ?? []}
+<Assistant
+  endpoint={data.config.assistant?.endpoint ?? undefined}
+  strings={strings ?? data.ui.assistant}
+  suggestions={data.config.assistant?.suggestions ?? []}
 />
 `
     : `---
 // Generated by Blume. Do not edit.
-// Ask AI is off (\`ai.ask.enabled\`), so the header's Ask trigger renders nothing.
+// The assistant is off (\`ai.assistant.enabled\`), so the header's Ask trigger renders nothing.
 // Deliberately imports no React island, keeping the JSX renderer out of projects
 // that don't need it.
 ---

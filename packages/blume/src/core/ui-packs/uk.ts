@@ -5,7 +5,6 @@ export const uk: UIStringsOverride = {
   actions: {
     addToCursor: "Додати до Cursor",
     addToVscode: "Додати до VS Code",
-    askAI: "Запитати ШІ про цю сторінку",
     connectMcp: "Підключитися до MCP",
     copied: "Скопійовано!",
     copyClaudeCode: "Скопіювати команду Claude Code",
@@ -25,7 +24,7 @@ export const uk: UIStringsOverride = {
       "Прочитайте {url} — я ставитиму запитання щодо цієї сторінки.",
     scrollToTop: "Нагору",
   },
-  ask: {
+  assistant: {
     ai: "ШІ",
     clear: "Очистити бесіду",
     close: "Закрити",
@@ -36,7 +35,7 @@ export const uk: UIStringsOverride = {
     placeholder: "Поставте запитання…",
     send: "Надіслати",
     tip: "Порада: чат можна відкрити й закрити за допомогою",
-    title: "Запитати ШІ",
+    title: "Асистент",
     you: "Ви",
   },
   banner: { dismiss: "Закрити оголошення" },
@@ -85,8 +84,8 @@ export const uk: UIStringsOverride = {
   search: {
     all: "Усі",
     allLanguages: "Усі мови",
-    askAi: "Запитати ШІ",
-    askAiHint: "Отримайте миттєву відповідь від ШІ",
+    assistant: "Асистент",
+    assistantHint: "Отримайте миттєву відповідь від ШІ",
     button: "Пошук",
     devOnly: "Пошук доступний у production-збірці.",
     error: "Щось пішло не так. Спробуйте ще раз.",

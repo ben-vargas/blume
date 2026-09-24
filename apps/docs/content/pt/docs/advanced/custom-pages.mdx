@@ -1,5 +1,5 @@
 ---
-title: Páginas Personalizadas
+title: Páginas personalizadas
 description: >-
   Monte rotas .astro totalmente personalizadas ao lado da sua documentação e leia a configuração, a navegação e o conteúdo do seu site a partir do módulo blume:data.
 ---
@@ -77,7 +77,7 @@ O módulo expõe:
       type: "BlumeDataConfig",
       required: true,
       description:
-        "Configurações resolvidas do site: title, description, logo, favicon, appleIcon, banner, theme, site, repoUrl, github (owner, repo, host e a base da api REST — null quando não definido), search, i18n, mcp, ask, og, analytics, feedback, structuredData, toc, codeThemes, codeWrap e imageZoom.",
+        "Configurações resolvidas do site: title, description, logo, favicon, appleIcon, banner, theme, site, repoUrl, github (owner, repo, host e a base da api REST — null quando não definido), search, i18n, mcp, assistant, og, analytics, feedback, structuredData, toc, codeThemes, codeWrap e imageZoom.",
     },
     navigation: {
       type: "Navigation",
@@ -231,7 +231,7 @@ const { config } = data;
 </PageLayout>
 ```
 
-O cabeçalho que uma página personalizada recebe é o mesmo das páginas de documentação, então tudo o que vive nele vem junto: busca, alternador de tema, seletor de idioma e — quando o [Ask AI](/docs/configuration/ask-ai) está configurado — o gatilho do Ask AI. Nada disso precisa ser conectado página por página. Passe `askEnabled={false}` para desativar o gatilho do Ask em uma página específica, mantendo-o em todas as outras.
+O cabeçalho que uma página personalizada recebe é o mesmo das páginas de documentação, então tudo o que vive nele vem junto: busca, alternador de tema, seletor de idioma e — quando o [assistente](/docs/configuration/assistant) está configurado — o gatilho dele. Nada disso precisa ser conectado página por página. Passe `assistantEnabled={false}` para desativar o gatilho do assistente em uma página específica, mantendo-o em todas as outras.
 
 Os [links de descoberta para agentes no head](/docs/discoverability/agent-discovery#discovery-link-header) também vêm junto: o layout lê a configuração resolvida, então uma página personalizada carrega os mesmos links `describedby`, `ai-catalog` e `ard` que as páginas de documentação, sem que você precise passar nenhuma prop. A página inicial também anuncia seu espelho em Markdown `/index.md` como alternativa `text/markdown`, já que esse espelho sempre existe; as outras páginas personalizadas não têm um, então nenhum é anunciado. Passe `discovery={null}` para remover os links de uma página específica.
 

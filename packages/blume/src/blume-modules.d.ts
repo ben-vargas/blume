@@ -18,9 +18,9 @@ declare module "blume:search-client" {
 declare module "blume:ask" {
   /** The generated Ask trigger (see `askComponentTemplate`); empty when Ask is off. */
   // Mirrors the generated `.blume/src/env.d.ts` declaration: the trigger's type
-  // is the AskAI island the enabled template re-exports.
+  // is the Assistant island the enabled template re-exports.
   // oxlint-disable-next-line typescript/consistent-type-imports
-  const Ask: typeof import("./components/islands/AskAI.astro").default;
+  const Ask: typeof import("./components/islands/Assistant.astro").default;
   export default Ask;
 }
 

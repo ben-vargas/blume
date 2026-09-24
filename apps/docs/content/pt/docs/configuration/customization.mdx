@@ -92,7 +92,7 @@ Slots conectados:
 | `Layout` | Toda a estrutura da página (`RootLayout`) | Tudo o que o layout integrado recebe, mais o mapa `layout` |
 | `Header` | A barra de navegação superior | `site`, `logo`, `navigation`, `route`, `searchEnabled`, … |
 | `Logo` | O link da marca (símbolo + título) no cabeçalho | `site`, `logo`, `locale` |
-| `Search` | O gatilho de busca do cabeçalho + modal | `navigation`, `strings`, `locale`, `askEnabled` |
+| `Search` | O gatilho de busca do cabeçalho + modal | `navigation`, `strings`, `locale`, `assistantEnabled` |
 | `Sidebar` | A árvore de navegação principal | `items`, `currentRoute` |
 | `MobileNav` | A navegação dentro da gaveta mobile (usa `Sidebar` por padrão) | `items`, `currentRoute` |
 | `Breadcrumbs` | A trilha de navegação | `crumbs` |
@@ -185,7 +185,7 @@ npx blume eject --yes
 
 O eject é um passo sem volta: o runtime oculto `.blume/` se torna um aplicativo Astro normal que é seu e que você pode modificar diretamente. O pacote `blume` continua importável, então você mantém seus componentes, tema e processadores de Markdown.
 
-O eject aponta os scripts do seu `package.json` para `astro dev` e `astro build` e adiciona os pacotes que o aplicativo Astro importa pelo nome — `astro`, `@tailwindcss/vite`, o cliente de busca, as integrações e o adaptador que a configuração conecta, o React quando uma ilha, um exemplo ou o Ask AI o utiliza, o `ai` para a rota do Ask AI e o `epub-gen-memory` para a exportação em EPUB — nas mesmas faixas de versão que o próprio Blume usa. Execute uma instalação antes do `dev` ou do `build`; o eject lista o que adicionou. Todo caminho no aplicativo após o eject é relativo, então ele faz o build a partir de qualquer checkout, inclusive no CI.
+O eject aponta os scripts do seu `package.json` para `astro dev` e `astro build` e adiciona os pacotes que o aplicativo Astro importa pelo nome — `astro`, `@tailwindcss/vite`, o cliente de busca, as integrações e o adaptador que a configuração conecta, o React quando uma ilha, um exemplo ou o assistente o utiliza, o `ai` para a rota do assistente e o `epub-gen-memory` para a exportação em EPUB — nas mesmas faixas de versão que o próprio Blume usa. Execute uma instalação antes do `dev` ou do `build`; o eject lista o que adicionou. Todo caminho no aplicativo após o eject é relativo, então ele faz o build a partir de qualquer checkout, inclusive no CI.
 
 A partir daí, execute o aplicativo pelos próprios scripts dele (`npm run dev`, `npm run build`): o `blume dev` e o `blume build` são interrompidos em um projeto após o eject e direcionam você para esses scripts. Executar o `blume eject` novamente também é recusado, já que isso sobrescreveria suas edições; passe `--force` para regenerar o aplicativo mesmo assim.
 

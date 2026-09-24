@@ -7,22 +7,22 @@ description: >-
 Sobald [i18n](/docs/content/i18n) aktiv ist, veraltet jede Änderung an einer Quellseite unbemerkt ihre Übersetzungen. `blume translate` löst dieses Problem: Es ermittelt genau, welche Seiten in jeder Locale fehlen oder veraltet sind, und übersetzt sie headless mit einer lokalen Agent-CLI. In einem committeten Ledger hält es fest, was es getan hat. So wissen der nächste Lauf und deine CI, was aktuell ist.
 
 ```bash
-blume translate --claude
+blume translate --codex
 ```
 
 ```
-blume translate  3 item(s) · 2 locale(s) · Claude Code
+blume translate  3 item(s) · 2 locale(s) · Codex
 
-  ✔ docs/guides/install.mdx → fr 24.2s $0.11
-  ✔ docs/guides/install.mdx → de 22.8s $0.10
-  ✔ meta titles (2) → de 4.1s $0.01
+  ✔ docs/guides/install.mdx → fr 24.2s
+  ✔ docs/guides/install.mdx → de 22.8s
+  ✔ meta titles (2) → de 4.1s
 
-  Translated 3 files into 2 locales · 1 adopted · 14 already up to date · 51.1s · $0.22
+  Translated 3 files into 2 locales · 1 adopted · 14 already up to date · 51.1s
 ```
 
 ## So funktioniert es [#how-it-works]
 
-Blume steuert die Pipeline, der Agent übersetzt nur Text. Für jede Datei, die bearbeitet werden muss, baut Blume einen Übersetzungs-Prompt. Dann führt Blume die Agent-CLI headless aus, mit deaktivierten Datei-, Shell- und Web-Tools. Anschließend prüft es die Struktur der Antwort und schreibt die Zieldatei selbst. Als Agent dient [Claude Code](https://claude.com/claude-code) mit `--claude` oder [Codex](https://developers.openai.com/codex/cli) mit `--codex`. Blume speichert keine API-Keys und ruft selbst kein Modell auf.
+Blume steuert die Pipeline, der Agent übersetzt nur Text. Für jede Datei, die bearbeitet werden muss, baut Blume einen Übersetzungs-Prompt. Dann führt Blume die Agent-CLI headless aus, mit deaktivierten Datei-, Shell- und Web-Tools. Anschließend prüft es die Struktur der Antwort und schreibt die Zieldatei selbst. Als Agent dient [Codex](https://developers.openai.com/codex/cli) mit `--codex` oder [Claude Code](https://claude.com/claude-code) mit `--claude`. Blume speichert keine API-Keys und ruft selbst kein Modell auf.
 
 Jeder validierte Schreibvorgang wird in `blume.translations.json` im Projekt-Root festgehalten. Für jede Quelldatei und Locale steht dort ein Hash der Quelle zum Zeitpunkt der Übersetzung. **Committe diese Datei.** Nur so kann ein erneuter Lauf „bereits übersetzt“ von „übersetzt, aber die Quelle hat sich seitdem geändert“ unterscheiden. Genau das macht auch das CI-Gate möglich.
 
@@ -73,7 +73,7 @@ Der JSON-Report ist genauso aus `diagnostics` und `summary` aufgebaut wie bei `b
 
 ## Flags
 
-- `--claude` / `--codex`: Legt fest, welche Agent-CLI übersetzt. Genau eines davon ist nötig (außer mit `--check`).
+- `--codex` / `--claude`: Legt fest, welche Agent-CLI übersetzt. Genau eines davon ist nötig (außer mit `--check`).
 - `--check`: Meldet Abweichungen und beendet sich mit einem Exit-Code ungleich null, ohne etwas zu schreiben.
 - `--concurrency <n>`: Anzahl paralleler Agent-Sessions. Standard ist `4`, Maximum `16`.
 - `--locale <codes>`: Ziel-Locales, durch Kommas getrennt (standardmäßig alle Locales außer der Standard-Locale).

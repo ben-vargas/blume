@@ -5,7 +5,6 @@ export const ja: UIStringsOverride = {
   actions: {
     addToCursor: "Cursor に追加",
     addToVscode: "VS Code に追加",
-    askAI: "このページについて AI に質問",
     connectMcp: "MCP に接続",
     copied: "コピーしました！",
     copyClaudeCode: "Claude Code コマンドをコピー",
@@ -25,7 +24,7 @@ export const ja: UIStringsOverride = {
       "{url} を読んで、このページについての質問に答えられるようにしてください。",
     scrollToTop: "トップに戻る",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "会話をクリア",
     close: "閉じる",
@@ -36,7 +35,7 @@ export const ja: UIStringsOverride = {
     placeholder: "質問を入力…",
     send: "送信",
     tip: "ヒント: 次のキーでチャットを開閉できます",
-    title: "AI に質問",
+    title: "アシスタント",
     you: "あなた",
   },
   banner: { dismiss: "お知らせを閉じる" },
@@ -85,8 +84,8 @@ export const ja: UIStringsOverride = {
   search: {
     all: "すべて",
     allLanguages: "すべての言語",
-    askAi: "AI に質問",
-    askAiHint: "AI からすぐに回答を得る",
+    assistant: "アシスタント",
+    assistantHint: "AI からすぐに回答を得る",
     button: "検索",
     devOnly: "検索は本番ビルドで利用できます。",
     error: "問題が発生しました。もう一度お試しください。",

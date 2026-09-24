@@ -87,7 +87,7 @@ import type { Diagnostic } from "./types.ts";
  *   `flexsearch()`, `pagefind()`, `algolia({…})`, `oramaCloud({…})`,
  *   `typesense({…})`, `mixedbread({…})`, or `false`), or `{ provider,
  *   popular, indexing }` to add curated links and indexing settings.
- * - `ai` — what faces a model at read time: `ask` (the Ask AI assistant, with
+ * - `ai` — what faces a model at read time: `assistant` (the chat assistant, with
  *   a provider adapter from `blume/ai` such as `gateway()` or `openrouter()`)
  *   and `openInChat` (the "Open in chat" page action).
  * - `agents` — the machine-readable surface: `llmsTxt`, the JSON `api`, the
@@ -146,7 +146,7 @@ import type { Diagnostic } from "./types.ts";
  * });
  * ```
  *
- * @example An OpenAPI reference with the Ask AI assistant enabled.
+ * @example An OpenAPI reference with the assistant enabled.
  * ```ts
  * import { openapi } from "blume/reference";
  *
@@ -159,7 +159,7 @@ import type { Diagnostic } from "./types.ts";
  *     }),
  *   ],
  *   agents: { llmsTxt: true },
- *   ai: { ask: { enabled: true } },
+ *   ai: { assistant: { enabled: true } },
  * });
  * ```
  *

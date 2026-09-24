@@ -34,7 +34,7 @@ const usagePolicy = (
 };
 
 /**
- * The advertised Ask AI URL. An external endpoint is not served under
+ * The advertised assistant URL. An external endpoint is not served under
  * `deployment.base`, so a root-relative one absolutizes against the site
  * origin alone; the built-in route gets site and base via `abs`.
  */
@@ -154,7 +154,7 @@ const wellKnownArtifacts = (
 /**
  * Build `agent-readability.json`: a root manifest that indexes the project's
  * agent-facing surface — llms.txt, the raw-Markdown mirrors, the JSON docs
- * API and its OpenAPI description, the MCP server, Ask AI, sitemap, and feeds
+ * API and its OpenAPI description, the MCP server, the assistant, sitemap, and feeds
  * — so agents can discover and cite the docs without
  * scraping HTML. URLs are absolute when a `site` is configured and root-relative
  * (still under `deployment.base`) otherwise. Returns null when the manifest is
@@ -194,8 +194,8 @@ export const buildAgentReadability = (
       url: abs(config.agents.mcp.route),
     };
   }
-  if (config.ai.ask?.enabled) {
-    artifacts.askApi = askApiUrl(config.ai.ask.endpoint, site, abs);
+  if (config.ai.assistant?.enabled) {
+    artifacts.askApi = askApiUrl(config.ai.assistant.endpoint, site, abs);
   }
   Object.assign(artifacts, wellKnownArtifacts(config, abs));
   if (site && config.seo.sitemap) {

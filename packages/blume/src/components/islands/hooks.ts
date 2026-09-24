@@ -12,7 +12,7 @@ import { joinBase, stripBase } from "./base-path.ts";
  * project data can't come through context. Instead the layout serializes a small
  * snapshot into a `<script type="application/json" id="blume-client-data">` tag,
  * and {@link useBlume}/{@link usePage} read it after mount. {@link useSearch} and
- * {@link useAskAI} wrap the generated search client and the Ask AI endpoint.
+ * {@link useAssistant} wrap the generated search client and the assistant endpoint.
  *
  * Import them from `blume/hooks`:
  *
@@ -131,14 +131,14 @@ export const useSearch = (): UseSearch => {
   return { loading, results, search };
 };
 
-/** A single Ask AI chat message. */
+/** A single assistant chat message. */
 export interface AskMessage {
   content: string;
   role: "assistant" | "user";
 }
 
-/** State + actions returned by {@link useAskAI}. */
-export interface UseAskAI {
+/** State + actions returned by {@link useAssistant}. */
+export interface UseAssistant {
   ask: (question: string) => Promise<void>;
   loading: boolean;
   messages: AskMessage[];
@@ -147,8 +147,8 @@ export interface UseAskAI {
 
 const DEFAULT_ASK_ENDPOINT = joinBase(import.meta.env.BASE_URL, "api/ask");
 
-export interface UseAskAIOptions {
-  /** Existing Ask AI endpoint; defaults to Blume's generated `/api/ask`. */
+export interface UseAssistantOptions {
+  /** Existing assistant endpoint; defaults to Blume's generated `/api/ask`. */
   endpoint?: string;
   /**
    * Shown as the assistant's answer when the request fails or throws.
@@ -161,11 +161,11 @@ export interface UseAskAIOptions {
 /** Shown as the assistant's answer when the request fails or throws. */
 const ASK_ERROR = "Something went wrong answering that. Please try again.";
 
-/** How the generated Ask AI route opens its missing-credential notice. */
-const NOT_CONFIGURED = /^Ask AI is not configured/u;
+/** How the assistant's generated route opens its missing-credential notice. */
+const NOT_CONFIGURED = /^The assistant is not configured/u;
 
 /**
- * The route's own explanation of a 503 — the generated route's "Ask AI is not
+ * The route's own explanation of a 503 — the generated route's "The assistant is not
  * configured: set AI_GATEWAY_API_KEY." — when the response is that notice, or
  * null. It names only the variable to set, never a value, so it's safe to
  * show, and it tells a site owner trying a fresh deploy what's missing instead
@@ -188,10 +188,12 @@ const currentPath = (): string =>
   stripBase(import.meta.env.BASE_URL, window.location.pathname);
 
 /**
- * Stream answers from the Ask AI endpoint. Mirrors the built-in Ask AI island so
+ * Stream answers from the assistant endpoint. Mirrors the built-in assistant island so
  * a custom chat UI shares the same grounded, page-aware backend.
  */
-export const useAskAI = (options: UseAskAIOptions = {}): UseAskAI => {
+export const useAssistant = (
+  options: UseAssistantOptions = {}
+): UseAssistant => {
   const endpoint = options.endpoint ?? DEFAULT_ASK_ENDPOINT;
   const errorMessage = options.errorMessage ?? ASK_ERROR;
   const [messages, setMessages] = useState<AskMessage[]>([]);
@@ -208,7 +210,7 @@ export const useAskAI = (options: UseAskAIOptions = {}): UseAskAI => {
   // preserves a stable `ask` identity for consumers that depend on it. With the
   // compiler on it's redundant but inert.
   // oxlint-disable-next-line react-doctor/react-compiler-no-manual-memoization -- see above
-  const ask = useCallback<UseAskAI["ask"]>(
+  const ask = useCallback<UseAssistant["ask"]>(
     async (question) => {
       const trimmed = question.trim();
       if (!trimmed || loading) {

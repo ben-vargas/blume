@@ -1,7 +1,7 @@
 /**
  * Where the JSON docs API and its OpenAPI description are served. Base-less
  * (like every route Blume emits); callers layer `deployment.base` on top.
- * Under `/api/` alongside the Ask AI endpoint (`/api/ask`) so the namespace a
+ * Under `/api/` alongside the assistant endpoint (`/api/ask`) so the namespace a
  * Blume site reserves for live endpoints stays one prefix, and under its own
  * `docs` segment so a search provider's proxy at `/api/search` never collides.
  */

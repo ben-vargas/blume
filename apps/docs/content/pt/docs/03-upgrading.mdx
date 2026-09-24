@@ -1,13 +1,13 @@
 ---
 title: Atualize para o Blume 2
 description: >-
-  Migre um site do Blume 1 para o Blume 2 com um comando e use este guia para cada mudança de configuração — ou entregue a atualização inteira ao Claude Code ou ao Codex.
+  Migre um site do Blume 1 para o Blume 2 com um comando e use este guia para cada mudança de configuração — ou entregue a atualização inteira ao Codex ou ao Claude Code.
 sidebar:
   label: Atualize para o Blume 2
   order: 2.5
 ---
 
-O Blume 2 muda a configuração, não o conteúdo. Suas páginas Markdown e MDX não precisam de nenhuma edição, a menos que alguma use o campo de frontmatter `search.boost`, que foi removido (veja [Frontmatter](#frontmatter)). Algumas configurações eram uma string com nome ou um bloco com chaves: o provedor de busca, o destino de deploy, as fontes de conteúdo, as referências de API, o analytics e o backend do Ask AI. Agora elas são **adaptadores** que você importa de um subpath `blume/*` e chama. As configurações legíveis por máquina saem de `ai` e vão para uma nova chave `agents`. Os overrides em `components.ts` passam a ser verificados antes do build. Um site sem configuração, ou um que não usa nenhuma dessas opções, só precisa atualizar a versão.
+O Blume 2 muda a configuração, não o conteúdo. Suas páginas Markdown e MDX não precisam de nenhuma edição, a menos que alguma use o campo de frontmatter `search.boost`, que foi removido (veja [Frontmatter](#frontmatter)). Algumas configurações eram uma string com nome ou um bloco com chaves: o provedor de busca, o destino de deploy, as fontes de conteúdo, as referências de API, o analytics e o backend de modelo do assistente. Agora elas são **adaptadores** que você importa de um subpath `blume/*` e chama. O Ask AI passa a se chamar assistente, então `ai.ask` vira `ai.assistant`. As configurações legíveis por máquina saem de `ai` e vão para uma nova chave `agents`. Os overrides em `components.ts` passam a ser verificados antes do build. Um site sem configuração, ou um que não usa nenhuma dessas opções, só precisa atualizar a versão.
 
 ## Atualize com um comando [#upgrade-with-one-command]
 
@@ -19,10 +19,10 @@ npx blume@latest upgrade
 
 O comando atualiza o `blume` no seu `package.json` para a versão 2 e instala com o gerenciador de pacotes que o seu projeto usa. Depois, ele verifica sua configuração e seu `components.ts` com base no Blume 2. Cada mudança que ainda falta aparece com o arquivo, a linha e o que colocar no lugar. Isso inclui scripts do `package.json` que ainda passam as flags removidas do `blume build`. O comando sai com código diferente de zero enquanto sobrar alguma mudança. Se você rodar o comando numa pasta sem configuração e sem a dependência `blume`, ele para com um erro. Rode via `npx blume@latest` em vez de `blume`: o comando vem no Blume 2, então um projeto que ainda está na versão 1 não tem esse comando. No pnpm 12, adicione `--allow-build=esbuild` depois de `pnpm dlx`, porque o pnpm 12 não roda o script de instalação do esbuild sem aprovação.
 
-Se preferir deixar as mudanças com um agente de código, adicione `--claude` ou `--codex`:
+Se preferir deixar as mudanças com um agente de código, adicione `--codex` ou `--claude`:
 
 ```package-install
-npx blume@latest upgrade --claude
+npx blume@latest upgrade --codex
 ```
 
 O agente abre em modo interativo com os resultados da verificação e este guia. Ele aplica cada mudança e roda `blume doctor` e `blume build` até os dois passarem. Você revisa cada edição pelo fluxo de permissões do próprio agente. Passe `--no-install` para atualizar o `package.json` sem instalar.
@@ -202,9 +202,9 @@ export default defineConfig({
 
 `cloudflare: { token }` vira `cloudflare({ token })`, e cada entrada de `scripts[]` vira `script({ … })`.
 
-## Ask AI
+## Assistente [#assistant]
 
-`ai.ask.provider` recebe um adaptador de `blume/ai`. Agora é o adaptador que define o modelo e os campos ligados a ele.
+O Ask AI agora se chama assistente, e a configuração dele muda junto com o nome: `ai.ask` vira `ai.assistant`. O `provider` dele recebe um adaptador de `blume/ai`. Agora é o adaptador que define o modelo e os campos ligados a ele.
 
 <CodeGroup>
 
@@ -227,7 +227,7 @@ import { openrouter } from "blume/ai";
 
 export default defineConfig({
   ai: {
-    ask: {
+    assistant: {
       enabled: true,
       provider: openrouter({
         model: "anthropic/claude-sonnet-4-5",
@@ -240,7 +240,20 @@ export default defineConfig({
 
 </CodeGroup>
 
-Os adaptadores são `gateway()`, `openrouter()`, `llmgateway()`, `inkeep()` e `openaiCompatible({ baseUrl, name, model, apiKeyEnv })`. `model`, `apiKeyEnv`, `baseUrl`, `headers` e `reasoning` vão para dentro do adaptador. `enabled`, `instructions`, `retrieval`, `suggestions`, `cors` e `endpoint` continuam em `ai.ask`. Se você não definir `provider`, o AI Gateway continua sendo usado.
+Os adaptadores são `gateway()`, `openrouter()`, `llmgateway()`, `inkeep()` e `openaiCompatible({ baseUrl, name, model, apiKeyEnv })`. `model`, `apiKeyEnv`, `baseUrl`, `headers` e `reasoning` vão para dentro do adaptador. `enabled`, `instructions`, `retrieval`, `suggestions`, `cors` e `endpoint` vão para `ai.assistant` sem mudança. Se você não definir `provider`, o AI Gateway continua sendo usado.
+
+A mudança de nome vale para todos os nomes que diziam Ask AI:
+
+- Overrides de `i18n.ui`: o grupo `ask` vira `assistant`, e `search.askAi` e `search.askAiHint` viram `search.assistant` e `search.assistantHint`.
+- `useAskAI` de `blume/hooks` vira `useAssistant`, com os tipos `UseAssistant` e `UseAssistantOptions`.
+- A prop `askEnabled` em `PageLayout`, `RootLayout`, `Header` e em um override de `Search` vira `assistantEnabled`.
+- No módulo [`blume:data`](/docs/advanced/custom-pages), `config.ask` vira `config.assistant` e `ui.ask` vira `ui.assistant`, e o tipo `UIStrings` de `blume` acompanha a mudança.
+- Os tipos de adaptador de `blume/ai` trocam o prefixo `Ask` por `Assistant` (`AskAdapter` vira `AssistantAdapter`, `AskGatewayOptions` vira `AssistantGatewayOptions`), e `askReasoningLevels` e `AskReasoning` de `blume/schema` viram `assistantReasoningLevels` e `AssistantReasoning`.
+- O evento de janela `blume:open-ask-ai` vira `blume:open-assistant`, e o atributo `data-blume-ask` no `<body>` vira `data-blume-assistant`.
+
+A rota gerada `/api/ask` e os [eventos de analytics](/docs/configuration/assistant#analytics) `ask`, `ask_answer` e `ask_error` mantêm os nomes, então quem chama a rota e os dashboards não precisam de mudança. O `blume upgrade` e o `blume doctor` apontam cada chave de configuração antiga que encontram, tanto `ai.ask` quanto as chaves de `i18n.ui`, junto com a substituta.
+
+Já atualizou para o Blume 2.0.0? Essa versão ainda lia `ai.ask`, então atualize o `blume` como de costume e faça a mesma troca de nome.
 
 ## Agentes e outras mudanças de configuração [#agents-and-other-config-moves]
 
@@ -271,7 +284,7 @@ export default defineConfig({
 
 </CodeGroup>
 
-- `ai.api`, `ai.catalog`, `ai.llmsTxt`, `ai.markdownComponents`, `ai.mcp`, `ai.skills`, `ai.webBotAuth` e `ai.webmcp` viram `agents.*`, assim como `seo.agentReadability` e `seo.contentSignals`. `ai` fica só com `ask` e `openInChat`.
+- `ai.api`, `ai.catalog`, `ai.llmsTxt`, `ai.markdownComponents`, `ai.mcp`, `ai.skills`, `ai.webBotAuth` e `ai.webmcp` viram `agents.*`, assim como `seo.agentReadability` e `seo.contentSignals`. `ai` fica só com `assistant` (antes `ask`) e `openInChat`.
 - `lastModified` agora é um valor simples: `true` vira `"git"`, e `{ type: "git" }` ou `{ type: "frontmatter" }` vira só a string.
 - `markdown.codeBlocks` passa a fazer parte de `markdown.code`.
 - `theme.layout` foi removido. Nada usava esse campo, então pode apagar.

@@ -5,7 +5,6 @@ export const sk: UIStringsOverride = {
   actions: {
     addToCursor: "Pridať do Cursoru",
     addToVscode: "Pridať do VS Code",
-    askAI: "Opýtať sa AI na túto stránku",
     connectMcp: "Pripojiť k MCP",
     copied: "Skopírované!",
     copyClaudeCode: "Kopírovať príkaz Claude Code",
@@ -24,7 +23,7 @@ export const sk: UIStringsOverride = {
     openInChatPrompt: "Prečítajte si {url} — budem sa pýtať na túto stránku.",
     scrollToTop: "Späť nahor",
   },
-  ask: {
+  assistant: {
     ai: "AI",
     clear: "Vymazať konverzáciu",
     close: "Zavrieť",
@@ -35,7 +34,7 @@ export const sk: UIStringsOverride = {
     placeholder: "Položiť otázku…",
     send: "Odoslať",
     tip: "Tip: Chat môžete otvoriť a zavrieť pomocou",
-    title: "Opýtať sa AI",
+    title: "Asistent",
     you: "Vy",
   },
   banner: { dismiss: "Zavrieť oznámenie" },
@@ -84,8 +83,8 @@ export const sk: UIStringsOverride = {
   search: {
     all: "Všetko",
     allLanguages: "Všetky jazyky",
-    askAi: "Opýtať sa AI",
-    askAiHint: "Získajte okamžitú odpoveď od AI",
+    assistant: "Asistent",
+    assistantHint: "Získajte okamžitú odpoveď od AI",
     button: "Hľadať",
     devOnly: "Vyhľadávanie je dostupné v produkčnom builde.",
     error: "Niečo sa pokazilo. Skúste to znova.",

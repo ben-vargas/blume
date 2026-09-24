@@ -82,7 +82,7 @@ basePath: "/docs",
 
 ## सर्वर रेंडरिंग [#server-rendering]
 
-स्टैटिक आउटपुट अधिकांश डॉक्स के लिए पर्याप्त है। जब आपको अनुरोध-समय की सुविधाओं की आवश्यकता हो तो सर्वर आउटपुट पर स्विच करें — विशेष रूप से [Ask AI](/docs/configuration/ask-ai) एंडपॉइंट और [MCP सर्वर](/docs/discoverability/mcp) के लिए। आप ऐसा होस्ट का नाम देकर करते हैं: `deployment` `blume/deploy` से इम्पोर्ट किया गया एक एडाप्टर लेता है।
+स्टैटिक आउटपुट अधिकांश डॉक्स के लिए पर्याप्त है। जब आपको अनुरोध-समय की सुविधाओं की आवश्यकता हो तो सर्वर आउटपुट पर स्विच करें — विशेष रूप से [असिस्टेंट](/docs/configuration/assistant) एंडपॉइंट और [MCP सर्वर](/docs/discoverability/mcp) के लिए। आप ऐसा होस्ट का नाम देकर करते हैं: `deployment` `blume/deploy` से इम्पोर्ट किया गया एक एडाप्टर लेता है।
 
 ```ts blume.config.ts lineNumbers
 import { defineConfig } from "blume";
@@ -129,7 +129,7 @@ Vercel और Cloudflare पर, एक सर्वर बिल्ड [`Accept
 :::
 
 :::note
-सर्वर सुविधाओं का अपना कॉन्फ़िगरेशन होता है — उदाहरण के लिए, Ask AI को एक मॉडल API कुंजी की आवश्यकता होती है। सेटअप के लिए [Ask AI गाइड](/docs/configuration/ask-ai) देखें।
+सर्वर सुविधाओं का अपना कॉन्फ़िगरेशन होता है — उदाहरण के लिए, असिस्टेंट को एक मॉडल API कुंजी की आवश्यकता होती है। सेटअप के लिए [असिस्टेंट गाइड](/docs/configuration/assistant) देखें।
 :::
 
 ## रीडायरेक्ट [#redirects]
@@ -160,8 +160,8 @@ redirects: [{ from: "/old", to: "/new", status: 301 }],
 
 | सुविधा | चर |
 | --- | --- |
-| Ask AI (AI Gateway) | `AI_GATEWAY_API_KEY` (या Vercel OIDC) |
-| Ask AI (अन्य एडाप्टर) | एडाप्टर का डिफ़ॉल्ट कुंजी एन्व चर (`OPENROUTER_API_KEY`, `LLMGATEWAY_API_KEY`, `INKEEP_API_KEY`), या आपके द्वारा उसे पास किया गया `apiKeyEnv` |
+| असिस्टेंट (AI Gateway) | `AI_GATEWAY_API_KEY` (या Vercel OIDC) |
+| असिस्टेंट (अन्य एडाप्टर) | एडाप्टर का डिफ़ॉल्ट कुंजी एन्व चर (`OPENROUTER_API_KEY`, `LLMGATEWAY_API_KEY`, `INKEEP_API_KEY`), या आपके द्वारा उसे पास किया गया `apiKeyEnv` |
 | Mixedbread खोज | `MIXEDBREAD_API_KEY` |
 
 स्थानीय डेव के लिए इन्हें `.env.local` में और प्रोडक्शन के लिए अपने होस्ट के परिवेश में सेट करें। खोज-इंडेक्स सिंक (Algolia, Orama Cloud, Typesense) के लिए बिल्ड-समय के सीक्रेट्स के बारे में सिंक चरण के दौरान अलग से चेतावनी दी जाती है।
