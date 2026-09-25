@@ -24,7 +24,11 @@ Jede Seite akzeptiert die folgenden Frontmatter-Felder. Alle Felder sind optiona
       description:
         "Post author(s) for blog/changelog content — a name, or objects with a name plus optional avatar/url and any extra fields. Preserved as-is.",
     },
-    slug: { type: "string", description: "Override the generated slug." },
+    slug: {
+      type: "string",
+      description:
+        "Set the page's full route from the content root (guides/setup). It replaces the whole path the file's location gives the page, not just the last segment.",
+    },
     draft: {
       type: "boolean",
       default: "false",

@@ -63,7 +63,7 @@ Assim que você tiver pelo menos uma entrada `type: changelog`, o Blume gera aut
 - A data segue o [`dateFormat`](/docs/configuration#date-format) configurado, sem o ano que o grupo da linha já mostra.
 - Os rascunhos e as entradas com `sidebar.hidden` são ignorados.
 
-A página só aparece quando nada já ocupa a rota `/changelog`. Para substituí-la pelo seu próprio design, adicione uma [página personalizada](/docs/advanced/custom-pages) em `pages/changelog.astro` — ela assume o controle e o Blume para de gerar o índice padrão. O componente `<Update>`, com o qual a cronologia anterior era construída, continua disponível para uma página escrita à mão que queira as notas de lançamento embutidas.
+A página só aparece quando nada já ocupa a rota `/changelog`. Para substituí-la pelo seu próprio design, adicione uma [página personalizada](/docs/advanced/custom-pages) em `pages/changelog.astro` — ela assume o controle e o Blume para de gerar o índice padrão. O componente `<Update>`, com o qual a cronologia anterior era construída, continua disponível para uma página escrita à mão que queira as notas de lançamento embutidas. Ele não faz parte dos componentes MDX, então importe-o na própria página `.astro`: `import Update from "blume/components/content/Update.astro";`.
 
 Uma [aba](/docs/content/navigation#tabs) do cabeçalho que aponta para `/changelog` abre esse índice — sem precisar de `href`.
 

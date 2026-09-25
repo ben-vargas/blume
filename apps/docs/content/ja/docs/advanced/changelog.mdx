@@ -63,7 +63,7 @@ A big batch of components landed this release — columns, frames, trees, and to
 - 日付は設定された [`dateFormat`](/docs/configuration#date-format) に従いますが、行のグループですでに表示されている年は省略されます。
 - 下書きと `sidebar.hidden` のエントリはスキップされます。
 
-このページは `/changelog` ルートが他に占有されていない場合にのみ表示されます。独自のデザインに置き換えるには、`pages/changelog.astro` に[カスタムページ](/docs/advanced/custom-pages)を追加してください — それが優先され、Blume はデフォルトのインデックスの生成を停止します。以前のタイムラインの構築に使われていた `<Update>` コンポーネントは引き続き利用できるため、リリースノートをインラインで表示したい手書きのページで使用できます。
+このページは `/changelog` ルートが他に占有されていない場合にのみ表示されます。独自のデザインに置き換えるには、`pages/changelog.astro` に[カスタムページ](/docs/advanced/custom-pages)を追加してください — それが優先され、Blume はデフォルトのインデックスの生成を停止します。以前のタイムラインの構築に使われていた `<Update>` コンポーネントは、リリースノートをインラインで表示したいカスタムページ向けに引き続き提供されています。これは MDX コンポーネントには含まれていないため、`.astro` ページ自体でインポートしてください: `import Update from "blume/components/content/Update.astro";`。
 
 `/changelog` を指すヘッダーの[タブ](/docs/content/navigation#tabs)はこのインデックスを開きます — `href` は不要です。
 

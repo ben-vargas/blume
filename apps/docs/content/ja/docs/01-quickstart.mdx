@@ -19,11 +19,12 @@ sidebar:
     npx blume init
     ```
 
-    pnpm 12 では、`pnpm dlx` の後に `--allow-build=esbuild` を追加してください（`pnpm dlx --allow-build=esbuild blume init`）。pnpm 12 は、Astro が依存している esbuild のインストールスクリプトを、承認しない限り実行しないためです。既存の pnpm ワークスペース内では、ワークスペースの `pnpm-workspace.yaml` に `allowBuilds: { esbuild: true }` を追加してください。`init` もこのことを案内します。Yarn 2 以降では、`init` が `.yarnrc.yml` を書き出し、Blume に必要な `node_modules` 方式のインストールに Yarn を切り替えます。Yarn 1 では `npx blume init` を実行してください。
+    pnpm 12 では、`pnpm dlx` の後に `--allow-build=esbuild` を追加してください（`pnpm dlx --allow-build=esbuild blume init`）。pnpm 12 は、Astro が依存している esbuild のインストールスクリプトを、承認しない限り実行しないためです。既存の pnpm ワークスペース内では、新しいフォルダをワークスペースの `packages` に記載する必要があります（pnpm はそれ以外のものを一切インストールしないため、記載されるまで `init` はインストールをスキップします）。また、esbuild のためにワークスペースの `pnpm-workspace.yaml` に `allowBuilds: { esbuild: true }` を追加する必要があります。`init` はこの両方を案内します。Yarn 2 以降では、`init` が `.yarnrc.yml` を書き出し、Blume に必要な `node_modules` 方式のインストールに Yarn を切り替えます。Yarn 1 では `npx blume init` を実行してください。
 
     ```txt
     docs/
       index.mdx
+    .gitignore
     blume.config.ts
     package.json
     ```
@@ -47,7 +48,7 @@ sidebar:
   </Step>
 </Steps>
 
-すでに `package.json` があるプロジェクトに Blume を追加する場合は、`blume init` が既存のファイルに手を加えないため、その scripts に `"dev": "blume dev"` と `"build": "blume build"` を追加するか、`npx blume dev` を直接実行してください。
+すでに `package.json` があるプロジェクトに Blume を追加する場合は、`blume init` が既存のファイルに手を加えず、インストールもスキップするため、Blume を自分でインストール（`npm install blume`）したうえで、その scripts に `"dev": "blume dev"` と `"build": "blume build"` を追加するか、`npx blume dev` を直接実行してください。`init` が表示する次のステップには、お使いのパッケージマネージャー向けにこの両方のコマンドが記載されています。
 
 :::tip
 Blume はあらゆるパッケージマネージャーで動作し、Astro や Tailwind を自分でセットアップする必要は一切ありません。

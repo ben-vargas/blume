@@ -15,7 +15,7 @@ blume <command> [options]
 | `blume dev` | ホットリロード付きの開発サーバーを起動します。 |
 | `blume build` | 静的サイト（またはサーバーサイト）をビルドします。 |
 | `blume preview` | 最後のビルドをプレビューします。 |
-| `blume add <item>` | レジストリからソースコンポーネントをインストールします。 |
+| `blume add [item]` | レジストリからソースコンポーネントをインストールします（item を指定しない場合は、利用可能なコンポーネントを一覧表示します）。 |
 | `blume sync` | リモートのコンテンツソースを再取得し、再生成します。 |
 | `blume eject` | ランタイムを独立した Astro アプリとして切り出します。 |
 | `blume check` | `astro check` でサイトの型チェックを行います。 |
@@ -47,11 +47,14 @@ blume <command> [options]
 - `blume build --isolated` — `.blume/` の代わりに使い捨ての `.blume-verify/` ランタイム（とその専用の `dist/`）にビルドするため、実行中の `blume dev` サーバーや本来の `dist/` には影響しません。詳しくは[開発サーバーの実行中に検証する](#verifying-while-the-dev-server-runs)をご覧ください。
 - `blume preview --host --port <n>` — プレビューサーバーのホストとポートを指定します。
 - `blume sync --force` — キャッシュされたスナップショットを先に破棄してから、リモートソースを再取得します。
+- `blume sync --preview` — 下書きや未公開の CMS コンテンツも含めます。
+- `blume sync --strict` — 診断があった場合に失敗させます。
 - `blume add <item> --force` — 既存のファイルを上書きします。
 - `blume check --preview` — チェックの際に、下書きや未公開の CMS コンテンツも含めます。
 - `blume check --strict` — 型エラーに加えて、コンテンツの診断でも失敗させます。
 - `blume check --isolated` — 使い捨ての `.blume-verify/` ランタイムで型チェックを行うため、実行中の `blume dev` サーバーには影響しません。詳しくは[開発サーバーの実行中に検証する](#verifying-while-the-dev-server-runs)をご覧ください。
 - `blume eject --yes` — 確認プロンプトを省略します。
+- `blume eject --force` — すでにイジェクト済みのアプリに対して再度イジェクトし、その `astro.config.mjs` と `src/` を上書きします。
 
 専用ページがあるコマンドのフラグは、それぞれのページにすべて記載しています：[`blume doctor`](/docs/cli/doctor)、[`blume validate`](/docs/cli/validate)、[`blume audit`](/docs/cli/audit)、[`blume eval`](/docs/cli/evals)、[`blume translate`](/docs/cli/translate)、[`blume version`](/docs/cli/version)。`blume validate`、`blume doctor`、`blume audit`、`blume eval`、`blume translate` は `--json` を指定すると、CI やエディタとの連携向けに機械可読な結果を stdout に出力します（診断結果の形式については [Validate](/docs/cli/validate#json-output) をご覧ください）。`build`、`check`、`dev` はターミナルにのみ出力します。どのコマンドも、対応していないフラグを受け取るとエラーになり、最も近い候補と使えるフラグの一覧を表示します。そのため、`--isolatd` のようなタイプミスも見過ごされずにエラーになります。
 

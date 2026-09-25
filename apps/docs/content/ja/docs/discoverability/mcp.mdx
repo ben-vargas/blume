@@ -22,6 +22,8 @@ agents: {
 | `name` | title | クライアントに表示されるサーバー名（デフォルトは title）です。 |
 | `instructions` | — | 接続するエージェントに渡される任意のシステムヒントです。 |
 
+コンテンツページまたはカスタムページがすでにそのルートを使用している場合、サーバーは生成されません。ビルド時に警告が表示され、`llms.txt` やその他の [ディスカバリードキュメント](/docs/discoverability/agent-discovery) にもサーバーは含まれません。
+
 ## ツールとリソース [#tools-and-resources]
 
 サーバーは読み取り専用のツール（`search_docs`、`get_page`、`list_pages`、`get_navigation`）と、すべてのページを MCP リソースとして公開します（`resources/list` は、`list_pages` と同様に未翻訳ページの i18n フォールバックコピーを除いて、各ページを配信 URL 上で `text/markdown` タイプとして列挙し、`resources/read` はそのページの [エージェント向け Markdown](/docs/discoverability/markdown)（`get_page` と同じ出力）を返します）。そのため、URI でコンテキストを添付するクライアントは、ツールを呼び出さずにドキュメントを閲覧できます。また、ディスカバリードキュメントを `/.well-known/mcp.json` と `/.well-known/mcp/server-card.json` で公開します。サーバーカードは [SEP-2127](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127) Server Card 拡張スキーマ（逆 DNS 形式の `name`、`remotes` トランスポートエンドポイント）に準拠しており、提案の以前のリビジョンに対して構築されたスキャナー向けに initialize 形式の互換フィールド（`serverInfo`、`capabilities`、`transports`）も備えています。各ページの **Connect to MCP** メニューでは、Claude Code、Cursor、VS Code、Codex 向けのコピー＆実行式インストールを提供しています（[`deployment.site`](/docs/deployment) が設定されている場合に表示されます）。
@@ -29,6 +31,8 @@ agents: {
 `search_docs` は独自の全文検索インデックスを実行するため、[search](/docs/configuration/search) プロバイダーに関係なく動作します — `search: false` の場合でも同様です。MCP サーバーはページ内検索とは別の機能です。
 
 MCP に対応していないフレームワーク向けに、同じツールが [JSON API](/docs/discoverability/json-api) としてプレーンな HTTP 経由でも利用できます。
+
+エンドポイントはリクエストボディを 64 KB までしか読み取らず、それより大きいリクエストには `413` を返します。存在しないツールの呼び出しや、`arguments` がオブジェクトではない呼び出しには、JSON-RPC の Invalid params エラー（`-32602`）が返されます。
 
 ## コンテンツタイプとファセットによるスコープ設定 [#scoping-by-content-type-and-facets]
 

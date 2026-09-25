@@ -23,7 +23,7 @@ agents: {
 },
 ```
 
-Das meiste davon wird mit einer absoluten Site-URL deutlich schärfer — setze [`deployment.site`](/docs/deployment), damit Feeds, OG-Bilder, Canonicals, die Sitemap, JSON-LD und jedes Agent-Manifest vollständige URLs ausgeben können. Ein paar Oberflächen (Open-Graph-Bilder, die Sitemap) bleiben deaktiviert, bis sie gesetzt ist.
+Das meiste davon wird mit einer absoluten Site-URL deutlich schärfer — setze [`deployment.site`](/docs/deployment), damit Feeds, OG-Bilder, Canonicals, die Sitemap, JSON-LD und jedes Agent-Manifest vollständige URLs ausgeben können. Ein paar Oberflächen — Open-Graph-Bilder, die Sitemap, RSS-Feeds und der KI-Katalog — bleiben deaktiviert, bis sie gesetzt ist.
 
 ## Was der Build ausgibt [#what-the-build-emits]
 
@@ -32,7 +32,7 @@ Das meiste davon wird mit einer absoluten Site-URL deutlich schärfer — setze 
 | `<head>`-Metadaten, Canonicals, X-Cards | jede Seite | an | [Metadaten](/docs/discoverability/metadata) |
 | Social-Share-Bilder | `/og/<route>.png` | an mit einer Site-URL | [Open-Graph-Bilder](/docs/discoverability/open-graph) |
 | schema.org JSON-LD | jede Seite | an | [Strukturierte Daten](/docs/discoverability/structured-data) |
-| RSS-Feeds | `/<type>/rss.xml` | an | [RSS-Feeds](/docs/discoverability/rss) |
+| RSS-Feeds | `/<type>/rss.xml` | an mit einer Site-URL | [RSS-Feeds](/docs/discoverability/rss) |
 | `sitemap.xml`, `robots.txt`, Content-Signale | Site-Root | an | [Sitemap und robots](/docs/discoverability/sitemap-and-robots) |
 | `llms.txt`, `llms-full.txt` | Site-Root | an | [llms.txt](/docs/discoverability/llms-txt) |
 | Rohe Markdown-Spiegel, Content Negotiation, Copy as Markdown, Open in chat | `/<route>.md` | an | [Markdown für Agents](/docs/discoverability/markdown) |

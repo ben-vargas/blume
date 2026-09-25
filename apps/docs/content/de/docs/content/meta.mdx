@@ -24,6 +24,8 @@ export default defineMeta({
 
 Jedes Feld ist optional — setze nur das, was du überschreiben möchtest.
 
+Blume liest `meta.ts`-Dateien nur aus Ordnern, die dein Content abdeckt: Eine Datei in einem Ordner, den deine `exclude`-Globs für den Content überspringen, oder außerhalb jedes `include`-Globs wird nie importiert. Mit `root: "."` und `exclude: ["src/**"]` bleibt eine unabhängige `src/lib/meta.ts` unberührt.
+
 ## Felder [#fields]
 
 | Feld | Typ | Beschreibung |
@@ -35,7 +37,7 @@ Jedes Feld ist optional — setze nur das, was du überschreiben möchtest.
 | `display` | `"flat" \| "group" \| "page"` | Darstellungsmodus für diese Gruppe; überschreibt das globale [`navigation.sidebar.display`](/docs/content/navigation#display-modes). |
 | `pages` | `string[]` | Explizite Reihenfolge der Kinder der Gruppe, nach Slug. |
 
-Das `pages`-Array listet die Kinder nach Slug auf — dem Ordner- oder Dateinamen ohne numerisches Präfix und ohne Klammern (aus `01-quickstart.mdx` wird also `"quickstart"`). Kinder, die du weglässt, erscheinen trotzdem, und zwar nach den aufgeführten.
+Das `pages`-Array listet die Kinder nach Slug auf — dem Ordner- oder Dateinamen ohne numerisches Präfix und ohne Klammern (aus `01-quickstart.mdx` wird also `"quickstart"`). Jedes aufgeführte Kind erhält seine Position im Array als Reihenfolge (`0`, `1`, `2`, …). Kinder, die du weglässt, erscheinen trotzdem und werden nach ihrer eigenen Reihenfolge sortiert: Eine `index`-Seite bleibt an erster Stelle, ein Kind mit `sidebar.order`, numerischem Präfix oder einem eigenen `order` in seiner `meta.ts` wird nach dieser Zahl zwischen die aufgeführten einsortiert, und ein Kind ohne all das kommt nach ihnen. Führe jedes Kind auf, wenn das Array die gesamte Reihenfolge festlegen soll.
 
 Wie Gruppen dargestellt werden — als flache Überschriften, aufklappbare Bereiche oder Drill-in-Panels — richtet sich standardmäßig nach dem sidebarweiten `navigation.sidebar.display`; setze hier `display`, um das nur für diese Gruppe zu überschreiben. Die `index`-Seite eines Ordners kann es zudem im Frontmatter setzen, was Vorrang vor `meta.ts` hat — siehe [Overrides pro Gruppe](/docs/content/navigation#per-group-overrides).
 
@@ -54,13 +56,13 @@ export default defineMeta(async () => ({
 
 ## Reihenfolge innerhalb einer Gruppe [#ordering-within-a-group]
 
-Das `pages`-Array legt die Reihenfolge der Kinder einer Gruppe fest. Alles, was es auslässt, fällt auf das `sidebar.order` im Frontmatter der jeweiligen Seite zurück und danach auf das Dateisystem (zuerst eine `index`-Seite, dann numerische Präfixe, dann alphabetisch). Die vollständige Sidebar-Rangfolge — einschließlich einer expliziten Sidebar-Konfiguration — findest du unter [Navigation › Reihenfolge](/docs/content/navigation#ordering).
+Das `pages`-Array legt die Reihenfolge der Kinder einer Gruppe fest und hat Vorrang vor dem eigenen `sidebar.order` einer aufgeführten Seite oder dem eigenen `order` eines aufgeführten Unterordners. Alles, was es auslässt, fällt auf das `sidebar.order` im Frontmatter der jeweiligen Seite zurück und danach auf das Dateisystem (zuerst eine `index`-Seite, dann numerische Präfixe, dann alphabetisch). Die vollständige Sidebar-Rangfolge — einschließlich einer expliziten Sidebar-Konfiguration — findest du unter [Navigation › Reihenfolge](/docs/content/navigation#ordering).
 
 Um Seiten zu gruppieren, _ohne_ ein URL-Segment hinzuzufügen, brauchst du überhaupt keine `meta.ts`: verwende einen geklammerten Ordnernamen — siehe [Seiten › Gruppenordner](/docs/content#group-folders).
 
 ## Internationalisierung [#internationalization]
 
-Unter [i18n](/docs/content/i18n) wird Ordner-Meta pro Locale aufgelöst: lege eine `meta.ts` unter `fr/guides/` ab, um die französische Gruppe unabhängig zu sortieren.
+Unter [i18n](/docs/content/i18n) wird Ordner-Meta pro Locale aufgelöst: lege eine `meta.ts` unter `fr/guides/` ab, um die französische Gruppe unabhängig zu sortieren. Ohne eine solche Datei (oder eine gemeinsame `meta.$.ts`, siehe unten) übernimmt die französische Gruppe die `meta.ts` der Fallback-Locale.
 
 Für Ordner-Meta, das in jeder Sprache identisch ist, füge eine `$`-Markierung hinzu, damit eine Datei ohne Duplizierung alle Locales bedient:
 

@@ -24,6 +24,8 @@ export default defineMeta({
 
 Todos os campos são opcionais — defina apenas o que você quiser sobrescrever.
 
+O Blume só lê arquivos `meta.ts` de pastas que o seu conteúdo abrange: um arquivo em uma pasta ignorada pelos globs de `exclude` do seu conteúdo, ou fora de todos os globs de `include`, nunca é importado. Com `root: "."` e `exclude: ["src/**"]`, um `src/lib/meta.ts` não relacionado é deixado de lado.
+
 ## Campos [#fields]
 
 | Campo | Tipo | Descrição |
@@ -35,7 +37,7 @@ Todos os campos são opcionais — defina apenas o que você quiser sobrescrever
 | `display` | `"flat" \| "group" \| "page"` | Modo de renderização deste grupo; sobrescreve o [`navigation.sidebar.display`](/docs/content/navigation#display-modes) global. |
 | `pages` | `string[]` | Ordem explícita dos filhos do grupo, por slug. |
 
-O array `pages` lista os filhos por slug — o nome da pasta ou do arquivo com o prefixo numérico e quaisquer parênteses removidos (portanto `01-quickstart.mdx` é `"quickstart"`). Os filhos que você deixar de fora ainda aparecem, depois dos listados.
+O array `pages` lista os filhos por slug — o nome da pasta ou do arquivo com o prefixo numérico e quaisquer parênteses removidos (portanto `01-quickstart.mdx` é `"quickstart"`). Cada filho listado recebe sua posição no array como ordem (`0`, `1`, `2`, …). Os filhos que você deixar de fora ainda aparecem, ordenados pela própria ordem: uma página `index` continua em primeiro lugar, um filho com `sidebar.order`, prefixo numérico ou um `order` no próprio `meta.ts` é posicionado por esse número entre os listados, e um filho sem nenhum deles vai depois deles. Liste todos os filhos quando o array tiver que definir a ordem completa.
 
 Como os grupos são renderizados — cabeçalhos planos, blocos recolhíveis ou painéis de navegação em profundidade — o padrão é o `navigation.sidebar.display` de toda a barra lateral; defina `display` aqui para sobrescrevê-lo apenas para este grupo. A página `index` de uma pasta também pode defini-lo pelo frontmatter, o que tem precedência sobre o `meta.ts` — veja [sobrescritas por grupo](/docs/content/navigation#per-group-overrides).
 
@@ -54,13 +56,13 @@ export default defineMeta(async () => ({
 
 ## Ordenação dentro de um grupo [#ordering-within-a-group]
 
-O array `pages` define a ordem dos filhos de um grupo. Tudo que ele omitir recorre ao `sidebar.order` do frontmatter de cada página e, em seguida, ao sistema de arquivos (uma página `index` primeiro, depois os prefixos numéricos e então a ordem alfabética). Para a precedência completa da barra lateral — incluindo uma barra lateral explícita na configuração — veja [Navegação › Ordenação](/docs/content/navigation#ordering).
+O array `pages` define a ordem dos filhos de um grupo e tem precedência sobre o `sidebar.order` de uma página listada ou o `order` de uma subpasta listada. Tudo que ele omitir recorre ao `sidebar.order` do frontmatter de cada página e, em seguida, ao sistema de arquivos (uma página `index` primeiro, depois os prefixos numéricos e então a ordem alfabética). Para a precedência completa da barra lateral — incluindo uma barra lateral explícita na configuração — veja [Navegação › Ordenação](/docs/content/navigation#ordering).
 
 Para agrupar páginas _sem_ adicionar um segmento de URL, você não precisa de um `meta.ts`: use um nome de pasta entre parênteses — veja [Páginas › Pastas de grupo](/docs/content#group-folders).
 
 ## Internacionalização [#internationalization]
 
-Sob o [i18n](/docs/content/i18n), o meta de pasta é resolvido por locale: coloque um `meta.ts` em `fr/guides/` para ordenar o grupo em francês de forma independente.
+Sob o [i18n](/docs/content/i18n), o meta de pasta é resolvido por locale: coloque um `meta.ts` em `fr/guides/` para ordenar o grupo em francês de forma independente. Sem ele (ou sem um `meta.$.ts` compartilhado, veja abaixo), o grupo em francês espelha o `meta.ts` do locale de fallback.
 
 Para um meta de pasta idêntico em todos os idiomas, adicione um marcador `$` para que um único arquivo sirva a todos os locales sem duplicação:
 

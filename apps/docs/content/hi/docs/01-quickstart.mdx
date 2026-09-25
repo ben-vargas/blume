@@ -24,11 +24,12 @@ sidebar:
     npx blume init
     ```
 
-    pnpm 12 पर, `pnpm dlx` के बाद `--allow-build=esbuild` जोड़ें (`pnpm dlx --allow-build=esbuild blume init`): pnpm 12 esbuild की इंस्टॉल स्क्रिप्ट, जिस पर Astro निर्भर है, तब तक नहीं चलाता जब तक आप उसे स्वीकृति न दें। किसी मौजूदा pnpm वर्कस्पेस के भीतर, वर्कस्पेस की `pnpm-workspace.yaml` में `allowBuilds: { esbuild: true }` जोड़ें; `init` आपको इसकी याद दिलाता है। Yarn 2 या उसके बाद के संस्करण के साथ, `init` एक `.yarnrc.yml` लिखता है जो Yarn को `node_modules` इंस्टॉल पर स्विच कर देता है, जिसकी Blume को आवश्यकता होती है; Yarn 1 पर, `npx blume init` चलाएँ।
+    pnpm 12 पर, `pnpm dlx` के बाद `--allow-build=esbuild` जोड़ें (`pnpm dlx --allow-build=esbuild blume init`): pnpm 12 esbuild की इंस्टॉल स्क्रिप्ट, जिस पर Astro निर्भर है, तब तक नहीं चलाता जब तक आप उसे स्वीकृति न दें। किसी मौजूदा pnpm वर्कस्पेस के भीतर, नए फ़ोल्डर को वर्कस्पेस के `packages` के अंतर्गत सूचीबद्ध होना चाहिए (pnpm इसके अलावा कुछ भी इंस्टॉल नहीं करता, इसलिए जब तक ऐसा न हो, `init` इंस्टॉल को छोड़ देता है), और esbuild के लिए वर्कस्पेस की `pnpm-workspace.yaml` में `allowBuilds: { esbuild: true }` आवश्यक है; `init` आपको इन दोनों की याद दिलाता है। Yarn 2 या उसके बाद के संस्करण के साथ, `init` एक `.yarnrc.yml` लिखता है जो Yarn को `node_modules` इंस्टॉल पर स्विच कर देता है, जिसकी Blume को आवश्यकता होती है; Yarn 1 पर, `npx blume init` चलाएँ।
 
     ```txt
     docs/
       index.mdx
+    .gitignore
     blume.config.ts
     package.json
     ```
@@ -53,7 +54,7 @@ sidebar:
   </Step>
 </Steps>
 
-क्या आप Blume को ऐसे प्रोजेक्ट में जोड़ रहे हैं जिसमें पहले से एक `package.json` है? `blume init` मौजूदा फ़ाइलों को नहीं छेड़ता, इसलिए उसकी स्क्रिप्ट्स में `"dev": "blume dev"` और `"build": "blume build"` जोड़ें, या सीधे `npx blume dev` चलाएँ।
+क्या आप Blume को ऐसे प्रोजेक्ट में जोड़ रहे हैं जिसमें पहले से एक `package.json` है? `blume init` मौजूदा फ़ाइलों को नहीं छेड़ता और इंस्टॉल को छोड़ देता है, इसलिए Blume को खुद इंस्टॉल करें (`npm install blume`), फिर उसकी स्क्रिप्ट्स में `"dev": "blume dev"` और `"build": "blume build"` जोड़ें, या सीधे `npx blume dev` चलाएँ। `init` जो अगले कदम प्रिंट करता है, उनमें आपके पैकेज मैनेजर के लिए ये दोनों कमांड शामिल होते हैं।
 
 :::tip
 Blume किसी भी पैकेज मैनेजर के साथ काम करता है और आपसे कभी Astro या Tailwind खुद सेट अप करने की अपेक्षा नहीं करता।

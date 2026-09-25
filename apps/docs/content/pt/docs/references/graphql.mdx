@@ -26,7 +26,7 @@ Isso monta a referência em `/graphql` (uma página de visão geral). Os campos 
 
 O `spec` pode ser um caminho para um arquivo local no seu projeto ou uma URL `http(s)`. Ele aceita dois formatos:
 
-- **Texto SDL**: um arquivo `.graphql` com definições de tipos.
+- **Texto SDL**: um arquivo `.graphql` com definições de tipos. Diretivas que o arquivo usa sem declarar, como a `@key` do Apollo Federation ou as `@aws_*` do AppSync, são ignoradas.
 - **Um resultado de introspecção**: o JSON gerado ao rodar a query de introspecção padrão. Ele pode estar no formato bruto `{ "__schema": … }` ou no envelope de resposta completo `{ "data": { "__schema": … } }`.
 
 O `endpoint` é a URL da API GraphQL em produção. Diferente de um documento OpenAPI, um schema não indica nenhum servidor. Por isso, o painel Try it e os exemplos de código gerados enviam as requisições para o endpoint. Se você não informar um, os exemplos aparecem com uma URL de placeholder que os leitores precisam trocar.
@@ -54,15 +54,7 @@ reference: [
 
 ## Páginas de tipos [#type-pages]
 
-Os tipos nomeados ganham páginas próprias com deep link, agrupadas por categoria na barra lateral. Cada página mostra:
-
-- fields e input fields, com links para os tipos deles
-- valores de enum
-- membros de union
-- implementações de interface
-- uma seção **Usado por**, com as operações que retornam ou aceitam o tipo e os outros tipos que fazem referência a ele
-
-Scalars definidos pela spec (`String`, `Int`, …) não ganham páginas. Já os scalars customizados ganham, incluindo a URL `specifiedBy` deles.
+Os tipos nomeados ganham páginas próprias com deep link, agrupadas por categoria na barra lateral. Cada página mostra fields e input fields (com links para os tipos deles), valores de enum, membros de union, implementações de interface e uma seção **Usado por**, com as operações que retornam ou aceitam o tipo e os outros tipos que fazem referência a ele. Scalars definidos pela spec (`String`, `Int`, …) não ganham páginas. Já os scalars customizados ganham, incluindo a URL `specifiedBy` deles.
 
 ## Múltiplos schemas [#multiple-schemas]
 
@@ -89,13 +81,9 @@ reference: [
 
 ## Playground Try it [#try-it-playground]
 
-As páginas de query e mutation mostram um painel interativo. Edite o corpo da requisição (a query e as variáveis), aponte para o seu endpoint ou para uma URL personalizada e envie. Os exemplos de código são atualizados em tempo real, então o que você copia é exatamente, byte a byte, o que foi enviado. Desative com `playground: false`.
+As páginas de query e mutation mostram um painel interativo. Edite o corpo da requisição (a query e as variáveis), aponte para o seu endpoint ou para uma URL personalizada e envie. Os exemplos de código são atualizados em tempo real, então o que você copia é exatamente, byte a byte, o que foi enviado. Desative com `playground: false`. As páginas de subscription mostram a operação gerada e um evento de exemplo no lugar do painel. Isso acontece porque subscriptions rodam sobre um transporte com estado (WebSocket ou SSE), e o playground só envia um único `POST` HTTP.
 
-As páginas de subscription mostram a operação gerada e um evento de exemplo no lugar do painel. Isso acontece porque subscriptions rodam sobre um transporte com estado (WebSocket ou SSE), e o playground só envia um único `POST` HTTP.
-
-Se a sua API GraphQL não aceita requisições cross-origin vindas do site de docs, faça os envios passarem por um proxy CORS. Use uma URL sua ou `true` para o endpoint embutido `/_api-proxy`. O proxy embutido exige [output de servidor](/docs/deployment#server-rendering), ou seja, um adapter de host como `deployment: vercel()` de `blume/deploy`.
-
-O proxy embutido só encaminha requisições para as origens declaradas nas suas specs documentadas: cada `endpoint` GraphQL configurado e qualquer `servers[].url` absoluta de uma [spec OpenAPI](/docs/references/openapi) documentada. Assim, ninguém consegue usar um deploy público de docs para mandar requisições a outros hosts. Por isso, o `endpoint` é obrigatório para o proxy funcionar. Sem ele, o proxy não tem nenhuma origem liberada para esta referência e recusa todos os envios (o build avisa sobre isso). O limite de tamanho do corpo e os headers de resposta são os mesmos do [proxy OpenAPI](/docs/references/openapi#try-it-playground).
+Se a sua API GraphQL não aceita requisições cross-origin vindas do site de docs, faça os envios passarem por um proxy CORS. Use uma URL sua ou `true` para o endpoint embutido `/_api-proxy` (dentro do seu `basePath`, se você tiver definido um). O proxy embutido exige [output de servidor](/docs/deployment#server-rendering), ou seja, um adapter de host como `deployment: vercel()` de `blume/deploy`. O proxy embutido só encaminha requisições para as origens declaradas nas suas specs documentadas: cada `endpoint` GraphQL configurado e qualquer `servers[].url` absoluta de uma [spec OpenAPI](/docs/references/openapi) documentada. Assim, ninguém consegue usar um deploy público de docs para mandar requisições a outros hosts. Por isso, o `endpoint` é obrigatório para o proxy funcionar. Sem ele, o proxy não tem nenhuma origem liberada para esta referência e recusa todos os envios (o build avisa sobre isso). O limite de tamanho do corpo e os headers de resposta são os mesmos do [proxy OpenAPI](/docs/references/openapi#try-it-playground).
 
 ```ts blume.config.ts lineNumbers
 reference: [

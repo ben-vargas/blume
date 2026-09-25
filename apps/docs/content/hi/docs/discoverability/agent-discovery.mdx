@@ -55,7 +55,7 @@ agents: {
 जो एजेंट किसी साइट की जाँच करते हैं वे मैनिफ़ेस्ट को ढूँढना नहीं जानते — इसलिए Blume IANA-पंजीकृत रिलेशन प्रकारों का उपयोग करते हुए, होमपेज पर एक [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288) `Link` रिस्पॉन्स हेडर में भी इसका प्रचार करता है:
 
 ```http
-Link: </.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json",
+Link: </.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json; profile=\"https://www.rfc-editor.org/info/rfc9727\"",
   </.well-known/ai-catalog.json>; rel="ai-catalog"; type="application/ai-catalog+json",
   </openapi.json>; rel="service-desc"; type="application/json",
   </agent-readability.json>; rel="describedby"; type="application/json",
@@ -87,7 +87,7 @@ Link: </.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+j
 
 ## API कैटलॉग [#api-catalog]
 
-जब साइट API प्रकाशित करती है, तो Blume `/.well-known/api-catalog` पर एक [RFC 9727](https://www.rfc-editor.org/rfc/rfc9727) API कैटलॉग जनरेट करता है — एक [linkset](https://www.rfc-editor.org/rfc/rfc9264) जो एजेंटों को केवल डोमेन से ही आपके API की गणना करने देता है, जिसे हर बिल्ड सरफेस पर उसके पंजीकृत `application/linkset+json` मीडिया प्रकार के साथ सर्व किया जाता है। कॉन्फ़िगर करने के लिए कुछ नहीं है: कैटलॉग उसी से व्युत्पन्न होता है जो पहले से `blume.config.ts` में है। प्रत्येक [OpenAPI या AsyncAPI रेफ़रेंस](/docs/references/openapi) अपने रेंडर किए गए डॉक्स रूट पर एंकर की गई एक प्रविष्टि बन जाता है, जिसमें `service-doc` उन डॉक्स की ओर और `service-desc` स्पेक की ओर संकेत करता है जब वह किसी फ़ेच करने योग्य URL पर रहती है; साइट का अपना [JSON API](/docs/discoverability/json-api) अपने `/openapi.json` द्वारा वर्णित एक प्रविष्टि बन जाता है; और [MCP सर्वर](/docs/discoverability/mcp) अपने डिस्कवरी डॉक्यूमेंट को सेवा विवरण के रूप में रखते हुए एक प्रविष्टि बन जाता है:
+जब साइट API प्रकाशित करती है, तो Blume `/.well-known/api-catalog` पर एक [RFC 9727](https://www.rfc-editor.org/rfc/rfc9727) API कैटलॉग जनरेट करता है — एक [linkset](https://www.rfc-editor.org/rfc/rfc9264) जो एजेंटों को केवल डोमेन से ही आपके API की गणना करने देता है, जिसे हर बिल्ड सरफेस पर उसके पंजीकृत `application/linkset+json` मीडिया प्रकार और RFC के `profile="https://www.rfc-editor.org/info/rfc9727"` पैरामीटर के साथ सर्व किया जाता है। कॉन्फ़िगर करने के लिए कुछ नहीं है: कैटलॉग उसी से व्युत्पन्न होता है जो पहले से `blume.config.ts` में है। प्रत्येक [OpenAPI, AsyncAPI, या GraphQL रेफ़रेंस](/docs/references/openapi) अपने रेंडर किए गए डॉक्स रूट पर एंकर की गई एक प्रविष्टि बन जाता है, जिसमें `service-doc` उन डॉक्स की ओर और `service-desc` स्पेक की ओर संकेत करता है जब वह किसी फ़ेच करने योग्य URL पर रहती है; साइट का अपना [JSON API](/docs/discoverability/json-api) अपने `/openapi.json` द्वारा वर्णित एक प्रविष्टि बन जाता है; और [MCP सर्वर](/docs/discoverability/mcp) अपने डिस्कवरी डॉक्यूमेंट को सेवा विवरण के रूप में रखते हुए एक प्रविष्टि बन जाता है:
 
 ```json .well-known/api-catalog
 {
@@ -131,7 +131,7 @@ Link: </.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+j
 
 ## AI कैटलॉग [#ai-catalog]
 
-API कैटलॉग API सूचीबद्ध करता है। **AI कैटलॉग** वह सब कुछ सूचीबद्ध करता है जिसे कोई एजेंट साइट से उठा सकता है — MCP सर्वर, प्रत्येक प्रकाशित स्किल, JSON API, प्रत्येक रेंडर किया गया API रेफ़रेंस, और `llms.txt` — उसी प्रारूप में जिसे एजेंट रजिस्ट्रियाँ इंडेक्स करती हैं: `/.well-known/ai-catalog.json` पर एक [AI Catalog](https://github.com/Agent-Card/ai-catalog) डॉक्यूमेंट, जो वही मैनिफ़ेस्ट भी है जिसे [Agentic Resource Discovery (ARD)](https://agenticresourcediscovery.org/) उपभोक्ता हल करते हैं। प्रत्येक प्रविष्टि एक डोमेन-एंकर किया गया `urn:air:<host>:<namespace>:<name>` पहचानकर्ता, एक प्रदर्शन नाम, आर्टिफ़ैक्ट का मीडिया प्रकार, उसका URL, और कुछ `representativeQueries` रखती है — नमूना प्रश्न जिनका उत्तर वह संसाधन दे सकता है, जिन्हें रजिस्ट्रियाँ सिमेंटिक खोज के लिए एम्बेड करती हैं:
+API कैटलॉग API सूचीबद्ध करता है। **AI कैटलॉग** वह सब कुछ सूचीबद्ध करता है जिसे कोई एजेंट साइट से उठा सकता है — MCP सर्वर, प्रत्येक प्रकाशित स्किल, JSON API, प्रत्येक रेंडर किया गया API रेफ़रेंस, और `llms.txt` — उसी प्रारूप में जिसे एजेंट रजिस्ट्रियाँ इंडेक्स करती हैं: `/.well-known/ai-catalog.json` पर एक [AI Catalog](https://github.com/Agent-Card/ai-catalog) डॉक्यूमेंट, जो वही मैनिफ़ेस्ट भी है जिसे [Agentic Resource Discovery (ARD)](https://agenticresourcediscovery.org/) उपभोक्ता हल करते हैं। प्रत्येक प्रविष्टि एक डोमेन-एंकर किया गया `urn:air:<host>:<namespace>:<name>` पहचानकर्ता, एक प्रदर्शन नाम, एक-पंक्ति का विवरण, आर्टिफ़ैक्ट का मीडिया प्रकार, उसका URL, और कुछ `representativeQueries` रखती है — नमूना प्रश्न जिनका उत्तर वह संसाधन दे सकता है, जिन्हें रजिस्ट्रियाँ सिमेंटिक खोज के लिए एम्बेड करती हैं। यहाँ "Acme" शीर्षक वाली ऐसी साइट का कैटलॉग है जिसमें MCP सर्वर चालू है और एक स्किल प्रकाशित है:
 
 ```json .well-known/ai-catalog.json
 {
@@ -145,6 +145,7 @@ API कैटलॉग API सूचीबद्ध करता है। **AI 
     {
       "identifier": "urn:air:docs.example.com:mcp:acme",
       "displayName": "Acme",
+      "description": "Model Context Protocol server over the Acme documentation: full-text search, page Markdown, the page index, and the navigation tree.",
       "type": "application/mcp-server-card+json",
       "url": "https://docs.example.com/.well-known/mcp/server-card.json",
       "capabilities": [
@@ -155,13 +156,14 @@ API कैटलॉग API सूचीबद्ध करता है। **AI 
       ],
       "representativeQueries": [
         "search the Acme documentation",
-        "get a Acme docs page as Markdown",
+        "get a page of the Acme docs as Markdown",
         "list every page in the Acme docs"
       ]
     },
     {
       "identifier": "urn:air:docs.example.com:skill:acme",
       "displayName": "acme",
+      "description": "Set up an Acme project and call its API.",
       "type": "application/agent-skills+md",
       "url": "https://docs.example.com/.well-known/agent-skills/acme/SKILL.md",
       "representativeQueries": [
@@ -172,12 +174,24 @@ API कैटलॉग API सूचीबद्ध करता है। **AI 
     {
       "identifier": "urn:air:docs.example.com:api:docs",
       "displayName": "Acme docs API",
+      "description": "REST API over the Acme documentation: the page index, each page as JSON or Markdown, and the navigation tree, described by this OpenAPI document.",
       "type": "application/vnd.oai.openapi+json",
       "url": "https://docs.example.com/openapi.json",
       "representativeQueries": [
-        "fetch a Acme docs page as JSON",
+        "fetch a page of the Acme docs as JSON",
         "list the pages in the Acme docs",
-        "get the Acme docs navigation tree"
+        "get the navigation tree of the Acme docs"
+      ]
+    },
+    {
+      "identifier": "urn:air:docs.example.com:docs:llms-txt",
+      "displayName": "Acme llms.txt",
+      "description": "llms.txt index of the Acme documentation: every page with a one-line summary, plus the agent-facing resources on this site.",
+      "type": "text/plain",
+      "url": "https://docs.example.com/llms.txt",
+      "representativeQueries": [
+        "what is Acme",
+        "overview of the Acme documentation"
       ]
     }
   ]
@@ -186,7 +200,7 @@ API कैटलॉग API सूचीबद्ध करता है। **AI 
 
 ARD का वर्तमान संशोधन मैनिफ़ेस्ट को `/.well-known/ard.json` से पढ़ता है और `ai-catalog.json` को पूर्ववर्ती पथ कहता है, इसलिए Blume वही डॉक्यूमेंट दोनों जगह लिखता है, हर पेज के हेड में उसे दोनों लिंक रिलेशनों (`ai-catalog` और `ard`) के अंतर्गत प्रचारित करता है, और उसे `llms.txt` तथा `agent-readability.json` में सूचीबद्ध करता है। कैटलॉग और उसके `.well-known` पड़ोसी (API कैटलॉग, MCP डिस्कवरी फ़ाइलें) हर बिल्ड सरफेस पर `Access-Control-Allow-Origin: *` के साथ सर्व किए जाते हैं, ताकि किसी अन्य ऑरिजिन से उन्हें पढ़ने वाली रजिस्ट्री ब्लॉक न हो।
 
-प्रविष्टि पहचानकर्ता आपके डोमेन पर एंकर किए जाते हैं, इसलिए कैटलॉग को एक [`deployment.site`](/docs/deployment) की आवश्यकता होती है — उसके बिना कुछ भी उत्सर्जित नहीं होता। यह डिफ़ॉल्ट रूप से चालू है; `agents.catalog: false` इसे बंद कर देता है। जनरेट किए गए प्रश्न साइट शीर्षक और प्रत्येक प्रविष्टि के अपने विवरण से व्युत्पन्न होते हैं। किसी प्रविष्टि के लिए अपने स्वयं के प्रश्न लिखने हेतु, उन्हें पहचानकर्ता की पूँछ (`<namespace>:<name>`) द्वारा कुंजीबद्ध करें:
+प्रविष्टि पहचानकर्ता आपके डोमेन पर एंकर किए जाते हैं, इसलिए कैटलॉग को एक [`deployment.site`](/docs/deployment) की आवश्यकता होती है — उसके बिना कुछ भी उत्सर्जित नहीं होता। यह डिफ़ॉल्ट रूप से चालू है; `agents.catalog: false` इसे बंद कर देता है। जनरेट किए गए प्रश्न साइट शीर्षक और प्रत्येक प्रविष्टि के अपने नाम से व्युत्पन्न होते हैं। किसी प्रविष्टि के लिए अपने स्वयं के प्रश्न लिखने हेतु, उन्हें पहचानकर्ता की पूँछ (`<namespace>:<name>`) द्वारा कुंजीबद्ध करें:
 
 ```ts blume.config.ts
 export default defineConfig({

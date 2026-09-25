@@ -55,7 +55,7 @@ Seu texto é **acrescentado às** instruções internas em vez de substituí-las
 
 O assistente é **fundamentado na sua documentação**. Para cada pergunta ele recupera as páginas mais relevantes — usando o mesmo índice léxico do [Orama](/docs/configuration/search) que alimenta a busca na página — e as injeta no system prompt do modelo, de forma que as respostas venham do seu conteúdo e não do conhecimento próprio do modelo. O assistente é instruído a responder apenas a partir das páginas recuperadas, a dizer quando algo não está coberto e a citar as páginas de onde tirou a informação.
 
-A página em que o leitor está no momento é adicionada primeiro ao contexto e usada para limitar a recuperação ao idioma daquela página, para que as respostas continuem relevantes ao ponto em que ele está na documentação. A recuperação roda no momento da requisição a partir de um snapshot embutido no build, então funciona independentemente do seu provedor de [busca](/docs/configuration/search) — até mesmo com `search: false` — e não precisa de configuração.
+A página em que o leitor está no momento é adicionada primeiro ao contexto e usada para limitar a recuperação ao idioma daquela página — e, num site [versionado](/docs/content/versioning), à versão da documentação dela — para que as respostas continuem relevantes ao ponto em que ele está na documentação. A recuperação roda no momento da requisição a partir de um snapshot embutido no build, então funciona independentemente do seu provedor de [busca](/docs/configuration/search) — até mesmo com `search: false` — e não precisa de configuração.
 
 A fundamentação está ativa para todos os adaptadores, exceto o **[Inkeep](#inkeep)**, que roda a própria recuperação sobre o conteúdo que você indexou no painel dele.
 

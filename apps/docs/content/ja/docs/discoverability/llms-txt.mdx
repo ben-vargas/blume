@@ -32,16 +32,13 @@ agents: {
 }
 ```
 
-オブジェクト形式では `details` も指定できます。これは `llms.txt` 内で、タイトルと要約の直後、ページのセクションより前に配置される Markdown で、[llms.txt 仕様](https://llmstxt.org)における自由形式の "details" ブロックにあたります。ここは、_いつ_ あなたの製品を使うべきか、そしてどう呼び出すのかをエージェントに伝える場所であり、対応状況をチェックするスキャナーが明示的に参照する箇所でもあります。インストールコマンドやパッケージ名もここに記載するとよいでしょう:
+オブジェクト形式では `details` も指定できます。これは `llms.txt` 内で、タイトルと要約の直後、ページのセクションより前に配置される Markdown で、[llms.txt 仕様](https://llmstxt.org)における自由形式の "details" ブロックにあたります。ここは、_いつ_ あなたの製品を使うべきか、そしてどう呼び出すのかをエージェントに伝える場所であり、対応状況をチェックするスキャナーが明示的に参照する箇所でもあります。インストールコマンドやパッケージ名もここに記載するとよいでしょう。仕様ではここに見出し以外の任意の Markdown を記述できます。見出しはその後に続くリンクのセクション用に予約されているため、段落やリストで記述してください:
 
 ```ts blume.config.ts lineNumbers
 agents: {
   llmsTxt: {
-    details: [
-      "## When to use Acme",
-      "",
+    details:
       "Reach for Acme when a project needs hosted feature flags. Install the CLI with `npm install -g acme`; the API reference below covers every endpoint.",
-    ].join("\n"),
   },
 }
 ```

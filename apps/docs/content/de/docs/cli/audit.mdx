@@ -498,7 +498,7 @@ Behebung: Entferne die URL aus der Sitemap oder baue die Seite, die sie nennt.
 
 `BLUME_AUDIT_SITEMAP_INVALID` · Fehler · aus dem gebauten HTML
 
-Behebung: Sitemaps müssen gültiges XML im urlset-Format von sitemaps.org sein.
+Behebung: Sitemaps müssen gültiges XML im urlset- oder Sitemap-Index-Format von sitemaps.org sein.
 
 #### Sitemap überschreitet 50 MB oder 50.000 URLs [#sitemap-too-large]
 
@@ -574,7 +574,7 @@ Behebung: Baue neu, damit llms.txt zur Site passt – ein veralteter Eintrag sch
 
 `BLUME_AUDIT_LLMS_TXT_PAGE_MISSING` · Warnung · aus dem gebauten HTML
 
-Behebung: Baue neu, damit llms.txt zur Site passt; wenn die Seite absichtlich ausgeschlossen ist, markiere sie mit `seo.noindex` oder `sidebar.hidden`.
+Behebung: Baue neu, damit llms.txt zur Site passt; wenn die Seite absichtlich ausgeschlossen ist, setze `ai.exclude: true` in ihrem Frontmatter.
 
 #### Keine DNS-AID-Records zur Agent-Discovery [#dns-aid-missing]
 

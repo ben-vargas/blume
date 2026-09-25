@@ -73,7 +73,7 @@ O relatório JSON tem o mesmo formato `diagnostics` + `summary` de `blume valida
 
 ## Flags
 
-- `--codex` / `--claude` — qual CLI de agente faz a tradução. É obrigatório passar exatamente uma (exceto com `--check`).
+- `--codex` / `--claude` — qual CLI de agente faz a tradução. É obrigatório passar exatamente uma, exceto com `--check`, que não executa nenhum agente e não aceita nenhuma das duas.
 - `--check` — reporta a divergência e sai com código diferente de zero, sem gravar nada.
 - `--concurrency <n>` — sessões de agente em paralelo. O padrão é `4`, e o máximo é `16`.
 - `--locale <codes>` — locales de destino separados por vírgula (por padrão, todos os locales exceto o padrão).

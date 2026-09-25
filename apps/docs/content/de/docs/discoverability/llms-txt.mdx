@@ -32,16 +32,13 @@ agents: {
 }
 ```
 
-Die Objektform nimmt außerdem `details` an: Markdown, das in `llms.txt` direkt nach Titel und Zusammenfassung steht, vor den Seitenabschnitten — der frei formulierbare „details“-Block der [llms.txt-Spezifikation](https://llmstxt.org). Hier sagst du Agents, _wann_ sie zu deinem Produkt greifen sollen und wie sie es aufrufen, wonach Readiness-Scanner ausdrücklich suchen; ein Installationsbefehl und der Paketname gehören ebenfalls hierher:
+Die Objektform nimmt außerdem `details` an: Markdown, das in `llms.txt` direkt nach Titel und Zusammenfassung steht, vor den Seitenabschnitten — der frei formulierbare „details“-Block der [llms.txt-Spezifikation](https://llmstxt.org). Hier sagst du Agents, _wann_ sie zu deinem Produkt greifen sollen und wie sie es aufrufen, wonach Readiness-Scanner ausdrücklich suchen; ein Installationsbefehl und der Paketname gehören ebenfalls hierher. Die Spezifikation erlaubt dort beliebiges Markdown außer Überschriften, die sie den nachfolgenden Link-Abschnitten vorbehält — schreib also Absätze oder Listen:
 
 ```ts blume.config.ts lineNumbers
 agents: {
   llmsTxt: {
-    details: [
-      "## When to use Acme",
-      "",
+    details:
       "Reach for Acme when a project needs hosted feature flags. Install the CLI with `npm install -g acme`; the API reference below covers every endpoint.",
-    ].join("\n"),
   },
 }
 ```

@@ -22,6 +22,8 @@ agents: {
 | `name` | title | Nome do servidor exibido aos clientes (padrão: o título). |
 | `instructions` | — | Dica de sistema opcional passada aos agentes que se conectam. |
 
+Se uma página de conteúdo ou personalizada já ocupa essa rota, o servidor não é gerado: o build emite um aviso, e o `llms.txt` e os outros [documentos de descoberta](/docs/discoverability/agent-discovery) o deixam de fora.
+
 ## Ferramentas e recursos [#tools-and-resources]
 
 O servidor expõe ferramentas somente leitura — `search_docs`, `get_page`, `list_pages` e `get_navigation` — e cada página como um recurso MCP (`resources/list` enumera as páginas em suas URLs servidas com o tipo `text/markdown`, deixando de fora as cópias de fallback de i18n das páginas não traduzidas, assim como `list_pages` faz; `resources/read` retorna o [Markdown para agentes](/docs/discoverability/markdown) da página, a mesma saída de `get_page`), então clientes que anexam contexto por URI podem navegar pela documentação sem chamar uma ferramenta. Ele publica documentos de descoberta em `/.well-known/mcp.json` e `/.well-known/mcp/server-card.json`. O server card segue o schema da extensão Server Card da [SEP-2127](https://github.com/modelcontextprotocol/modelcontextprotocol/pull/2127) (`name` em DNS reverso, endpoints de transporte `remotes`), com campos de compatibilidade no formato de initialize (`serverInfo`, `capabilities`, `transports`) para scanners construídos com base na revisão anterior da proposta. O menu **Connect to MCP** de cada página oferece instalação copiar-e-colar para Claude Code, Cursor, VS Code e Codex (exibido assim que [`deployment.site`](/docs/deployment) estiver definido).
@@ -29,6 +31,8 @@ O servidor expõe ferramentas somente leitura — `search_docs`, `get_page`, `li
 `search_docs` roda seu próprio índice de texto completo, então funciona independentemente do seu provedor de [busca](/docs/configuration/search) — e até mesmo com `search: false`. O servidor MCP é um recurso separado da busca na página.
 
 As mesmas ferramentas estão disponíveis via HTTP simples como a [API JSON](/docs/discoverability/json-api), para frameworks que não falam MCP.
+
+O endpoint lê o corpo da requisição somente até 64 KB e responde a qualquer coisa maior com `413`. Uma chamada a uma ferramenta que não existe, ou com `arguments` que não sejam um objeto, recebe o erro Invalid params do JSON-RPC (`-32602`).
 
 ## Escopo por tipo de conteúdo e facetas [#scoping-by-content-type-and-facets]
 

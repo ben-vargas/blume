@@ -63,7 +63,7 @@ Sobald du mindestens einen Eintrag mit `type: changelog` hast, generiert Blume a
 - Das Datum folgt dem konfigurierten [`dateFormat`](/docs/configuration#date-format), ohne das Jahr, das die Gruppe der Zeile bereits anzeigt.
 - Entwürfe und Einträge mit `sidebar.hidden` werden übersprungen.
 
-Die Seite erscheint nur, wenn die Route `/changelog` nicht bereits belegt ist. Um sie durch dein eigenes Design zu ersetzen, füge unter `pages/changelog.astro` eine [benutzerdefinierte Seite](/docs/advanced/custom-pages) hinzu – sie übernimmt, und Blume generiert die Standard-Übersicht nicht mehr. Die `<Update>`-Komponente, aus der die bisherige Timeline aufgebaut war, steht weiterhin für eine von Hand verfasste Seite zur Verfügung, die Release Notes inline zeigen soll.
+Die Seite erscheint nur, wenn die Route `/changelog` nicht bereits belegt ist. Um sie durch dein eigenes Design zu ersetzen, füge unter `pages/changelog.astro` eine [benutzerdefinierte Seite](/docs/advanced/custom-pages) hinzu – sie übernimmt, und Blume generiert die Standard-Übersicht nicht mehr. Die `<Update>`-Komponente, aus der die bisherige Timeline aufgebaut war, steht weiterhin für eine von Hand verfasste Seite zur Verfügung, die Release Notes inline zeigen soll. Sie gehört nicht zu den MDX-Komponenten, importiere sie also direkt in der `.astro`-Seite: `import Update from "blume/components/content/Update.astro";`.
 
 Ein Header-[Tab](/docs/content/navigation#tabs), der auf `/changelog` zeigt, öffnet diese Übersicht – ein `href` ist nicht nötig.
 

@@ -25,11 +25,12 @@ Passe de uma pasta vazia a um site de documentação funcionando com apenas algu
     npx blume init
     ```
 
-    No pnpm 12, adicione `--allow-build=esbuild` depois de `pnpm dlx` (`pnpm dlx --allow-build=esbuild blume init`): o pnpm 12 se recusa a executar o script de instalação do esbuild, do qual o Astro depende, a menos que você o aprove. Dentro de um workspace pnpm já existente, adicione `allowBuilds: { esbuild: true }` ao `pnpm-workspace.yaml` do workspace; o `init` lembra você disso. Com o Yarn 2 ou posterior, o `init` cria um `.yarnrc.yml` que muda o Yarn para uma instalação com `node_modules`, que é o que o Blume precisa; no Yarn 1, execute `npx blume init`.
+    No pnpm 12, adicione `--allow-build=esbuild` depois de `pnpm dlx` (`pnpm dlx --allow-build=esbuild blume init`): o pnpm 12 se recusa a executar o script de instalação do esbuild, do qual o Astro depende, a menos que você o aprove. Dentro de um workspace pnpm já existente, a nova pasta precisa estar listada em `packages` do workspace (o pnpm não instala nada fora disso, então o `init` pula a instalação até que ela esteja listada), e o esbuild precisa de `allowBuilds: { esbuild: true }` no `pnpm-workspace.yaml` do workspace; o `init` lembra você das duas coisas. Com o Yarn 2 ou posterior, o `init` cria um `.yarnrc.yml` que muda o Yarn para uma instalação com `node_modules`, que é o que o Blume precisa; no Yarn 1, execute `npx blume init`.
 
     ```txt
     docs/
       index.mdx
+    .gitignore
     blume.config.ts
     package.json
     ```
@@ -54,7 +55,7 @@ Passe de uma pasta vazia a um site de documentação funcionando com apenas algu
   </Step>
 </Steps>
 
-Vai adicionar o Blume a um projeto que já tem um `package.json`? O `blume init` não mexe nos arquivos existentes, então adicione `"dev": "blume dev"` e `"build": "blume build"` aos scripts dele, ou execute `npx blume dev` diretamente.
+Vai adicionar o Blume a um projeto que já tem um `package.json`? O `blume init` não mexe nos arquivos existentes e pula a instalação, então instale o Blume você mesmo (`npm install blume`) e depois adicione `"dev": "blume dev"` e `"build": "blume build"` aos scripts dele, ou execute `npx blume dev` diretamente. Os próximos passos que o `init` exibe incluem os dois comandos para o seu gerenciador de pacotes.
 
 :::tip
 O Blume funciona com qualquer gerenciador de pacotes e nunca exige que você configure o Astro ou o Tailwind por conta própria.

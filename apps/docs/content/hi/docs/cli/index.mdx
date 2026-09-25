@@ -16,7 +16,7 @@ blume <command> [options]
 | `blume dev` | हॉट रीलोड के साथ dev सर्वर शुरू करें। |
 | `blume build` | स्टैटिक (या सर्वर) साइट बिल्ड करें। |
 | `blume preview` | पिछले बिल्ड का प्रीव्यू देखें। |
-| `blume add <item>` | रजिस्ट्री से एक सोर्स कंपोनेंट इंस्टॉल करें। |
+| `blume add [item]` | रजिस्ट्री से एक सोर्स कंपोनेंट इंस्टॉल करें (item न देने पर उपलब्ध आइटम की सूची दिखाई जाती है)। |
 | `blume sync` | रिमोट कंटेंट सोर्स को दोबारा फ़ेच करें और फिर से जनरेट करें। |
 | `blume eject` | रनटाइम को एक स्वतंत्र Astro ऐप में बदलें। |
 | `blume check` | `astro check` से साइट की टाइप-चेकिंग करें। |
@@ -48,11 +48,14 @@ blume <command> [options]
 - `blume build --isolated` — `.blume/` के बजाय एक अस्थायी `.blume-verify/` रनटाइम (और उसके अपने `dist/`) में बिल्ड करें, ताकि चल रहा `blume dev` सर्वर और आपका वास्तविक `dist/` अप्रभावित रहें। [dev सर्वर चलते समय सत्यापन](#verifying-while-the-dev-server-runs) देखें।
 - `blume preview --host --port <n>` — प्रीव्यू सर्वर को बाइंड करें।
 - `blume sync --force` — पहले कैश किया गया स्नैपशॉट हटाकर रिमोट सोर्स दोबारा फ़ेच करें।
+- `blume sync --preview` — ड्राफ़्ट और अप्रकाशित CMS कंटेंट शामिल करें।
+- `blume sync --strict` — डायग्नोस्टिक्स पर विफल करें।
 - `blume add <item> --force` — पहले से मौजूद फ़ाइलों को ओवरराइट करें।
 - `blume check --preview` — जाँच करते समय ड्राफ़्ट और अप्रकाशित CMS कंटेंट शामिल करें।
 - `blume check --strict` — टाइप त्रुटियों के साथ-साथ कंटेंट डायग्नोस्टिक्स पर भी विफल करें।
 - `blume check --isolated` — एक अस्थायी `.blume-verify/` रनटाइम में टाइप-चेक करें, ताकि चल रहा `blume dev` सर्वर अप्रभावित रहे। [dev सर्वर चलते समय सत्यापन](#verifying-while-the-dev-server-runs) देखें।
 - `blume eject --yes` — पुष्टि वाला प्रॉम्प्ट छोड़ें।
+- `blume eject --force` — पहले से इजेक्ट किए गए ऐप पर दोबारा इजेक्ट करें और उसकी `astro.config.mjs` तथा `src/` को ओवरराइट करें।
 
 जिन कमांड का अपना अलग पेज है, उनके सभी फ़्लैग उसी पेज पर सूचीबद्ध हैं: [`blume doctor`](/docs/cli/doctor), [`blume validate`](/docs/cli/validate), [`blume audit`](/docs/cli/audit), [`blume eval`](/docs/cli/evals), [`blume translate`](/docs/cli/translate), और [`blume version`](/docs/cli/version)। `blume validate`, `blume doctor`, `blume audit`, `blume eval` और `blume translate` CI और एडिटर इंटीग्रेशन के लिए stdout पर मशीन-पठनीय परिणाम प्रिंट करने हेतु `--json` स्वीकार करते हैं (डायग्नोस्टिक्स की संरचना के लिए [Validate](/docs/cli/validate#json-output) देखें); `build`, `check` और `dev` केवल टर्मिनल पर रिपोर्ट करते हैं। हर कमांड ऐसे फ़्लैग को अस्वीकार कर देता है जिसे वह स्वीकार नहीं करता, सबसे निकटतम मिलान का सुझाव देता है और अपने स्वीकार्य फ़्लैग सूचीबद्ध करता है, ताकि `--isolatd` जैसी टाइपिंग की गलती अनदेखी होने के बजाय विफल हो जाए।
 

@@ -23,7 +23,7 @@ agents: {
 },
 ```
 
-इसमें से अधिकांश एक निरपेक्ष साइट URL के साथ अधिक प्रभावी होता है — [`deployment.site`](/docs/deployment) सेट करें ताकि फ़ीड, OG छवियाँ, कैनोनिकल, साइटमैप, JSON-LD, और प्रत्येक एजेंट मैनिफ़ेस्ट पूर्ण URL उत्सर्जित कर सकें। कुछ सतहें (Open Graph छवियाँ, साइटमैप) तब तक बंद रहती हैं जब तक यह सेट नहीं किया जाता।
+इसमें से अधिकांश एक निरपेक्ष साइट URL के साथ अधिक प्रभावी होता है — [`deployment.site`](/docs/deployment) सेट करें ताकि फ़ीड, OG छवियाँ, कैनोनिकल, साइटमैप, JSON-LD, और प्रत्येक एजेंट मैनिफ़ेस्ट पूर्ण URL उत्सर्जित कर सकें। कुछ सतहें — Open Graph छवियाँ, साइटमैप, RSS फ़ीड, और AI कैटलॉग — तब तक बंद रहती हैं जब तक यह सेट नहीं किया जाता।
 
 ## बिल्ड क्या उत्सर्जित करता है [#what-the-build-emits]
 
@@ -32,7 +32,7 @@ agents: {
 | `<head>` मेटाडेटा, कैनोनिकल, X कार्ड | प्रत्येक पृष्ठ | चालू | [मेटाडेटा](/docs/discoverability/metadata) |
 | सोशल शेयर छवियाँ | `/og/<route>.png` | साइट URL के साथ चालू | [Open Graph छवियाँ](/docs/discoverability/open-graph) |
 | schema.org JSON-LD | प्रत्येक पृष्ठ | चालू | [संरचित डेटा](/docs/discoverability/structured-data) |
-| RSS फ़ीड | `/<type>/rss.xml` | चालू | [RSS फ़ीड](/docs/discoverability/rss) |
+| RSS फ़ीड | `/<type>/rss.xml` | साइट URL के साथ चालू | [RSS फ़ीड](/docs/discoverability/rss) |
 | `sitemap.xml`, `robots.txt`, कंटेंट सिग्नल | साइट रूट | चालू | [साइटमैप और robots](/docs/discoverability/sitemap-and-robots) |
 | `llms.txt`, `llms-full.txt` | साइट रूट | चालू | [llms.txt](/docs/discoverability/llms-txt) |
 | कच्चे Markdown मिरर, कंटेंट नेगोशिएशन, Copy as Markdown, Open in chat | `/<route>.md` | चालू | [एजेंटों के लिए Markdown](/docs/discoverability/markdown) |

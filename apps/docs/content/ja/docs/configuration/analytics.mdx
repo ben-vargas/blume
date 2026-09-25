@@ -1,7 +1,7 @@
 ---
 title: アナリティクス
 description: >-
-  ファーストパーティのウェブアナリティクス — PostHog、Google Analytics、Plausible、Mixpanel、Segment ほか十数種類 — を blume.config.ts のアダプターとして設定できます。
+  ファーストパーティのウェブアナリティクス — PostHog、Google Analytics、Plausible、Mixpanel、Segment ほか多数 — を blume.config.ts のアダプターとして設定できます。
 ---
 
 Blume は `blume.config.ts` の `analytics` リストからアナリティクスを注入します。各エントリは `blume/analytics` からインポートしたアダプターです。アダプターはプロバイダーごとに 1 つずつ用意されており、アダプターがないものには `script()` を使用します。
@@ -39,6 +39,7 @@ export default defineConfig({
 | `clarity()` | [Microsoft Clarity](#microsoft-clarity) | `id` |
 | `clearbit()` | [Clearbit](#clearbit) | `key` |
 | `cloudflare()` | [Cloudflare Web Analytics](#cloudflare-web-analytics) | `token` |
+| `databuddy()` | [Databuddy](#databuddy) | `clientId` |
 | `fathom()` | [Fathom](#fathom) | `site` |
 | `googleAnalytics()` | [Google Analytics 4](#google-analytics-4) | `id` |
 | `googleTagManager()` | [Google Tag Manager](#google-tag-manager) | `id` |
@@ -70,6 +71,8 @@ analytics: [
 ```
 
 Blume が対応付けるオプションは `key` と `host` の 2 つです（`host` は `api_host` になります）。それ以外に渡したもの — `persistence`、`capture_pageview`、`autocapture`、`disable_session_recording`、その他あらゆる `posthog.init` オプション — は、そのまま `posthog.init` に転送されます。
+
+Blume がクライアントルーターによる各ナビゲーションで `$pageview` を送信するのは、PostHog がページ読み込みのみをキャプチャしている場合に限られます。これは `capture_pageview` と `defaults` のどちらも設定していないときの PostHog の動作です。`capture_pageview: "history_change"` を設定した場合、または PostHog の現在のスニペットにある `"2025-05-24"` のような `defaults` の日付を設定した場合は、PostHog 自身がナビゲーションをキャプチャするため、Blume は追加で何も送信しません。`capture_pageview: false` の場合は、ページビューは一切送信されません。
 
 ## Vercel Web Analytics
 
@@ -172,6 +175,22 @@ analytics: [
 ```
 
 `code` は `data-code` になります。また、Blume はタグに `pianjs` という id を付与します。Pirsch のスクリプトはこの id を使って自身のタグを見つけます。その他のオプションはそれぞれ個別の `data-` 属性になります（`dev`、`exclude`、`include`、`domain`、`endpoint` など）。
+
+## Databuddy
+
+**クライアント ID**（[Databuddy](https://databuddy.cc) のウェブサイト設定で確認できます）を `databuddy()` に渡します。
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  databuddy({
+    clientId: "xxxxxxxxxxxxxxxxxxxxx",
+    "track-web-vitals": "true", // optional: any other `data-` setting
+    "skip-patterns": '["/admin/*"]',
+  }),
+],
+```
+
+`clientId` は `data-client-id` になります。その他のオプションはそれぞれタグ上の個別の `data-` 属性になるため、属性名と同じケバブケースで指定してください（`track-web-vitals`、`track-errors`、`track-outgoing-links`、`api-url` など）。`trackWebVitals` のようなキャメルケースの名前は Databuddy に無視されます。値は文字列です。オン／オフの切り替えには `"true"` または `"false"` を、`skip-patterns` と `mask-patterns` には JSON 配列を指定してください。それ以外の形式のリスト値は、Databuddy では空として扱われます。
 
 ## Mixpanel
 
@@ -352,6 +371,8 @@ analytics: [
 | `clearbit()` | `key` | — | Clearbit の公開可能な API キー。必須です。 |
 | `cloudflare()` | `token` | — | Cloudflare Web Analytics のサイトトークン（手動セットアップ）。必須です。 |
 | `cloudflare()` | その他すべて | — | そのままビーコンの `data-cf-beacon` JSON に含めて転送されます。 |
+| `databuddy()` | `clientId` | — | Databuddy のクライアント ID。必須です。 |
+| `databuddy()` | その他すべて | — | タグ上の `data-` 属性としてレンダリングされます。 |
 | `fathom()` | `site` | — | Fathom のサイト ID。必須です。 |
 | `fathom()` | `spa` | `"auto"` | Fathom の履歴変更トラッキング（`data-spa`）。 |
 | `fathom()` | その他すべて | — | タグ上の `data-` 属性としてレンダリングされます。 |
@@ -390,4 +411,4 @@ analytics: [
 
 ## カスタムイベント [#custom-events]
 
-Blume のページフィードバックは、クライアント API を持つ設定済みのすべてのアダプター — PostHog、Mixpanel、Heap、Segment、Hightouch、Amplitude、LogRocket、Adobe、Google Analytics、Google Tag Manager（`window.dataLayer` への `{ event }` の push として）、Plausible、Fathom、Pirsch、Clarity、Hotjar、Vercel — を通じてカスタムイベントを送信します。Cloudflare と Clearbit にはイベント API がありません。また、すべてのイベントは `detail` に `{ event, props }` を持つ `blume:track` CustomEvent として `window` 上でも発火するため、`script()` アダプターを使えば他の任意の送信先に転送できます。ビルドしたサイトのデプロイについては、[デプロイ](/docs/deployment)を参照してください。
+Blume のページフィードバックは、クライアント API を持つ設定済みのすべてのアダプター — PostHog、Mixpanel、Heap、Segment、Hightouch、Amplitude、LogRocket、Adobe、Google Analytics、Google Tag Manager（`window.dataLayer` への `{ event }` の push として）、Plausible、Databuddy、Fathom、Pirsch、Clarity、Hotjar、Vercel — を通じてカスタムイベントを送信します。Cloudflare と Clearbit にはイベント API がありません。また、すべてのイベントは `detail` に `{ event, props }` を持つ `blume:track` CustomEvent として `window` 上でも発火するため、`script()` アダプターを使えば他の任意の送信先に転送できます。ビルドしたサイトのデプロイについては、[デプロイ](/docs/deployment)を参照してください。

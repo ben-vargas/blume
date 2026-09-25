@@ -91,6 +91,7 @@ Die Agent-Oberfläche ist versionsbewusst – etwas, das kein anderes Docs-Frame
 - Die MCP-Tools `search_docs` und `list_pages` verwenden standardmäßig die aktuellen Docs und akzeptieren `version`: eine archivierte ID (`"v1.0"`) oder `"all"`. `get_navigation` gibt auf Anfrage den Baum eines archivierten Snapshots zurück.
 - `llms.txt` ordnet archivierte Versionen nach den aktuellen Docs ein, beschriftet mit dem `label` oder der `id` der Version plus `(archived)` – `v1.0 (archived)` für das obige `{ id: "v1.0" }` –, sodass ein Agent beim Lesen des Index weiß, welche Docs eingefroren sind.
 - `llms-full.txt` bleibt ausschließlich aktuell – der flache Dump vermischt nie eingefrorene Kopien derselben Seite.
+- Der [Assistent](/docs/configuration/assistant) stützt seine Antworten auf die Version, die gerade gelesen wird – die aktuellen Docs, außer auf einer archivierten Seite –, sodass eingefrorene Kopien einer Seite nie die gerade gelesene verdrängen.
 - Rohe Markdown-Spiegel (`.md`-URLs) existieren für die Seiten jeder Version, wie für jede andere Route auch.
 
 ## Zusammen mit i18n [#with-i18n]

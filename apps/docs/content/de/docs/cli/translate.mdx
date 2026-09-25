@@ -73,7 +73,7 @@ Der JSON-Report ist genauso aus `diagnostics` und `summary` aufgebaut wie bei `b
 
 ## Flags
 
-- `--codex` / `--claude`: Legt fest, welche Agent-CLI übersetzt. Genau eines davon ist nötig (außer mit `--check`).
+- `--codex` / `--claude`: Legt fest, welche Agent-CLI übersetzt. Genau eines davon ist nötig, außer mit `--check`: Das startet keinen Agenten und nimmt keines der beiden an.
 - `--check`: Meldet Abweichungen und beendet sich mit einem Exit-Code ungleich null, ohne etwas zu schreiben.
 - `--concurrency <n>`: Anzahl paralleler Agent-Sessions. Standard ist `4`, Maximum `16`.
 - `--locale <codes>`: Ziel-Locales, durch Kommas getrennt (standardmäßig alle Locales außer der Standard-Locale).

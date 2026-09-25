@@ -126,7 +126,7 @@ logo: {
 `text` controla o logotipo textual independentemente do símbolo:
 
 - **Omita `text`** e a marca usa o `title` do seu site (o padrão).
-- **Defina `text: ""`** para mostrar apenas o símbolo — útil quando a imagem do logotipo já inclui o logotipo textual.
+- **Defina `text: ""`** para mostrar apenas o símbolo — útil quando a imagem do logotipo já inclui o logotipo textual. Nesse caso, os leitores de tela anunciam o link da marca pelo `alt` da imagem ou, quando ela não tiver um, pelo `title` do seu site.
 - **Defina `text` sem `image`** para um logotipo apenas de texto.
 
 ### Favicon
@@ -273,7 +273,7 @@ Uma chave pode ser declarada para todo o site ou por tipo, não os dois. Consult
 
 ## GitHub
 
-Aponte o Blume para o seu repositório com `github`. É o que alimenta o [link para o repositório](/docs/content/navigation#repository-link) no cabeçalho e as [ações de página](/docs/content/navigation#page-actions) **Editar no GitHub** e **Enviar feedback**:
+Aponte o Blume para o seu repositório com `github`. É o que alimenta o [link para o repositório](/docs/content/navigation#repository-link) no cabeçalho e a [ação de página](/docs/content/navigation#page-actions) **Editar no GitHub**:
 
 ```ts blume.config.ts lineNumbers
 github: {
@@ -365,6 +365,8 @@ dateFormat: { year: "numeric", month: "2-digit", day: "2-digit" },
 | `timeZone` | Fuso horário IANA. Por padrão é `UTC`, para que uma data seja lida da mesma forma independentemente de onde o site é buildado. |
 | `calendar`, `numberingSystem` | Sistema de calendário (p. ex. `"japanese"`) e sistema de numeração (p. ex. `"arab"`). |
 
+`timeZone`, `calendar` e `numberingSystem` não alteram o formato: um `dateFormat` que define apenas essas opções mantém a forma longa.
+
 ## SEO e agentes [#seo-and-agents]
 
 Metadados, imagens Open Graph, feeds RSS, JSON-LD, o sitemap e o `robots.txt` ficam em `seo`; o `llms.txt`, o Markdown bruto, a API JSON, o servidor MCP e os manifestos de descoberta ficam em `agents`. Os dois são abordados página a página na seção [Descoberta](/docs/discoverability), que trata os buscadores e os agentes de IA como dois públicos da mesma camada legível por máquina. As funcionalidades de modelo voltadas para o leitor — o assistente e a ação Abrir no chat — ficam em `ai`.
@@ -382,7 +384,7 @@ seo: {
 | Opção | Padrão | Descrição |
 | --- | --- | --- |
 | `og.enabled` | automático | Imagens Open Graph por página — ativas quando uma URL do site está definida. |
-| `rss.enabled` | `true` | Cria feeds para conteúdos de blog e de changelog. |
+| `rss.enabled` | `true` | Cria feeds para conteúdos de blog e de changelog (precisa de deployment.site). |
 | `rss.types` | `["blog", "changelog"]` | Tipos de conteúdo que recebem cada um um feed. |
 | `rss.limit` | `50` | Número máximo de itens por feed. |
 | `sitemap` | `true` | Gera o sitemap.xml (precisa de deployment.site). |

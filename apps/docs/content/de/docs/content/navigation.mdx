@@ -153,7 +153,9 @@ navigation: {
 }
 ```
 
-Eine aktivierte [OpenAPI- oder AsyncAPI-Referenz](/docs/references/openapi) wird unter ihrer Route eingebunden, fügt aber nicht von sich aus einen Tab hinzu – richte einen Tab auf diese Route, um sie im Header sichtbar zu machen (und, beim nativen Renderer, um ihre Operations-Seitenleiste einzugrenzen), mit einer Beschriftung deiner Wahl:
+Das optionale `icon` eines Tabs (ein Name eines [eingebauten Symbols](/docs/content/components#icon), ein Bildpfad bzw. eine Bild-URL oder ein Inline-SVG) erscheint neben seiner Beschriftung – im Header und im mobilen Navigationsmenü.
+
+Eine aktivierte [OpenAPI](/docs/references/openapi)-, [AsyncAPI](/docs/references/asyncapi)- oder [GraphQL](/docs/references/graphql)-Referenz wird unter ihrer Route eingebunden, fügt aber nicht von sich aus einen Tab hinzu – richte einen Tab auf diese Route, um sie im Header sichtbar zu machen (und, beim nativen Renderer, um ihre Operations-Seitenleiste einzugrenzen), mit einer Beschriftung deiner Wahl:
 
 ```ts blume.config.ts
 navigation: {
@@ -177,6 +179,24 @@ navigation: {
 
 Tabs, die kein `href` setzen, behalten die oben beschriebene Auflösung bei.
 
+Gib einem Tab `items`, um ihn zu einem Dropdown zu machen. Der Tab selbst verlinkt dann nirgendwohin mehr: Im Header öffnet er ein Menü mit seinen Einträgen, und im mobilen Navigationsmenü klappt er sie an Ort und Stelle auf. Sein `path` grenzt weiterhin die Seitenleiste ein und markiert den Tab als aktuell, und `href` gilt nicht. Jeder Eintrag nimmt ein `label` und einen `path` sowie optional `icon`, `description` und `tag` entgegen – wie ein Eintrag eines [Selektors](#selectors):
+
+```ts blume.config.ts lineNumbers
+navigation: {
+  tabs: [
+    { label: "Guides", path: "/guides" },
+    {
+      label: "SDKs",
+      path: "/sdks",
+      items: [
+        { label: "JavaScript", path: "/sdks/javascript", description: "Node and the browser" },
+        { label: "Python", path: "/sdks/python", tag: "Beta" },
+      ],
+    },
+  ],
+}
+```
+
 Auf einer [i18n](/docs/content/i18n)-Website kann die `label` eines Tabs (und die eines Dropdown-Eintrags) statt einer Zeichenkette eine Zuordnung pro Sprache sein – der Eintrag der aktiven Sprache gewinnt, danach der der Standardsprache:
 
 ```ts blume.config.ts
@@ -187,6 +207,8 @@ navigation: {
   ],
 }
 ```
+
+Die Beschriftungen eines [Selektors](#selectors) nehmen keine Zuordnung entgegen: Sein `label` und die Beschriftungen all seiner Einträge sind schlichte Zeichenketten.
 
 Tabs **grenzen außerdem die Seitenleiste ein**: Wenn die aktuelle Route unter den `path` eines Tabs fällt, zeigt die Seitenleiste nur die Seiten dieses Abschnitts – `/adapters/*` listet also die Adapter und sonst nichts. Der Ordner am `path` eines Tabs wird zum Abschnitt, sodass dafür über die Tabs hinaus keine zusätzliche Konfiguration nötig ist; strukturiere deine Inhalte in einen Ordner pro Tab und richte jeden Tab darauf aus.
 
@@ -250,6 +272,8 @@ navigation: {
 
 Jeder Eintrag ist eine Seitenroute (eine Zeichenkette), eine Gruppe (`label` + `items`) oder ein Link (`label` + `href`). Gruppen können verschachtelt werden, den globalen [`display`-Modus](#display-modes) überschreiben und `collapsed` starten.
 
+Blume warnt dich bei einem Eintrag, den es nicht so darstellen kann, wie er geschrieben ist: bei einer Route, die zu keiner Seite passt (der Eintrag wird weggelassen), bei einem `root`, das zu keiner Seite passt (sein Link würde auf einen 404 verweisen), oder bei einem Eintrag ohne Route, `href`, `root` oder `items` (wird weggelassen).
+
 ## Header-Aktionen [#header-actions]
 
 `navigation.actions` platziert schlichte Links im Header, links neben den Symbol-Buttons, und `navigation.cta` ist der eine gefüllte Button:
@@ -296,7 +320,7 @@ Diese ergeben sich kostenlos aus dem Seitenleistenbaum – ohne Konfiguration:
 
 ## Auf dieser Seite [#on-this-page]
 
-Aus den `##`- und `###`-Überschriften jeder Seite wird automatisch eine Gliederung in der rechten Spalte erzeugt, damit lange Seiten überschaubar bleiben. Auf schmaleren Bildschirmen, wo die rechte Spalte ausgeblendet ist, klappt sie zu einem „Auf dieser Seite“-Dropdown über dem Inhalt zusammen.
+Aus den Überschriften jeder Seite – standardmäßig `##` und `###` – wird automatisch eine Gliederung in der rechten Spalte erzeugt, damit lange Seiten überschaubar bleiben. Setze [`toc`](/docs/configuration#table-of-contents), um den Bereich der Überschriftenebenen zu ändern oder die Gliederung auszuschalten. Auf schmaleren Bildschirmen, wo die rechte Spalte ausgeblendet ist, klappt sie zu einem „Auf dieser Seite“-Dropdown über dem Inhalt zusammen.
 
 ## Seitenaktionen [#page-actions]
 
@@ -304,8 +328,9 @@ Unter dem Inhaltsverzeichnis zeigt jede Seite eine Reihe von Schnellaktionen:
 
 - **Auf GitHub bearbeiten** – verlinkt direkt auf die Quelldatei. Erscheint, sobald du [`github`](/docs/configuration) in deiner Konfiguration setzt.
 - **Nach oben scrollen** – kehrt sanft an den Anfang langer Seiten zurück.
-- **Feedback geben** – öffnet ein vorausgefülltes GitHub-Issue mit optionaler Reaktion und Notiz (benötigt ebenfalls `github`).
 
-Andere übergeben die Seite an KI-Tools – **Als Markdown kopieren** und **Im Chat öffnen** – beschrieben unter [KI](/docs/discoverability/markdown#copy-as-markdown).
+Andere übergeben die Seite an KI-Tools – **Als Markdown kopieren** und **Im Chat öffnen** – beschrieben unter [Markdown für Agenten](/docs/discoverability/markdown#copy-as-markdown).
+
+Feedback findest du stattdessen am Fuß der Seite: eine Ja/Nein-Bewertung „War diese Seite hilfreich?“, die ein `feedback`-Analytics-Event sendet und kein `github` benötigt – siehe [Seiten-Feedback](/docs/configuration#page-feedback).
 
 Mit aktiviertem [`export`](/docs/configuration/export) ermöglicht eine **Export**-Aktion Lesenden zusätzlich, die Seite als PDF oder EPUB herunterzuladen.

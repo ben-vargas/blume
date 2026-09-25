@@ -147,7 +147,7 @@ O Pagefind só é executado durante o `blume build`, então a busca não fica di
 
 ### Algolia
 
-O navegador consulta o [Algolia](https://www.algolia.com) diretamente com sua chave somente de busca. Cada `blume build` substitui o índice usando a chave de administração de `ALGOLIA_ADMIN_API_KEY` (o build emite um aviso e pula o envio se ela não estiver definida). Todo o índice é substituído a cada sincronização, então páginas que você excluir ou renomear não permanecem como resultados desatualizados.
+O navegador consulta o [Algolia](https://www.algolia.com) diretamente com sua chave somente de busca. Cada `blume build` substitui o índice usando a chave de administração de `ALGOLIA_ADMIN_API_KEY` (o build emite um aviso e pula o envio se ela não estiver definida). Todo o índice é substituído a cada sincronização, então páginas que você excluir ou renomear não permanecem como resultados desatualizados. A sincronização também adiciona `filterOnly(locale)` e `filterOnly(version)` aos `attributesForFaceting` do índice, mantendo as facetas que você mesmo declarou, porque o diálogo restringe os resultados por idioma e por versão da documentação, e, no Algolia, um filtro sobre um atributo que não foi declarado para facetas não corresponde a nada.
 
 ```ts blume.config.ts lineNumbers
 import { algolia } from "blume/search";

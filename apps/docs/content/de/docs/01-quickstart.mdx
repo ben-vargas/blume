@@ -25,11 +25,12 @@ Von einem leeren Ordner zu einer laufenden Doku-Website in wenigen Befehlen. Blu
     npx blume init
     ```
 
-    Unter pnpm 12 fügst du `--allow-build=esbuild` nach `pnpm dlx` hinzu (`pnpm dlx --allow-build=esbuild blume init`): pnpm 12 weigert sich, das Installationsskript von esbuild auszuführen, von dem Astro abhängt, solange du es nicht freigibst. Innerhalb eines bestehenden pnpm-Workspaces fügst du `allowBuilds: { esbuild: true }` zur `pnpm-workspace.yaml` des Workspaces hinzu; `init` erinnert dich daran. Mit Yarn 2 oder neuer schreibt `init` eine `.yarnrc.yml`, die Yarn auf eine `node_modules`-Installation umstellt, die Blume benötigt; unter Yarn 1 führst du `npx blume init` aus.
+    Unter pnpm 12 fügst du `--allow-build=esbuild` nach `pnpm dlx` hinzu (`pnpm dlx --allow-build=esbuild blume init`): pnpm 12 weigert sich, das Installationsskript von esbuild auszuführen, von dem Astro abhängt, solange du es nicht freigibst. Innerhalb eines bestehenden pnpm-Workspaces muss der neue Ordner unter den `packages` des Workspaces aufgeführt sein (pnpm installiert nichts anderes, daher überspringt `init` die Installation, bis das der Fall ist), und esbuild benötigt `allowBuilds: { esbuild: true }` in der `pnpm-workspace.yaml` des Workspaces; `init` erinnert dich an beides. Mit Yarn 2 oder neuer schreibt `init` eine `.yarnrc.yml`, die Yarn auf eine `node_modules`-Installation umstellt, die Blume benötigt; unter Yarn 1 führst du `npx blume init` aus.
 
     ```txt
     docs/
       index.mdx
+    .gitignore
     blume.config.ts
     package.json
     ```
@@ -54,7 +55,7 @@ Von einem leeren Ordner zu einer laufenden Doku-Website in wenigen Befehlen. Blu
   </Step>
 </Steps>
 
-Du fügst Blume zu einem Projekt hinzu, das bereits eine `package.json` hat? `blume init` lässt bestehende Dateien unangetastet, also füge `"dev": "blume dev"` und `"build": "blume build"` zu dessen Skripten hinzu oder führe `npx blume dev` direkt aus.
+Du fügst Blume zu einem Projekt hinzu, das bereits eine `package.json` hat? `blume init` lässt bestehende Dateien unangetastet und überspringt die Installation, also installiere Blume selbst (`npm install blume`) und füge dann `"dev": "blume dev"` und `"build": "blume build"` zu dessen Skripten hinzu oder führe `npx blume dev` direkt aus. Die nächsten Schritte, die `init` ausgibt, enthalten beide Befehle für deinen Paketmanager.
 
 :::tip
 Blume funktioniert mit jedem Paketmanager und verlangt nie, dass du Astro oder Tailwind selbst einrichtest.

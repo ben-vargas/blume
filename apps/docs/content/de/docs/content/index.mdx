@@ -32,12 +32,14 @@ Verschachtelte Ordner werden zu verschachtelten Routen, und eine `index.mdx` in 
 
 ## Sortierung mit numerischen Präfixen [#ordering-with-numeric-prefixes]
 
-Stelle einer Datei oder einem Ordner eine Zahl voran, um die Reihenfolge in der Seitenleiste zu steuern. Das Präfix wird aus der URL entfernt, sodass du Seiten neu anordnen kannst, ohne Links zu zerstören:
+Stelle einer Datei oder einem Ordner eine Zahl und ein `-`, `_` oder `.` voran, um die Reihenfolge in der Seitenleiste zu steuern. Das Präfix wird aus der URL entfernt, sodass du Seiten neu anordnen kannst, ohne Links zu zerstören:
 
 ```txt
 01-introduction.mdx  ->  /introduction
 02-installation.mdx  ->  /installation
 ```
+
+Eine Version oder ein ISO-Datum am Anfang eines Namens ist Teil des Namens und keine Sortierangabe: `1.2.0.mdx` wird zu `/1.2.0` und `2024-01-05-launch.mdx` zu `/2024-01-05-launch`. Nur Datei- und Ordnernamen verlieren ein Präfix (die Notizen eines Obsidian-Vaults zählen als Dateien). Ein `slug` im Frontmatter sowie eine Seite aus einer [Content-Quelle](/docs/content/sources) wie einem CMS oder GitHub Releases behalten den Namen, den sie bekommen haben.
 
 Die Sortierung hat mehrere Ebenen — die vollständigen Vorrangregeln findest du unter [Navigation](/docs/content/navigation).
 
@@ -109,7 +111,7 @@ Jede Seite erhält automatisch ein Inhaltsverzeichnis, das aus ihren Überschrif
 
 Blume wandelt jede Überschrift in einen Anker-Slug um, sodass jeder Eintrag direkt auf seinen Abschnitt verlinkt — und du kannst auf jede Überschrift per Deeplink verweisen, indem du ihren Slug an die URL anhängst (`.../my-page#getting-started`).
 
-Das Inhaltsverzeichnis listet deine `##`- und `###`-Überschriften (H2 und H3) auf. Eine Seite ohne Überschriften auf dieser Ebene hat schlicht kein Inhaltsverzeichnis.
+Standardmäßig listet das Inhaltsverzeichnis deine `##`- und `###`-Überschriften (H2 und H3) auf; setze [`toc`](/docs/configuration#table-of-contents), um den Überschriftenbereich zu ändern oder das Inhaltsverzeichnis auszuschalten. Eine Seite ohne Überschriften in diesem Bereich hat schlicht kein Inhaltsverzeichnis.
 
 ## Wie geht es weiter [#where-to-next]
 

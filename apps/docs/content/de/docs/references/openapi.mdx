@@ -70,7 +70,7 @@ reference: [
 
 ## Try-it-Playground
 
-Nativ gerenderte Operationsseiten bringen standardmäßig ein interaktives **Try it**-Panel mit. Blume generiert das Formular aus der Operation selbst: ein Eingabefeld pro Pfad-, Query- und Header-Parameter, einen Body-Editor, der aus dem Request-Body-Schema erstellt wird, und alles ist mit den Beispielen aus der Spezifikation vorausgefüllt. Eine Serverauswahl listet die `servers` der Spezifikation auf, mit einem Freitextfeld für jede andere Basis-URL, und die Auth-Eingaben entsprechen der [aufgelösten Security](#authorization) der Operation – Bearer-Token, API-Key und Basic-Credentials, wobei OAuth2 als Feld zum Einfügen eines Tokens umgesetzt ist (bring einen Access-Token mit; Blume führt den Flow nicht aus).
+Nativ gerenderte Operationsseiten bringen standardmäßig ein interaktives **Try it**-Panel mit. Blume generiert das Formular aus der Operation selbst: ein Eingabefeld pro Pfad-, Query- und Header-Parameter, einen Body-Editor, der aus dem Request-Body-Schema erstellt wird, und alles ist mit den Beispielen aus der Spezifikation vorausgefüllt. Eine Serverauswahl listet die Server der Operation auf (ihre eigenen `servers`, sonst die ihres Pfads, sonst die der Spezifikation, wobei jede `{variable}` auf ihrem `default` steht), mit einem Freitextfeld für jede andere Basis-URL, und die Auth-Eingaben entsprechen der [aufgelösten Security](#authorization) der Operation – Bearer-Token, API-Key und Basic-Credentials, wobei OAuth2 als Feld zum Einfügen eines Tokens umgesetzt ist (bring einen Access-Token mit; Blume führt den Flow nicht aus).
 
 Panel und Codebeispiele bleiben synchron: Werte, die du ins Formular eingibst, aktualisieren die generierten Codebeispiele live, sodass ein kopierter curl-Befehl immer genau dem entspricht, was **Send** tun würde. Und das Panel steht nicht im Weg – es wird serverseitig eingeklappt gerendert, und sein JavaScript lädt erst, wenn es jemand zum ersten Mal öffnet. Wer es nie anfasst, lädt nichts davon herunter.
 
@@ -86,7 +86,7 @@ Zugangsdaten, die in die Auth-Eingaben eingegeben werden, bleiben im Arbeitsspei
 
 ### CORS und der Proxy [#cors-and-the-proxy]
 
-Wie bei einem [Scalar-Embed](/docs/references/scalar) gehen Requests **direkt vom Browser** an die Ziel-API, daher muss die API Cross-Origin-Requests von der Doku-Website erlauben (`Access-Control-Allow-Origin`). Für APIs, die das nicht können, setze `playground.proxy`: Eine URL leitet Requests über einen Proxy, den du selbst hostest, und `true` aktiviert die eingebaute Route `/_api-proxy` – die [Server-Output](/docs/deployment#server-rendering) benötigt, also einen Host-Adapter wie `deployment: vercel()` aus `blume/deploy`:
+Wie bei einem [Scalar-Embed](/docs/references/scalar) gehen Requests **direkt vom Browser** an die Ziel-API, daher muss die API Cross-Origin-Requests von der Doku-Website erlauben (`Access-Control-Allow-Origin`). Für APIs, die das nicht können, setze `playground.proxy`: Eine URL leitet Requests über einen Proxy, den du selbst hostest, und `true` aktiviert die eingebaute Route `/_api-proxy` (unter `{basePath}/_api-proxy`, wenn du einen [`basePath`](/docs/deployment#mount-the-docs-under-a-path) setzt) – die [Server-Output](/docs/deployment#server-rendering) benötigt, also einen Host-Adapter wie `deployment: vercel()` aus `blume/deploy`:
 
 ```ts blume.config.ts lineNumbers
 reference: [
@@ -99,7 +99,7 @@ reference: [
 ],
 ```
 
-Der eingebaute Proxy leitet Requests nur an die Origins weiter, die deine Spezifikationen in `servers` deklarieren – auch über Redirects hinweg –, sodass ein öffentliches Doku-Deployment nicht auf andere Hosts in seinem Netzwerk gerichtet werden kann. Eine im Panel eingegebene **Custom base URL** ist kein dokumentierter Server: Bei aktiviertem Proxy werden Requests an sie mit einem 403 abgelehnt. Er liest einen Request-Body nur bis zu 4 MB (alles Größere erhält einen `413`), und jede Response, die er weiterleitet, enthält `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff` und `Cross-Origin-Resource-Policy: same-origin` – plus `Content-Disposition: attachment` bei HTML oder SVG –, sodass eine API-Fehlerseite, die ihre Eingabe zurückgibt, kein Skript auf dem Origin der Doku ausführen kann.
+Der eingebaute Proxy leitet Requests nur an die Origins weiter, die deine Spezifikationen in `servers` deklarieren (auf Dokument-, Pfad- oder Operationsebene, mit Variablen auf ihren Standardwerten) – auch über Redirects hinweg –, sodass ein öffentliches Doku-Deployment nicht auf andere Hosts in seinem Netzwerk gerichtet werden kann. Eine im Panel eingegebene **Custom base URL** ist kein dokumentierter Server: Bei aktiviertem Proxy werden Requests an sie mit einem 403 abgelehnt. Er liest einen Request-Body nur bis zu 4 MB (alles Größere erhält einen `413`), und jede Response, die er weiterleitet, enthält `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff` und `Cross-Origin-Resource-Policy: same-origin` – plus `Content-Disposition: attachment` bei HTML oder SVG –, sodass eine API-Fehlerseite, die ihre Eingabe zurückgibt, kein Skript auf dem Origin der Doku ausführen kann.
 
 ## Mehrere Spezifikationen [#multiple-specs]
 

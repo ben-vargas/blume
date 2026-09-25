@@ -88,7 +88,7 @@ Eine Überschrift, die selbst einen Link enthält, erhält ihren Manifest-Anker 
 
 Ein Link auf eine `index`-Notiz landet auf der Route ihres Ordners statt auf einem Phantom-`/index`. **Ein nicht auflösbarer Wikilink wird zu einfachem Text mit einer Build-Warnung abgestuft, statt den Build fehlschlagen zu lassen**, sodass ein Vault mitten im Refactoring weiterhin veröffentlicht wird. Einzeilige `%%comments%%` werden entfernt, ein Wikilink innerhalb eines HTML-Kommentars (`<!-- [[Draft]] -->`) bleibt unangetastet, da Obsidian ihn ebenfalls verbirgt, und eine Notiz ohne `title` im Frontmatter erhält ihren Dateinamen als Titel – dieselbe Regel, die auch Obsidian selbst anwendet. Eine `index`-Notiz ist die einzige Ausnahme: Sie benennt eine Route statt einer Notiz, daher fällt ihr Titel auf Blumes übliche Herleitung zurück (erste Überschrift, dann das lesbar gemachte Segment). Code in Fences, eingerückter Code und Inline-Code werden wortwörtlich durchgereicht, sodass eine Notiz, die die Syntax dokumentiert, erhalten bleibt.
 
-Punkt-Ordner werden übersprungen, einschließlich Obsidians eigenem Konfigurationsverzeichnis `.obsidian` und `.trash` – das der Dev-Watcher ebenfalls ignoriert, sodass das Verschieben eines Panels in der App oder das Löschen einer Notiz in den Papierkorb deine Website nicht neu baut. Das Bearbeiten einer Notiz schon. Die Verzeichnisse, die kein Inhaltsscan liest (`node_modules`, `dist`, `.git`, …), werden ebenfalls übersprungen, sodass ein Vault, der im Projekt selbst wurzelt, keine READMEs von Abhängigkeiten veröffentlicht. Symlinks innerhalb des Vaults werden verfolgt, so wie die Dateisystemquelle sie verfolgt, sodass ein in den Vault verlinkter geteilter Ordner mit ihm veröffentlicht wird. Ein Vault, der innerhalb des Wurzelverzeichnisses der Dateisystemquelle liegt, muss von ihr ausgeschlossen werden (`filesystem({ root: "docs", exclude: ["vault/**"] })`); `blume version cut` lässt ihn dann aus dem Snapshot heraus, da der Vault seine eigenen Notizen weiterhin als aktuell veröffentlicht.
+Punkt-Ordner werden übersprungen, einschließlich Obsidians eigenem Konfigurationsverzeichnis `.obsidian` und `.trash` – das der Dev-Watcher ebenfalls ignoriert, sodass das Verschieben eines Panels in der App oder das Löschen einer Notiz in den Papierkorb deine Website nicht neu baut. Das Bearbeiten einer Notiz schon. Die Verzeichnisse, die kein Inhaltsscan liest (`node_modules`, `dist`, `.git`, …), werden ebenfalls übersprungen, sodass ein Vault, der im Projekt selbst wurzelt, keine READMEs von Abhängigkeiten veröffentlicht. Symlinks innerhalb des Vaults werden verfolgt, so wie die Dateisystemquelle sie verfolgt, sodass ein in den Vault verlinkter geteilter Ordner mit ihm veröffentlicht wird. Ein Vault, der innerhalb des Wurzelverzeichnisses der Dateisystemquelle liegt, muss von ihr ausgeschlossen werden (`filesystem({ root: "docs", exclude: ["vault/**"] })`); [`blume version <id>`](/docs/cli/version) lässt ihn dann aus dem Snapshot heraus, da der Vault seine eigenen Notizen weiterhin als aktuell veröffentlicht.
 
 Noch nicht überführt: Callouts (`> [!note]`) werden als einfache Blockzitate gerendert, Einbettungen (`![[image.png]]`) werden unverändert durchgereicht, mehrzeilige `%%comments%%` bleiben stehen, und es gibt keinen Backlink-Graphen.
 
@@ -110,9 +110,9 @@ Entfernte Seiten werden mit voller MDX-plus-Komponenten-Treue gerendert: Ihre In
 
 ### Caching und Offline-Builds [#caching-and-offline-builds]
 
-Jede entfernte Quelle hält einen Snapshot unter `.blume/cache/<source>/` vor. Wenn ein Abruf fehlschlägt – eine Netzwerkstörung oder ein CMS-Ausfall –, liefert Blume den letzten funktionierenden Snapshot mit einer Warnung aus, anstatt den Build fehlschlagen zu lassen. Der Cache liegt innerhalb von `.blume/` und wird neu erzeugt, niemals eingecheckt.
+Jede entfernte Quelle hält einen Snapshot unter `.blume/cache/<source>/` vor. Wenn ein Abruf fehlschlägt – eine Netzwerkstörung oder ein CMS-Ausfall –, liefert Blume den letzten funktionierenden Snapshot mit einer Warnung aus, anstatt den Build fehlschlagen zu lassen. Vorschau- und veröffentlichte Inhalte erhalten getrennte Snapshots, ebenso jede Kombination von Quelloptionen, sodass ein Build niemals auf Entwürfe zurückfällt, die unter `--preview` abgerufen wurden, und das Bearbeiten von `query` oder `fields` einer Quelle einen frischen Abruf auslöst. Der Cache liegt innerhalb von `.blume/` und wird neu erzeugt, niemals eingecheckt.
 
-In der Entwicklung werden entfernte Inhalte einmal abgerufen und für die Sitzung eingefroren; starte den Dev-Server neu, um sie zu aktualisieren. Lokale Dateisystemquellen laden wie gewohnt per Hot-Reload neu. Um eine entfernte Quelle stattdessen auf Änderungen abzufragen, setze bei ihr die gemeinsame Option `pollInterval` (in Sekunden) – der Dev-Server ruft in diesem Intervall erneut ab und lädt nur dann neu, wenn sich der Inhalt tatsächlich geändert hat. Lass die Option ungesetzt, um die API während der Arbeit nicht zu belasten.
+In der Entwicklung wird eine entfernte Quelle aus ihrem Snapshot ausgeliefert, wenn sie einen hat, sodass ein Neustart des Dev-Servers sie nicht erneut abruft. Führe `blume sync` aus, um die neuesten Inhalte zu holen (ein laufender Dev-Server lädt per Hot-Reload neu), oder `blume sync --force`, um zuerst die Snapshots zu verwerfen. Lokale Dateisystemquellen laden wie gewohnt per Hot-Reload neu. Um eine entfernte Quelle stattdessen auf Änderungen abzufragen, setze bei ihr die gemeinsame Option `pollInterval` (in Sekunden) – der Dev-Server ruft in diesem Intervall erneut ab und lädt nur dann neu, wenn sich der Inhalt tatsächlich geändert hat. Lass die Option ungesetzt, um die API während der Arbeit nicht zu belasten.
 
 ## GitHub Releases
 
@@ -139,7 +139,7 @@ export default defineConfig({
 });
 ```
 
-Jedes Release wird automatisch auf die Changelog-Felder abgebildet: Sein Name (oder Tag) wird zum Titel, sein Veröffentlichungsdatum bestimmt die Reihenfolge in der Timeline, der Tag wird zu `changelog.version`, und Prereleases werden mit `Prerelease` gekennzeichnet (alle anderen mit `Release`). Die Notes werden als Inhalt des Eintrags gerendert. Gib der Quelle ein `prefix`, damit ihre Release-Seiten unter einer Route wie `/changelog/v1-2-0` liegen.
+Jedes Release wird automatisch auf die Changelog-Felder abgebildet: Sein Name (oder Tag) wird zum Titel, sein Veröffentlichungsdatum bestimmt die Reihenfolge in der Timeline, der Tag wird zu `changelog.version`, und Prereleases werden mit `Prerelease` gekennzeichnet (alle anderen mit `Release`). Die Notes werden als Inhalt des Eintrags gerendert, mit zwei Änderungen an ihren Links: Ein Link, der keine Web-, Mail-, Telefon- oder relative Adresse ist (etwa eine `javascript:`-URL), behält nur seinen Linktext, und ein Link zurück auf deine eigene [`deployment.site`](/docs/deployment) wird in seinen wurzelrelativen Pfad umgeschrieben, sodass er Preview-Deployments und deiner Deployment-Basis folgt. Gib der Quelle ein `prefix`, damit ihre Release-Seiten unter einer Route wie `/changelog/v1-2-0` liegen.
 
 Ein privates Repository authentifiziert sich über die Umgebungsvariable `GITHUB_TOKEN` – dasselbe Token, das auch die anderen GitHub-Funktionen verwenden, und es wird niemals in deine Konfiguration eingebettet; der Adapter deklariert die Variable, sodass ein Build ohne sie warnt. Wie jede entfernte Quelle wird sie unter `.blume/cache/<source>/` zwischengespeichert und offline ausgeliefert, falls die API nicht erreichbar ist. Da ein Changelog ergänzend ist, führt ein fehlgeschlagener Abruf ohne Cache (etwa ein CI-Build ohne Token) zu einem leeren Changelog mit einer Warnung, statt den Build fehlschlagen zu lassen – setze `GITHUB_TOKEN` in deinen CI- und Deploy-Umgebungen, um es zu befüllen.
 
@@ -172,7 +172,7 @@ Ein Lesetoken für ein privates Dataset stammt aus der Umgebungsvariable `SANITY
 
 ## Notion
 
-Der eingebaute Adapter `notion()` verwandelt eine Notion-Datenbank in eine Sammlung: Jede Zeile wird zu einer Seite, ihre Eigenschaften werden zu Frontmatter und ihr Blockbaum wird zu MDX. Callouts, Toggles, Spalten und Codeblöcke werden auf die passenden Blume-Komponenten abgebildet, und der Text, den du in Notion tippst, wird genau so gerendert, wie du ihn geschrieben hast: Ein `{`, `<` oder Markdown-Zeichen auf einer Seite wird maskiert, statt als MDX, JSX oder Formatierung gelesen zu werden. Videoblöcke werden zu einer `<YouTube>`-Einbettung, wenn sie einen YouTube-Link enthalten, und ansonsten zu einem `<video>`-Player – in beiden Fällen mit der Beschriftung des Blocks als `<Frame>`-Beschriftung; ein Link auf eine Videoseite statt auf eine Mediendatei (etwa eine Vimeo- oder Loom-URL) wird als Warnung gemeldet, statt eingebettet zu werden. Der Adapter deklariert `@notionhq/client` (v5 oder neuer) als Laufzeitabhängigkeit – eine optionale Peer-Abhängigkeit; Blume liest die Datenbank über ihre erste Datenquelle.
+Der eingebaute Adapter `notion()` verwandelt eine Notion-Datenbank in eine Sammlung: Jede Zeile wird zu einer Seite, ihre Eigenschaften werden zu Frontmatter und ihr Blockbaum wird zu MDX. Callouts, Toggles, Spalten und Codeblöcke werden auf die passenden Blume-Komponenten abgebildet, und der Text, den du in Notion tippst, wird genau so gerendert, wie du ihn geschrieben hast: Ein `{`, `<` oder Markdown-Zeichen auf einer Seite wird maskiert, statt als MDX, JSX oder Formatierung gelesen zu werden. Videoblöcke werden zu einer `<YouTube>`-Einbettung, wenn sie einen YouTube-Link enthalten, und ansonsten zu einem `<video>`-Player – in beiden Fällen mit der Beschriftung des Blocks als `<Frame>`-Beschriftung. Ein Link auf eine Videoseite statt auf eine Mediendatei (etwa eine Vimeo- oder Loom-URL) wird als Build-Warnung gemeldet, und sein `<video>`-Player zeigt weiterhin auf die Seite, die er nicht abspielen kann – verlinke dieses Video stattdessen im Text. Der Adapter deklariert `@notionhq/client` (v5 oder neuer) als Laufzeitabhängigkeit – eine optionale Peer-Abhängigkeit; Blume liest die Datenbank über ihre erste Datenquelle.
 
 ```ts blume.config.ts
 import { defineConfig } from "blume";
@@ -185,20 +185,24 @@ export default defineConfig({
       notion({
         prefix: "handbook",
         database: "8f2c1e0a4b7d4f3c9e6a5d2b1c0f9e8d", // the id in the database URL
-        // Property names default to the title-typed prop / Description / Slug / Order
-        // Set publishedValue to treat Status as a publish gate (opt-in)
-        publishedValue: "Published",
+        // Property names default to the title-typed prop / Description / Slug / Order / Status
+        // Pages whose Status isn't publishedValue (default "Published") import as drafts
+        publishedValue: "Done",
       }),
     ],
   },
 });
 ```
 
-Das Integrationstoken stammt aus der Umgebungsvariable `NOTION_TOKEN` (teile die Datenbank mit deiner Integration); der Adapter deklariert die Variable, sodass ein Build ohne sie warnt. Standardmäßig wird jede Seite importiert; setze `publishedValue`, um die Eigenschaft `Status` zu einer Veröffentlichungssperre zu machen – jeder andere Wert wird dann auf `draft: true` abgebildet, was Produktions-Builds verwerfen. **Notion-Bild- und Video-URLs sind signiert und laufen ab**, daher lädt der Adapter sie zur Build-Zeit in die Assets der Website herunter und schreibt die Verweise um – so verdirbt ein CMS-Asset niemals einen statischen Build. API-Aufrufe werden über einen kleinen Request-Pool getaktet (3 gleichzeitig, passend zum Rate-Limit pro Integration bei Notion), sodass sich Datenbanken mit Hunderten von Seiten importieren lassen, ohne `429`-Antworten auszulösen; setze `concurrency` an der Quelle, um das anzupassen.
+Das Integrationstoken stammt aus der Umgebungsvariable `NOTION_TOKEN` (teile die Datenbank mit deiner Integration); der Adapter deklariert die Variable, sodass ein Build ohne sie warnt.
+
+Die Eigenschaft `Status` ist standardmäßig eine Veröffentlichungssperre. Eine Seite, deren Status (eine Status- oder Auswahl-Eigenschaft) einen anderen Wert als `publishedValue` enthält – standardmäßig `Published` –, wird mit `draft: true` importiert, und Produktions-Builds verwerfen Entwürfe. Eine Seite ohne Status-Wert wird veröffentlicht, und eine Datenbank ohne diese Eigenschaft veröffentlicht jede Seite. Notions Standard-Statusoptionen sind Not started, In progress und Done, sodass eine Datenbank, die sie verwendet, keinen Wert `Published` hat und nichts veröffentlicht, bis du `publishedValue: "Done"` setzt (oder welche Option bei dir auch immer für veröffentlicht steht). `properties.status` benennt eine anders benannte Eigenschaft; um jede Seite unabhängig von ihrem Status zu importieren, richte es auf eine Eigenschaft, die die Datenbank nicht hat.
+
+**Notion-Bild- und Video-URLs sind signiert und laufen ab**, daher lädt der Adapter sie zur Build-Zeit in die Assets der Website herunter und schreibt die Verweise um – so verdirbt ein CMS-Asset niemals einen statischen Build. Gespeichert wird nur eine Datei, die der Server als Bild oder Video meldet (oder, wenn die Antwort das nicht angibt, eine, deren URL eine Bild- oder Video-Dateiendung nennt); alles andere behält seine ursprüngliche URL mit einer Build-Warnung, sodass vom Origin deiner Website niemals etwas anderes als Medien ausgeliefert wird. API-Aufrufe werden über einen kleinen Request-Pool getaktet (3 gleichzeitig, passend zum Rate-Limit pro Integration bei Notion), sodass sich Datenbanken mit Hunderten von Seiten importieren lassen, ohne `429`-Antworten auszulösen; setze `concurrency` an der Quelle, um das anzupassen.
 
 ## Contentful
 
-Der eingebaute Adapter `contentful()` liest die Einträge eines Inhaltstyps über die Content Delivery API und überführt den Rich-Text-Inhalt jedes Eintrags nach Markdown: Überschriften, Auszeichnungen, Links, Listen, Zitate, Tabellen und eingebettete Assets werden auf ihre Markdown-Entsprechungen abgebildet, und ein Inhalt aus einem Markdown-Langtextfeld wird unverändert durchgereicht. Es muss nichts installiert werden – der Adapter spricht direkt mit der REST-API.
+Der eingebaute Adapter `contentful()` liest die Einträge eines Inhaltstyps über die Content Delivery API und überführt den Rich-Text-Inhalt jedes Eintrags nach Markdown: Überschriften, Auszeichnungen, Links, Listen, Zitate, Tabellen und eingebettete Assets werden auf ihre Markdown-Entsprechungen abgebildet, und ein Inhalt aus einem Markdown-Langtextfeld wird unverändert durchgereicht, außer dass ein Link, der keine Web-, Mail-, Telefon- oder relative Adresse ist (etwa eine `javascript:`-URL), nur seinen Linktext behält – so wie im Rich Text. Es muss nichts installiert werden – der Adapter spricht direkt mit der REST-API.
 
 ```ts blume.config.ts
 import { defineConfig } from "blume";
@@ -228,7 +232,7 @@ Das Token für die Delivery API stammt aus der Umgebungsvariable `CONTENTFUL_ACC
 
 ## Payload
 
-Der eingebaute Adapter `payload()` liest eine Collection über die Payload-REST-API (`/api/<collection>`) und überführt den Lexical-Inhalt jedes Dokuments nach Markdown: Absätze, Überschriften, Aufzählungs-, nummerierte und Checklisten, Zitate, Links, Uploads und horizontale Linien. Ein Inhalt aus einem Textfeld wird als Markdown durchgereicht. Es muss nichts installiert werden.
+Der eingebaute Adapter `payload()` liest eine Collection über die Payload-REST-API (`/api/<collection>`) und überführt den Lexical-Inhalt jedes Dokuments nach Markdown: Absätze, Überschriften, Aufzählungs-, nummerierte und Checklisten, Zitate, Links, Uploads und horizontale Linien. Ein Inhalt aus einem Textfeld wird als Markdown durchgereicht, außer dass ein Link, der keine Web-, Mail-, Telefon- oder relative Adresse ist, nur seinen Linktext behält. Es muss nichts installiert werden.
 
 ```ts blume.config.ts
 import { defineConfig } from "blume";
@@ -256,7 +260,7 @@ Der API-Schlüssel stammt aus der Umgebungsvariable `PAYLOAD_API_KEY` und wird a
 
 ## Strapi
 
-Der eingebaute Adapter `strapi()` liest einen Inhaltstyp über die Strapi-REST-API (`/api/<pluralApiId>`) und überführt den Blocks-Inhalt jedes Eintrags nach Markdown: Absätze, Überschriften, Listen, Zitate, Codeblöcke, Bilder und Links. Ein Markdown-Rich-Text-Feld wird unverändert durchgereicht. Antworten von Strapi 5 werden so gelesen, wie sie sind, und die `attributes`-Hülle von Strapi 4 wird abgeflacht, sodass dieselben Feldpfade gelten. Es muss nichts installiert werden.
+Der eingebaute Adapter `strapi()` liest einen Inhaltstyp über die Strapi-REST-API (`/api/<pluralApiId>`) und überführt den Blocks-Inhalt jedes Eintrags nach Markdown: Absätze, Überschriften, Listen, Zitate, Codeblöcke, Bilder und Links. Ein Markdown-Rich-Text-Feld wird unverändert durchgereicht, außer dass ein Link, der keine Web-, Mail-, Telefon- oder relative Adresse ist, nur seinen Linktext behält. Antworten von Strapi 5 werden so gelesen, wie sie sind, und die `attributes`-Hülle von Strapi 4 wird abgeflacht, sodass dieselben Feldpfade gelten. Es muss nichts installiert werden.
 
 ```ts blume.config.ts
 import { defineConfig } from "blume";
@@ -327,6 +331,8 @@ export default defineConfig({
   },
 });
 ```
+
+Eine Quelle, die mit einer von Blumes Engine-Factories gebaut wurde – wie `sanitySource` oben –, wird auf dem Kontext des laufenden Befehls neu aufgebaut, sodass sie unter `--preview` Entwürfe liest und ihren Snapshot in `.blume/cache` vorhält, so wie es der eingebaute Adapter tut. Eine eigene Quelle kann dasselbe erreichen, indem sie `withContext(ctx)` implementiert und sich selbst, neu aufgebaut auf diesem Kontext, zurückgibt.
 
 Eine Quelle normalisiert ihre native Form (Portable Text, Notion-Blöcke, entferntes HTML) zu Markdown-/MDX-Text, sodass dieselben Komponenten und Markdown-Funktionen gelten, ganz gleich, woher eine Seite stammt. Die eingebauten Adapter maskieren Rich Text beim Überführen, sodass das, was jemand im CMS getippt hat – ein `{`, ein `<b>`, ein Absatz, der mit `import` beginnt, oder `&copy;` –, genau so gerendert wird, wie es geschrieben wurde. Links behalten nur `http(s)`-, `mailto:`-, `tel:`- und relative Ziele; jedes andere Schema (`javascript:`, `data:`) wird als Linktext gerendert, und SVG-Bilder, die eine Quelle herunterlädt, werden in einer Sandbox ausgeliefert. Release Notes aus `githubReleases()` und Dateien aus `mdxRemote()` werden wie deine eigenen Inhalte behandelt: Ihr rohes HTML wird genau so gerendert, wie es geschrieben ist, richte sie daher nur auf Repositorys, denen du vertraust. Anders als die eingebauten Adapter trägt `custom()` eine Live-Instanz statt einfacher Daten, daher deklariert es keine eigene Laufzeitabhängigkeit und kein eigenes Secret – die Instanz verwaltet diese selbst.
 

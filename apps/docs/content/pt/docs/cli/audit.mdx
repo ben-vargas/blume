@@ -498,7 +498,7 @@ Correção: remova a URL do sitemap ou gere a página que ele indica.
 
 `BLUME_AUDIT_SITEMAP_INVALID` · erro · a partir do HTML gerado
 
-Correção: sitemaps devem ser XML válido no formato urlset do sitemaps.org.
+Correção: sitemaps devem ser XML válido no formato urlset ou sitemap index do sitemaps.org.
 
 #### Sitemap excede 50 MB ou 50.000 URLs [#sitemap-too-large]
 
@@ -574,7 +574,7 @@ Correção: gere o build de novo para que o llms.txt corresponda ao site. Uma en
 
 `BLUME_AUDIT_LLMS_TXT_PAGE_MISSING` · aviso · a partir do HTML gerado
 
-Correção: gere o build de novo para que o llms.txt corresponda ao site. Se a página foi excluída de propósito, marque-a com `seo.noindex` ou `sidebar.hidden`.
+Correção: gere o build de novo para que o llms.txt corresponda ao site. Se a página foi excluída de propósito, defina `ai.exclude: true` no front matter dela.
 
 #### Nenhum registro de descoberta de agentes DNS-AID [#dns-aid-missing]
 

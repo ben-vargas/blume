@@ -152,7 +152,9 @@ navigation: {
 }
 ```
 
-Uma [referência OpenAPI ou AsyncAPI](/docs/references/openapi) habilitada é montada na sua rota, mas não adiciona uma aba por conta própria — aponte uma aba para essa rota para exibi-la no cabeçalho (e, para o renderizador nativo, para delimitar a barra lateral de operações), com o rótulo que você quiser:
+O `icon` opcional de uma aba (um nome de [ícone integrado](/docs/content/components#icon), caminho/URL de imagem ou SVG inline) aparece ao lado do seu rótulo, no cabeçalho e na gaveta de navegação móvel.
+
+Uma referência [OpenAPI](/docs/references/openapi), [AsyncAPI](/docs/references/asyncapi) ou [GraphQL](/docs/references/graphql) habilitada é montada na sua rota, mas não adiciona uma aba por conta própria — aponte uma aba para essa rota para exibi-la no cabeçalho (e, para o renderizador nativo, para delimitar a barra lateral de operações), com o rótulo que você quiser:
 
 ```ts blume.config.ts
 navigation: {
@@ -176,6 +178,24 @@ navigation: {
 
 Abas que não definem `href` mantêm a resolução descrita acima.
 
+Dê `items` a uma aba para transformá-la em um dropdown. A aba deixa de ser um link por si só: ela abre um menu com os seus itens no cabeçalho e os expande no lugar na gaveta de navegação móvel. O seu `path` continua delimitando a barra lateral e marcando a aba como atual, e `href` não se aplica. Cada item recebe um `label` e um `path`, além de `icon`, `description` e `tag` opcionais, como um item de [seletor](#selectors):
+
+```ts blume.config.ts lineNumbers
+navigation: {
+  tabs: [
+    { label: "Guides", path: "/guides" },
+    {
+      label: "SDKs",
+      path: "/sdks",
+      items: [
+        { label: "JavaScript", path: "/sdks/javascript", description: "Node and the browser" },
+        { label: "Python", path: "/sdks/python", tag: "Beta" },
+      ],
+    },
+  ],
+}
+```
+
 Em um site com [i18n](/docs/content/i18n), o `label` de uma aba (e o de um item de dropdown) pode ser um mapa por idioma em vez de uma string — a entrada do idioma ativo prevalece, depois a do idioma padrão:
 
 ```ts blume.config.ts
@@ -186,6 +206,8 @@ navigation: {
   ],
 }
 ```
+
+Os rótulos de um [seletor](#selectors) não aceitam um mapa: o seu `label` e os rótulos de cada um dos seus itens são strings simples.
 
 As abas também **delimitam a barra lateral**: quando a rota atual está sob o `path` de uma aba, a barra lateral mostra apenas as páginas daquela seção — então `/adapters/*` lista os adaptadores e nada mais. A pasta no `path` de uma aba se torna a seção, então isso não requer nenhuma configuração além das próprias abas; estruture seu conteúdo em uma pasta por aba e aponte cada aba para ela.
 
@@ -249,6 +271,8 @@ navigation: {
 
 Cada item é uma rota de página (uma string), um grupo (`label` + `items`) ou um link (`label` + `href`). Grupos podem ser aninhados, substituir o [modo `display`](#display-modes) global e começar `collapsed`.
 
+O Blume emite um aviso sobre um item que não consegue renderizar como foi escrito: uma rota que não corresponde a nenhuma página (o item fica de fora), um `root` que não corresponde a nenhuma página (o link dele levaria a um 404) ou um item sem rota, `href`, `root` ou `items` (fica de fora).
+
 ## Ações do cabeçalho [#header-actions]
 
 `navigation.actions` coloca links simples no cabeçalho, à esquerda dos botões de ícone, e `navigation.cta` é o único botão preenchido:
@@ -295,7 +319,7 @@ Elas vêm de graça a partir da árvore da barra lateral — sem configuração:
 
 ## Nesta página [#on-this-page]
 
-Um sumário na coluna direita é gerado automaticamente a partir dos títulos `##` e `###` de cada página, para que páginas longas continuem fáceis de escanear. Em telas mais estreitas, onde a coluna direita fica oculta, ele se recolhe em um dropdown “Nesta página” acima do conteúdo.
+Um sumário na coluna direita é gerado automaticamente a partir dos títulos de cada página — `##` e `###` por padrão — para que páginas longas continuem fáceis de escanear. Defina [`toc`](/docs/configuration#table-of-contents) para mudar o intervalo de títulos ou desativar o sumário. Em telas mais estreitas, onde a coluna direita fica oculta, ele se recolhe em um dropdown “Nesta página” acima do conteúdo.
 
 ## Ações da página [#page-actions]
 
@@ -303,8 +327,9 @@ Abaixo do sumário, toda página exibe um conjunto de ações rápidas:
 
 - **Editar no GitHub** — leva direto ao arquivo-fonte. Aparece assim que você define [`github`](/docs/configuration) na sua configuração.
 - **Voltar ao topo** — retorna suavemente ao topo de páginas longas.
-- **Enviar feedback** — abre uma issue do GitHub pré-preenchida com uma reação e uma nota opcionais (também requer `github`).
 
-Outras entregam a página a ferramentas de IA — **Copiar como Markdown** e **Abrir no chat** — abordadas em [IA](/docs/discoverability/markdown#copy-as-markdown).
+Outras entregam a página a ferramentas de IA — **Copiar como Markdown** e **Abrir no chat** — abordadas em [Markdown para agentes](/docs/discoverability/markdown#copy-as-markdown).
+
+Já o feedback fica no rodapé da página: uma avaliação de sim/não "Esta página foi útil?" que envia um evento de analytics `feedback` e não precisa de `github` — veja [Feedback da página](/docs/configuration#page-feedback).
 
 Com [`export`](/docs/configuration/export) ativado, uma ação de **Exportar** também permite que os leitores baixem a página como PDF ou EPUB.

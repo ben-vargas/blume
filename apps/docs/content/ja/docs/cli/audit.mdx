@@ -498,7 +498,7 @@ blume audit --codex   # or --claude
 
 `BLUME_AUDIT_SITEMAP_INVALID` · error · ビルド済み HTML から
 
-修正：サイトマップは、sitemaps.org の urlset 形式に沿った有効な XML である必要があります。
+修正：サイトマップは、sitemaps.org の urlset 形式またはサイトマップインデックス形式に沿った有効な XML である必要があります。
 
 #### サイトマップが 50 MB または 50,000 URL を超えている [#sitemap-too-large]
 
@@ -574,7 +574,7 @@ blume audit --codex   # or --claude
 
 `BLUME_AUDIT_LLMS_TXT_PAGE_MISSING` · warning · ビルド済み HTML から
 
-修正：llms.txt がサイトの内容と一致するよう再ビルドします。意図的に除外しているページであれば、`seo.noindex` または `sidebar.hidden` を設定します。
+修正：llms.txt がサイトの内容と一致するよう再ビルドします。意図的に除外しているページであれば、フロントマターで `ai.exclude: true` を設定します。
 
 #### DNS-AID のエージェント検出用レコードがない [#dns-aid-missing]
 

@@ -44,7 +44,7 @@ seo:
 title: Pricing
 description: Plans and pricing for every team size.
 seo:
-  title: Pricing — Acme
+  title: Plans and pricing
   canonical: https://acme.com/pricing
   noindex: false
 ---
@@ -54,7 +54,8 @@ seo:
   type={{
     "seo.title": {
       type: "string",
-      description: "このページの <title> と og:title を上書きします。",
+      description:
+        "<title>、og:title、twitter:title のページタイトルを置き換えます。サイトタイトルは引き続き末尾に付加されます。たとえば Acme Docs というタイトルのサイトでは、上記の例は「Plans and pricing - Acme Docs」とレンダリングされます。",
     },
     "seo.description": {
       type: "string",

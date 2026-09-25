@@ -16,7 +16,7 @@ blume <command> [options]
 | `blume dev` | Den Dev-Server mit Hot Reload starten. |
 | `blume build` | Die statische (oder Server-)Site bauen. |
 | `blume preview` | Eine Vorschau des letzten Builds anzeigen. |
-| `blume add <item>` | Eine Quellkomponente aus der Registry installieren. |
+| `blume add [item]` | Eine Quellkomponente aus der Registry installieren (ohne Element werden die verfügbaren Elemente aufgelistet). |
 | `blume sync` | Remote-Content-Quellen neu abrufen und neu generieren. |
 | `blume eject` | Die Runtime in eine eigenständige Astro-App überführen. |
 | `blume check` | Die Site mit `astro check` typprüfen. |
@@ -48,11 +48,14 @@ blume <command> [options]
 - `blume build --isolated` – baut in eine temporäre `.blume-verify/`-Runtime (mit eigenem `dist/`) statt in `.blume/`, sodass ein laufender `blume dev`-Server und dein echtes `dist/` unberührt bleiben. Siehe [Überprüfen, während der Dev-Server läuft](#verifying-while-the-dev-server-runs).
 - `blume preview --host --port <n>` – bindet den Preview-Server.
 - `blume sync --force` – ruft Remote-Quellen neu ab und verwirft vorher den zwischengespeicherten Snapshot.
+- `blume sync --preview` – bezieht Entwürfe und unveröffentlichte CMS-Inhalte mit ein.
+- `blume sync --strict` – schlägt bei Diagnosen fehl.
 - `blume add <item> --force` – überschreibt bereits vorhandene Dateien.
 - `blume check --preview` – bezieht beim Prüfen Entwürfe und unveröffentlichte CMS-Inhalte mit ein.
 - `blume check --strict` – schlägt nicht nur bei Typfehlern, sondern auch bei Content-Diagnosen fehl.
 - `blume check --isolated` – führt die Typprüfung in einer temporären `.blume-verify/`-Runtime aus, sodass ein laufender `blume dev`-Server unberührt bleibt. Siehe [Überprüfen, während der Dev-Server läuft](#verifying-while-the-dev-server-runs).
 - `blume eject --yes` – überspringt die Bestätigungsabfrage.
+- `blume eject --force` – ejectet erneut über eine bereits ejectete App und überschreibt dabei deren `astro.config.mjs` und `src/`.
 
 Die Befehle mit eigener Seite listen dort alle ihre Flags auf: [`blume doctor`](/docs/cli/doctor), [`blume validate`](/docs/cli/validate), [`blume audit`](/docs/cli/audit), [`blume eval`](/docs/cli/evals), [`blume translate`](/docs/cli/translate) und [`blume version`](/docs/cli/version). `blume validate`, `blume doctor`, `blume audit`, `blume eval` und `blume translate` akzeptieren `--json`, um maschinenlesbare Ergebnisse für CI- und Editor-Integrationen auf stdout auszugeben (die Struktur der Diagnosen findest du unter [Validate](/docs/cli/validate#json-output)); `build`, `check` und `dev` geben ihre Ergebnisse nur im Terminal aus. Jeder Befehl lehnt Flags ab, die er nicht kennt, schlägt den ähnlichsten Treffer vor und listet die Flags auf, die er akzeptiert. Ein Tippfehler wie `--isolatd` führt also zu einem Fehler, statt ignoriert zu werden.
 

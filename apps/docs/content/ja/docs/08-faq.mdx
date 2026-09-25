@@ -57,7 +57,7 @@ Blume は第三の道を選びます: **フレームワークがテンプレー�
 
 ## 見た目はどうカスタマイズしますか？ [#how-do-i-customize-the-look]
 
-まずは[テーマトークン](/docs/configuration/theming)から — アクセントカラー、フォント、角丸、そして Tailwind で表現できるその他すべてのための `theme.css` です。さらに進めるなら、[組み込みコンポーネントのオーバーライド](/docs/configuration/customization)や[カスタムページ](/docs/configuration/customization#custom-pages)の追加があります。Astro プロジェクトそのものが欲しくなったら、[`blume eject`](/docs/cli) が、引き続き `blume` パッケージを使うスタンドアロンのアプリを渡してくれます。
+まずは[テーマトークン](/docs/configuration/theming)から — アクセントカラー、フォント、角丸、そして Tailwind で表現できるその他すべてのための `theme.css` です。さらに進めるなら、[組み込みコンポーネントのオーバーライド](/docs/configuration/customization)や[カスタムページ](/docs/configuration/customization#custom-pages)の追加があります。Astro プロジェクトそのものが欲しくなったら、[`blume eject`](/docs/configuration/customization#eject) が、引き続き `blume` パッケージを使うスタンドアロンのアプリを渡してくれます。
 
 ## なぜ oxfmt / Ultracite がディレクティブを潰すのですか？ [#why-is-oxfmt--ultracite-collapsing-my-directives]
 
@@ -141,7 +141,7 @@ Regenerate the project with blume dev.
     		case "emphasis": {
    ```
 
-2. パッケージマネージャの `patchedDependencies` に登録します。Bun や pnpm では、`package.json` に追加します:
+2. パッケージマネージャの `patchedDependencies` に登録します。Bun では、`package.json` に追加します:
 
    ```json package.json
    {
@@ -149,6 +149,13 @@ Regenerate the project with blume dev.
        "oxfmt@0.67.0": "patches/oxfmt@0.67.0.patch"
      }
    }
+   ```
+
+   pnpm では、`pnpm-workspace.yaml` に追加します（pnpm 11 以降は `package.json` から設定を読み込まなくなりました）:
+
+   ```yaml pnpm-workspace.yaml
+   patchedDependencies:
+     oxfmt@0.67.0: patches/oxfmt@0.67.0.patch
    ```
 
 3. パッチが適用されるよう再インストールします:

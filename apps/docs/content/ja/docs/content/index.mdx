@@ -32,12 +32,14 @@ Blume は 2 種類のファイルをレンダリングします。
 
 ## 数値プレフィックスによる並び替え [#ordering-with-numeric-prefixes]
 
-ファイルやフォルダーの先頭に数字を付けると、サイドバーでの順序を制御できます。プレフィックスは URL から取り除かれるため、リンクを壊さずにページを並べ替えられます。
+ファイルやフォルダーの先頭に数字と `-`、`_`、`.` のいずれかを付けると、サイドバーでの順序を制御できます。プレフィックスは URL から取り除かれるため、リンクを壊さずにページを並べ替えられます。
 
 ```txt
 01-introduction.mdx  ->  /introduction
 02-installation.mdx  ->  /installation
 ```
+
+名前の先頭にあるバージョンや ISO 日付は名前の一部として扱われ、並び順にはなりません。`1.2.0.mdx` は `/1.2.0` に、`2024-01-05-launch.mdx` は `/2024-01-05-launch` にルーティングされます。プレフィックスが取り除かれるのはファイル名とフォルダー名だけです（Obsidian vault のノートはファイルとして扱われます）。フロントマターの `slug` や、CMS や GitHub Releases などの[コンテンツソース](/docs/content/sources)から取り込まれたページは、指定された名前をそのまま保持します。
 
 並び順には複数の階層があります。優先順位の完全なルールは[ナビゲーション](/docs/content/navigation)を参照してください。
 
@@ -109,7 +111,7 @@ description: Why we built a markdown-first docs framework.
 
 Blume は各見出しをスラッグ化してアンカーにするため、すべての項目がそのセクションへ直接リンクします。また、URL にスラッグを付け加えることで任意の見出しへディープリンクできます（`.../my-page#getting-started`）。
 
-目次には `##` と `###` の見出し（H2 と H3）が並びます。そのレベルの見出しがないページには、単に目次が付きません。
+デフォルトでは、目次には `##` と `###` の見出し（H2 と H3）が並びます。見出しの範囲を変更したり目次を無効にしたりするには、[`toc`](/docs/configuration#table-of-contents) を設定してください。その範囲の見出しがないページには、単に目次が付きません。
 
 ## 次はどこへ [#where-to-next]
 
@@ -124,9 +126,9 @@ Blume は各見出しをスラッグ化してアンカーにするため、す�
     任意の MDX ページで利用できる JSX コンポーネント。
   </Card>
   <Card title="ナビゲーション" href="/docs/content/navigation" icon="menu">
-    サイドバー、並び順、タブを形づくる。
+    サイドバー、並び順、タブを形づくります。
   </Card>
   <Card title="フォルダーメタ" href="/docs/content/meta" icon="panel-left">
-    `meta.ts` ファイルでサイドバーグループを設定する。
+    `meta.ts` ファイルでサイドバーグループを設定します。
   </Card>
 </CardGroup>

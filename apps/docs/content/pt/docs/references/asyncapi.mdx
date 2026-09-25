@@ -33,13 +33,7 @@ Os exemplos de código **mudam conforme o protocolo**, com base no binding da op
 
 ## Opções compartilhadas [#shared-options]
 
-Tudo o que está documentado para [OpenAPI](/docs/references/openapi) vale aqui também, inclusive o [`playground`](#try-it-for-events):
-
-- [`route`](/docs/references/openapi#route)
-- [`sources`](/docs/references/openapi#multiple-specs) com `label`/`route`
-- `expandSchemas`
-- as flags de [indexação por source](/docs/references/openapi#per-source-indexing), incluindo o `seoDescriptionSuffix` (a frase gerada cita o canal e a ação em vez de um endpoint)
-- a indexação na busca pelo resumo e pela tag da operação
+Tudo o que está documentado para [OpenAPI](/docs/references/openapi) vale aqui também, inclusive o [`playground`](#try-it-for-events): [`route`](/docs/references/openapi#route), [`sources`](/docs/references/openapi#multiple-specs) com `label`/`route`, `expandSchemas`, as flags de [indexação por source](/docs/references/openapi#per-source-indexing), incluindo o `seoDescriptionSuffix` (a frase gerada cita o canal e a ação em vez de um endpoint), e a indexação na busca pelo resumo e pela tag da operação.
 
 ## Incorporando o Scalar no lugar [#embedding-scalar-instead]
 
@@ -49,7 +43,7 @@ O `asyncapi()` sempre renderiza as páginas do próprio Blume. Para incorporar a
 
 As páginas de operação renderizadas nativamente também têm um painel **Try it**, que funciona como o [painel do OpenAPI](/docs/references/openapi#try-it-playground). Ele é renderizado no servidor já recolhido, e o JavaScript só carrega quando alguém abre o painel pela primeira vez.
 
-Em qualquer protocolo, o painel abre com um editor de payload. Ele vem preenchido com os `examples` da mensagem. Se a mensagem não declarar nenhum, ele usa um valor gerado a partir do schema do payload. O editor valida o conteúdo contra o schema do payload da mensagem enquanto você digita. Abaixo dele fica um input para cada parâmetro de canal. Também há um seletor com os `servers` do canal e um campo de texto livre para qualquer outra URL. Os exemplos de código acompanham o formulário, como acontece com curl, js e python em uma operação HTTP. Os valores de parâmetro que você digita preenchem o template do endereço do canal. Assim, um snippet `wscat`, `WebSocket`, `kcat` ou `mosquitto_pub` copiado bate com o que está no formulário.
+Em qualquer protocolo, o painel abre com um editor de payload. Ele vem preenchido com os `examples` da mensagem. Se a mensagem não declarar nenhum, ele usa um valor gerado a partir do schema do payload. O editor valida o conteúdo contra o schema do payload da mensagem enquanto você digita. Abaixo dele fica um input para cada parâmetro de canal. Também há um seletor com os `servers` do canal (com as variáveis de host e path nos valores padrão) e um campo de texto livre para qualquer outra URL. Os exemplos de código, que mudam conforme o protocolo, acompanham o formulário, como acontece com curl, js e python em uma operação HTTP. Os valores de parâmetro que você digita preenchem o template do endereço do canal. Assim, um snippet `wscat`, `WebSocket`, `kcat` ou `mosquitto_pub` copiado bate com o que está no formulário.
 
 A conexão ao vivo funciona só com WebSocket. Em um binding `ws` ou `wss`, o painel se conecta à URL resolvida do canal, mostra o estado da conexão e registra cada frame com um timestamp. O AsyncAPI 3 descreve cada ação do ponto de vista da API, e o painel segue essa lógica. Uma operação `receive` é algo que a API recebe de você, então ela ganha um botão **Send** que publica o payload montado. Uma operação `send` só transmite mensagens para você, então o painel apenas conecta e registra. Não há lógica de reconexão: depois que um socket fecha, ele continua fechado até você conectar de novo. Kafka, MQTT, AMQP e todos os outros protocolos ganham o compositor e os exemplos de CLI para copiar, e o painel avisa isso na página. O Blume não finge se conectar ao broker a partir de uma aba do navegador.
 

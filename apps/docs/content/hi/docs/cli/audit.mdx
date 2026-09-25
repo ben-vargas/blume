@@ -498,7 +498,7 @@ blume audit --codex   # or --claude
 
 `BLUME_AUDIT_SITEMAP_INVALID` · error · बिल्ट HTML से
 
-समाधान: साइटमैप sitemaps.org के urlset फ़ॉर्मेट में मान्य XML होना चाहिए।
+समाधान: साइटमैप sitemaps.org के urlset या साइटमैप इंडेक्स फ़ॉर्मेट में मान्य XML होना चाहिए।
 
 #### साइटमैप 50 MB या 50,000 URL से बड़ा है [#sitemap-too-large]
 
@@ -574,7 +574,7 @@ blume audit --codex   # or --claude
 
 `BLUME_AUDIT_LLMS_TXT_PAGE_MISSING` · warning · बिल्ट HTML से
 
-समाधान: दोबारा बिल्ड करें, ताकि llms.txt साइट से मेल खाए। अगर पेज को जानबूझकर बाहर रखा गया है, तो उस पर `seo.noindex` या `sidebar.hidden` सेट करें।
+समाधान: दोबारा बिल्ड करें, ताकि llms.txt साइट से मेल खाए। अगर पेज को जानबूझकर बाहर रखा गया है, तो उसके फ़्रंटमैटर में `ai.exclude: true` सेट करें।
 
 #### एजेंट द्वारा खोज के लिए कोई DNS-AID रिकॉर्ड नहीं है [#dns-aid-missing]
 

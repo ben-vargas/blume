@@ -55,7 +55,7 @@ agents: {
 サイトを探索するエージェントは、マニフェストを探すべきだとは知りません — そのため Blume は、IANA 登録済みのリレーションタイプを使って、ホームページの [RFC 8288](https://www.rfc-editor.org/rfc/rfc8288) `Link` レスポンスヘッダーでもマニフェストを告知します:
 
 ```http
-Link: </.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json",
+Link: </.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json; profile=\"https://www.rfc-editor.org/info/rfc9727\"",
   </.well-known/ai-catalog.json>; rel="ai-catalog"; type="application/ai-catalog+json",
   </openapi.json>; rel="service-desc"; type="application/json",
   </agent-readability.json>; rel="describedby"; type="application/json",
@@ -87,7 +87,7 @@ Link: </.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+j
 
 ## API カタログ [#api-catalog]
 
-サイトが API を公開している場合、Blume は `/.well-known/api-catalog` に [RFC 9727](https://www.rfc-editor.org/rfc/rfc9727) API カタログを生成します — これはエージェントがドメインだけから API を列挙できるようにする[リンクセット](https://www.rfc-editor.org/rfc/rfc9264)で、すべてのビルドサーフェスで登録済みの `application/linkset+json` メディアタイプとともに配信されます。設定は不要です: カタログは `blume.config.ts` にすでにある内容から導出されます。各 [OpenAPI または AsyncAPI リファレンス](/docs/references/openapi)は、レンダリングされたドキュメントのルートをアンカーとするエントリになり、`service-doc` がそのドキュメントを指し、仕様がフェッチ可能な URL にある場合は `service-desc` がその仕様を指します。サイト自身の [JSON API](/docs/discoverability/json-api) は `/openapi.json` によって記述されるエントリになり、[MCP サーバー](/docs/discoverability/mcp)はその検出ドキュメントをサービス記述とするエントリになります:
+サイトが API を公開している場合、Blume は `/.well-known/api-catalog` に [RFC 9727](https://www.rfc-editor.org/rfc/rfc9727) API カタログを生成します — これはエージェントがドメインだけから API を列挙できるようにする[リンクセット](https://www.rfc-editor.org/rfc/rfc9264)で、すべてのビルドサーフェスで登録済みの `application/linkset+json` メディアタイプと RFC の `profile="https://www.rfc-editor.org/info/rfc9727"` パラメータとともに配信されます。設定は不要です: カタログは `blume.config.ts` にすでにある内容から導出されます。各 [OpenAPI、AsyncAPI、または GraphQL リファレンス](/docs/references/openapi)は、レンダリングされたドキュメントのルートをアンカーとするエントリになり、`service-doc` がそのドキュメントを指し、仕様がフェッチ可能な URL にある場合は `service-desc` がその仕様を指します。サイト自身の [JSON API](/docs/discoverability/json-api) は `/openapi.json` によって記述されるエントリになり、[MCP サーバー](/docs/discoverability/mcp)はその検出ドキュメントをサービス記述とするエントリになります:
 
 ```json .well-known/api-catalog
 {
@@ -131,7 +131,7 @@ API リファレンスがなく、MCP サーバーもなく、[JSON API](/docs/d
 
 ## AI カタログ [#ai-catalog]
 
-API カタログは API を列挙します。**AI カタログ**は、エージェントがサイトから取り込みうるものすべて — MCP サーバー、公開された各スキル、JSON API、レンダリングされた各 API リファレンス、そして `llms.txt` — を、エージェントレジストリがインデックス化する形式で列挙します: `/.well-known/ai-catalog.json` にある [AI Catalog](https://github.com/Agent-Card/ai-catalog) ドキュメントであり、これは [Agentic Resource Discovery（ARD）](https://agenticresourcediscovery.org/)のコンシューマーが解決するマニフェストでもあります。各エントリは、ドメインをアンカーとする `urn:air:<host>:<namespace>:<name>` 識別子、表示名、成果物のメディアタイプ、その URL、そしていくつかの `representativeQueries` — そのリソースが答えられるサンプル質問で、レジストリがセマンティック検索のために埋め込むもの — を持ちます:
+API カタログは API を列挙します。**AI カタログ**は、エージェントがサイトから取り込みうるものすべて — MCP サーバー、公開された各スキル、JSON API、レンダリングされた各 API リファレンス、そして `llms.txt` — を、エージェントレジストリがインデックス化する形式で列挙します: `/.well-known/ai-catalog.json` にある [AI Catalog](https://github.com/Agent-Card/ai-catalog) ドキュメントであり、これは [Agentic Resource Discovery（ARD）](https://agenticresourcediscovery.org/)のコンシューマーが解決するマニフェストでもあります。各エントリは、ドメインをアンカーとする `urn:air:<host>:<namespace>:<name>` 識別子、表示名、1 行の説明、成果物のメディアタイプ、その URL、そしていくつかの `representativeQueries` — そのリソースが答えられるサンプル質問で、レジストリがセマンティック検索のために埋め込むもの — を持ちます。以下は、MCP サーバーを有効にし、スキルを 1 つ公開している「Acme」というタイトルのサイトのカタログです:
 
 ```json .well-known/ai-catalog.json
 {
@@ -145,6 +145,7 @@ API カタログは API を列挙します。**AI カタログ**は、エージ�
     {
       "identifier": "urn:air:docs.example.com:mcp:acme",
       "displayName": "Acme",
+      "description": "Model Context Protocol server over the Acme documentation: full-text search, page Markdown, the page index, and the navigation tree.",
       "type": "application/mcp-server-card+json",
       "url": "https://docs.example.com/.well-known/mcp/server-card.json",
       "capabilities": [
@@ -155,13 +156,14 @@ API カタログは API を列挙します。**AI カタログ**は、エージ�
       ],
       "representativeQueries": [
         "search the Acme documentation",
-        "get a Acme docs page as Markdown",
+        "get a page of the Acme docs as Markdown",
         "list every page in the Acme docs"
       ]
     },
     {
       "identifier": "urn:air:docs.example.com:skill:acme",
       "displayName": "acme",
+      "description": "Set up an Acme project and call its API.",
       "type": "application/agent-skills+md",
       "url": "https://docs.example.com/.well-known/agent-skills/acme/SKILL.md",
       "representativeQueries": [
@@ -172,12 +174,24 @@ API カタログは API を列挙します。**AI カタログ**は、エージ�
     {
       "identifier": "urn:air:docs.example.com:api:docs",
       "displayName": "Acme docs API",
+      "description": "REST API over the Acme documentation: the page index, each page as JSON or Markdown, and the navigation tree, described by this OpenAPI document.",
       "type": "application/vnd.oai.openapi+json",
       "url": "https://docs.example.com/openapi.json",
       "representativeQueries": [
-        "fetch a Acme docs page as JSON",
+        "fetch a page of the Acme docs as JSON",
         "list the pages in the Acme docs",
-        "get the Acme docs navigation tree"
+        "get the navigation tree of the Acme docs"
+      ]
+    },
+    {
+      "identifier": "urn:air:docs.example.com:docs:llms-txt",
+      "displayName": "Acme llms.txt",
+      "description": "llms.txt index of the Acme documentation: every page with a one-line summary, plus the agent-facing resources on this site.",
+      "type": "text/plain",
+      "url": "https://docs.example.com/llms.txt",
+      "representativeQueries": [
+        "what is Acme",
+        "overview of the Acme documentation"
       ]
     }
   ]
@@ -186,7 +200,7 @@ API カタログは API を列挙します。**AI カタログ**は、エージ�
 
 ARD の現行リビジョンはマニフェストを `/.well-known/ard.json` から読み取り、`ai-catalog.json` を先行パスと呼んでいます。そのため Blume は同じドキュメントを両方に書き出し、すべてのページの head で両方のリンクリレーション（`ai-catalog` と `ard`）のもとに告知し、`llms.txt` と `agent-readability.json` にも列挙します。このカタログと、その `.well-known` の隣人たち（API カタログ、MCP 検出ファイル）は、すべてのビルドサーフェスで `Access-Control-Allow-Origin: *` とともに配信されるため、別オリジンからそれらを読み取るレジストリがブロックされることはありません。
 
-エントリ識別子はあなたのドメインをアンカーとするため、カタログには [`deployment.site`](/docs/deployment) が必要です — 設定されていない場合は何も出力されません。デフォルトで有効で、`agents.catalog: false` で無効にできます。生成されるクエリは、サイトタイトルと各エントリ自身の説明から導出されます。あるエントリに独自のクエリを書くには、識別子の末尾（`<namespace>:<name>`）をキーにしてください:
+エントリ識別子はあなたのドメインをアンカーとするため、カタログには [`deployment.site`](/docs/deployment) が必要です — 設定されていない場合は何も出力されません。デフォルトで有効で、`agents.catalog: false` で無効にできます。生成されるクエリは、サイトタイトルと各エントリ自身の名前から導出されます。あるエントリに独自のクエリを書くには、識別子の末尾（`<namespace>:<name>`）をキーにしてください:
 
 ```ts blume.config.ts
 export default defineConfig({

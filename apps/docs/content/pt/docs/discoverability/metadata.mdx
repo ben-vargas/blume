@@ -44,7 +44,7 @@ Sobrescreva qualquer uma das outras tags por página com o frontmatter `seo`:
 title: Pricing
 description: Plans and pricing for every team size.
 seo:
-  title: Pricing — Acme
+  title: Plans and pricing
   canonical: https://acme.com/pricing
   noindex: false
 ---
@@ -54,7 +54,8 @@ seo:
   type={{
     "seo.title": {
       type: "string",
-      description: "Override the <title> and og:title for this page.",
+      description:
+        "Replace the page's title in <title>, og:title, and twitter:title. Your site title is still appended: on a site titled Acme Docs, the example above renders “Plans and pricing - Acme Docs”.",
     },
     "seo.description": {
       type: "string",

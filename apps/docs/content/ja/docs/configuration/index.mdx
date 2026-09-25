@@ -125,7 +125,7 @@ logo: {
 `text` はマークとは独立してワードマークを制御します:
 
 - **`text` を省略**すると、ブランドにはサイトの `title` が使われます（デフォルト）。
-- **`text: ""` を設定**するとマークのみを表示します。ロゴ画像にすでにワードマークが含まれている場合に便利です。
+- **`text: ""` を設定**するとマークのみを表示します。ロゴ画像にすでにワードマークが含まれている場合に便利です。その場合、スクリーンリーダーはブランドリンクを画像の `alt` で読み上げ、`alt` がなければサイトの `title` で読み上げます。
 - **`image` なしで `text` を設定**すると、テキストのみのロゴになります。
 
 ### ファビコン [#favicon]
@@ -272,7 +272,7 @@ export default defineConfig({
 
 ## GitHub
 
-`github` で Blume にリポジトリを指定します。これはヘッダーの [リポジトリリンク](/docs/content/navigation#repository-link) と、**Edit on GitHub** および **Give feedback** の [ページアクション](/docs/content/navigation#page-actions) を有効にします:
+`github` で Blume にリポジトリを指定します。これはヘッダーの [リポジトリリンク](/docs/content/navigation#repository-link) と、**Edit on GitHub** の [ページアクション](/docs/content/navigation#page-actions) を有効にします:
 
 ```ts blume.config.ts lineNumbers
 github: {
@@ -364,6 +364,8 @@ dateFormat: { year: "numeric", month: "2-digit", day: "2-digit" },
 | `timeZone` | IANA タイムゾーン。デフォルトは `UTC` なので、サイトをどこでビルドしても日付は同じに表示されます。 |
 | `calendar`、`numberingSystem` | 暦法（例: `"japanese"`）と記数法（例: `"arab"`）。 |
 
+`timeZone`、`calendar`、`numberingSystem` は形式を変えません。これらだけを設定した `dateFormat` では、長い形式のままになります。
+
 ## SEO とエージェント [#seo-and-agents]
 
 メタデータ、Open Graph 画像、RSS フィード、JSON-LD、サイトマップ、`robots.txt` は `seo` の下にまとまっています。`llms.txt`、生の Markdown、JSON API、MCP サーバー、ディスカバリーマニフェストは `agents` の下です。どちらも [発見可能性](/docs/discoverability) セクションでページごとに解説しており、そこでは検索エンジンと AI エージェントを、同じ機械可読レイヤーに対する 2 つのオーディエンスとして扱っています。読者向けのモデル機能 — アシスタントと Open in chat アクション — は `ai` の下にあります。
@@ -381,7 +383,7 @@ seo: {
 | オプション | デフォルト | 説明 |
 | --- | --- | --- |
 | `og.enabled` | 自動 | ページごとの Open Graph 画像 — サイト URL が設定されていると有効になります。 |
-| `rss.enabled` | `true` | ブログとチェンジログのコンテンツ用にフィードをビルドします。 |
+| `rss.enabled` | `true` | ブログとチェンジログのコンテンツ用にフィードをビルドします（deployment.site が必要）。 |
 | `rss.types` | `["blog", "changelog"]` | それぞれフィードを持つコンテンツタイプ。 |
 | `rss.limit` | `50` | 1 フィードあたりの最大アイテム数。 |
 | `sitemap` | `true` | sitemap.xml を生成します（deployment.site が必要）。 |

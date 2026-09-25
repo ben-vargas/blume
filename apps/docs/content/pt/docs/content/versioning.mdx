@@ -91,6 +91,7 @@ A superfície de agentes entende versões — algo que nenhum outro framework de
 - As ferramentas MCP `search_docs` e `list_pages` usam os docs atuais por padrão e aceitam `version`: um id arquivado (`"v1.0"`) ou `"all"`. O `get_navigation` retorna a árvore de um snapshot arquivado quando solicitado.
 - O `llms.txt` coloca as versões arquivadas depois dos docs atuais, rotuladas com o `label` ou o `id` da versão mais `(archived)` — `v1.0 (archived)` para o `{ id: "v1.0" }` acima — para que um agente lendo o índice saiba quais docs estão congelados.
 - O `llms-full.txt` continua somente com a versão atual — o dump plano nunca intercala cópias congeladas da mesma página.
+- O [assistente](/docs/configuration/assistant) baseia as respostas na versão que o leitor está vendo — os docs atuais, a menos que esteja numa página arquivada — para que cópias congeladas de uma página nunca tomem o lugar da que está sendo lida.
 - Espelhos em Markdown puro (URLs `.md`) existem para as páginas de todas as versões, como para qualquer rota.
 
 ## Com i18n [#with-i18n]

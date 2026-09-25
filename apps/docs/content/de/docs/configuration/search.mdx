@@ -148,7 +148,7 @@ Pagefind läuft nur während `blume build`, daher ist die Suche mit diesem Adapt
 
 ### Algolia
 
-Der Browser fragt [Algolia](https://www.algolia.com) direkt mit deinem reinen Suchschlüssel ab. Jedes `blume build` ersetzt den Index mithilfe des Admin-Schlüssels aus `ALGOLIA_ADMIN_API_KEY` (der Build warnt und überspringt den Upload, wenn er nicht gesetzt ist). Bei jeder Synchronisierung wird der gesamte Index ersetzt, sodass gelöschte oder umbenannte Seiten nicht als veraltete Ergebnisse zurückbleiben.
+Der Browser fragt [Algolia](https://www.algolia.com) direkt mit deinem reinen Suchschlüssel ab. Jedes `blume build` ersetzt den Index mithilfe des Admin-Schlüssels aus `ALGOLIA_ADMIN_API_KEY` (der Build warnt und überspringt den Upload, wenn er nicht gesetzt ist). Bei jeder Synchronisierung wird der gesamte Index ersetzt, sodass gelöschte oder umbenannte Seiten nicht als veraltete Ergebnisse zurückbleiben. Die Synchronisierung fügt außerdem `filterOnly(locale)` und `filterOnly(version)` zu den `attributesForFaceting` des Index hinzu und behält dabei alle Facetten bei, die du selbst deklariert hast, denn der Dialog grenzt Ergebnisse nach Sprache und Doku-Version ein, und in Algolia findet ein Filter auf ein Attribut, das nicht für Faceting deklariert ist, keine Treffer.
 
 ```ts blume.config.ts lineNumbers
 import { algolia } from "blume/search";

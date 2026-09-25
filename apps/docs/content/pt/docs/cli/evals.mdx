@@ -75,7 +75,7 @@ Escreva as perguntas que seus usuários realmente fazem — as que aparecem em t
 
 ## Fazendo o CI falhar [#failing-ci]
 
-O código de saída é o contrato: qualquer pergunta que falhe faz o comando sair com código diferente de zero. Quando a própria execução do agente falha — o leitor ou o juiz dá erro em vez de avaliar uma resposta —, o relatório mostra `run failed:` e aponta para a pergunta no seu arquivo de evals em vez de indicar uma página da documentação para corrigir, já que a documentação nem chegou a ser avaliada. `--threshold` afrouxa a exigência para uma fração mínima de aprovação quando você está tirando o atraso de um backlog:
+O código de saída é o contrato: qualquer pergunta que falhe faz o comando sair com código diferente de zero, exceto uma com `severity: warning` — a falha dela é reportada como aviso e nunca conta contra a exigência nem contra o `--threshold`. Quando a própria execução do agente falha — o leitor ou o juiz dá erro em vez de avaliar uma resposta —, o relatório mostra `run failed:` e aponta para a pergunta no seu arquivo de evals em vez de indicar uma página da documentação para corrigir, já que a documentação nem chegou a ser avaliada. `--threshold` afrouxa a exigência para uma fração mínima de aprovação quando você está tirando o atraso de um backlog:
 
 ```bash
 blume eval                    # every question must pass
@@ -101,7 +101,7 @@ Isso grava o relatório JSON completo em um arquivo e abre o agente no modo inte
 
 - `--agent codex|claude` — qual CLI de agente roda o leitor e o juiz. O padrão é `codex`.
 - `--file <path>` — o arquivo de evals. O padrão é `evals.yaml`.
-- `--threshold <0..1>` — fração mínima de aprovação para que a execução não saia com código diferente de zero. O padrão é `1`.
+- `--threshold <0..1>` — fração mínima de aprovação para que a execução não saia com código diferente de zero; as falhas de perguntas com `severity: warning` contam como aprovadas. O padrão é `1`.
 - `--timeout <seconds>` — limite de tempo do leitor por pergunta. O padrão é `180`.
 - `--json` — emite o relatório como JSON no stdout.
 - `--fix` — depois de uma execução com falhas, entrega o relatório ao agente para corrigir a documentação de forma interativa.

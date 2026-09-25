@@ -16,7 +16,7 @@ blume <command> [options]
 | `blume dev` | Inicia o servidor de desenvolvimento com hot reload. |
 | `blume build` | Gera o site estático (ou de servidor). |
 | `blume preview` | Pré-visualiza o último build. |
-| `blume add <item>` | Instala um componente de código-fonte a partir do registry. |
+| `blume add [item]` | Instala um componente de código-fonte a partir do registry (sem item, lista o que está disponível). |
 | `blume sync` | Busca de novo as fontes de conteúdo remotas e regenera o site. |
 | `blume eject` | Transforma o runtime em um app Astro independente. |
 | `blume check` | Verifica os tipos do site com `astro check`. |
@@ -48,11 +48,14 @@ blume <command> [options]
 - `blume build --isolated` — gera o build em um runtime descartável `.blume-verify/` (com o próprio `dist/`) em vez de `.blume/`, para que um servidor `blume dev` em execução e o seu `dist/` real fiquem intactos. Veja [Verificando enquanto o servidor de desenvolvimento roda](#verifying-while-the-dev-server-runs).
 - `blume preview --host --port <n>` — define o endereço do servidor de preview.
 - `blume sync --force` — busca de novo as fontes remotas, descartando antes o snapshot em cache.
+- `blume sync --preview` — inclui rascunhos e conteúdo de CMS não publicado.
+- `blume sync --strict` — falha em diagnósticos.
 - `blume add <item> --force` — sobrescreve arquivos que já existem.
 - `blume check --preview` — inclui rascunhos e conteúdo de CMS não publicado na verificação.
 - `blume check --strict` — falha em diagnósticos de conteúdo, além de erros de tipo.
 - `blume check --isolated` — verifica os tipos em um runtime descartável `.blume-verify/`, para que um servidor `blume dev` em execução fique intacto. Veja [Verificando enquanto o servidor de desenvolvimento roda](#verifying-while-the-dev-server-runs).
 - `blume eject --yes` — pula o pedido de confirmação.
+- `blume eject --force` — faz o eject de novo sobre um app que já passou por eject, sobrescrevendo o `astro.config.mjs` e o `src/` dele.
 
 Os comandos que têm página própria listam todas as flags lá: [`blume doctor`](/docs/cli/doctor), [`blume validate`](/docs/cli/validate), [`blume audit`](/docs/cli/audit), [`blume eval`](/docs/cli/evals), [`blume translate`](/docs/cli/translate) e [`blume version`](/docs/cli/version). `blume validate`, `blume doctor`, `blume audit`, `blume eval` e `blume translate` aceitam `--json` para imprimir resultados legíveis por máquina no stdout, para CI e integrações com editores (veja [Validate](/docs/cli/validate#json-output) para o formato dos diagnósticos); `build`, `check` e `dev` reportam só no terminal. Todo comando rejeita uma flag que não aceita, sugerindo a opção mais parecida e listando as flags aceitas, então um erro de digitação como `--isolatd` falha em vez de ser ignorado.
 

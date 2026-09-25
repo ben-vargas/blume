@@ -32,12 +32,14 @@ Pastas aninhadas se tornam rotas aninhadas, e um `index.mdx` dentro de uma pasta
 
 ## Ordenação com prefixos numéricos [#ordering-with-numeric-prefixes]
 
-Prefixe um arquivo ou pasta com um número para controlar a ordem dele na barra lateral. O prefixo é removido da URL, então você pode reordenar páginas sem quebrar links:
+Prefixe um arquivo ou pasta com um número e um `-`, `_` ou `.` para controlar a ordem dele na barra lateral. O prefixo é removido da URL, então você pode reordenar páginas sem quebrar links:
 
 ```txt
 01-introduction.mdx  ->  /introduction
 02-installation.mdx  ->  /installation
 ```
+
+Uma versão ou uma data ISO no início de um nome faz parte do nome, e não indica uma ordem: `1.2.0.mdx` vira a rota `/1.2.0`, e `2024-01-05-launch.mdx` vira `/2024-01-05-launch`. Só nomes de arquivos e pastas perdem o prefixo (as notas de um vault do Obsidian contam como arquivos). Um `slug` definido no frontmatter e uma página vinda de uma [fonte de conteúdo](/docs/content/sources), como um CMS ou o GitHub Releases, mantêm o nome que receberam.
 
 A ordenação tem várias camadas — veja [Navegação](/docs/content/navigation) para as regras completas de precedência.
 
@@ -109,7 +111,7 @@ Toda página ganha um sumário automático, construído a partir dos seus títul
 
 O Blume converte cada título em um slug para criar uma âncora, então cada entrada leva direto para a sua seção — e você pode criar links diretos para qualquer título acrescentando o slug dele à URL (`.../my-page#getting-started`).
 
-O sumário lista seus títulos `##` e `###` (H2 e H3). Uma página sem títulos nesse nível simplesmente não tem sumário.
+Por padrão, o sumário lista seus títulos `##` e `###` (H2 e H3); defina [`toc`](/docs/configuration#table-of-contents) para mudar o intervalo de títulos ou desativar o sumário. Uma página sem títulos nesse intervalo simplesmente não tem sumário.
 
 ## Para onde ir agora [#where-to-next]
 

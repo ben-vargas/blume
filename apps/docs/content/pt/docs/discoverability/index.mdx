@@ -23,7 +23,7 @@ agents: {
 },
 ```
 
-Boa parte disso fica mais afiada com uma URL absoluta do site — defina [`deployment.site`](/docs/deployment) para que feeds, imagens OG, canônicas, o sitemap, JSON-LD e todo manifesto de agente possam emitir URLs completas. Algumas superfícies (imagens Open Graph, o sitemap) ficam desligadas até que isso seja definido.
+Boa parte disso fica mais afiada com uma URL absoluta do site — defina [`deployment.site`](/docs/deployment) para que feeds, imagens OG, canônicas, o sitemap, JSON-LD e todo manifesto de agente possam emitir URLs completas. Algumas superfícies — imagens Open Graph, o sitemap, feeds RSS e o catálogo de IA — ficam desligadas até que isso seja definido.
 
 ## O que o build emite [#what-the-build-emits]
 
@@ -32,7 +32,7 @@ Boa parte disso fica mais afiada com uma URL absoluta do site — defina [`deplo
 | Metadados em `<head>`, canônicas, cartões do X | todas as páginas | ligado | [Metadados](/docs/discoverability/metadata) |
 | Imagens de compartilhamento social | `/og/<route>.png` | ligado com uma URL de site | [Imagens Open Graph](/docs/discoverability/open-graph) |
 | JSON-LD do schema.org | todas as páginas | ligado | [Dados estruturados](/docs/discoverability/structured-data) |
-| Feeds RSS | `/<type>/rss.xml` | ligado | [Feeds RSS](/docs/discoverability/rss) |
+| Feeds RSS | `/<type>/rss.xml` | ligado com uma URL de site | [Feeds RSS](/docs/discoverability/rss) |
 | `sitemap.xml`, `robots.txt`, sinais de conteúdo | raiz do site | ligado | [Sitemap e robots](/docs/discoverability/sitemap-and-robots) |
 | `llms.txt`, `llms-full.txt` | raiz do site | ligado | [llms.txt](/docs/discoverability/llms-txt) |
 | Espelhos em Markdown bruto, negociação de conteúdo, Copiar como Markdown, Abrir no chat | `/<route>.md` | ligado | [Markdown para agentes](/docs/discoverability/markdown) |

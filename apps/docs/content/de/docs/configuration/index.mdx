@@ -126,7 +126,7 @@ logo: {
 `text` steuert die Wortmarke unabhängig von der Bildmarke:
 
 - **Lässt du `text` weg**, verwendet die Marke den `title` deiner Website (Standardverhalten).
-- **Setze `text: ""`**, um nur die Bildmarke anzuzeigen — praktisch, wenn das Logobild die Wortmarke bereits enthält.
+- **Setze `text: ""`**, um nur die Bildmarke anzuzeigen — praktisch, wenn das Logobild die Wortmarke bereits enthält. Screenreader lesen den Markenlink dann anhand des `alt`-Texts des Bildes vor — oder anhand des `title` deiner Website, wenn es keinen hat.
 - **Setze `text` ohne `image`** für ein reines Text-Logo.
 
 ### Favicon
@@ -273,7 +273,7 @@ Ein Schlüssel kann websiteweit oder pro Typ deklariert werden, nicht beides. Wi
 
 ## GitHub
 
-Verweise Blume mit `github` auf dein Repository. Das versorgt den [Repository-Link](/docs/content/navigation#repository-link) im Header sowie die [Seitenaktionen](/docs/content/navigation#page-actions) **Edit on GitHub** und **Give feedback**:
+Verweise Blume mit `github` auf dein Repository. Das versorgt den [Repository-Link](/docs/content/navigation#repository-link) im Header sowie die [Seitenaktion](/docs/content/navigation#page-actions) **Edit on GitHub**:
 
 ```ts blume.config.ts lineNumbers
 github: {
@@ -365,6 +365,8 @@ dateFormat: { year: "numeric", month: "2-digit", day: "2-digit" },
 | `timeZone` | IANA-Zeitzone. Standard ist `UTC`, sodass ein Datum unabhängig vom Build-Ort gleich gelesen wird. |
 | `calendar`, `numberingSystem` | Kalendersystem (z. B. `"japanese"`) und Nummerierungssystem (z. B. `"arab"`). |
 
+`timeZone`, `calendar` und `numberingSystem` ändern die Form nicht: Ein `dateFormat`, das nur diese setzt, behält die lange Form bei.
+
 ## SEO und Agents [#seo-and-agents]
 
 Metadaten, Open-Graph-Bilder, RSS-Feeds, JSON-LD, die Sitemap und `robots.txt` liegen unter `seo`; `llms.txt`, rohes Markdown, die JSON-API, der MCP-Server und die Discovery-Manifeste liegen unter `agents`. Beide werden Seite für Seite im Abschnitt [Auffindbarkeit](/docs/discoverability) behandelt, der Suchmaschinen und KI-Agents als zwei Zielgruppen derselben maschinenlesbaren Schicht betrachtet. Die modellbasierten Funktionen für Lesende — der Assistent und die Aktion „Open in chat“ — liegen unter `ai`.
@@ -382,7 +384,7 @@ seo: {
 | Option | Standard | Beschreibung |
 | --- | --- | --- |
 | `og.enabled` | automatisch | Open-Graph-Bilder pro Seite — aktiv, sobald eine Website-URL gesetzt ist. |
-| `rss.enabled` | `true` | Feeds für Blog- und Changelog-Inhalte erzeugen. |
+| `rss.enabled` | `true` | Feeds für Blog- und Changelog-Inhalte erzeugen (benötigt deployment.site). |
 | `rss.types` | `["blog", "changelog"]` | Inhaltstypen, die jeweils einen Feed erhalten. |
 | `rss.limit` | `50` | Maximale Anzahl an Einträgen pro Feed. |
 | `sitemap` | `true` | sitemap.xml erzeugen (benötigt deployment.site). |

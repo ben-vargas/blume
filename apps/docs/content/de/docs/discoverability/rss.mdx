@@ -6,6 +6,8 @@ description: >-
 
 Blume erstellt für jeden Inhaltstyp in `rss.types` — standardmäßig `blog` und `changelog` —, der Seiten hat, einen RSS-Feed, der unter `/<type>/rss.xml` bereitgestellt wird. Siehe [Feeds](/docs/content#feeds) zum Verfassen von Blog- und Changelog-Einträgen mit Datumsangaben.
 
+Die Links eines Feeds müssen absolut sein, daher brauchen Feeds eine Site-URL: Setze [`deployment.site`](/docs/deployment#set-your-site-url) oder deploye auf einen Host, von dem Blume sie automatisch erkennt (Vercel, Netlify, Cloudflare). Ohne sie erzeugt ein Build überhaupt keine Feeds. Während `blume dev` springt die URL des lokalen Servers ein, sodass die Feeds dort in jedem Fall erscheinen.
+
 ```ts blume.config.ts lineNumbers
 seo: {
   rss: {
@@ -22,4 +24,4 @@ seo: {
 | `types` | `["blog", "changelog"]` | Inhaltstypen, die jeweils einen Feed erhalten. |
 | `limit` | `50` | Maximale Anzahl Einträge pro Feed, neueste zuerst. |
 
-Blume fügt `<link rel="alternate">`-Tags ein, damit Browser und Feedreader die Feeds automatisch finden, und listet sie im [Agent-Readability-Manifest](/docs/discoverability/agent-discovery#agent-readability) auf, damit auch Agents sie finden. Einträge verlinken absolut, wenn [`deployment.site`](/docs/deployment) gesetzt ist.
+Blume fügt `<link rel="alternate">`-Tags ein, damit Browser und Feedreader die Feeds automatisch finden, und listet sie im [Agent-Readability-Manifest](/docs/discoverability/agent-discovery#agent-readability) auf, damit auch Agents sie finden. Jeder Eintrag verlinkt auf die absolute URL seiner Seite auf dieser Site.

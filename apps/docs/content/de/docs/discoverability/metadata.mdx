@@ -44,7 +44,7 @@ seo:
 title: Pricing
 description: Plans and pricing for every team size.
 seo:
-  title: Pricing — Acme
+  title: Plans and pricing
   canonical: https://acme.com/pricing
   noindex: false
 ---
@@ -54,7 +54,8 @@ seo:
   type={{
     "seo.title": {
       type: "string",
-      description: "Überschreibt <title> und og:title für diese Seite.",
+      description:
+        "Ersetzt den Seitentitel in <title>, og:title und twitter:title. Dein Website-Titel wird weiterhin angehängt: Auf einer Website mit dem Titel Acme Docs rendert das Beispiel oben „Plans and pricing - Acme Docs“.",
     },
     "seo.description": {
       type: "string",

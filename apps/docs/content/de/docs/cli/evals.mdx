@@ -75,7 +75,7 @@ Schreib Fragen, die deine Nutzer wirklich stellen – die aus Support-Threads, G
 
 ## CI fehlschlagen lassen [#failing-ci]
 
-Der Exit-Code ist der Vertrag: Jede fehlgeschlagene Frage führt zu einem Exit-Code ungleich null. Wenn der Agent-Lauf selbst fehlschlägt – Reader oder Judge brechen mit einem Fehler ab, statt eine Antwort zu bewerten –, zeigt der Report `run failed:` an. Er verweist dann auf die Frage in deiner Evals-Datei, statt eine Doku-Seite zum Korrigieren zu nennen, weil die Doku gar nicht bewertet wurde. Wenn du gerade einen Rückstau abarbeitest, lockerst du mit `--threshold` die Hürde, sodass nur noch ein bestimmter Anteil der Fragen bestehen muss:
+Der Exit-Code ist der Vertrag: Jede fehlgeschlagene Frage führt zu einem Exit-Code ungleich null, außer bei Fragen mit `severity: warning` – deren Fehlschlag wird als Warnung gemeldet und zählt nie gegen die Hürde oder `--threshold`. Wenn der Agent-Lauf selbst fehlschlägt – Reader oder Judge brechen mit einem Fehler ab, statt eine Antwort zu bewerten –, zeigt der Report `run failed:` an. Er verweist dann auf die Frage in deiner Evals-Datei, statt eine Doku-Seite zum Korrigieren zu nennen, weil die Doku gar nicht bewertet wurde. Wenn du gerade einen Rückstau abarbeitest, lockerst du mit `--threshold` die Hürde, sodass nur noch ein bestimmter Anteil der Fragen bestehen muss:
 
 ```bash
 blume eval                    # every question must pass
@@ -101,7 +101,7 @@ Das schreibt den vollständigen JSON-Report in eine Datei und öffnet den Agente
 
 - `--agent codex|claude` – welche Agent-CLI den Reader und den Judge ausführt. Standardmäßig `codex`.
 - `--file <path>` – die Evals-Datei. Standardmäßig `evals.yaml`.
-- `--threshold <0..1>` – Mindestanteil bestandener Fragen. Liegt der Anteil darunter, endet der Lauf mit einem Exit-Code ungleich null. Standardmäßig `1`.
+- `--threshold <0..1>` – Mindestanteil bestandener Fragen. Liegt der Anteil darunter, endet der Lauf mit einem Exit-Code ungleich null; Fehlschläge bei Fragen mit `severity: warning` zählen dabei als bestanden. Standardmäßig `1`.
 - `--timeout <seconds>` – Zeitlimit des Readers pro Frage. Standardmäßig `180`.
 - `--json` – gibt den Report als JSON auf stdout aus.
 - `--fix` – übergibt nach einem fehlgeschlagenen Lauf den Report an den Agenten, der die Doku dann interaktiv korrigiert.

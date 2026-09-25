@@ -23,7 +23,8 @@ sidebar:
 
 - すべてのドキュメントページとカスタムページ（静的 HTML として）
 - ローカル検索インデックス（デフォルトは Orama、Pagefind はオプトイン）
-- サイト URL が判明している場合の [`sitemap.xml`](/docs/discoverability/sitemap-and-robots#sitemap) と [`robots.txt`](/docs/discoverability/sitemap-and-robots#robots)
+- サイト URL が判明している場合の [`sitemap.xml`](/docs/discoverability/sitemap-and-robots#sitemap)
+- [`robots.txt`](/docs/discoverability/sitemap-and-robots#robots)（サイト URL が判明している場合はサイトマップを指します）
 - AI ツール向けの `llms.txt` と `llms-full.txt`
 - リダイレクトページ
 - `seo.og.enabled` が有効な場合、事前レンダリングされた [Open Graph 画像](/docs/discoverability/open-graph)
@@ -32,7 +33,7 @@ sidebar:
 
 サイトマップ、canonical タグ、RSS、Open Graph 画像には絶対オリジンが必要です。**Vercel**、**Netlify**、**Cloudflare Pages** では、Blume がビルド時にプラットフォームの環境から自動検出します — 設定は不要です。
 
-検出された値を上書きする場合、またはそれを公開していないホスト（GitHub Pages、S3、カスタム CDN）で指定する場合は `site` を設定します。静的ビルドでは、プレーンな `deployment` オブジェクトに設定します:
+検出された値を上書きする場合、またはそれを公開していないホスト（GitHub Pages、S3、カスタム CDN）で指定する場合は、`site` に `http://` または `https://` で始まる絶対 URL を設定します。静的ビルドでは、プレーンな `deployment` オブジェクトに設定します:
 
 ```ts blume.config.ts lineNumbers
 deployment: {
@@ -40,7 +41,7 @@ deployment: {
 }
 ```
 
-自動検出の際、Blume はデプロイごとのプレビュー URL よりも安定した本番ドメインを優先するため、canonical オリジンはデプロイをまたいで変わりません。
+Vercel と Netlify では、自動検出の際に Blume はデプロイごとのプレビュー URL よりも安定した本番ドメインを優先するため、canonical オリジンはデプロイをまたいで変わりません。Cloudflare Pages が公開するのは現在のデプロイの URL（`CF_PAGES_URL`）のみで、これはデプロイのたびに変わるため、Cloudflare Pages では `site` を設定してください。
 
 `blume dev` の実行中、サイト URL が未設定の場合はローカル開発サーバー（例: `http://localhost:4321`）にフォールバックするため、サイト URL に依存する機能 — Open Graph 画像、canonical、サイトマップ — がそのまま動作します。ビルドではこのフォールバックは使われないため、本番の出力が localhost を指すことはありません。
 
@@ -52,6 +53,8 @@ deployment: {
 blume build
 blume preview
 ```
+
+`blume preview` は静的ビルドと、`node()` および `cloudflare()` のサーバービルドを配信します。Vercel と Netlify のアダプターにはローカルのプレビューサーバーがないため、`vercel()` または `netlify()` のサーバービルドの後では、代わりにエラーを出して停止します。サイトを試すには `blume dev` を使うか、`vercel deploy` または `netlify deploy` でプレビューをデプロイしてください。
 
 ## サブパスへのデプロイ [#subpath-deploys]
 
@@ -118,7 +121,7 @@ deployment: vercel({
 deployment: netlify({ output: "static" }),
 ```
 
-サーバービルドには静的ビルドのすべてに加えて、追加した Astro のエンドポイントやミドルウェアが含まれます。`node()` アダプターは、`node dist/server/entry.mjs` で直接実行できるスタンドアロンのサーバーを生成します。このサーバーはプロジェクトの `node_modules` へのリンクを通じてパッケージを解決するため、`dist/` だけでなく、依存関係をインストールした状態のプロジェクトごとデプロイしてください。サイトがディスカバリーファイルを公開している場合、Blume は Astro のエントリー（同じ場所の `astro-entry.mjs` に移動されます）の手前に小さなラッパーを配置し、`.well-known` のディスカバリーファイルが適切なメディアタイプと CORS ヘッダー付きで配信されるようにします。これらはスタンドアロンサーバーの静的ハンドラーだけでは設定できないためです。
+サーバービルドには静的ビルドのすべてに加えて、追加した Astro のエンドポイントやミドルウェアが含まれます。`node()` アダプターは、`node dist/server/entry.mjs` で直接実行できるスタンドアロンのサーバーを生成します。起動時に環境変数 `HOST` と `PORT` を設定しない限り、サーバーは `localhost:4321` で待ち受けます（`HOST=0.0.0.0 PORT=8080 node dist/server/entry.mjs`）。`node()` に渡した `host` と `port` は効果がありません。`@astrojs/node` がそれらを Astro 自身のサーバー設定で置き換えるためです。このサーバーはプロジェクトの `node_modules` へのリンクを通じてパッケージを解決するため、`dist/` だけでなく、依存関係をインストールした状態のプロジェクトごとデプロイしてください。サイトがディスカバリーファイルを公開している場合、コンテンツソースがダウンロードした画像を配信する場合、またはリダイレクトを設定している場合、Blume は Astro のエントリー（同じ場所の `astro-entry.mjs` に移動されます）の手前に小さなラッパーを配置します。このラッパーは `.well-known` のディスカバリーファイルを適切なメディアタイプと CORS ヘッダー付きで配信し、ダウンロードした SVG をサンドボックス化して配信します。これらはスタンドアロンサーバーの静的ハンドラーだけではできないためです。また、各リダイレクトには設定されたステータスで応答します。
 
 `cloudflare()` のサーバービルドは、`blume build` の後にプロジェクトのルートで `npx wrangler deploy` を実行してデプロイします: Blume は Wrangler のリダイレクト設定（redirected config）を `.wrangler/deploy/` に書き出し（`.gitignore` に `.wrangler/` も追加します）、Worker にはプロジェクトに基づいた名前を付けます — `package.json` の `name`、なければサイトのホスト名、それもなければフォルダー名です — ただし、プロジェクトのルートに置いた独自の `wrangler.jsonc` で `name` を設定している場合を除きます。
 
@@ -140,19 +143,24 @@ Vercel と Cloudflare では、サーバービルドによって [`Accept: text/
 redirects: [{ from: "/old", to: "/new", status: 301 }],
 ```
 
-`status` は `301`、`302`、`307`、`308` を受け付けます（デフォルトは `301`）。サーバービルドではリダイレクトをリクエスト時に処理します。静的ビルドではリダイレクトページ**に加えて**ホストが読み取るプラットフォーム用のファイルも出力するため、ホストが本物の HTTP リダイレクトを返せます: `netlify()` と `cloudflare()` には `_redirects`、`vercel()` には `vercel.json`、そしてホストを指定していない場合はその両方に加えて `blume-redirects.json` — その他の環境（nginx/Apache のルール、エッジワーカーなど）向けの構造化マニフェストです。`public/` に配置した `_redirects` や `vercel.json` はそのまま維持されます。
+`status` は `301`、`302`、`307`、`308` を受け付けます（デフォルトは `301`）。サーバービルドではリダイレクトをリクエスト時に、設定されたステータスで処理します。静的ビルドではリダイレクトページ**に加えて**ホストが読み取るプラットフォーム用のファイルも出力するため、ホストが本物の HTTP リダイレクトを返せます: `netlify()` と `cloudflare()` には `_redirects`、`vercel()` には `vercel.json`、そしてホストを指定していない場合はその両方に加えて `blume-redirects.json` — その他の環境（nginx/Apache のルール、エッジワーカーなど）向けの構造化マニフェストです。`public/` に配置した `_redirects` や `vercel.json` はそのまま維持されます。
+
+次の 2 つのホストでは、ファイルを出力するだけでは不十分です:
+
+- **Netlify** は、ルールが強制（force）されていない限り、リダイレクトルールよりも実在するファイルを優先して配信します。そして静的ビルドでは、すべての `from` にリダイレクトページが存在します。`netlify()` 用の `_redirects` はルールを強制します（`/old /new 301!`）。Cloudflare はこのフラグを受け付けないため、ホストを指定していないビルドが書き出すファイルにはこのフラグが付かず、Netlify 上ではそのビルドは代わりにリダイレクトページで応答します。HTTP リダイレクトを返すには、`netlify({ output: "static" })` でホストを指定してください。
+- **Vercel** は `vercel.json` をプロジェクトのルートディレクトリから読み取り、出力ディレクトリからは読み取りません。そのため、`dist/` 内のコピーが適用されるのは、Vercel CLI でそのフォルダー自体をデプロイした場合（`vercel deploy dist`）のみです。Git 連携したプロジェクトはこのファイルを読み取らず、リダイレクトページを配信し、[コンテンツタイプ](#content-types) のヘッダーも一切適用されません。`dist/vercel.json` の `redirects` と `headers` をプロジェクトのルートディレクトリにある `vercel.json` にコピーするか、`vercel()` でサーバービルドを使用してください。サーバービルドでは、ルーティング設定にリダイレクトとディスカバリー用のヘッダーが含まれます。
 
 :::note
 `from` と `to` は完全一致のパスです — ホストによってパターンの扱いが異なるため、`:param` セグメントや `*` ワイルドカード（例: `/blog/:slug` や `/old/*`）を含めると設定の検証でエラーになります。パターンベースのルールが必要な場合は、`vercel.json`（ワイルドカードの `source` パターンをサポート）のようなインフラ側のファイルや、ホストのリダイレクト設定で対応してください。`public/` に配置した `vercel.json` はそのまま保持されます。
 :::
 
 :::note
-`from` と `to` はどちらもルートにマウントされている前提で書いてください — [`base`](#subpath-deploys) でも [`basePath`](#mount-the-docs-under-a-path) でも、Blume が両側を書き換えるため、リダイレクト先はベース配下に収まります。`to` に手動でベースを書き込んでいる場合は、二重にならずそのまま維持されます。
+`from` と `to` はどちらもルートにマウントされている前提で、`/` から始めて書いてください（`to` は完全な `https://` URL にすることもできます） — [`base`](#subpath-deploys) でも [`basePath`](#mount-the-docs-under-a-path) でも、Blume が両側を書き換えるため、リダイレクト先はベース配下に収まります。`to` に手動でベースを書き込んでいる場合は、二重にならずそのまま維持されます。
 :::
 
 ## コンテンツタイプ [#content-types]
 
-ホストが読み取る場合、ビルドでは `_headers` ファイルも出力され、生の AI 対応エンドポイント — `/<route>.md`、`/<route>.mdx`、および `.txt` ファイル（`llms.txt`、`llms-full.txt`）— に `charset=utf-8` を固定します。これらのレスポンスは妥当な UTF-8 ですが、多くの静的ホストは charset **なし**の `text/markdown` / `text/plain` として配信し、ブラウザは Windows-1252 にフォールバックします — その結果、非 ASCII のドキュメント（日本語、アクセント付きラテン文字など）は生の URL を直接開いたときに文字化けします。HTML ページは `<meta charset>` を持つため影響を受けません。Netlify は静的デプロイで、Cloudflare（Pages と Workers の静的アセット）は静的ビルドとサーバービルドの両方で `_headers` を読み取るため、これらのアダプターとホストを指定していない静的ビルドではこのファイルが出力されます。Vercel（ヘッダーはルーティング設定で扱われます）と Node（サーバーがこのファイルを無視します）では出力されません。`public/` に配置した `_headers` はそのまま維持されます。
+ホストが読み取る場合、ビルドでは `_headers` ファイルも出力され、生の AI 対応エンドポイント — `/<route>.md`、`/<route>.mdx`、および `.txt` ファイル（`llms.txt`、`llms-full.txt`）— に `charset=utf-8` を固定します。これらのレスポンスは妥当な UTF-8 ですが、多くの静的ホストは charset **なし**の `text/markdown` / `text/plain` として配信し、ブラウザは Windows-1252 にフォールバックします — その結果、非 ASCII のドキュメント（日本語、アクセント付きラテン文字など）は生の URL を直接開いたときに文字化けします。HTML ページは `<meta charset>` を持つため影響を受けません。Netlify は静的デプロイで、Cloudflare（Pages と Workers の静的アセット）は静的ビルドとサーバービルドの両方で `_headers` を読み取るため、これらのアダプターとホストを指定していない静的ビルドではこのファイルが出力されます。Vercel（ヘッダーはルーティング設定で扱われます）と Node（サーバーがこのファイルを無視します）では出力されません。Netlify のサーバービルドでは、代わりに Frameworks API の設定（`.netlify/v1/config.json`）の `headers` に同じルールを書き込みます。Vercel の静的ビルドでは、代わりに `dist/vercel.json` に同じルールを書き込みますが、Git 連携したプロジェクトはこのファイルを読み取りません（[リダイレクト](#redirects) を参照）。`public/` に配置した `_headers` はそのまま維持されます。
 
 ## 環境変数 [#environment-variables]
 
@@ -163,8 +171,9 @@ redirects: [{ from: "/old", to: "/new", status: 301 }],
 | アシスタント（AI Gateway） | `AI_GATEWAY_API_KEY`（または Vercel OIDC） |
 | アシスタント（その他のアダプター） | アダプターのデフォルトのキー環境変数（`OPENROUTER_API_KEY`、`LLMGATEWAY_API_KEY`、`INKEEP_API_KEY`）、またはアダプターに渡した `apiKeyEnv` |
 | Mixedbread 検索 | `MIXEDBREAD_API_KEY` |
+| [コンテンツソース](/docs/content/sources) | `NOTION_TOKEN`（`notion()`）、`SANITY_TOKEN`（`sanity()`）、`CONTENTFUL_ACCESS_TOKEN`（`contentful()`）、`PAYLOAD_API_KEY`（`payload()`）、`STRAPI_API_TOKEN`（`strapi()`）、`GITHUB_TOKEN`（`githubReleases()`、および GitHub から読み込む `mdxRemote()`） |
 
-ローカル開発では `.env.local` に、本番ではホストの環境に設定してください。検索インデックスの同期（Algolia、Orama Cloud、Typesense）に必要なビルド時のシークレットについては、同期ステップで個別に警告されます。
+ローカル開発では `.env.local` に、本番ではホストの環境に設定してください。コンテンツソースは `blume dev` と `blume build` の実行中、コンテンツを取得する際にトークンを読み取るため、サイトをビルドする環境に設定してください。検索インデックスの同期（Algolia、Orama Cloud、Typesense）に必要なビルド時のシークレットについては、同期ステップで個別に警告されます。
 
 ## ビルドキャッシュ [#build-cache]
 

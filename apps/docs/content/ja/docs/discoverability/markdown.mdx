@@ -14,11 +14,13 @@ HTML はブラウザーのためのものです。エージェントや LLM は�
 | ----------------- | --------------------------------------------- |
 | `/quickstart`     | レンダリングされたページ                      |
 | `/quickstart.md`  | コンポーネントが変換されたプレーンな Markdown |
-| `/quickstart.mdx` | 記述されたままの生の MDX ソース               |
+| `/quickstart.mdx` | コンポーネントが記述されたままの MDX ソース   |
 
 ネストされたルートも同じように機能し (`/content/syntax.md`)、ホームページは `/index.md` で配信されます。
 
-`.md` バリアントは、JSX を解釈できないコンシューマー向けにコンポーネントをプレーンな Markdown へ*ダウンレベル*します。`<TypeTable>` は Markdown のテーブルに、`<Callout>` はラベル付きの引用ブロックに、`<Steps>` は順序付きリストに、`<Tabs>` は太字ラベルのセクションに、`<Card>` は本文にリンクとしてタイトルを重ねたものに (そして `<CardGroup>` はそれが保持するカードに)、`<Accordion>` は回答の上に太字の質問を置いたものに、`<FileTree>` はそのリストに、`<CodeGroup>` はタイトル付きのコードブロックに、`<YouTube>` はリンクに、そしてその他すべての組み込みコンポーネント — Columns、Frame、Expandable、Badge、Tooltip など — はその読み取り可能なコンテンツになります。型チェッカーを必要とする `<AutoTypeTable>` は記述されたまま残り、両側をファイルから読み込む `<Diff>` (`src`、または `before` と `after`) や、`owner` と `repo` を指定していない `<GithubInfo>` も同様です。生成された [API リファレンス](/docs/references/openapi)ページを構成するコンポーネントもダウンレベルされます。`<Operation>` はそのスペック独自の記法によるエンドポイント (`GET /pets/{id}`、`SEND user/signup`、`query pets`) と非推奨マーカーになり、`<ApiTagOperations>` はそれらのエンドポイントを各ページへのリンクと概要付きで並べたリストになり、`<ApiOverview>` は API のバージョンとベース URL になります — これにより、リファレンスページを読むエージェントは何を呼び出せばよいかが分かり、サイト検索でもエンドポイントのパスがマッチします。プロパティはページの `frontmatter` をスコープに入れて評価されるため、`title={frontmatter.status}` のようなプロパティはレンダリングされたページと同じ値に解決されます。忠実に変換できないもの — カスタムコンポーネントや、import から計算されたプロパティ — はそのまま残され、フェンス付きコードブロック内のコンポーネントマークアップには一切手が加えられません。同じ変換は [`llms-full.txt`](/docs/discoverability/llms-txt) と [MCP サーバー](/docs/discoverability/mcp)の `get_page` ツールにも適用されるため、エージェント向けのあらゆる面がクリーンな Markdown を読み取れます。MDX ソースそのものが必要な場合は、`.mdx` バリアントを使用してください — 書き換えられるのは相対ページリンクだけで、それぞれが指すルートに置き換えられます。
+`.md` バリアントは、JSX を解釈できないコンシューマー向けにコンポーネントをプレーンな Markdown へ*ダウンレベル*します。`<TypeTable>` は Markdown のテーブルに、`<Callout>` はラベル付きの引用ブロックに、`<Steps>` は順序付きリストに、`<Tabs>` は太字ラベルのセクションに、`<Card>` は本文にリンクとしてタイトルを重ねたものに (そして `<CardGroup>` はそれが保持するカードに)、`<Accordion>` は回答の上に太字の質問を置いたものに、`<FileTree>` はそのリストに、`<CodeGroup>` はタイトル付きのコードブロックに、`<YouTube>` はリンクに、そしてその他すべての組み込みコンポーネント — Columns、Frame、Expandable、Badge、Tooltip など — はその読み取り可能なコンテンツになります。型チェッカーを必要とする `<AutoTypeTable>` は記述されたまま残り、両側をファイルから読み込む `<Diff>` (`src`、または `before` と `after`) や、`owner` と `repo` を指定していない `<GithubInfo>` も同様です。生成された [API リファレンス](/docs/references/openapi)ページを構成するコンポーネントもダウンレベルされます。`<Operation>` はそのスペック独自の記法によるエンドポイント (`GET /pets/{id}`、`SEND user/signup`、`query pets`) と非推奨マーカーになり、`<ApiTagOperations>` はそれらのエンドポイントを各ページへのリンクと概要付きで並べたリストになり、`<ApiOverview>` は API のバージョンとベース URL になります — これにより、リファレンスページを読むエージェントは何を呼び出せばよいかが分かり、サイト検索でもエンドポイントのパスがマッチします。プロパティはリテラルデータとして読み取られ、実行されることはありません — 対象は文字列、数値、真偽値、配列、オブジェクト、テンプレート文字列、そしてページの `frontmatter` への参照で、`title={frontmatter.status}` のようなプロパティはレンダリングされたページに表示されるのと同じ値に解決されます。忠実に変換できないもの — カスタムコンポーネントや、関数呼び出しや import から計算されたプロパティ — はそのまま残され、コード内のコンポーネントマークアップには、フェンス付きかインラインかを問わず一切手が加えられません。同じ変換は [`llms-full.txt`](/docs/discoverability/llms-txt) と [MCP サーバー](/docs/discoverability/mcp)の `get_page` ツールにも適用されるため、エージェント向けのあらゆる面がクリーンな Markdown を読み取れます。
+
+MDX そのものが必要な場合は、`.mdx` バリアントを使用してください。コンポーネントは記述されたまま残り、それ以外の部分は `.md` バリアントと同様に、URL 経由で読むエージェント向けに整えられます。[インクルード](/docs/content/includes)は埋め込まれ、[`<Visibility>`](/docs/content/components#visibility) はエージェント向けに解決され (`for="web"` のコンテンツは削除され、`for="agents"` のコンテンツは残ります)、相対パスの画像は配信される URL を指し、相対ページリンクはそれぞれが指すルートを指します。また、ルート相対リンク (`/guides/install`) にはサイトの `deployment.base` と `basePath` が付加され、翻訳されたページでは、レンダリングされたページのリンクと同じようにそのページのロケールへ移ります。
 
 ### コンテンツネゴシエーション [#content-negotiation]
 
@@ -28,7 +30,7 @@ HTML はブラウザーのためのものです。エージェントや LLM は�
 
 ### カスタムコンポーネントシリアライザー [#custom-component-serializers]
 
-`agents.markdownComponents` — JSX 名からシリアライザーへのマップ — を使って、独自のコンポーネントに Markdown 形式を与えられます。各シリアライザーは、コンポーネントの `props` (MDX の属性から静的に評価され、ページの `frontmatter` がスコープに入ります)、`children` (すでに Markdown へダウンレベル済み)、およびページの `frontmatter` データを受け取り、置き換える内容を返します — JSX をそのまま残す場合は `null` を返します。
+`agents.markdownComponents` — JSX 名からシリアライザーへのマップ — を使って、独自のコンポーネントに Markdown 形式を与えられます。各シリアライザーは、コンポーネントの `props` (MDX の属性からリテラルデータとして読み取られ、`frontmatter` への参照は解決済みです)、`children` (すでに Markdown へダウンレベル済み)、およびページの `frontmatter` データを受け取り、置き換える内容を返します — JSX をそのまま残す場合は `null` を返します。
 
 ```ts blume.config.ts lineNumbers
 import { defineConfig } from "blume";

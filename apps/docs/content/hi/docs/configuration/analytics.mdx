@@ -1,7 +1,7 @@
 ---
 title: एनालिटिक्स
 description: >-
-  फ़र्स्ट-पार्टी वेब एनालिटिक्स — PostHog, Google Analytics, Plausible, Mixpanel, Segment, और दर्जन भर अन्य — blume.config.ts में एडैप्टर्स के रूप में।
+  फ़र्स्ट-पार्टी वेब एनालिटिक्स — PostHog, Google Analytics, Plausible, Mixpanel, Segment, और अन्य — blume.config.ts में एडैप्टर्स के रूप में।
 ---
 
 Blume आपके लिए `blume.config.ts` में एक `analytics` सूची से एनालिटिक्स इंजेक्ट करता है। हर एंट्री `blume/analytics` से इम्पोर्ट किया गया एक एडैप्टर है: हर प्रोवाइडर के लिए एक, और जिनका कोई एडैप्टर नहीं है उनके लिए `script()`।
@@ -39,6 +39,7 @@ export default defineConfig({
 | `clarity()` | [Microsoft Clarity](#microsoft-clarity) | `id` |
 | `clearbit()` | [Clearbit](#clearbit) | `key` |
 | `cloudflare()` | [Cloudflare Web Analytics](#cloudflare-web-analytics) | `token` |
+| `databuddy()` | [Databuddy](#databuddy) | `clientId` |
 | `fathom()` | [Fathom](#fathom) | `site` |
 | `googleAnalytics()` | [Google Analytics 4](#google-analytics-4) | `id` |
 | `googleTagManager()` | [Google Tag Manager](#google-tag-manager) | `id` |
@@ -70,6 +71,8 @@ analytics: [
 ```
 
 `key` और `host` वे दो विकल्प हैं जिन्हें Blume मैप करता है (`host`, `api_host` बन जाता है)। आप जो कुछ भी और पास करते हैं — `persistence`, `capture_pageview`, `autocapture`, `disable_session_recording`, और `posthog.init` का हर अन्य विकल्प — वह ज्यों का त्यों `posthog.init` को फ़ॉरवर्ड किया जाता है।
+
+Blume हर क्लाइंट-राउटर नेविगेशन के लिए `$pageview` केवल तभी भेजता है जब PostHog सिर्फ़ पेज लोड कैप्चर करता है, और यह उसका व्यवहार तब होता है जब आप न तो `capture_pageview` सेट करते हैं और न ही `defaults`। `capture_pageview: "history_change"` के साथ, या PostHog के मौजूदा स्निपेट की `"2025-05-24"` जैसी किसी `defaults` तिथि के साथ, PostHog नेविगेशन को स्वयं कैप्चर करता है, इसलिए Blume कुछ अतिरिक्त नहीं भेजता। `capture_pageview: false` के साथ, कोई भी पेजव्यू नहीं भेजा जाता।
 
 ## Vercel Web Analytics
 
@@ -172,6 +175,22 @@ analytics: [
 ```
 
 `code`, `data-code` बन जाता है, और Blume टैग को वह `pianjs` id देता है जिससे Pirsch की स्क्रिप्ट स्वयं को ढूँढती है। कोई भी अन्य विकल्प अपना अलग `data-` एट्रिब्यूट बन जाता है (`dev`, `exclude`, `include`, `domain`, `endpoint`, …)।
+
+## Databuddy
+
+अपनी **क्लाइंट ID** ([Databuddy](https://databuddy.cc) में वेबसाइट की सेटिंग्स से) `databuddy()` को दें।
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  databuddy({
+    clientId: "xxxxxxxxxxxxxxxxxxxxx",
+    "track-web-vitals": "true", // optional: any other `data-` setting
+    "skip-patterns": '["/admin/*"]',
+  }),
+],
+```
+
+`clientId`, `data-client-id` बन जाता है। कोई भी अन्य विकल्प टैग पर अपना अलग `data-` एट्रिब्यूट बन जाता है, इसलिए उसका नाम ठीक वैसे ही रखें जैसा एट्रिब्यूट में लिखा जाता है, यानी kebab-case में (`track-web-vitals`, `track-errors`, `track-outgoing-links`, `api-url`, …)। Databuddy `trackWebVitals` जैसे camelCase नाम को अनदेखा करता है। मान स्ट्रिंग्स होते हैं: किसी स्विच के लिए `"true"` या `"false"`, और `skip-patterns` तथा `mask-patterns` के लिए एक JSON ऐरे। Databuddy किसी भी अन्य रूप में दिए गए सूची मान को खाली मानता है।
 
 ## Mixpanel
 
@@ -352,6 +371,8 @@ analytics: [
 | `clearbit()` | `key` | — | Clearbit पब्लिशेबल API की। आवश्यक। |
 | `cloudflare()` | `token` | — | Cloudflare Web Analytics साइट टोकन (मैनुअल सेटअप)। आवश्यक। |
 | `cloudflare()` | अन्य कुछ भी | — | बीकन के `data-cf-beacon` JSON में ज्यों का त्यों फ़ॉरवर्ड किया जाता है। |
+| `databuddy()` | `clientId` | — | Databuddy क्लाइंट ID। आवश्यक। |
+| `databuddy()` | अन्य कुछ भी | — | टैग पर `data-` एट्रिब्यूट के रूप में रेंडर किया जाता है। |
 | `fathom()` | `site` | — | Fathom साइट ID। आवश्यक। |
 | `fathom()` | `spa` | `"auto"` | Fathom की हिस्ट्री-चेंज ट्रैकिंग (`data-spa`)। |
 | `fathom()` | अन्य कुछ भी | — | टैग पर `data-` एट्रिब्यूट के रूप में रेंडर किया जाता है। |
@@ -390,4 +411,4 @@ analytics: [
 
 ## कस्टम इवेंट्स [#custom-events]
 
-Blume का पेज फ़ीडबैक हर उस कॉन्फ़िगर किए गए एडैप्टर के ज़रिए एक कस्टम इवेंट भेजता है जिसके पास क्लाइंट API है — PostHog, Mixpanel, Heap, Segment, Hightouch, Amplitude, LogRocket, Adobe, Google Analytics, Google Tag Manager (`window.dataLayer` पर `{ event }` पुश के रूप में), Plausible, Fathom, Pirsch, Clarity, Hotjar, और Vercel। Cloudflare और Clearbit के पास कोई इवेंट API नहीं है। हर इवेंट `window` पर `blume:track` CustomEvent के रूप में भी फ़ायर होता है, जिसके `detail` में `{ event, props }` होता है, इसलिए कोई `script()` एडैप्टर उसे कहीं और भी फ़ॉरवर्ड कर सकता है। अपनी बिल्ट साइट को डिप्लॉय करने के लिए, [Deployment](/docs/deployment) देखें।
+Blume का पेज फ़ीडबैक हर उस कॉन्फ़िगर किए गए एडैप्टर के ज़रिए एक कस्टम इवेंट भेजता है जिसके पास क्लाइंट API है — PostHog, Mixpanel, Heap, Segment, Hightouch, Amplitude, LogRocket, Adobe, Google Analytics, Google Tag Manager (`window.dataLayer` पर `{ event }` पुश के रूप में), Plausible, Databuddy, Fathom, Pirsch, Clarity, Hotjar, और Vercel। Cloudflare और Clearbit के पास कोई इवेंट API नहीं है। हर इवेंट `window` पर `blume:track` CustomEvent के रूप में भी फ़ायर होता है, जिसके `detail` में `{ event, props }` होता है, इसलिए कोई `script()` एडैप्टर उसे कहीं और भी फ़ॉरवर्ड कर सकता है। अपनी बिल्ट साइट को डिप्लॉय करने के लिए, [Deployment](/docs/deployment) देखें।

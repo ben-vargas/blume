@@ -58,7 +58,7 @@ Nein. [Orama](/docs/configuration/search) erstellt einen lokalen Index, der sowo
 
 ## Wie passe ich das Erscheinungsbild an? [#how-do-i-customize-the-look]
 
-Beginne mit [Theme-Tokens](/docs/configuration/theming) — Akzentfarbe, Schriften, Radius und eine `theme.css` für alles andere, was Tailwind ausdrücken kann. Geh weiter, indem du [eingebaute Komponenten überschreibst](/docs/configuration/customization) oder [eigene Seiten](/docs/configuration/customization#custom-pages) hinzufügst. Wenn du das Astro-Projekt selbst haben möchtest, übergibt dir [`blume eject`](/docs/cli) eine eigenständige App, die weiterhin das `blume`-Paket nutzt.
+Beginne mit [Theme-Tokens](/docs/configuration/theming) — Akzentfarbe, Schriften, Radius und eine `theme.css` für alles andere, was Tailwind ausdrücken kann. Geh weiter, indem du [eingebaute Komponenten überschreibst](/docs/configuration/customization) oder [eigene Seiten](/docs/configuration/customization#custom-pages) hinzufügst. Wenn du das Astro-Projekt selbst haben möchtest, übergibt dir [`blume eject`](/docs/configuration/customization#eject) eine eigenständige App, die weiterhin das `blume`-Paket nutzt.
 
 ## Warum faltet oxfmt / Ultracite meine Direktiven zusammen? [#why-is-oxfmt--ultracite-collapsing-my-directives]
 
@@ -142,7 +142,7 @@ Patche oxfmt so, dass es den Zeilenumbruch erhält, der direkt an einer `:::`-Au
     		case "emphasis": {
    ```
 
-2. Registriere ihn über die `patchedDependencies` deines Paketmanagers. Mit Bun oder pnpm fügst du in `package.json` hinzu:
+2. Registriere ihn über die `patchedDependencies` deines Paketmanagers. Mit Bun fügst du in `package.json` hinzu:
 
    ```json package.json
    {
@@ -150,6 +150,13 @@ Patche oxfmt so, dass es den Zeilenumbruch erhält, der direkt an einer `:::`-Au
        "oxfmt@0.67.0": "patches/oxfmt@0.67.0.patch"
      }
    }
+   ```
+
+   Mit pnpm fügst du in `pnpm-workspace.yaml` hinzu (pnpm 11 und neuer lesen keine Einstellungen mehr aus `package.json`):
+
+   ```yaml pnpm-workspace.yaml
+   patchedDependencies:
+     oxfmt@0.67.0: patches/oxfmt@0.67.0.patch
    ```
 
 3. Installiere neu, damit der Patch angewendet wird:

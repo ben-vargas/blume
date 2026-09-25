@@ -23,7 +23,7 @@ agents: {
 },
 ```
 
-これらの大半は、絶対的なサイト URL があるとより効果を発揮します。[`deployment.site`](/docs/deployment) を設定することで、フィード、OG 画像、canonical、サイトマップ、JSON-LD、そしてすべてのエージェントマニフェストが完全な URL を出力できるようになります。一部の領域（Open Graph 画像、サイトマップ）は、これが設定されるまで無効のままです。
+これらの大半は、絶対的なサイト URL があるとより効果を発揮します。[`deployment.site`](/docs/deployment) を設定することで、フィード、OG 画像、canonical、サイトマップ、JSON-LD、そしてすべてのエージェントマニフェストが完全な URL を出力できるようになります。一部の領域（Open Graph 画像、サイトマップ、RSS フィード、AI カタログ）は、これが設定されるまで無効のままです。
 
 ## ビルドが出力するもの [#what-the-build-emits]
 
@@ -32,7 +32,7 @@ agents: {
 | `<head>` メタデータ、canonical、X カード | すべてのページ | 有効 | [メタデータ](/docs/discoverability/metadata) |
 | ソーシャル共有画像 | `/og/<route>.png` | サイト URL がある場合に有効 | [Open Graph 画像](/docs/discoverability/open-graph) |
 | schema.org JSON-LD | すべてのページ | 有効 | [構造化データ](/docs/discoverability/structured-data) |
-| RSS フィード | `/<type>/rss.xml` | 有効 | [RSS フィード](/docs/discoverability/rss) |
+| RSS フィード | `/<type>/rss.xml` | サイト URL がある場合に有効 | [RSS フィード](/docs/discoverability/rss) |
 | `sitemap.xml`、`robots.txt`、コンテンツシグナル | サイトルート | 有効 | [サイトマップと robots](/docs/discoverability/sitemap-and-robots) |
 | `llms.txt`、`llms-full.txt` | サイトルート | 有効 | [llms.txt](/docs/discoverability/llms-txt) |
 | 生の Markdown ミラー、コンテンツネゴシエーション、Copy as Markdown、Open in chat | `/<route>.md` | 有効 | [エージェント向け Markdown](/docs/discoverability/markdown) |

@@ -97,6 +97,7 @@ export default defineComponents({
 | `Breadcrumbs` | パンくずリスト | `crumbs` |
 | `TableOfContents` | このページの目次 | `headings`、`title`、`variant` |
 | `Pagination` | 前後のページへのフッターリンク | `prev`、`next`、`strings` |
+| `Feedback` | 記事の下にある「このページは役に立ちましたか？」の評価（[`feedback`](/docs/configuration#page-feedback) が有効な場合のみレンダリングされます） | `strings` |
 | `PageHeader` | 記事の上部への挿入ポイント（組み込みなし） | `page`、`headings`、`route` |
 | `PageFooter` | 記事の下部への挿入ポイント（組み込みなし） | `page`、`headings`、`route` |
 | `Footer` | コンテンツグリッドの後に配置されるサイト全体のフッター（組み込みなし） | `site`、`navigation`、`ui` |
@@ -184,10 +185,10 @@ npx blume eject --yes
 
 イジェクトは一方向のステップです。隠れた `.blume/` ランタイムが、あなたが所有し直接変更できる通常の Astro アプリになります。`blume` パッケージは引き続きインポート可能なので、そのコンポーネント、テーマ、Markdown プロセッサはそのまま使えます。
 
-イジェクトは `package.json` のスクリプトを `astro dev` と `astro build` に向け、Astro アプリが名前でインポートするパッケージ — `astro`、`@tailwindcss/vite`、設定が組み込む検索クライアント・インテグレーション・アダプター、アイランド・サンプル・アシスタントが使用する場合の React、アシスタントルート用の `ai`、EPUB エクスポート用の `epub-gen-memory` — を、Blume 自身が使用しているバージョン範囲で追加します。`dev` や `build` の前にインストールを実行してください。追加されたパッケージはイジェクト時に一覧表示されます。イジェクトされたアプリ内のパスはすべて相対パスであるため、CI を含むどのチェックアウトからでもビルドできます。
+イジェクトは `package.json` のスクリプトを `astro dev` と `astro build` に向け、Astro アプリが名前でインポートするパッケージ — `astro`、`@tailwindcss/vite`、生成されるスタイルシート用の `tailwindcss` と `@tailwindcss/typography`、設定が組み込む検索クライアント・インテグレーション・アダプター、アイランド・サンプル・アシスタントが使用する場合の React、アシスタントルート用の `ai`、EPUB エクスポート用の `epub-gen-memory` — を、Blume 自身が使用しているバージョン範囲で追加します。`dev` や `build` の前にインストールを実行してください。追加されたパッケージはイジェクト時に一覧表示されます。イジェクトされたアプリ内のパスはすべて相対パスであるため、CI を含むどのチェックアウトからでもビルドできます。
 
-それ以降は、アプリ独自のスクリプト（`npm run dev`、`npm run build`）で実行してください。イジェクトされたプロジェクトでは `blume dev` と `blume build` は停止し、それらのスクリプトを使うよう案内します。`blume eject` を再度実行した場合も、編集内容を上書きしてしまうため拒否されます。それでもアプリを再生成したい場合は `--force` を指定してください。
+それ以降は、アプリ独自のスクリプト（`npm run dev`、`npm run build`）で実行してください。イジェクトされたプロジェクトでは `blume dev`、`blume build`、`blume check`、`blume sync`、`blume preview` は停止し、それらのスクリプトを使うよう案内します。`blume eject` を再度実行した場合も、編集内容を上書きしてしまうため拒否されます。それでもアプリを再生成したい場合は `--force` を指定してください。
 
 ### イジェクトで維持されるもの [#what-eject-keeps]
 
-イジェクトされたアプリの `build` スクリプトは素の `astro build` を実行しますが、`blume build` が上に重ねていた成果物 — 検索インデックス（およびホスト型プロバイダーのインデックス同期）、`llms.txt` と `llms-full.txt`、`sitemap.xml`、`robots.txt`、`agent-readability.json`、`.well-known` ディスカバリーファイル、Agent Skills、プラットフォームの `_redirects`／`_headers` ファイル — は引き続き生成されます。イジェクトされた `astro.config.mjs` 内の Blume インテグレーションが、CLI と同じようにプロジェクト（`blume.config.ts` とコンテンツ）をスキャンし、Astro の `astro:build:done` フックからそれらを書き出します。イジェクトされたビルドで行われないのは、CLI のアダプター後処理です: Vercel と Cloudflare の `Accept: text/markdown` ルーティングの差し込み、Vercel の関数バンドル監査、そして `--analyze`／`--budget-*` ゲートです。
+イジェクトされたアプリの `build` スクリプトは素の `astro build` を実行しますが、`blume build` が上に重ねていた成果物 — 検索インデックス（およびホスト型プロバイダーのインデックス同期）、`llms.txt` と `llms-full.txt`、`sitemap.xml`、`robots.txt`、`agent-readability.json`、`.well-known` ディスカバリーファイル、Agent Skills、プラットフォームの `_redirects`／`_headers` ファイル — は引き続き生成されます。イジェクトされた `astro.config.mjs` 内の Blume インテグレーションが、CLI と同じようにプロジェクト（`blume.config.ts` とコンテンツ）をスキャンし、Astro の `astro:build:done` フックからそれらを書き出します。イジェクトされたビルドで行われないのは、CLI のアダプター後処理です: Vercel と Cloudflare の `Accept: text/markdown` ルーティングの差し込み、Vercel の関数バンドル監査、`node()` のサーバーエントリラッパー（`.well-known` ディスカバリーファイルのメディアタイプと CORS ヘッダー、ダウンロードされる SVG のサンドボックス、各リダイレクトの正確なステータス）、`netlify()` のサーバービルドが `.netlify/v1/config.json` に書き込むヘッダールール、Cloudflare の Worker の命名（プロジェクト名にちなむ）とプロジェクトルートから `wrangler deploy` を実行するための `.wrangler/deploy` リダイレクト、そして `--analyze`／`--budget-*` ゲートです。

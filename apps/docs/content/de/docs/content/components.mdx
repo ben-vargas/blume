@@ -561,7 +561,7 @@ export interface ButtonProps {
 
 ## GitHub info
 
-Eine Karte, die auf ein GitHub-Repository verlinkt und dessen aktuelle Stern- und Fork-Zahlen anzeigt. Die Zahlen werden zur Build-Zeit abgerufen – kein Client-JavaScript – und die Karte wird auch dann gerendert, wenn die API nicht erreichbar ist. Übergib `owner` und `repo` oder lass beides weg, um das Repository aus deiner `blume.config` zu verwenden. Setze eine Umgebungsvariable `GITHUB_TOKEN`, um das API-Ratenlimit anzuheben; eine `token`-Prop überschreibt sie für eine einzelne Karte, aber die Umgebungsvariable hält das Token aus deinen Inhalten heraus.
+Eine Karte, die auf ein GitHub-Repository verlinkt und dessen Stern- und Fork-Zahlen anzeigt. Die Zahlen werden zur Build-Zeit abgerufen – kein Client-JavaScript –, daher zeigen sie den Stand deines letzten Builds und keine Live-Werte; die Karte wird auch ohne sie gerendert, wenn die API nicht erreichbar ist. Übergib `owner` und `repo` oder lass beides weg, um das Repository aus deiner `blume.config` zu verwenden. Setze eine Umgebungsvariable `GITHUB_TOKEN`, um das API-Ratenlimit anzuheben; eine `token`-Prop überschreibt sie für eine einzelne Karte, aber die Umgebungsvariable hält das Token aus deinen Inhalten heraus.
 
 Die Karte liest die Instanz aus [`github.host`](/docs/configuration#github-enterprise), sodass auf einer Enterprise-gehosteten Website auch explizite `owner`/`repo` diese Instanz adressieren. Übergib `host`, um eine einzelne Karte woanders hinzurichten – etwa auf ein öffentliches Projekt von einer Enterprise-Website aus; die REST-Basis wird davon genauso abgeleitet wie von `github.host`.
 

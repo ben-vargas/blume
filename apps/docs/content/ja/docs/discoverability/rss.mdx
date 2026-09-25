@@ -6,6 +6,8 @@ description: >-
 
 Blume は、`rss.types` に含まれるコンテンツタイプ（デフォルトでは `blog` と `changelog`）のうちページが存在するものについて RSS フィードを生成し、`/<type>/rss.xml` で配信します。日付付きのブログエントリや変更履歴エントリの作成については [フィード](/docs/content#feeds) を参照してください。
 
+フィード内のリンクは絶対 URL である必要があるため、フィードにはサイト URL が必要です。[`deployment.site`](/docs/deployment#set-your-site-url) を設定するか、Blume がサイト URL を検出できるホスト（Vercel、Netlify、Cloudflare）にデプロイしてください。サイト URL がない場合、ビルド時にフィードは一切生成されません。`blume dev` の実行中はローカルサーバーの URL が代わりに使われるため、どちらの場合でもフィードが表示されます。
+
 ```ts blume.config.ts lineNumbers
 seo: {
   rss: {
@@ -22,4 +24,4 @@ seo: {
 | `types` | `["blog", "changelog"]` | それぞれフィードを持つコンテンツタイプです。 |
 | `limit` | `50` | フィードごとの最大アイテム数（新しい順）。 |
 
-Blume は `<link rel="alternate">` タグを挿入するため、ブラウザやフィードリーダーがフィードを自動的に検出します。また、[エージェント可読性マニフェスト](/docs/discoverability/agent-discovery#agent-readability) にも記載されるため、エージェントもフィードを見つけられます。[`deployment.site`](/docs/deployment) が設定されている場合、アイテムのリンクは絶対 URL になります。
+Blume は `<link rel="alternate">` タグを挿入するため、ブラウザやフィードリーダーがフィードを自動的に検出します。また、[エージェント可読性マニフェスト](/docs/discoverability/agent-discovery#agent-readability) にも記載されるため、エージェントもフィードを見つけられます。各アイテムは、そのサイト上にあるページの絶対 URL にリンクします。

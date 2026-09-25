@@ -32,16 +32,13 @@ agents: {
 }
 ```
 
-O formato de objeto também aceita `details`: Markdown posicionado logo após o título e o resumo no `llms.txt`, antes das seções de páginas — o bloco livre de "details" da [especificação llms.txt](https://llmstxt.org). É o lugar para dizer aos agentes _quando_ recorrer ao seu produto e como acioná-lo, algo que os scanners de prontidão procuram explicitamente; um comando de instalação e o nome do pacote também cabem aqui:
+O formato de objeto também aceita `details`: Markdown posicionado logo após o título e o resumo no `llms.txt`, antes das seções de páginas — o bloco livre de "details" da [especificação llms.txt](https://llmstxt.org). É o lugar para dizer aos agentes _quando_ recorrer ao seu produto e como acioná-lo, algo que os scanners de prontidão procuram explicitamente; um comando de instalação e o nome do pacote também cabem aqui. A especificação permite qualquer Markdown ali, exceto títulos, que ela reserva para as seções de links que vêm em seguida, então escreva parágrafos ou listas:
 
 ```ts blume.config.ts lineNumbers
 agents: {
   llmsTxt: {
-    details: [
-      "## When to use Acme",
-      "",
+    details:
       "Reach for Acme when a project needs hosted feature flags. Install the CLI with `npm install -g acme`; the API reference below covers every endpoint.",
-    ].join("\n"),
   },
 }
 ```

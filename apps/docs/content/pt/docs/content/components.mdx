@@ -562,7 +562,7 @@ export interface ButtonProps {
 
 ## Informações do GitHub [#github-info]
 
-Um card com link para um repositório do GitHub com suas contagens de estrelas e forks em tempo real. As contagens são buscadas no momento do build — sem JavaScript no cliente — e o card continua sendo renderizado se a API estiver inacessível. Passe `owner` e `repo`, ou omita-os para usar o repositório do seu `blume.config`. Defina uma variável de ambiente `GITHUB_TOKEN` para elevar o limite de requisições da API; uma prop `token` a sobrescreve para um único card, mas a variável de ambiente mantém o token fora do seu conteúdo.
+Um card com link para um repositório do GitHub com suas contagens de estrelas e forks. As contagens são buscadas no momento do build — sem JavaScript no cliente —, então mostram os números do seu último build, e não os atuais; o card continua sendo renderizado sem elas se a API estiver inacessível. Passe `owner` e `repo`, ou omita-os para usar o repositório do seu `blume.config`. Defina uma variável de ambiente `GITHUB_TOKEN` para elevar o limite de requisições da API; uma prop `token` a sobrescreve para um único card, mas a variável de ambiente mantém o token fora do seu conteúdo.
 
 O card lê a instância a partir de [`github.host`](/docs/configuration#github-enterprise), então, em um site hospedado no Enterprise, `owner`/`repo` explícitos também apontam para essa instância. Passe `host` para direcionar um card para outro lugar — um projeto público a partir de um site Enterprise, por exemplo; a base REST é derivada dele da mesma forma que a partir de `github.host`.
 

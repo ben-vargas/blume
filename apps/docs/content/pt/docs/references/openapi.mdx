@@ -70,7 +70,7 @@ reference: [
 
 ## Playground Try it [#try-it-playground]
 
-As páginas de operação renderizadas nativamente já vêm com um painel interativo **Try it**. O Blume gera o formulário a partir da própria operação. Cada parâmetro de caminho, de query e de header ganha um campo, o editor de corpo é montado a partir do schema do corpo da requisição e tudo vem pré-preenchido com os exemplos da especificação. Um seletor de servidor lista os `servers` da especificação e inclui um campo de texto livre para qualquer outra URL base. Os campos de autenticação seguem a [segurança resolvida](#authorization) da operação: token bearer, chave de API e credenciais basic. Para OAuth2, há um campo onde você cola o token. Você precisa trazer um access token, porque o Blume não executa o fluxo.
+As páginas de operação renderizadas nativamente já vêm com um painel interativo **Try it**. O Blume gera o formulário a partir da própria operação. Cada parâmetro de caminho, de query e de header ganha um campo, o editor de corpo é montado a partir do schema do corpo da requisição e tudo vem pré-preenchido com os exemplos da especificação. Um seletor de servidor lista os servidores da operação (os `servers` dela, senão os do caminho dela, senão os da especificação, com cada `{variable}` no seu `default`) e inclui um campo de texto livre para qualquer outra URL base. Os campos de autenticação seguem a [segurança resolvida](#authorization) da operação: token bearer, chave de API e credenciais basic. Para OAuth2, há um campo onde você cola o token. Você precisa trazer um access token, porque o Blume não executa o fluxo.
 
 O painel e os exemplos de código andam juntos. Os valores digitados no formulário atualizam os exemplos gerados em tempo real, então um comando curl copiado sempre corresponde exatamente ao que o **Send** faria. E o painel não atrapalha: ele é renderizado no servidor já recolhido, e o JavaScript dele só carrega quando um leitor o abre pela primeira vez. Quem nunca mexe no painel não baixa nada disso.
 
@@ -86,7 +86,7 @@ As credenciais digitadas nos campos de autenticação ficam só na memória e so
 
 ### CORS e o proxy [#cors-and-the-proxy]
 
-Assim como em um [embed do Scalar](/docs/references/scalar), as requisições vão **direto do navegador** para a API de destino. Por isso, a API precisa permitir requisições cross-origin vindas do site de documentação (`Access-Control-Allow-Origin`). Se a API não permitir, defina `playground.proxy`. Com uma URL, as requisições passam por um proxy hospedado por você. Com `true`, você ativa a rota nativa `/_api-proxy`, que exige [saída de servidor](/docs/deployment#server-rendering), ou seja, um adaptador de hospedagem como `deployment: vercel()` de `blume/deploy`:
+Assim como em um [embed do Scalar](/docs/references/scalar), as requisições vão **direto do navegador** para a API de destino. Por isso, a API precisa permitir requisições cross-origin vindas do site de documentação (`Access-Control-Allow-Origin`). Se a API não permitir, defina `playground.proxy`. Com uma URL, as requisições passam por um proxy hospedado por você. Com `true`, você ativa a rota nativa `/_api-proxy` (em `{basePath}/_api-proxy` quando você define um [`basePath`](/docs/deployment#mount-the-docs-under-a-path)), que exige [saída de servidor](/docs/deployment#server-rendering), ou seja, um adaptador de hospedagem como `deployment: vercel()` de `blume/deploy`:
 
 ```ts blume.config.ts lineNumbers
 reference: [
@@ -99,7 +99,7 @@ reference: [
 ],
 ```
 
-O proxy nativo só encaminha requisições para as origens declaradas em `servers` nas suas especificações, inclusive quando segue redirecionamentos. Assim, uma documentação publicada não pode ser usada para acessar outros hosts da rede onde ela roda. Uma **Custom base URL** digitada no painel não conta como servidor documentado: com o proxy ativado, as requisições para ela são recusadas com um 403. O proxy lê o corpo da requisição só até 4 MB, e qualquer coisa maior recebe um `413`. Toda resposta repassada por ele carrega `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff` e `Cross-Origin-Resource-Policy: same-origin`, além de `Content-Disposition: attachment` para HTML ou SVG. Assim, uma página de erro da API que ecoa a entrada não consegue executar scripts na origem da documentação.
+O proxy nativo só encaminha requisições para as origens declaradas em `servers` nas suas especificações (no nível do documento, do caminho ou da operação, com as variáveis nos seus valores padrão), inclusive quando segue redirecionamentos. Assim, uma documentação publicada não pode ser usada para acessar outros hosts da rede onde ela roda. Uma **Custom base URL** digitada no painel não conta como servidor documentado: com o proxy ativado, as requisições para ela são recusadas com um 403. O proxy lê o corpo da requisição só até 4 MB, e qualquer coisa maior recebe um `413`. Toda resposta repassada por ele carrega `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff` e `Cross-Origin-Resource-Policy: same-origin`, além de `Content-Disposition: attachment` para HTML ou SVG. Assim, uma página de erro da API que ecoa a entrada não consegue executar scripts na origem da documentação.
 
 ## Várias especificações [#multiple-specs]
 

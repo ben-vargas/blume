@@ -1,7 +1,7 @@
 ---
 title: Analytics
 description: >-
-  Análises web próprias — PostHog, Google Analytics, Plausible, Mixpanel, Segment e mais uma dúzia — como adaptadores no blume.config.ts.
+  Análises web próprias — PostHog, Google Analytics, Plausible, Mixpanel, Segment e mais — como adaptadores no blume.config.ts.
 ---
 
 O Blume injeta as análises para você a partir de uma lista `analytics` no `blume.config.ts`. Cada entrada é um adaptador importado de `blume/analytics`: um por provedor, além do `script()` para qualquer um que não tenha adaptador.
@@ -39,6 +39,7 @@ Todo identificador abaixo — uma chave de projeto, um ID de medição, um token
 | `clarity()` | [Microsoft Clarity](#microsoft-clarity) | `id` |
 | `clearbit()` | [Clearbit](#clearbit) | `key` |
 | `cloudflare()` | [Cloudflare Web Analytics](#cloudflare-web-analytics) | `token` |
+| `databuddy()` | [Databuddy](#databuddy) | `clientId` |
 | `fathom()` | [Fathom](#fathom) | `site` |
 | `googleAnalytics()` | [Google Analytics 4](#google-analytics-4) | `id` |
 | `googleTagManager()` | [Google Tag Manager](#google-tag-manager) | `id` |
@@ -70,6 +71,8 @@ analytics: [
 ```
 
 `key` e `host` são as duas opções que o Blume mapeia (`host` vira `api_host`). Qualquer outra coisa que você passar — `persistence`, `capture_pageview`, `autocapture`, `disable_session_recording` e todas as outras opções do `posthog.init` — é repassada ao `posthog.init` sem alterações.
+
+O Blume só envia um `$pageview` a cada navegação do roteador do cliente enquanto o PostHog captura apenas os carregamentos de página, que é o comportamento dele quando você não define nem `capture_pageview` nem `defaults`. Com `capture_pageview: "history_change"`, ou com uma data em `defaults` como `"2025-05-24"`, que vem no snippet atual do PostHog, o próprio PostHog captura as navegações, então o Blume não envia nada extra. Com `capture_pageview: false`, nenhuma visualização de página é enviada.
 
 ## Vercel Web Analytics
 
@@ -172,6 +175,22 @@ analytics: [
 ```
 
 `code` vira `data-code`, e o Blume dá à tag o id `pianjs`, que o script do Pirsch usa para encontrar a si mesmo. Qualquer outra opção vira um atributo `data-` próprio (`dev`, `exclude`, `include`, `domain`, `endpoint`, …).
+
+## Databuddy
+
+Informe o seu **ID do cliente** (nas configurações do site no [Databuddy](https://databuddy.cc)) ao `databuddy()`.
+
+```ts blume.config.ts lineNumbers
+analytics: [
+  databuddy({
+    clientId: "xxxxxxxxxxxxxxxxxxxxx",
+    "track-web-vitals": "true", // optional: any other `data-` setting
+    "skip-patterns": '["/admin/*"]',
+  }),
+],
+```
+
+`clientId` vira `data-client-id`. Qualquer outra opção vira um atributo `data-` próprio na tag, então use o nome exatamente como o atributo é escrito, em kebab-case (`track-web-vitals`, `track-errors`, `track-outgoing-links`, `api-url`, …). O Databuddy ignora um nome em camelCase como `trackWebVitals`. Os valores são strings: `"true"` ou `"false"` para uma opção liga/desliga, e um array JSON para `skip-patterns` e `mask-patterns`. O Databuddy lê qualquer outro valor de lista como vazio.
 
 ## Mixpanel
 
@@ -352,6 +371,8 @@ analytics: [
 | `clearbit()` | `key` | — | Chave de API publicável do Clearbit. Obrigatória. |
 | `cloudflare()` | `token` | — | Token do site no Cloudflare Web Analytics (configuração manual). Obrigatória. |
 | `cloudflare()` | qualquer outra | — | Repassada no JSON `data-cf-beacon` do beacon sem alterações. |
+| `databuddy()` | `clientId` | — | ID do cliente no Databuddy. Obrigatória. |
+| `databuddy()` | qualquer outra | — | Renderizada como um atributo `data-` na tag. |
 | `fathom()` | `site` | — | ID do site no Fathom. Obrigatória. |
 | `fathom()` | `spa` | `"auto"` | Rastreamento de mudanças no histórico do Fathom (`data-spa`). |
 | `fathom()` | qualquer outra | — | Renderizada como um atributo `data-` na tag. |
@@ -390,4 +411,4 @@ analytics: [
 
 ## Eventos personalizados [#custom-events]
 
-O feedback de página do Blume envia um evento personalizado por meio de todo adaptador configurado que tenha uma API no cliente — PostHog, Mixpanel, Heap, Segment, Hightouch, Amplitude, LogRocket, Adobe, Google Analytics, Google Tag Manager (como um push de `{ event }` no `window.dataLayer`), Plausible, Fathom, Pirsch, Clarity, Hotjar e Vercel. A Cloudflare e o Clearbit não têm API de eventos. Todo evento também é disparado como um CustomEvent `blume:track` no `window`, com `{ event, props }` em `detail`, para que um adaptador `script()` possa repassá-lo para qualquer outro lugar. Para fazer o deploy do seu site já construído, veja [Deploy](/docs/deployment).
+O feedback de página do Blume envia um evento personalizado por meio de todo adaptador configurado que tenha uma API no cliente — PostHog, Mixpanel, Heap, Segment, Hightouch, Amplitude, LogRocket, Adobe, Google Analytics, Google Tag Manager (como um push de `{ event }` no `window.dataLayer`), Plausible, Databuddy, Fathom, Pirsch, Clarity, Hotjar e Vercel. A Cloudflare e o Clearbit não têm API de eventos. Todo evento também é disparado como um CustomEvent `blume:track` no `window`, com `{ event, props }` em `detail`, para que um adaptador `script()` possa repassá-lo para qualquer outro lugar. Para fazer o deploy do seu site já construído, veja [Deploy](/docs/deployment).

@@ -31,7 +31,7 @@ seo: {
 }
 ```
 
-Por padrão, cada card é derivado do seu conteúdo e do seu tema — o **título da página** como manchete, a **descrição da página** como subtítulo (o mesmo texto do seu `og:description`, então `seo.description` prevalece sobre `description`), o **título do site** como sobretítulo e o **accent** do seu tema para a marca. As imagens são servidas em `/og/<slug>.png`, espelhando cada rota, e são pré-renderizadas como arquivos estáticos mesmo no modo servidor:
+Por padrão, cada card é derivado do seu conteúdo e do seu tema — o **título da página** como manchete, a **descrição da página** como subtítulo (o mesmo texto do seu `og:description`, então `seo.description` prevalece sobre `description`) e o **accent** do seu tema para a marca, que mostra a inicial do **título do site** quando você não definiu um logo. As imagens são servidas em `/og/<slug>.png`, espelhando cada rota, e são pré-renderizadas como arquivos estáticos mesmo no modo servidor:
 
 | Rota da página   | URL da imagem           |
 | ---------------- | ----------------------- |
@@ -71,11 +71,13 @@ seo: {
 
 ## Fontes do card [#card-fonts]
 
-Por padrão, o card é renderizado com a fonte embutida do Takumi, que cobre apenas glifos latinos — um título em outra escrita (japonês, chinês, coreano, árabe, …) apareceria como tofu, quadradinhos vazios.
+Por padrão, o card é renderizado com a fonte embutida do Takumi, que cobre apenas glifos latinos básicos — só com ela, um título em outra escrita (japonês, chinês, coreano, árabe, hindi, russo, …) apareceria como tofu, quadradinhos vazios.
+
+**Seus [locales](/docs/content/i18n) cobrem as próprias escritas.** Para cada locale configurado cuja escrita a fonte embutida não consegue desenhar, o card adiciona uma família Google Noto como fallback: `Noto Sans JP` para `ja`, `Noto Sans Devanagari` para `hi`, `Noto Sans SC` ou `Noto Sans TC` para chinês, `Noto Sans` para cirílico, grego, vietnamita e latim com acentos, e assim por diante. O fallback é por glifo, então o texto latino mantém a fonte embutida e um card em inglês fica igual ao de um site de idioma único. Os fallbacks vêm do Google Fonts no build, o que exige acesso à rede, e um card busca só os subconjuntos de glifos que o texto dele usa. Eles se aplicam a menos que `og.fonts` esteja definido, que passa a controlar a lista inteira.
 
 **Defina [`theme.fonts`](/docs/configuration/theming#fonts) e o card acompanha.** Quando a sua configuração escolhe as próprias fontes, os cards gerados renderizam automaticamente a manchete na sua fonte de display e a descrição e o rodapé na sua fonte de corpo, então os links compartilhados combinam com o site — incluindo cobertura não latina, sem nada para configurar aqui. (Famílias de provedores que não sejam o Google são ignoradas — o renderizador do card só consegue buscar do Google Fonts —, mas arquivos de fonte locais funcionam.)
 
-Para usar nos cards fontes diferentes das do site, ou para adicionar cobertura de escritas sem mexer no tema, defina `og.fonts` explicitamente — ele sempre prevalece sobre as fontes derivadas do tema:
+Para usar nos cards fontes diferentes das do site, ou para adicionar cobertura de escritas sem mexer no tema, defina `og.fonts` explicitamente — ele sempre prevalece sobre as fontes derivadas do tema e os fallbacks dos locales:
 
 ```ts blume.config.ts lineNumbers
 seo: {
@@ -93,7 +95,7 @@ Cada entrada é um nome de família do Google Fonts, um objeto fixando seu `weig
 
 As famílias do Google são buscadas no build — então um build que as usa precisa de acesso à rede — e o renderizador só baixa os subconjuntos de glifos que cada título realmente usa. O fallback é por glifo, então adicionar uma família só afeta os glifos que as outras fontes não conseguem desenhar.
 
-Um `og.fonts: []` explícito desativa tudo: os cards mantêm a fonte embutida mesmo com `theme.fonts` definido.
+Um `og.fonts: []` explícito desativa tudo: os cards mantêm a fonte embutida mesmo com `theme.fonts` definido ou quando a escrita de um locale precisa de fallback.
 
 ## Cache dos cards [#card-cache]
 
