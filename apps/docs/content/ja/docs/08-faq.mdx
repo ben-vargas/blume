@@ -45,7 +45,7 @@ Blume は第三の道を選びます: **フレームワークがテンプレー�
 
 ## React コンポーネントや MDX は使えますか？ [#can-i-use-react-components-and-mdx]
 
-はい。どのページも `.md` でも `.mdx` でも構いません。MDX なら、インポートなしで[組み込みコンポーネント](/docs/content/components)を挿入できます。独自の `.tsx`/`.jsx` [アイランド](/docs/content/islands)を追加することもできます — Blume はそれらを使うページでのみ React を自動的に有効化するので、他のすべての場所でコアテーマは JavaScript フリーのままです。
+はい。どのページも `.md` でも `.mdx` でも構いません。MDX なら、インポートなしで[組み込みコンポーネント](/docs/content/components)を挿入できます。独自の `.tsx`/`.jsx` [アイランド](/docs/content/islands)を追加することもできます。Blume が React を有効化するのは、プロジェクトが React を使っている場合だけです — プロジェクト内の `.tsx` または `.jsx` ファイル（アイランドを含む）、React の [`<Component>`](/docs/content/components#component) の例、[コンポーネントのオーバーライド](/docs/configuration/customization)、または[アシスタント](/docs/configuration/assistant)のいずれかです — そのため、これらをどれも使っていないサイトはフレームワークの JavaScript を一切配信しません。
 
 ## どこにデプロイできますか？ [#where-can-i-deploy-it]
 

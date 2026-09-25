@@ -63,7 +63,7 @@ Link: </.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+j
   </index.md>; rel="alternate"; type="text/markdown"
 ```
 
-各エントリは、その機能が有効な場合にのみ現れます。`alternate` リンクはホームページの Markdown ミラーを指します — ホームルートがコンテンツページの場合はそのページ自身の[生の Markdown](/docs/discoverability/markdown)、ランディングページの場合は合成された `llms.txt` フォールバックです。`service-desc` リンク（[RFC 8631](https://www.rfc-editor.org/rfc/rfc8631)）は [JSON API](/docs/discoverability/json-api) の OpenAPI 記述を、`api-catalog` は[生成された API カタログ](#api-catalog)を、`ai-catalog` は [AI カタログ](#ai-catalog)を指します。このヘッダーは Blume が制御するすべてのサーフェスに載ります: 開発サーバー（`curl -I localhost:4321` で確認できます）、出力される `_headers` ファイル経由の静的ビルド（Netlify と Cloudflare）、そしてデプロイのルーティングルール経由の Vercel サーバービルドです。
+各エントリは、その機能が有効な場合にのみ現れます。`alternate` リンクはホームページの Markdown ミラーを指します — ホームルートがコンテンツページの場合はそのページ自身の[生の Markdown](/docs/discoverability/markdown)、ランディングページの場合は合成された `llms.txt` フォールバックです。`service-desc` リンク（[RFC 8631](https://www.rfc-editor.org/rfc/rfc8631)）は [JSON API](/docs/discoverability/json-api) の OpenAPI 記述を、`api-catalog` は[生成された API カタログ](#api-catalog)を、`ai-catalog` は [AI カタログ](#ai-catalog)を指します。このヘッダーは Blume が制御するすべてのサーフェスに載ります: 出力される `_headers` ファイル経由の静的ビルド（Netlify と Cloudflare）、デプロイのルーティングルール経由の Vercel サーバービルド、そして開発サーバー（`curl -I localhost:4321` で確認できます）です。開発サーバーのヘッダーには、開発サーバー自身が配信するもの — `service-desc` と `alternate` リンク — だけが列挙されます。カタログ、`agent-readability.json`、`llms.txt` は `blume build` がビルド出力に書き出すものだからです。
 
 とはいえ、すべてのエージェントがルートから入ってくるわけではありません — 検索結果や共有リンクをたどるエージェントは深い階層のページに着地し、ホームページのヘッダーを目にすることはありません。そのため、レンダリングされるすべてのページも、同じ IANA 登録済みリレーションを使って、HTML の `<head>` に同じ検出リンクを含めます:
 

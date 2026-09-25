@@ -84,7 +84,23 @@ Tudo o que a auditoria não executou é reportado como ignorado, em vez de passa
 
 ## Catálogo de verificações [#check-catalog]
 
-Todas as verificações que `blume audit` pode reportar, agrupadas por categoria, com a severidade padrão, o nível em que rodam e a correção que o relatório sugere. `--only` e `--skip` aceitam esses ids (sem o prefixo `BLUME_AUDIT_` também funciona) ou os nomes das categorias.
+Todas as verificações que `blume audit` pode reportar, agrupadas por categoria, com a severidade padrão, o nível em que rodam e a correção que o relatório sugere. `--only` e `--skip` aceitam esses ids (sem o prefixo `BLUME_AUDIT_` também funciona) ou a chave de uma categoria. A chave nem sempre é igual ao heading da categoria, então use esta tabela: `blume audit --only i18n`, e não `--only Internationalization`.
+
+| Categoria           | Chave             |
+| ------------------- | ----------------- |
+| Conteúdo            | `content`         |
+| Duplicados          | `duplicates`      |
+| Indexabilidade      | `indexability`    |
+| Links               | `links`           |
+| Redirecionamentos   | `redirects`       |
+| Cards sociais       | `social`          |
+| Internacionalização | `i18n`            |
+| Assets              | `assets`          |
+| Sitemap             | `sitemap`         |
+| robots.txt          | `robots`          |
+| Descoberta por IA   | `ai`              |
+| Dados estruturados  | `structured-data` |
+| Deploy ao vivo      | `network`         |
 
 ### Conteúdo [#content]
 

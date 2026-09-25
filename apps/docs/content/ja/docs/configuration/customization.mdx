@@ -191,4 +191,6 @@ npx blume eject --yes
 
 ### イジェクトで維持されるもの [#what-eject-keeps]
 
+隠れたランタイムがページとして提供していたルートはアプリの `src/pages` に書き出されるため、同じ URL に応答します: 各ページに対応する Markdown 版、`/404.md` と `/404.json` の対応版を備えた [404 ページ](/docs/advanced/custom-pages#404-page)、ホスト型 MCP サーバー、そして `llms.txt` と Not Found ページがエージェントに案内する `/api/docs/…` および `/openapi.json` の [JSON ドキュメント API](/docs/discoverability/json-api) です。
+
 イジェクトされたアプリの `build` スクリプトは素の `astro build` を実行しますが、`blume build` が上に重ねていた成果物 — 検索インデックス（およびホスト型プロバイダーのインデックス同期）、`llms.txt` と `llms-full.txt`、`sitemap.xml`、`robots.txt`、`agent-readability.json`、`.well-known` ディスカバリーファイル、Agent Skills、プラットフォームの `_redirects`／`_headers` ファイル — は引き続き生成されます。イジェクトされた `astro.config.mjs` 内の Blume インテグレーションが、CLI と同じようにプロジェクト（`blume.config.ts` とコンテンツ）をスキャンし、Astro の `astro:build:done` フックからそれらを書き出します。イジェクトされたビルドで行われないのは、CLI のアダプター後処理です: Vercel と Cloudflare の `Accept: text/markdown` ルーティングの差し込み、Vercel の関数バンドル監査、`node()` のサーバーエントリラッパー（`.well-known` ディスカバリーファイルのメディアタイプと CORS ヘッダー、ダウンロードされる SVG のサンドボックス、各リダイレクトの正確なステータス）、`netlify()` のサーバービルドが `.netlify/v1/config.json` に書き込むヘッダールール、Cloudflare の Worker の命名（プロジェクト名にちなむ）とプロジェクトルートから `wrangler deploy` を実行するための `.wrangler/deploy` リダイレクト、そして `--analyze`／`--budget-*` ゲートです。

@@ -46,7 +46,7 @@ Blume एक तीसरा रास्ता अपनाता है: **फ
 
 ## क्या मैं React कंपोनेंट्स और MDX का उपयोग कर सकता हूँ? [#can-i-use-react-components-and-mdx]
 
-हाँ। कोई भी पेज `.md` या `.mdx` हो सकता है, और MDX आपको बिना किसी import के [बिल्ट-इन कंपोनेंट्स](/docs/content/components) डालने देता है। आप अपने खुद के `.tsx`/`.jsx` [आइलैंड्स](/docs/content/islands) भी जोड़ सकते हैं — Blume केवल उन्हीं पेजों के लिए React को स्वतः सक्षम करता है जो उनका उपयोग करते हैं, इसलिए कोर थीम बाकी हर जगह JavaScript-मुक्त रहती है।
+हाँ। कोई भी पेज `.md` या `.mdx` हो सकता है, और MDX आपको बिना किसी import के [बिल्ट-इन कंपोनेंट्स](/docs/content/components) डालने देता है। आप अपने खुद के `.tsx`/`.jsx` [आइलैंड्स](/docs/content/islands) भी जोड़ सकते हैं। Blume React को केवल तभी सक्षम करता है जब आपका प्रोजेक्ट उसका उपयोग करता है — प्रोजेक्ट में कोई भी `.tsx` या `.jsx` फ़ाइल (आपके आइलैंड्स सहित), कोई React [`<Component>`](/docs/content/components#component) उदाहरण, कोई [कंपोनेंट ओवरराइड](/docs/configuration/customization), या [असिस्टेंट](/docs/configuration/assistant) — इसलिए जिस साइट में इनमें से कुछ भी नहीं है, वह कोई फ़्रेमवर्क JavaScript नहीं भेजती।
 
 ## मैं इसे कहाँ डिप्लॉय कर सकता हूँ? [#where-can-i-deploy-it]
 

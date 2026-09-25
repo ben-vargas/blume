@@ -46,7 +46,7 @@ Nein. Ein Ordner mit Markdown ist eine vollständige Website — Navigation, Suc
 
 ## Kann ich React-Komponenten und MDX verwenden? [#can-i-use-react-components-and-mdx]
 
-Ja. Jede Seite kann `.md` oder `.mdx` sein, und mit MDX kannst du die [eingebauten Komponenten](/docs/content/components) ohne Importe einfügen. Du kannst auch eigene `.tsx`/`.jsx`-[Islands](/docs/content/islands) hinzufügen — Blume aktiviert React automatisch nur für die Seiten, die sie nutzen, sodass das Kern-Theme überall sonst frei von JavaScript bleibt.
+Ja. Jede Seite kann `.md` oder `.mdx` sein, und mit MDX kannst du die [eingebauten Komponenten](/docs/content/components) ohne Importe einfügen. Du kannst auch eigene `.tsx`/`.jsx`-[Islands](/docs/content/islands) hinzufügen. Blume schaltet React nur ein, wenn dein Projekt es nutzt — eine beliebige `.tsx`- oder `.jsx`-Datei im Projekt (deine Islands eingeschlossen), ein React-[`<Component>`](/docs/content/components#component)-Beispiel, ein [Komponenten-Override](/docs/configuration/customization) oder der [Assistent](/docs/configuration/assistant) —, sodass eine Website ohne all das kein Framework-JavaScript ausliefert.
 
 ## Wo kann ich es veröffentlichen? [#where-can-i-deploy-it]
 

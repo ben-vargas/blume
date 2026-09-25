@@ -68,6 +68,8 @@ deployment: {
 
 `base` (e `site`) também são opções de todos os adaptadores de host: `vercel({ base: "/docs" })`.
 
+Cada página mantém seu próprio caminho sob a base, mesmo em uma pasta de conteúdo que tenha o mesmo nome da base: com `base: "/docs"`, `docs/setup.md` é servido em `/docs/docs/setup`, e sua URL canônica, seu link na barra lateral e sua entrada no `llms.txt` apontam para lá. Um link relativo à raiz que você escreve e que já começa com a base é considerado como já incluindo-a e fica como foi escrito, então crie o link para essa página com um link relativo (`./docs/setup`) ou com o caminho completo (`/docs/docs/setup`).
+
 ## Monte a documentação sob um caminho [#mount-the-docs-under-a-path]
 
 `basePath` monta todas as rotas geradas sob um segmento (`/docs/getting-started`) sem alterar a barra lateral — o nível superior são suas seções, não um grupo envoltório. Use-o quando a documentação fica em `/docs/*` mas a raiz do site continua sendo sua (como o `routeBasePath` do Docusaurus ou o `baseUrl` do Fumadocs).
@@ -76,7 +78,7 @@ deployment: {
 basePath: "/docs",
 ```
 
-Escreva os links como se estivessem montados na raiz (`/getting-started`); o Blume os reescreve, junto com os redirecionamentos, o sitemap, as URLs canônicas, as imagens Open Graph, o `llms.txt` e o índice de busca. Os recursos públicos (imagens, arquivos em `public/`) permanecem na raiz do site.
+Escreva os links como se estivessem montados na raiz (`/getting-started`); o Blume os reescreve, junto com os redirecionamentos, o sitemap, as URLs canônicas, as imagens Open Graph, o `llms.txt` e o índice de busca. Os recursos públicos (imagens, arquivos em `public/`) permanecem na raiz do site, ou sob [`base`](#subpath-deploys), quando você define uma.
 
 Este é um conceito distinto dos dois caminhos acima:
 
@@ -155,7 +157,7 @@ Dois hosts precisam de mais do que o arquivo:
 :::
 
 :::note
-Escreva tanto `from` quanto `to` como se estivessem montados na raiz, começando com `/` (`to` também pode ser uma URL `https://` completa) — tanto sob [`base`](#subpath-deploys) quanto sob [`basePath`](#mount-the-docs-under-a-path), o Blume reescreve os dois lados para você, de modo que o redirecionamento fica dentro da base. Uma base que você já tenha escrito manualmente em `to` é preservada, e não duplicada.
+Escreva tanto `from` quanto `to` como se estivessem montados na raiz, começando com `/` (`to` também pode ser uma URL `https://` completa) — tanto sob [`base`](#subpath-deploys) quanto sob [`basePath`](#mount-the-docs-under-a-path), o Blume reescreve os dois lados para você, de modo que o redirecionamento fica dentro da base. Um `to` que aponta para um arquivo em `public/` (`/files/guide.pdf`) recebe `base`, mas não `basePath`, já que é lá que o arquivo é servido. Uma base que você já tenha escrito manualmente em `to` é preservada, e não duplicada.
 :::
 
 ## Tipos de conteúdo [#content-types]

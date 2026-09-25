@@ -30,7 +30,7 @@ navigation: {
 ```
 
 :::note
-As operações são indexadas para busca pelo **resumo e pela tag**. As tabelas de schema e os exemplos de código renderizados não passam por indexação de texto completo. A busca encontra o título e a seção de uma operação e depois leva você à página dela.
+As operações são indexadas para busca pelo **resumo, pela descrição, pela tag e pelo endpoint** (`GET /pets/{id}`). As tabelas de schema e os exemplos de código renderizados não passam por indexação de texto completo. A busca encontra o título, a prosa, a seção e o caminho de uma operação e depois leva você à página dela.
 :::
 
 ## Uma especificação local [#a-local-spec]
@@ -70,9 +70,11 @@ reference: [
 
 ## Playground Try it [#try-it-playground]
 
-As páginas de operação renderizadas nativamente já vêm com um painel interativo **Try it**. O Blume gera o formulário a partir da própria operação. Cada parâmetro de caminho, de query e de header ganha um campo, o editor de corpo é montado a partir do schema do corpo da requisição e tudo vem pré-preenchido com os exemplos da especificação. Um seletor de servidor lista os servidores da operação (os `servers` dela, senão os do caminho dela, senão os da especificação, com cada `{variable}` no seu `default`) e inclui um campo de texto livre para qualquer outra URL base. Os campos de autenticação seguem a [segurança resolvida](#authorization) da operação: token bearer, chave de API e credenciais basic. Para OAuth2, há um campo onde você cola o token. Você precisa trazer um access token, porque o Blume não executa o fluxo.
+As páginas de operação renderizadas nativamente já vêm com um painel interativo **Try it**. O Blume gera o formulário a partir da própria operação. Cada parâmetro de caminho, de query e de header ganha um campo, o editor de corpo é montado a partir do schema do corpo da requisição e tudo vem pré-preenchido com os exemplos da especificação. Os valores são enviados do jeito que a especificação descreve: parâmetros de array e de objeto seguem o `style` e o `explode` deles (`tags=dog&tags=cat` em uma query, `1,2` em um caminho, `filter[color]=red` para `deepObject`), e um corpo `application/x-www-form-urlencoded` ou `multipart/form-data` é enviado como campos de formulário, e não como JSON. Um seletor de servidor lista os servidores da operação (os `servers` dela, senão os do caminho dela, senão os da especificação, com cada `{variable}` no seu `default`) e inclui um campo de texto livre para qualquer outra URL base. Os campos de autenticação seguem a [segurança resolvida](#authorization) da operação: token bearer, chave de API e credenciais basic. Para OAuth2, há um campo onde você cola o token. Você precisa trazer um access token, porque o Blume não executa o fluxo.
 
 O painel e os exemplos de código andam juntos. Os valores digitados no formulário atualizam os exemplos gerados em tempo real, então um comando curl copiado sempre corresponde exatamente ao que o **Send** faria. E o painel não atrapalha: ele é renderizado no servidor já recolhido, e o JavaScript dele só carrega quando um leitor o abre pela primeira vez. Quem nunca mexe no painel não baixa nada disso.
+
+O único método que um navegador não consegue enviar é o `TRACE`, porque o `fetch` se recusa a enviá-lo. Por isso, em uma operação `trace`, o **Send** avisa isso em vez de enviar a requisição, e o exemplo em JavaScript (feito com `fetch`) vira uma nota em vez de código. Os exemplos em cURL e Python enviam normalmente.
 
 Para desligar tudo, basta usar `playground: false`:
 
@@ -99,7 +101,7 @@ reference: [
 ],
 ```
 
-O proxy nativo só encaminha requisições para as origens declaradas em `servers` nas suas especificações (no nível do documento, do caminho ou da operação, com as variáveis nos seus valores padrão), inclusive quando segue redirecionamentos. Assim, uma documentação publicada não pode ser usada para acessar outros hosts da rede onde ela roda. Uma **Custom base URL** digitada no painel não conta como servidor documentado: com o proxy ativado, as requisições para ela são recusadas com um 403. O proxy lê o corpo da requisição só até 4 MB, e qualquer coisa maior recebe um `413`. Toda resposta repassada por ele carrega `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff` e `Cross-Origin-Resource-Policy: same-origin`, além de `Content-Disposition: attachment` para HTML ou SVG. Assim, uma página de erro da API que ecoa a entrada não consegue executar scripts na origem da documentação.
+O proxy nativo só encaminha requisições para as origens declaradas em `servers` nas suas especificações (no nível do documento, do caminho ou da operação, com as variáveis nos seus valores padrão), inclusive quando segue redirecionamentos. Assim, uma documentação publicada não pode ser usada para acessar outros hosts da rede onde ela roda. Uma **Custom base URL** digitada no painel não conta como servidor documentado: com o proxy ativado, as requisições para ela são recusadas com um 403. O proxy só encaminha os headers que o próprio painel define (as credenciais e os parâmetros de header preenchidos, além do `Content-Type` do corpo). Assim, cookies, credenciais que o navegador anexa para o site de documentação (como a autenticação HTTP Basic de um preview protegido por senha) e headers adicionados pela sua hospedagem (`X-Forwarded-For`, `CF-*`, `X-Vercel-*`) nunca chegam à API. O proxy lê o corpo da requisição só até 4 MB, e qualquer coisa maior recebe um `413`. Toda resposta repassada por ele carrega `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff` e `Cross-Origin-Resource-Policy: same-origin`, além de `Content-Disposition: attachment` para HTML ou SVG. Assim, uma página de erro da API que ecoa a entrada não consegue executar scripts na origem da documentação.
 
 ## Várias especificações [#multiple-specs]
 

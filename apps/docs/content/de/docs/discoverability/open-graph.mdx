@@ -73,11 +73,13 @@ seo: {
 
 Standardmäßig wird die Card in Takumis eingebauter Schrift gerendert, die nur grundlegende lateinische Glyphen abdeckt — für sich allein würde ein Titel in einem anderen Schriftsystem (Japanisch, Chinesisch, Koreanisch, Arabisch, Hindi, Russisch, …) als Tofu erscheinen, also als leere Kästchen.
 
-**Deine [Locales](/docs/content/i18n) decken ihre eigenen Schriftsysteme ab.** Für jede konfigurierte Locale, deren Schriftsystem die eingebaute Schrift nicht zeichnen kann, fügt die Card eine Google-Noto-Familie als Fallback hinzu: `Noto Sans JP` für `ja`, `Noto Sans Devanagari` für `hi`, `Noto Sans SC` oder `Noto Sans TC` für Chinesisch, `Noto Sans` für Kyrillisch, Griechisch, Vietnamesisch und Latein mit Akzenten und so weiter. Der Fallback greift pro Glyphe, lateinischer Text behält also die eingebaute Schrift, und eine englische Card sieht genauso aus wie auf einer einsprachigen Site. Die Fallbacks werden beim Build von Google Fonts geladen, was Netzwerkzugriff erfordert, und eine Card holt nur die Glyphen-Subsets, die ihr Text verwendet. Sie gelten, solange `og.fonts` nicht gesetzt ist — das übernimmt dann die gesamte Liste.
+**Jedes Schriftsystem ist standardmäßig abgedeckt.** Hinter der eingebauten Schrift tragen Cards einen Fallback-Stack aus Google-Noto-Familien, eine pro Schriftsystem: `Noto Sans` für Kyrillisch, Griechisch, Vietnamesisch und Latein mit Akzenten, dann `Noto Sans JP`, `Noto Sans Arabic`, `Noto Sans Devanagari` und so weiter. Ein Titel auf Japanisch oder Hindi wird gerendert, ohne dass du etwas konfigurieren musst, selbst auf einer Site ohne [Locales](/docs/content/i18n). Der Fallback greift pro Glyphe, lateinischer Text behält also die eingebaute Schrift. Eine Card lädt nur dann von Google Fonts, wenn ihr Text eine Glyphe enthält, die die eingebaute Schrift nicht zeichnen kann, und dann auch nur die Subsets, die diese Glyphen brauchen: Eine englische Card lädt gar nichts, eine rein lateinische Site lässt sich also weiterhin offline bauen. Der Stack gilt, solange `og.fonts` nicht gesetzt ist — das übernimmt dann die gesamte Liste.
+
+Chinesisch, Japanisch und Koreanisch teilen sich die meisten Han-Schriftzeichen, zeichnen einige davon aber unterschiedlich, und Cards verwenden standardmäßig die japanischen Formen. Jede konfigurierte Locale rückt ihre eigene Familie nach vorne, sodass eine Site mit einer `zh`-Locale Han-Zeichen in vereinfachten chinesischen Formen zeichnet und mit `zh-Hant` oder `zh-TW` in traditionellen.
 
 **Setze [`theme.fonts`](/docs/configuration/theming#fonts), und die Card folgt dem.** Wenn deine Config eigene Schriften wählt, rendern die generierten Cards die Überschrift automatisch in deiner Display-Schrift und Beschreibung sowie Fußzeile in deiner Body-Schrift, sodass geteilte Links zur Site passen — inklusive nicht-lateinischer Abdeckung, ganz ohne hier etwas zu konfigurieren. (Familien von anderen Anbietern als Google werden übersprungen — der Card-Renderer kann nur von Google Fonts laden — lokale Schriftdateien funktionieren aber.)
 
-Um auf Cards andere Schriften als auf der Site zu verwenden oder um zusätzliche Schriftsysteme abzudecken, ohne das Theme anzufassen, setze `og.fonts` explizit — es sticht immer die aus dem Theme abgeleiteten Schriften und die Locale-Fallbacks:
+Um auf Cards andere Schriften als auf der Site zu verwenden, setze `og.fonts` explizit. Es sticht immer die aus dem Theme abgeleiteten Schriften und ersetzt die Schriftsystem-Fallbacks, führe also jede Familie auf, die deine Cards brauchen:
 
 ```ts blume.config.ts lineNumbers
 seo: {
@@ -95,7 +97,7 @@ Jeder Eintrag ist ein Google-Fonts-Familienname, ein Objekt, das dessen `weight`
 
 Google-Familien werden beim Build geladen — ein Build, der sie verwendet, braucht also Netzwerkzugriff — und der Renderer holt nur die Glyphen-Subsets, die jeder Titel tatsächlich verwendet. Der Fallback greift pro Glyphe, das Hinzufügen einer Familie betrifft also nur Glyphen, die die anderen Schriften nicht zeichnen können.
 
-Ein explizites `og.fonts: []` deaktiviert das komplett: Cards behalten die eingebaute Schrift, selbst wenn `theme.fonts` gesetzt ist oder das Schriftsystem einer Locale einen Fallback bräuchte.
+Ein explizites `og.fonts: []` deaktiviert das komplett: Cards behalten die eingebaute Schrift, selbst wenn `theme.fonts` gesetzt ist oder ein Titel einen Schriftsystem-Fallback bräuchte.
 
 ## Card-Cache [#card-cache]
 

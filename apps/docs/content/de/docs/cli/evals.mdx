@@ -100,9 +100,9 @@ Das schreibt den vollständigen JSON-Report in eine Datei und öffnet den Agente
 ## Flags
 
 - `--agent codex|claude` – welche Agent-CLI den Reader und den Judge ausführt. Standardmäßig `codex`.
-- `--file <path>` – die Evals-Datei. Standardmäßig `evals.yaml`.
-- `--threshold <0..1>` – Mindestanteil bestandener Fragen. Liegt der Anteil darunter, endet der Lauf mit einem Exit-Code ungleich null; Fehlschläge bei Fragen mit `severity: warning` zählen dabei als bestanden. Standardmäßig `1`.
-- `--timeout <seconds>` – Zeitlimit des Readers pro Frage. Standardmäßig `180`.
+- `--file <path>` – die Evals-Datei, relativ zum Stammverzeichnis des Projekts oder als absoluter Pfad. Standardmäßig `evals.yaml`.
+- `--threshold <0..1>` – Mindestanteil bestandener Fragen. Liegt der Anteil darunter, endet der Lauf mit einem Exit-Code ungleich null; Fehlschläge bei Fragen mit `severity: warning` zählen dabei als bestanden. Standardmäßig `1`. Ein leerer Wert ist ein Fehler, sodass `--threshold "$EVAL_THRESHOLD"` bei nicht gesetzter Variable die Hürde nicht abschalten kann.
+- `--timeout <seconds>` – Zeitlimit des Readers pro Frage. Standardmäßig `180` und höchstens `2147483` (etwa 24 Tage) – länger kann ein Timer nicht warten.
 - `--json` – gibt den Report als JSON auf stdout aus.
 - `--fix` – übergibt nach einem fehlgeschlagenen Lauf den Report an den Agenten, der die Doku dann interaktiv korrigiert.
 - `--verbose` – zeigt unter jedem Fehlschlag die vollständige Antwort des Readers an.

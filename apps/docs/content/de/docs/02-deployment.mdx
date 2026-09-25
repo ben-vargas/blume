@@ -68,6 +68,8 @@ deployment: {
 
 `base` (und `site`) sind auch Optionen jedes Host-Adapters: `vercel({ base: "/docs" })`.
 
+Jede Seite behält ihren eigenen Pfad unter der Basis, selbst in einem Inhaltsordner, der denselben Namen wie die Basis trägt: Mit `base: "/docs"` wird `docs/setup.md` unter `/docs/docs/setup` ausgeliefert, und ihre kanonische URL, ihr Seitenleisten-Link und ihr `llms.txt`-Eintrag verweisen dorthin. Ein wurzelrelativer Link, den du schreibst und der bereits mit der Basis beginnt, gilt als Link, der die Basis schon enthält, und bleibt unverändert — verlinke diese Seite also mit einem relativen Link (`./docs/setup`) oder ihrem vollständigen Pfad (`/docs/docs/setup`).
+
 ## Die Dokumentation unter einem Pfad einhängen [#mount-the-docs-under-a-path]
 
 `basePath` hängt jede generierte Route unter ein Segment (`/docs/getting-started`), lässt die Seitenleiste dabei aber unverändert — die oberste Ebene sind deine Abschnitte, keine umschließende Gruppe. Verwende es, wenn die Dokumentation unter `/docs/*` liegt, die Site-Wurzel aber dir gehört (wie `routeBasePath` bei Docusaurus oder `baseUrl` bei Fumadocs).
@@ -76,7 +78,7 @@ deployment: {
 basePath: "/docs",
 ```
 
-Schreibe Links so, als wären sie an der Wurzel eingehängt (`/getting-started`); Blume schreibt sie um — ebenso Weiterleitungen, die Sitemap, kanonische URLs, Open-Graph-Bilder, `llms.txt` und den Suchindex. Öffentliche Assets (Bilder, Dateien unter `public/`) bleiben an der Site-Wurzel.
+Schreibe Links so, als wären sie an der Wurzel eingehängt (`/getting-started`); Blume schreibt sie um — ebenso Weiterleitungen, die Sitemap, kanonische URLs, Open-Graph-Bilder, `llms.txt` und den Suchindex. Öffentliche Assets (Bilder, Dateien unter `public/`) bleiben an der Site-Wurzel bzw. unter [`base`](#subpath-deploys), wenn du eine Basis festlegst.
 
 Dies ist ein anderes Konzept als die beiden obigen Pfade:
 
@@ -155,7 +157,7 @@ Zwei Hosts benötigen mehr als die Datei:
 :::
 
 :::note
-Schreibe sowohl `from` als auch `to` so, als wären sie an der Wurzel eingehängt, beginnend mit `/` (`to` kann auch eine vollständige `https://`-URL sein) — sowohl unter [`base`](#subpath-deploys) als auch unter [`basePath`](#mount-the-docs-under-a-path) schreibt Blume beide Seiten für dich um, sodass eine Weiterleitung innerhalb der Basis landet. Eine Basis, die du bereits von Hand in `to` geschrieben hast, bleibt erhalten und wird nicht verdoppelt.
+Schreibe sowohl `from` als auch `to` so, als wären sie an der Wurzel eingehängt, beginnend mit `/` (`to` kann auch eine vollständige `https://`-URL sein) — sowohl unter [`base`](#subpath-deploys) als auch unter [`basePath`](#mount-the-docs-under-a-path) schreibt Blume beide Seiten für dich um, sodass eine Weiterleitung innerhalb der Basis landet. Ein `to`, das auf eine Datei in `public/` verweist (`/files/guide.pdf`), erhält `base`, aber nicht `basePath`, da die Datei dort ausgeliefert wird. Eine Basis, die du bereits von Hand in `to` geschrieben hast, bleibt erhalten und wird nicht verdoppelt.
 :::
 
 ## Inhaltstypen [#content-types]

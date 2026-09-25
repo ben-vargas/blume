@@ -43,6 +43,8 @@ docs/
 | `docs/guides/quickstart.mdx`    | `/guides/quickstart`    |
 | `docs/fr/guides/quickstart.mdx` | `/fr/guides/quickstart` |
 
+デフォルトロケールには専用のフォルダーを作らないでください: ロケールフォルダーとして扱われるのはそれ以外のコードだけなので、デフォルトが `en` の場合の `docs/en/` は通常のコンテンツとなり、`/en/…` で公開されます(さらにフランス語のフォールバックとして `/fr/en/…` でも公開されます)。Blume はそのようなフォルダーを見つけると警告します。
+
 翻訳したいファイルだけを翻訳すれば十分です — それ以外は自動的にフォールバックします([フォールバック](#fallbacks)を参照)。
 
 ### ファイル名のサフィックス [#filename-suffixes]

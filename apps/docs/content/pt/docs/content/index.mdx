@@ -30,6 +30,8 @@ Cada arquivo corresponde a uma rota pelo seu caminho na raiz de conteúdo:
 
 Pastas aninhadas se tornam rotas aninhadas, e um `index.mdx` dentro de uma pasta se torna a página da própria pasta.
 
+Caracteres que quebrariam a URL de uma página — `#`, `?`, `%` e `:` — são removidos da rota dela, então `100%.mdx` é publicado em `/100`. Não use `#` nem `?` em nomes de arquivos e pastas: o carregador de conteúdo do Astro não consegue ler um arquivo assim, então o Blume reporta isso como um erro e deixa o arquivo de fora do site. Renomeie `sdks/c#.mdx` para `sdks/c.mdx` e ele é publicado em `/sdks/c`, a mesma rota que ele teria de qualquer forma depois que os caracteres fossem removidos.
+
 ## Ordenação com prefixos numéricos [#ordering-with-numeric-prefixes]
 
 Prefixe um arquivo ou pasta com um número e um `-`, `_` ou `.` para controlar a ordem dele na barra lateral. O prefixo é removido da URL, então você pode reordenar páginas sem quebrar links:
@@ -51,7 +53,7 @@ Coloque o nome de uma pasta entre parênteses para agrupar as páginas dela na b
 docs/(internal)/security.mdx  ->  /security
 ```
 
-As páginas compartilham um grupo “Internal” na barra lateral, mas mantêm URLs planas e sem parênteses.
+As páginas compartilham um grupo “Internal” na barra lateral, mas mantêm URLs planas e sem parênteses. Uma pasta de agrupamento aceita um [prefixo numérico](#ordering-with-numeric-prefixes) como qualquer outra pasta, dentro ou fora dos parênteses: `(01-internal)` e `01-(internal)` aparecem primeiro na ordenação e geram a mesma rota que `(internal)`.
 
 ## Rascunhos [#drafts]
 
@@ -85,7 +87,7 @@ O tipo independe de onde o arquivo fica, mas, por convenção, os posts de blog 
 
 ## Feeds
 
-O Blume gera um feed RSS automaticamente para cada tipo de conteúdo listado em [`rss.types`](/docs/discoverability/rss) — `blog` e `changelog` por padrão — desde que ele tenha pelo menos uma página. Os feeds são servidos em `/<type>/rss.xml`:
+O Blume gera um feed RSS automaticamente para cada tipo de conteúdo listado em [`seo.rss.types`](/docs/discoverability/rss) — `blog` e `changelog` por padrão — desde que ele tenha pelo menos uma página. Os feeds são servidos em `/<type>/rss.xml`:
 
 | Tipo        | Feed                 |
 | ----------- | -------------------- |

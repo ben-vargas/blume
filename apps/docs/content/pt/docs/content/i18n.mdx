@@ -44,6 +44,8 @@ docs/
 | `docs/guides/quickstart.mdx`    | `/guides/quickstart`    |
 | `docs/fr/guides/quickstart.mdx` | `/fr/guides/quickstart` |
 
+Não dê ao locale padrão uma pasta própria: apenas os outros códigos são pastas de locale, então `docs/en/` com `en` como padrão é conteúdo comum, publicado em `/en/…` (e em `/fr/en/…` como fallback em francês). O Blume emite um aviso quando encontra uma pasta assim.
+
 Você traduz apenas os arquivos que quiser — todo o resto recorre automaticamente ao fallback (veja [Fallbacks](#fallbacks)).
 
 ### Sufixos de nome de arquivo [#filename-suffixes]

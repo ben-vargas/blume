@@ -30,6 +30,8 @@ Jede Datei wird anhand ihres Pfads unterhalb des Content-Roots auf eine Route ab
 
 Verschachtelte Ordner werden zu verschachtelten Routen, und eine `index.mdx` in einem Ordner wird zur eigenen Seite dieses Ordners.
 
+Zeichen, die die URL einer Seite kaputt machen würden — `#`, `?`, `%` und `:` — werden aus ihrer Route entfernt, sodass `100%.mdx` unter `/100` veröffentlicht wird. Verzichte in Datei- und Ordnernamen komplett auf `#` und `?`: Der Content-Loader von Astro kann eine solche Datei nicht lesen, daher meldet Blume sie als Fehler und lässt sie aus der Website weg. Benenne `sdks/c#.mdx` in `sdks/c.mdx` um, dann wird sie unter `/sdks/c` veröffentlicht — genau die Route, die nach dem Entfernen der Zeichen ohnehin entstanden wäre.
+
 ## Sortierung mit numerischen Präfixen [#ordering-with-numeric-prefixes]
 
 Stelle einer Datei oder einem Ordner eine Zahl und ein `-`, `_` oder `.` voran, um die Reihenfolge in der Seitenleiste zu steuern. Das Präfix wird aus der URL entfernt, sodass du Seiten neu anordnen kannst, ohne Links zu zerstören:
@@ -51,7 +53,7 @@ Setze einen Ordnernamen in Klammern, um dessen Seiten in der Seitenleiste zu gru
 docs/(internal)/security.mdx  ->  /security
 ```
 
-Die Seiten teilen sich eine Seitenleisten-Gruppe „Internal“, behalten aber flache URLs ohne Klammern.
+Die Seiten teilen sich eine Seitenleisten-Gruppe „Internal“, behalten aber flache URLs ohne Klammern. Ein Gruppenordner kann wie jeder andere Ordner ein [numerisches Präfix](#ordering-with-numeric-prefixes) tragen, innerhalb oder außerhalb der Klammern: `(01-internal)` und `01-(internal)` werden beide zuerst einsortiert und wie `(internal)` geroutet.
 
 ## Entwürfe [#drafts]
 
@@ -85,7 +87,7 @@ Der Typ ist unabhängig davon, wo die Datei liegt, aber per Konvention gehören 
 
 ## Feeds
 
-Blume erzeugt automatisch einen RSS-Feed für jeden Inhaltstyp, der in [`rss.types`](/docs/discoverability/rss) aufgeführt ist — standardmäßig `blog` und `changelog` — sofern er mindestens eine Seite enthält. Feeds werden unter `/<type>/rss.xml` ausgeliefert:
+Blume erzeugt automatisch einen RSS-Feed für jeden Inhaltstyp, der in [`seo.rss.types`](/docs/discoverability/rss) aufgeführt ist — standardmäßig `blog` und `changelog` — sofern er mindestens eine Seite enthält. Feeds werden unter `/<type>/rss.xml` ausgeliefert:
 
 | Typ         | Feed                 |
 | ----------- | -------------------- |

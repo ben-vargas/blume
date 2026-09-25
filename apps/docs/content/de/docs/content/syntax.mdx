@@ -54,7 +54,7 @@ Marker werden immer geparst — eine Überschrift, die wörtlich auf markerförm
 
 Inline-Formatierung, um Wörter hervorzuheben, Löschungen zu kennzeichnen und Code oder Tastenanschläge mitten im Satz zu zeigen.
 
-**Fett**, _kursiv_, ~~durchgestrichen~~ und `Inline-Code`.
+**Fett**, _kursiv_, ~~durchgestrichen~~ und `inline code`.
 
 ```md
 **Bold**, _italic_, ~~strikethrough~~, and `inline code`.
@@ -609,6 +609,20 @@ The core theme ships no client framework JS.
 ```
 
 Die Namen `caution`, `error`, `important` und `warn` werden als Aliase für `warning`, `danger`, `note` beziehungsweise `warning` akzeptiert.
+
+Jeder andere Name ist kein Callout. Sein Inhalt wird trotzdem gerendert — zwischen seinen `:::`-Zeilen, die so auf der Seite stehen bleiben, wie sie geschrieben wurden —, sodass ein aus einem anderen Doku-Tool übernommenes `:::details` oder ein Tippfehler wie `:::warnig` niemals verbirgt, was darin steht. `blume dev`, `blume build` und `blume check` warnen davor als `BLUME_UNKNOWN_DIRECTIVE` und nennen dabei die oben aufgeführten Callout-Typen.
+
+Um ein Callout in ein anderes zu setzen, gib dem äußeren einen längeren Fence:
+
+```md
+::::note
+Blume regenerates `.blume/` on every run.
+
+:::tip
+Commit `blume.config.ts`, not `.blume/`.
+:::
+::::
+```
 
 ## Mathematik [#math]
 

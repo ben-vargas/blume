@@ -82,7 +82,7 @@ O sitemap segue a mesma lógica: páginas arquivadas cujo canônico aponta para 
 
 ## Busca [#search]
 
-O diálogo de busca limita os resultados à versão que está sendo vista, com um alternador "Todas as versões" (lembrado por leitor) ao lado do de idioma. Resultados de outras versões mostram a versão deles na linha do resultado. Orama (o padrão), FlexSearch, Algolia e Typesense todos respeitam esse escopo — os registros hospedados carregam uma faceta `version`, com os docs atuais enviados como `"current"` — enquanto o Pagefind fica sem escopo, coerente com o comportamento dele para locales.
+O diálogo de busca limita os resultados à versão que está sendo vista, com um alternador "Todas as versões" (lembrado por leitor) ao lado do de idioma. Resultados de outras versões mostram a versão deles na linha do resultado. Orama (o padrão), FlexSearch, Algolia e Typesense todos respeitam esse escopo — os registros hospedados carregam uma faceta `version`, com os docs atuais enviados como `"current"`. Pagefind, Orama Cloud e Mixedbread não limitam os resultados por versão: os resultados deles abrangem todas as versões, e o diálogo não mostra o alternador.
 
 ## Agentes [#agents]
 

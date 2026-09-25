@@ -34,8 +34,8 @@ Bei einer Erstübersetzung gibt es noch keine Vorlage. Leg den Stil deshalb vora
 
 ## Was übersetzt wird [#what-gets-translated]
 
-- **Seiten**: `.md`/`.mdx`-Dateien in der Standard-Locale. Der Agent übersetzt den Fließtext. Im Frontmatter übersetzt er nur die Werte, die Leser sehen (`title`, `description`, `sidebar.label`, `sidebar.badge`, `seo.title`, `seo.description`). Wo die Zieldateien landen, hängt von deinem Parser ab: `fr/guides/install.mdx` beim `dir`-Parser, `guides/install.fr.mdx` beim `dot`-Parser.
-- **Navigationstitel von Ordnern**: Beim `dir`-Parser werden die benötigten [`meta.ts`](/docs/content/meta)-Titel jeder Locale in einem einzigen Aufruf übersetzt. Die generierte `meta.ts` pro Locale übernimmt alle anderen Keys (`order`, `pages`, `icon`, `collapsed`) unverändert, damit die Reihenfolge in der Sidebar der Locale erhalten bleibt.
+- **Seiten**: `.md`/`.mdx`-Dateien in der Standard-Locale. Der Agent übersetzt den Fließtext. Im Frontmatter übersetzt er nur die Werte, die Leser sehen (`title`, `description`, `sidebar.label`, `sidebar.badge`, `seo.title`, `seo.description`). Wo die Zieldateien landen, hängt von deinem Parser ab: `fr/guides/install.mdx` beim `dir`-Parser, `guides/install.fr.mdx` beim `dot`-Parser. Eine bereits vorhandene Übersetzung wird dort neu geschrieben, wo sie liegt, auch wenn sie anders heißt (etwa ein von Hand geschriebenes `fr/guides/install.md`). Eine Neuübersetzung legt also nie eine zweite Kopie der Seite an.
+- **Navigationstitel von Ordnern**: Beim `dir`-Parser werden die benötigten [`meta.ts`](/docs/content/meta)-Titel jeder Locale in einem einzigen Aufruf übersetzt. Die generierte `meta.ts` pro Locale übernimmt alle anderen Keys (`order`, `pages`, `icon`, `collapsed`) unverändert, damit die Reihenfolge in der Sidebar der Locale erhalten bleibt. Sie landet im Ordner der Locale, so wie er auf der Festplatte existiert (`pt-br/` bei einer konfigurierten Locale `pt-BR`). Liegt dort schon eine `meta.js` oder `meta.mjs`, wird diese neu geschrieben, statt dass daneben eine `meta.ts` entsteht.
 
 Übersetzungen, die du von Hand geschrieben hast, werden **übernommen, nie überschrieben**: Eine vorhandene Übersetzung ohne Ledger-Eintrag wird als aktuell markiert und nicht angefasst. Nur mit `--force` wird sie neu übersetzt.
 
@@ -78,5 +78,5 @@ Der JSON-Report ist genauso aus `diagnostics` und `summary` aufgebaut wie bei `b
 - `--concurrency <n>`: Anzahl paralleler Agent-Sessions. Standard ist `4`, Maximum `16`.
 - `--locale <codes>`: Ziel-Locales, durch Kommas getrennt (standardmäßig alle Locales außer der Standard-Locale).
 - `--force`: Übersetzt alles neu, auch aktuelle und von Hand geschriebene Dateien.
-- `--timeout <seconds>`: Zeitlimit des Agenten pro Datei. Standard ist `600`. Das Limit soll nur hängende Agenten abfangen, deshalb haben auch große Seiten genug Zeit.
+- `--timeout <seconds>`: Zeitlimit des Agenten pro Datei. Standard ist `600`. Das Limit soll nur hängende Agenten abfangen, deshalb haben auch große Seiten genug Zeit. Höchstens `2147483` (etwa 24 Tage), denn länger kann ein Timer nicht warten.
 - `--json`: Gibt den Report in beiden Modi als JSON auf stdout aus.

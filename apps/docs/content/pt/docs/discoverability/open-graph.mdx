@@ -73,11 +73,13 @@ seo: {
 
 Por padrão, o card é renderizado com a fonte embutida do Takumi, que cobre apenas glifos latinos básicos — só com ela, um título em outra escrita (japonês, chinês, coreano, árabe, hindi, russo, …) apareceria como tofu, quadradinhos vazios.
 
-**Seus [locales](/docs/content/i18n) cobrem as próprias escritas.** Para cada locale configurado cuja escrita a fonte embutida não consegue desenhar, o card adiciona uma família Google Noto como fallback: `Noto Sans JP` para `ja`, `Noto Sans Devanagari` para `hi`, `Noto Sans SC` ou `Noto Sans TC` para chinês, `Noto Sans` para cirílico, grego, vietnamita e latim com acentos, e assim por diante. O fallback é por glifo, então o texto latino mantém a fonte embutida e um card em inglês fica igual ao de um site de idioma único. Os fallbacks vêm do Google Fonts no build, o que exige acesso à rede, e um card busca só os subconjuntos de glifos que o texto dele usa. Eles se aplicam a menos que `og.fonts` esteja definido, que passa a controlar a lista inteira.
+**Todas as escritas são cobertas por padrão.** Por trás da fonte embutida, os cards carregam uma pilha de fallback de famílias Google Noto, uma por escrita: `Noto Sans` para cirílico, grego, vietnamita e latim com acentos, depois `Noto Sans JP`, `Noto Sans Arabic`, `Noto Sans Devanagari` e assim por diante. Um título em japonês ou hindi é renderizado sem nada para configurar, mesmo em um site sem [locales](/docs/content/i18n). O fallback é por glifo, então o texto latino mantém a fonte embutida. Um card só busca no Google Fonts quando o texto dele tem um glifo que a fonte embutida não consegue desenhar, e aí só os subconjuntos de que esses glifos precisam: um card em inglês não busca nada, então um site só com escrita latina continua fazendo build offline. A pilha se aplica a menos que `og.fonts` esteja definido, que passa a controlar a lista inteira.
+
+Chinês, japonês e coreano compartilham a maioria dos caracteres Han, mas desenham alguns deles de forma diferente, e os cards usam as formas japonesas por padrão. Cada locale configurado move a própria família para a frente, então um site com um locale `zh` desenha os caracteres Han nas formas do chinês simplificado, e `zh-Hant` ou `zh-TW` nas do tradicional.
 
 **Defina [`theme.fonts`](/docs/configuration/theming#fonts) e o card acompanha.** Quando a sua configuração escolhe as próprias fontes, os cards gerados renderizam automaticamente a manchete na sua fonte de display e a descrição e o rodapé na sua fonte de corpo, então os links compartilhados combinam com o site — incluindo cobertura não latina, sem nada para configurar aqui. (Famílias de provedores que não sejam o Google são ignoradas — o renderizador do card só consegue buscar do Google Fonts —, mas arquivos de fonte locais funcionam.)
 
-Para usar nos cards fontes diferentes das do site, ou para adicionar cobertura de escritas sem mexer no tema, defina `og.fonts` explicitamente — ele sempre prevalece sobre as fontes derivadas do tema e os fallbacks dos locales:
+Para usar nos cards fontes diferentes das do site, defina `og.fonts` explicitamente. Ele sempre prevalece sobre as fontes derivadas do tema e substitui os fallbacks de escrita, então liste todas as famílias de que seus cards precisam:
 
 ```ts blume.config.ts lineNumbers
 seo: {
@@ -95,7 +97,7 @@ Cada entrada é um nome de família do Google Fonts, um objeto fixando seu `weig
 
 As famílias do Google são buscadas no build — então um build que as usa precisa de acesso à rede — e o renderizador só baixa os subconjuntos de glifos que cada título realmente usa. O fallback é por glifo, então adicionar uma família só afeta os glifos que as outras fontes não conseguem desenhar.
 
-Um `og.fonts: []` explícito desativa tudo: os cards mantêm a fonte embutida mesmo com `theme.fonts` definido ou quando a escrita de um locale precisa de fallback.
+Um `og.fonts: []` explícito desativa tudo: os cards mantêm a fonte embutida mesmo com `theme.fonts` definido ou quando um título precisa de fallback de escrita.
 
 ## Cache dos cards [#card-cache]
 

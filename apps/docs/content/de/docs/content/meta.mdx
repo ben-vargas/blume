@@ -24,7 +24,7 @@ export default defineMeta({
 
 Jedes Feld ist optional — setze nur das, was du überschreiben möchtest.
 
-Blume liest `meta.ts`-Dateien nur aus Ordnern, die dein Content abdeckt: Eine Datei in einem Ordner, den deine `exclude`-Globs für den Content überspringen, oder außerhalb jedes `include`-Globs wird nie importiert. Mit `root: "."` und `exclude: ["src/**"]` bleibt eine unabhängige `src/lib/meta.ts` unberührt.
+Blume liest `meta.ts`-Dateien nur aus Ordnern, die dein Content abdeckt: Eine Datei in einem Ordner, den deine `exclude`-Globs für den Content überspringen, oder außerhalb jedes `include`-Globs wird nie importiert. Mit `root: "."` und `exclude: ["**/_*", "**/.*", "src/**"]` bleibt eine unabhängige `src/lib/meta.ts` unberührt. Ein `exclude` ersetzt den Standardwert `["**/_*", "**/.*"]`, statt ihn zu ergänzen — führe diese beiden also ebenfalls auf, damit Partials mit `_`-Präfix und Dotfiles unveröffentlicht bleiben.
 
 ## Felder [#fields]
 
@@ -38,6 +38,8 @@ Blume liest `meta.ts`-Dateien nur aus Ordnern, die dein Content abdeckt: Eine Da
 | `pages` | `string[]` | Explizite Reihenfolge der Kinder der Gruppe, nach Slug. |
 
 Das `pages`-Array listet die Kinder nach Slug auf — dem Ordner- oder Dateinamen ohne numerisches Präfix und ohne Klammern (aus `01-quickstart.mdx` wird also `"quickstart"`). Jedes aufgeführte Kind erhält seine Position im Array als Reihenfolge (`0`, `1`, `2`, …). Kinder, die du weglässt, erscheinen trotzdem und werden nach ihrer eigenen Reihenfolge sortiert: Eine `index`-Seite bleibt an erster Stelle, ein Kind mit `sidebar.order`, numerischem Präfix oder einem eigenen `order` in seiner `meta.ts` wird nach dieser Zahl zwischen die aufgeführten einsortiert, und ein Kind ohne all das kommt nach ihnen. Führe jedes Kind auf, wenn das Array die gesamte Reihenfolge festlegen soll.
+
+Das Array sortiert Seiten untereinander und Gruppen untereinander, mischt die beiden aber nicht dort, wo lose Seiten über Gruppen aufgeführt werden: auf der obersten Ebene der Sidebar (und jedes [Tab](/docs/content/navigation#tabs)-Bereichs) sowie in jeder Gruppe mit einer [`flat`](/docs/content/navigation#display-modes)-Untergruppe, deren Überschrift sonst so wirken würde, als gehörten die nachfolgenden Seiten zu ihr. Dort listet `pages: ["advanced", "intro"]` die Seite `intro` trotzdem über der Gruppe `advanced` auf.
 
 Wie Gruppen dargestellt werden — als flache Überschriften, aufklappbare Bereiche oder Drill-in-Panels — richtet sich standardmäßig nach dem sidebarweiten `navigation.sidebar.display`; setze hier `display`, um das nur für diese Gruppe zu überschreiben. Die `index`-Seite eines Ordners kann es zudem im Frontmatter setzen, was Vorrang vor `meta.ts` hat — siehe [Overrides pro Gruppe](/docs/content/navigation#per-group-overrides).
 

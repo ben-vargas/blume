@@ -84,7 +84,23 @@ Alles, was das Audit nicht ausgeführt hat, wird als übersprungen gemeldet, sta
 
 ## Check-Katalog [#check-catalog]
 
-Hier findest du jeden Check, den `blume audit` melden kann, gruppiert nach Kategorie – mit seinem Standard-Schweregrad, der Stufe, in der er läuft, und dem Fix, den der Bericht vorschlägt. `--only` und `--skip` akzeptieren diese IDs (auch ohne das Präfix `BLUME_AUDIT_`) oder die Kategorienamen.
+Hier findest du jeden Check, den `blume audit` melden kann, gruppiert nach Kategorie – mit seinem Standard-Schweregrad, der Stufe, in der er läuft, und dem Fix, den der Bericht vorschlägt. `--only` und `--skip` akzeptieren diese IDs (auch ohne das Präfix `BLUME_AUDIT_`) oder den Schlüssel einer Kategorie. Der Schlüssel entspricht nicht immer der Überschrift der Kategorie, also halte dich an diese Tabelle: `blume audit --only i18n`, nicht `--only Internationalization`.
+
+| Kategorie             | Schlüssel         |
+| --------------------- | ----------------- |
+| Inhalt                | `content`         |
+| Duplikate             | `duplicates`      |
+| Indexierbarkeit       | `indexability`    |
+| Links                 | `links`           |
+| Weiterleitungen       | `redirects`       |
+| Social Cards          | `social`          |
+| Internationalisierung | `i18n`            |
+| Assets                | `assets`          |
+| Sitemap               | `sitemap`         |
+| robots.txt            | `robots`          |
+| Auffindbarkeit für KI | `ai`              |
+| Strukturierte Daten   | `structured-data` |
+| Live-Deployment       | `network`         |
 
 ### Inhalt [#content]
 

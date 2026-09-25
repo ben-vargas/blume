@@ -610,6 +610,20 @@ The core theme ships no client framework JS.
 
 Os nomes `caution`, `error`, `important` e `warn` são aceitos como aliases de `warning`, `danger`, `note` e `warning`, respectivamente.
 
+Qualquer outro nome não é um aviso. O conteúdo dele continua sendo renderizado — entre as linhas `:::`, que permanecem na página como foram escritas — então um `:::details` trazido de outra ferramenta de documentação, ou um erro de digitação como `:::warnig`, nunca esconde o que está dentro dele. O `blume dev`, o `blume build` e o `blume check` alertam sobre isso como `BLUME_UNKNOWN_DIRECTIVE`, listando os tipos de aviso acima.
+
+Para colocar um aviso dentro de outro, dê ao externo uma cerca mais longa:
+
+```md
+::::note
+Blume regenerates `.blume/` on every run.
+
+:::tip
+Commit `blume.config.ts`, not `.blume/`.
+:::
+::::
+```
+
 ## Matemática [#math]
 
 Renderize LaTeX com o KaTeX como blocos centralizados — útil para documentação científica ou com muita matemática. Envolva uma fórmula em `$$…$$`:

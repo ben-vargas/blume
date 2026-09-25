@@ -34,8 +34,8 @@ Uma primeira tradução não tem precedente para seguir, então defina essa esco
 
 ## O que é traduzido [#what-gets-translated]
 
-- **Páginas** — arquivos `.md`/`.mdx` no locale padrão. O agente traduz o texto corrido e apenas os valores do frontmatter que aparecem para quem lê (`title`, `description`, `sidebar.label`, `sidebar.badge`, `seo.title`, `seo.description`). Os destinos seguem o seu parser: `fr/guides/install.mdx` com `dir`, `guides/install.fr.mdx` com `dot`.
-- **Títulos de navegação das pastas** — com o parser `dir`, os títulos de [`meta.ts`](/docs/content/meta) de que cada locale precisa são traduzidos em uma única chamada em lote, e o `meta.ts` gerado para cada locale copia todas as outras chaves (`order`, `pages`, `icon`, `collapsed`) literalmente, para que a barra lateral do locale mantenha a ordenação.
+- **Páginas** — arquivos `.md`/`.mdx` no locale padrão. O agente traduz o texto corrido e apenas os valores do frontmatter que aparecem para quem lê (`title`, `description`, `sidebar.label`, `sidebar.badge`, `seo.title`, `seo.description`). Os destinos seguem o seu parser: `fr/guides/install.mdx` com `dir`, `guides/install.fr.mdx` com `dot`. Uma tradução que já existe é reescrita onde está, mesmo com outro nome (um `fr/guides/install.md` escrito à mão), então uma nova tradução nunca cria uma segunda cópia da página.
+- **Títulos de navegação das pastas** — com o parser `dir`, os títulos de [`meta.ts`](/docs/content/meta) de que cada locale precisa são traduzidos em uma única chamada em lote, e o `meta.ts` gerado para cada locale copia todas as outras chaves (`order`, `pages`, `icon`, `collapsed`) literalmente, para que a barra lateral do locale mantenha a ordenação. Ele vai para a pasta do locale do jeito que ela existe no disco (`pt-br/` para um `pt-BR` configurado), e um `meta.js` ou `meta.mjs` que já esteja lá é reescrito, em vez de ganhar um `meta.ts` ao lado dele.
 
 As traduções que você escreveu à mão são **adotadas, nunca sobrescritas**: uma tradução que existe, mas não tem entrada no registro, é marcada como atualizada e deixada como está. Só o `--force` faz uma nova tradução dela.
 
@@ -78,5 +78,5 @@ O relatório JSON tem o mesmo formato `diagnostics` + `summary` de `blume valida
 - `--concurrency <n>` — sessões de agente em paralelo. O padrão é `4`, e o máximo é `16`.
 - `--locale <codes>` — locales de destino separados por vírgula (por padrão, todos os locales exceto o padrão).
 - `--force` — traduz tudo de novo, incluindo arquivos já atualizados e escritos à mão.
-- `--timeout <seconds>` — limite de tempo do agente por arquivo. O padrão é `600`; esse teto existe para pegar agentes travados, então páginas grandes têm tempo de sobra para terminar.
+- `--timeout <seconds>` — limite de tempo do agente por arquivo. O padrão é `600`; esse teto existe para pegar agentes travados, então páginas grandes têm tempo de sobra para terminar. O máximo é `2147483` (cerca de 24 dias), o maior tempo que um timer consegue esperar.
 - `--json` — emite o relatório como JSON no stdout, nos dois modos.

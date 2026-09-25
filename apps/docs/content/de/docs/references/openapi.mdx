@@ -30,7 +30,7 @@ navigation: {
 ```
 
 :::note
-Operationen werden für die Suche anhand ihrer **Zusammenfassung und ihres Tags** indexiert. Die gerenderten Schematabellen und Codebeispiele werden nicht im Volltext indexiert; die Suche findet den Titel und den Abschnitt einer Operation und verlinkt dann auf ihre eigene Seite.
+Operationen werden für die Suche anhand ihrer **Zusammenfassung, ihrer Beschreibung, ihres Tags und ihres Endpoints** (`GET /pets/{id}`) indexiert. Die gerenderten Schematabellen und Codebeispiele werden nicht im Volltext indexiert; die Suche findet den Titel, den Beschreibungstext, den Abschnitt und den Pfad einer Operation und verlinkt dann auf ihre eigene Seite.
 :::
 
 ## Eine lokale Spezifikation [#a-local-spec]
@@ -70,9 +70,11 @@ reference: [
 
 ## Try-it-Playground
 
-Nativ gerenderte Operationsseiten bringen standardmäßig ein interaktives **Try it**-Panel mit. Blume generiert das Formular aus der Operation selbst: ein Eingabefeld pro Pfad-, Query- und Header-Parameter, einen Body-Editor, der aus dem Request-Body-Schema erstellt wird, und alles ist mit den Beispielen aus der Spezifikation vorausgefüllt. Eine Serverauswahl listet die Server der Operation auf (ihre eigenen `servers`, sonst die ihres Pfads, sonst die der Spezifikation, wobei jede `{variable}` auf ihrem `default` steht), mit einem Freitextfeld für jede andere Basis-URL, und die Auth-Eingaben entsprechen der [aufgelösten Security](#authorization) der Operation – Bearer-Token, API-Key und Basic-Credentials, wobei OAuth2 als Feld zum Einfügen eines Tokens umgesetzt ist (bring einen Access-Token mit; Blume führt den Flow nicht aus).
+Nativ gerenderte Operationsseiten bringen standardmäßig ein interaktives **Try it**-Panel mit. Blume generiert das Formular aus der Operation selbst: ein Eingabefeld pro Pfad-, Query- und Header-Parameter, einen Body-Editor, der aus dem Request-Body-Schema erstellt wird, und alles ist mit den Beispielen aus der Spezifikation vorausgefüllt. Werte werden so übertragen, wie die Spezifikation sie beschreibt: Array- und Objektparameter folgen ihrem `style` und `explode` (`tags=dog&tags=cat` in einer Query, `1,2` in einem Pfad, `filter[color]=red` bei `deepObject`), und ein `application/x-www-form-urlencoded`- oder `multipart/form-data`-Body wird als Formularfelder statt als JSON gesendet. Eine Serverauswahl listet die Server der Operation auf (ihre eigenen `servers`, sonst die ihres Pfads, sonst die der Spezifikation, wobei jede `{variable}` auf ihrem `default` steht), mit einem Freitextfeld für jede andere Basis-URL, und die Auth-Eingaben entsprechen der [aufgelösten Security](#authorization) der Operation – Bearer-Token, API-Key und Basic-Credentials, wobei OAuth2 als Feld zum Einfügen eines Tokens umgesetzt ist (bring einen Access-Token mit; Blume führt den Flow nicht aus).
 
 Panel und Codebeispiele bleiben synchron: Werte, die du ins Formular eingibst, aktualisieren die generierten Codebeispiele live, sodass ein kopierter curl-Befehl immer genau dem entspricht, was **Send** tun würde. Und das Panel steht nicht im Weg – es wird serverseitig eingeklappt gerendert, und sein JavaScript lädt erst, wenn es jemand zum ersten Mal öffnet. Wer es nie anfasst, lädt nichts davon herunter.
+
+Die einzige Methode, die ein Browser nicht senden kann, ist `TRACE`: `fetch` verweigert sie, daher weist **Send** bei einer `trace`-Operation darauf hin, statt den Request zu senden, und das JavaScript-Beispiel (das auf `fetch` basiert) ist ein Hinweis statt Code. Die cURL- und Python-Beispiele senden sie problemlos.
 
 Mit `playground: false` schaltest du es komplett ab:
 
@@ -99,7 +101,7 @@ reference: [
 ],
 ```
 
-Der eingebaute Proxy leitet Requests nur an die Origins weiter, die deine Spezifikationen in `servers` deklarieren (auf Dokument-, Pfad- oder Operationsebene, mit Variablen auf ihren Standardwerten) – auch über Redirects hinweg –, sodass ein öffentliches Doku-Deployment nicht auf andere Hosts in seinem Netzwerk gerichtet werden kann. Eine im Panel eingegebene **Custom base URL** ist kein dokumentierter Server: Bei aktiviertem Proxy werden Requests an sie mit einem 403 abgelehnt. Er liest einen Request-Body nur bis zu 4 MB (alles Größere erhält einen `413`), und jede Response, die er weiterleitet, enthält `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff` und `Cross-Origin-Resource-Policy: same-origin` – plus `Content-Disposition: attachment` bei HTML oder SVG –, sodass eine API-Fehlerseite, die ihre Eingabe zurückgibt, kein Skript auf dem Origin der Doku ausführen kann.
+Der eingebaute Proxy leitet Requests nur an die Origins weiter, die deine Spezifikationen in `servers` deklarieren (auf Dokument-, Pfad- oder Operationsebene, mit Variablen auf ihren Standardwerten) – auch über Redirects hinweg –, sodass ein öffentliches Doku-Deployment nicht auf andere Hosts in seinem Netzwerk gerichtet werden kann. Eine im Panel eingegebene **Custom base URL** ist kein dokumentierter Server: Bei aktiviertem Proxy werden Requests an sie mit einem 403 abgelehnt. Er leitet nur die Header weiter, die das Panel selbst setzt – die eingegebenen Zugangsdaten und Header-Parameter sowie den `Content-Type` des Bodys –, sodass Cookies, Zugangsdaten, die der Browser für die Doku-Website mitschickt (etwa HTTP-Basic-Auth bei einer passwortgeschützten Preview), und Header, die dein Host hinzufügt (`X-Forwarded-For`, `CF-*`, `X-Vercel-*`), nie bei der API ankommen. Er liest einen Request-Body nur bis zu 4 MB (alles Größere erhält einen `413`), und jede Response, die er weiterleitet, enthält `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff` und `Cross-Origin-Resource-Policy: same-origin` – plus `Content-Disposition: attachment` bei HTML oder SVG –, sodass eine API-Fehlerseite, die ihre Eingabe zurückgibt, kein Skript auf dem Origin der Doku ausführen kann.
 
 ## Mehrere Spezifikationen [#multiple-specs]
 

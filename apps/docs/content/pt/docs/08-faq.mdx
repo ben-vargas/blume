@@ -46,7 +46,7 @@ Não. Uma pasta de Markdown é um site completo — navegação, busca e temas s
 
 ## Posso usar componentes React e MDX? [#can-i-use-react-components-and-mdx]
 
-Sim. Qualquer página pode ser `.md` ou `.mdx`, e o MDX permite inserir os [componentes integrados](/docs/content/components) sem imports. Você também pode adicionar as suas próprias [ilhas](/docs/content/islands) `.tsx`/`.jsx` — o Blume ativa o React automaticamente só nas páginas que as usam, então o tema principal continua livre de JavaScript em todo o resto.
+Sim. Qualquer página pode ser `.md` ou `.mdx`, e o MDX permite inserir os [componentes integrados](/docs/content/components) sem imports. Você também pode adicionar as suas próprias [ilhas](/docs/content/islands) `.tsx`/`.jsx`. O Blume só ativa o React quando o seu projeto usa ele — qualquer arquivo `.tsx` ou `.jsx` no projeto (incluindo as suas ilhas), um exemplo de [`<Component>`](/docs/content/components#component) em React, uma [substituição de componente](/docs/configuration/customization) ou o [assistente](/docs/configuration/assistant) —, então um site sem nenhum desses não envia nenhum JavaScript de framework.
 
 ## Onde posso publicar? [#where-can-i-deploy-it]
 

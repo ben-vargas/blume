@@ -103,10 +103,10 @@ const indexable = (data: BlumeData): BlumeRoute[] =>
       description: "生成された RSS フィード: { href, title }。",
     },
     fontCssVars: {
-      type: "string[]",
+      type: "FontHead[]",
       required: true,
       description:
-        "設定されたフォントの CSS 変数名（Astro の <Font> インテグレーション）。",
+        "head 内の Astro の <Font> コンポーネント向けに設定されたフォント。ファミリーごとに 1 つ: { cssVariable, preloadWeights, preloadSubsets? }。",
     },
     ui: {
       type: "UIStrings",
@@ -291,7 +291,7 @@ Blume はデフォルトの **not found** ページを標準で同梱してい�
 
 このページには `/404.md` という Markdown の対応版と、`/404.json` という JSON の対応版（[RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) の problem details）もあり、同じ復帰用リンク（[`deployment.site`](/docs/deployment) が設定されていれば絶対 URL になります）に加えて、JSON API が有効な場合は [`openapi.json`](/docs/discoverability/json-api) の記述も備えています。[Vercel または Cloudflare のサーバービルド](/docs/deployment#server-rendering)では、存在しないページへのリクエストが [`Accept: text/markdown`](/docs/discoverability/markdown#content-negotiation) を送る場合は HTML のシェルではなく `404` ステータス付きでその Markdown の本文が返され、`Accept: application/json` を送る場合は problem ドキュメントが返されます — つまりエージェントは、次にどこへ行くべきかを知るためにクロームだらけのページを解析する必要がまったくありません。Vercel では、どのファイルにも裏付けられていない `.md` や `.json` の URL についても同様です。
 
-これを自作のものに置き換えるには、`pages/404.astro` を追加します。`pages/changelog.astro` がチェンジログを引き継ぐのと同じように、このファイルが `/404` ルートを所有します — あなたのページが優先され、デフォルトは破棄されます。他のカスタムページと同様に、`PageLayout` または `RootLayout` で構築してください:
+これを自作のものに置き換えるには、`pages/404.astro` を追加します。`pages/changelog.astro` がチェンジログを引き継ぐのと同じように、このファイルが `/404` ルートを所有します — あなたのページが優先され、デフォルトはその `/404.md` と `/404.json` の対応版とともに破棄されます。他のカスタムページと同様に、`PageLayout` または `RootLayout` で構築してください:
 
 ```astro pages/404.astro lineNumbers
 ---

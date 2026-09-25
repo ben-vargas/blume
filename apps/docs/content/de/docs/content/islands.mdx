@@ -23,7 +23,7 @@ export default function Counter() {
 Here's a live counter: <Counter />
 ```
 
-Der Dateiname ist der Komponentenname, er **muss also ein PascalCase-Bezeichner sein** — nur Buchstaben, Ziffern und Unterstriche (`Counter.tsx` → `<Counter />`). Kleingeschriebene Dateinamen, Namen mit Bindestrichen/Punkten/Leerzeichen (wie `Time-Picker.tsx`) und zwei Islands, die zum selben Namen aufgelöst werden, werden mit einer Build-Warnung übersprungen.
+Der Dateiname ist der Komponentenname, er **muss also ein PascalCase-Bezeichner sein** — nur Buchstaben, Ziffern und Unterstriche (`Counter.tsx` → `<Counter />`). Kleingeschriebene Dateinamen und Namen mit Bindestrichen/Punkten/Leerzeichen (wie `Time-Picker.tsx`) werden mit einer Build-Warnung übersprungen. Wenn zwei Islands zum selben Namen aufgelöst werden — `Counter.tsx` und `Counter.vue` oder zwei `Counter.tsx`-Dateien in verschiedenen Unterordnern —, behält Blume die nach Dateipfad erste und ignoriert die andere mit einer Build-Warnung.
 
 :::note
 Islands sind für **interaktive** UI gedacht. Für eine statische Komponente, die du seitenübergreifend wiederverwendest (ein gestalteter Hinweis, eine Preistabelle), nutze stattdessen ein [MDX-Override](/docs/configuration/customization) — es liefert kein JavaScript aus.

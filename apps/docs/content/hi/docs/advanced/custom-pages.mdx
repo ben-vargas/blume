@@ -103,10 +103,10 @@ const indexable = (data: BlumeData): BlumeRoute[] =>
       description: "Generated RSS feeds: { href, title }.",
     },
     fontCssVars: {
-      type: "string[]",
+      type: "FontHead[]",
       required: true,
       description:
-        "CSS variable names for the configured fonts (Astro <Font> integration).",
+        "The configured fonts for Astro's <Font> component in the head, one per family: { cssVariable, preloadWeights, preloadSubsets? }.",
     },
     ui: {
       type: "UIStrings",
@@ -291,7 +291,7 @@ Blume बॉक्स से बाहर ही एक डिफ़ॉल्ट
 
 इस पेज का एक Markdown जुड़वाँ रूप `/404.md` पर और एक JSON जुड़वाँ रूप `/404.json` पर ([RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) प्रॉब्लम डिटेल्स) भी है, जिनमें वही रिकवरी लिंक होते हैं ([`deployment.site`](/docs/deployment) सेट होने पर पूर्ण URL के रूप में), साथ ही JSON API चालू होने पर [`openapi.json`](/docs/discoverability/json-api) का विवरण भी। किसी [Vercel या Cloudflare सर्वर बिल्ड](/docs/deployment#server-rendering) पर, किसी अनुपस्थित पेज के लिए ऐसा अनुरोध जो [`Accept: text/markdown`](/docs/discoverability/markdown#content-negotiation) भेजता है, उसे HTML शेल के बजाय `404` स्टेटस के साथ Markdown बॉडी मिलती है, और जो `Accept: application/json` भेजता है, उसे प्रॉब्लम डॉक्यूमेंट मिलता है — ताकि किसी एजेंट को यह जानने के लिए कि आगे कहाँ जाना है, क्रोम से भरा पूरा पेज कभी पार्स न करना पड़े। Vercel पर यही बात ऐसे `.md` या `.json` URL पर भी लागू होती है जिसके पीछे कोई फ़ाइल नहीं है।
 
-इसे अपने पेज से बदलने के लिए, एक `pages/404.astro` जोड़ें। यह `/404` रूट का स्वामी उसी तरह बनता है जैसे `pages/changelog.astro` चेंजलॉग को अपने अधीन ले लेता है — आपका पेज जीतता है और डिफ़ॉल्ट हटा दिया जाता है। इसे किसी भी अन्य कस्टम पेज की तरह बनाएँ, `PageLayout` या `RootLayout` में:
+इसे अपने पेज से बदलने के लिए, एक `pages/404.astro` जोड़ें। यह `/404` रूट का स्वामी उसी तरह बनता है जैसे `pages/changelog.astro` चेंजलॉग को अपने अधीन ले लेता है — आपका पेज जीतता है और डिफ़ॉल्ट पेज, अपने `/404.md` और `/404.json` जुड़वाँ रूपों सहित, हटा दिया जाता है। इसे किसी भी अन्य कस्टम पेज की तरह बनाएँ, `PageLayout` या `RootLayout` में:
 
 ```astro pages/404.astro lineNumbers
 ---

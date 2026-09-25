@@ -48,6 +48,7 @@ Jede der folgenden Kennungen — ein Projektschlüssel, eine Mess-ID, ein Site-T
 | `hotjar()` | [Hotjar](#hotjar) | `id` |
 | `logrocket()` | [LogRocket](#logrocket) | `id` |
 | `mixpanel()` | [Mixpanel](#mixpanel) | `token` |
+| `oneDollarStats()` | [OneDollarStats](#onedollarstats) | — |
 | `pirsch()` | [Pirsch](#pirsch) | `code` |
 | `plausible()` | [Plausible](#plausible) | `domain` |
 | `posthog()` | [PostHog](#posthog) | `key` |
@@ -191,6 +192,22 @@ analytics: [
 ```
 
 `clientId` wird zu `data-client-id`. Jede weitere Option wird zu einem eigenen `data-`-Attribut am Tag. Benenne sie also so, wie das Attribut heißt, in kebab-case (`track-web-vitals`, `track-errors`, `track-outgoing-links`, `api-url`, …). Einen camelCase-Namen wie `trackWebVitals` ignoriert Databuddy. Werte sind Strings: `"true"` oder `"false"` für einen Schalter und ein JSON-Array für `skip-patterns` und `mask-patterns`. Jeden anderen Listenwert liest Databuddy als leer.
+
+## OneDollarStats
+
+Füge die Domain der Website in [OneDollarStats](https://onedollarstats.com) hinzu und liste dann `oneDollarStats()` auf. Ein Schlüssel wird nicht benötigt, weil OneDollarStats Events anhand der Domain, von der sie kommen, einer Website zuordnet.
+
+```ts blume.config.ts lineNumbers
+analytics: [oneDollarStats()],
+```
+
+Jede Option wird zu einem eigenen `data`-Attribut am Tag, und Werte sind Strings:
+
+- `hostname` meldet jedes Event unter diesem Hostnamen (`docs.example.com`, ohne `https://` oder Pfad), und zwar auf jedem Host, nicht nur auf `localhost`. So zählen auch Preview-Deployments und Staging als Traffic dieser Website. Lass die Option weg, es sei denn, jeder Build soll unter diesem Namen melden.
+- `devmode: "true"` zusammen mit `hostname` erlaubt einem lokalen `blume preview`, Events zu senden. Auf `localhost` sendet der Tracker ohne beides nichts, lass beides also aus der committeten Konfiguration heraus.
+- `url` ist der Collector-Endpunkt, an den Events gesendet werden (standardmäßig `https://collector.onedollarstats.com/events`), nicht die URL der Website.
+- `autocollect: "false"` schaltet automatische Seitenaufrufe ab.
+- `"hash-routing": "true"` sendet bei jeder Navigation einen Seitenaufruf, selbst wenn sich nur das `#fragment` ändert, etwa bei einem Klick im Inhaltsverzeichnis. Bei `"false"` lässt Blume das Attribut weg, weil der Tracker Hash-Routing aktiviert, sobald es vorhanden ist.
 
 ## Mixpanel
 
@@ -392,6 +409,8 @@ analytics: [
 | `mixpanel()` | `token` | — | Mixpanel-Projekt-Token. Erforderlich. |
 | `mixpanel()` | `region` | `us` | Region der Datenresidenz: `us`, `eu` oder `in`. |
 | `mixpanel()` | alles andere | `track_pageview: "url-with-path-and-query-string"` | Wird unverändert in die `mixpanel.init`-Optionen übernommen. |
+| `oneDollarStats()` | `hostname` | — | Reiner Hostname, unter dem jedes Event gemeldet wird, auf jedem Host. |
+| `oneDollarStats()` | alles andere | — | Wird als `data-`-Attribut am Tag gerendert (`"hash-routing": "false"` wird weggelassen). |
 | `pirsch()` | `code` | — | Pirsch-Identifikationscode. Erforderlich. |
 | `pirsch()` | alles andere | — | Wird als `data-`-Attribut am Tag gerendert. |
 | `plausible()` | `domain` | — | Die Domain der Website in Plausible. Erforderlich. |
@@ -411,4 +430,4 @@ analytics: [
 
 ## Eigene Events [#custom-events]
 
-Das Seiten-Feedback von Blume sendet ein eigenes Event über jeden konfigurierten Adapter, der eine Client-API hat — PostHog, Mixpanel, Heap, Segment, Hightouch, Amplitude, LogRocket, Adobe, Google Analytics, Google Tag Manager (als `{ event }`-Push auf `window.dataLayer`), Plausible, Databuddy, Fathom, Pirsch, Clarity, Hotjar und Vercel. Cloudflare und Clearbit haben keine Event-API. Jedes Event wird außerdem als `blume:track`-CustomEvent auf `window` ausgelöst, mit `{ event, props }` in `detail`, sodass ein `script()`-Adapter es an jedes beliebige andere Ziel weiterleiten kann. Zum Deployen deiner gebauten Website siehe [Deployment](/docs/deployment).
+Das Seiten-Feedback von Blume sendet ein eigenes Event über jeden konfigurierten Adapter, der eine Client-API hat — PostHog, Mixpanel, Heap, Segment, Hightouch, Amplitude, LogRocket, Adobe, Google Analytics, Google Tag Manager (als `{ event }`-Push auf `window.dataLayer`), Plausible, Databuddy, Fathom, OneDollarStats (mit jedem Eigenschaftswert als String), Pirsch, Clarity, Hotjar und Vercel. Cloudflare und Clearbit haben keine Event-API. Jedes Event wird außerdem als `blume:track`-CustomEvent auf `window` ausgelöst, mit `{ event, props }` in `detail`, sodass ein `script()`-Adapter es an jedes beliebige andere Ziel weiterleiten kann. Zum Deployen deiner gebauten Website siehe [Deployment](/docs/deployment).

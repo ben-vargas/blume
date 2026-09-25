@@ -48,6 +48,7 @@ export default defineConfig({
 | `hotjar()` | [Hotjar](#hotjar) | `id` |
 | `logrocket()` | [LogRocket](#logrocket) | `id` |
 | `mixpanel()` | [Mixpanel](#mixpanel) | `token` |
+| `oneDollarStats()` | [OneDollarStats](#onedollarstats) | — |
 | `pirsch()` | [Pirsch](#pirsch) | `code` |
 | `plausible()` | [Plausible](#plausible) | `domain` |
 | `posthog()` | [PostHog](#posthog) | `key` |
@@ -191,6 +192,22 @@ analytics: [
 ```
 
 `clientId`, `data-client-id` बन जाता है। कोई भी अन्य विकल्प टैग पर अपना अलग `data-` एट्रिब्यूट बन जाता है, इसलिए उसका नाम ठीक वैसे ही रखें जैसा एट्रिब्यूट में लिखा जाता है, यानी kebab-case में (`track-web-vitals`, `track-errors`, `track-outgoing-links`, `api-url`, …)। Databuddy `trackWebVitals` जैसे camelCase नाम को अनदेखा करता है। मान स्ट्रिंग्स होते हैं: किसी स्विच के लिए `"true"` या `"false"`, और `skip-patterns` तथा `mask-patterns` के लिए एक JSON ऐरे। Databuddy किसी भी अन्य रूप में दिए गए सूची मान को खाली मानता है।
+
+## OneDollarStats
+
+[OneDollarStats](https://onedollarstats.com) में साइट का डोमेन जोड़ें, फिर `oneDollarStats()` को सूचीबद्ध करें। इसके लिए कोई की ज़रूरी नहीं है, क्योंकि OneDollarStats इवेंट्स को उस डोमेन के आधार पर किसी साइट से मिलाता है जहाँ से वे आते हैं।
+
+```ts blume.config.ts lineNumbers
+analytics: [oneDollarStats()],
+```
+
+हर विकल्प टैग पर अपना अलग `data-` एट्रिब्यूट बन जाता है, और मान स्ट्रिंग्स होते हैं:
+
+- `hostname` हर इवेंट को उस होस्ट नाम (`docs.example.com`, बिना `https://` या पाथ के) के अंतर्गत रिपोर्ट करता है, और यह केवल `localhost` पर नहीं बल्कि हर होस्ट पर लागू होता है, इसलिए प्रीव्यू डिप्लॉय और स्टेजिंग भी उस साइट के ट्रैफ़िक के रूप में गिने जाते हैं। इसे तब तक सेट न करें जब तक हर बिल्ड को उसी नाम के अंतर्गत रिपोर्ट न करना हो।
+- `hostname` के साथ `devmode: "true"` सेट करने पर लोकल `blume preview` इवेंट्स भेज पाता है। `localhost` पर इन दोनों के बिना ट्रैकर कुछ नहीं भेजता, इसलिए इन्हें कमिट किए गए कॉन्फ़िग से बाहर रखें।
+- `url` वह कलेक्टर एंडपॉइंट है जिस पर इवेंट्स पोस्ट किए जाते हैं (डिफ़ॉल्ट रूप से `https://collector.onedollarstats.com/events`), साइट का URL नहीं।
+- `autocollect: "false"` स्वचालित पेज व्यू बंद कर देता है।
+- `"hash-routing": "true"` हर नेविगेशन पर एक पेज व्यू भेजता है, तब भी जब केवल `#fragment` बदलता है, जैसे विषय-सूची में किसी लिंक पर क्लिक करने पर। `"false"` होने पर Blume यह एट्रिब्यूट नहीं जोड़ता, क्योंकि जब भी यह मौजूद होता है, ट्रैकर हैश रूटिंग चालू कर देता है।
 
 ## Mixpanel
 
@@ -392,6 +409,8 @@ analytics: [
 | `mixpanel()` | `token` | — | Mixpanel प्रोजेक्ट टोकन। आवश्यक। |
 | `mixpanel()` | `region` | `us` | डेटा रेज़िडेंसी रीजन: `us`, `eu`, या `in`। |
 | `mixpanel()` | अन्य कुछ भी | `track_pageview: "url-with-path-and-query-string"` | `mixpanel.init` विकल्पों में ज्यों का त्यों मर्ज किया जाता है। |
+| `oneDollarStats()` | `hostname` | — | वह सादा होस्ट नाम जिसके अंतर्गत हर होस्ट पर हर इवेंट रिपोर्ट किया जाता है। |
+| `oneDollarStats()` | अन्य कुछ भी | — | टैग पर `data-` एट्रिब्यूट के रूप में रेंडर किया जाता है (`"hash-routing": "false"` छोड़ दिया जाता है)। |
 | `pirsch()` | `code` | — | Pirsch आइडेंटिफ़िकेशन कोड। आवश्यक। |
 | `pirsch()` | अन्य कुछ भी | — | टैग पर `data-` एट्रिब्यूट के रूप में रेंडर किया जाता है। |
 | `plausible()` | `domain` | — | Plausible में साइट का डोमेन। आवश्यक। |
@@ -404,11 +423,11 @@ analytics: [
 | `segment()` | `cdn` | `https://cdn.segment.com` | Segment के CDN को प्रॉक्सी करने वाले कस्टम डोमेन का ओरिजिन। |
 | `segment()` | अन्य कुछ भी | — | `analytics.load` विकल्पों के रूप में ज्यों का त्यों फ़ॉरवर्ड किया जाता है। |
 | `vercel()` | `mode`, `debug`, … | — | आधिकारिक Astro कंपोनेंट को प्रॉप्स के रूप में फ़ॉरवर्ड किए जाते हैं। |
-| `script()` | `src` | — | बाहरी स्क्रिप्ट URL. `content` के साथ परस्पर अनन्य। |
+| `script()` | `src` | — | बाहरी स्क्रिप्ट URL। `content` के साथ परस्पर अनन्य। |
 | `script()` | `content` | — | इनलाइन स्क्रिप्ट बॉडी। `src` के साथ परस्पर अनन्य। |
-| `script()` | `strategy` | — | बाहरी स्क्रिप्ट के लिए `async` या `defer`. |
+| `script()` | `strategy` | — | बाहरी स्क्रिप्ट के लिए `async` या `defer`। |
 | `script()` | `attributes` | — | `<script>` टैग पर स्प्रेड किए जाने वाले अतिरिक्त HTML एट्रिब्यूट्स। |
 
 ## कस्टम इवेंट्स [#custom-events]
 
-Blume का पेज फ़ीडबैक हर उस कॉन्फ़िगर किए गए एडैप्टर के ज़रिए एक कस्टम इवेंट भेजता है जिसके पास क्लाइंट API है — PostHog, Mixpanel, Heap, Segment, Hightouch, Amplitude, LogRocket, Adobe, Google Analytics, Google Tag Manager (`window.dataLayer` पर `{ event }` पुश के रूप में), Plausible, Databuddy, Fathom, Pirsch, Clarity, Hotjar, और Vercel। Cloudflare और Clearbit के पास कोई इवेंट API नहीं है। हर इवेंट `window` पर `blume:track` CustomEvent के रूप में भी फ़ायर होता है, जिसके `detail` में `{ event, props }` होता है, इसलिए कोई `script()` एडैप्टर उसे कहीं और भी फ़ॉरवर्ड कर सकता है। अपनी बिल्ट साइट को डिप्लॉय करने के लिए, [Deployment](/docs/deployment) देखें।
+Blume का पेज फ़ीडबैक हर उस कॉन्फ़िगर किए गए एडैप्टर के ज़रिए एक कस्टम इवेंट भेजता है जिसके पास क्लाइंट API है — PostHog, Mixpanel, Heap, Segment, Hightouch, Amplitude, LogRocket, Adobe, Google Analytics, Google Tag Manager (`window.dataLayer` पर `{ event }` पुश के रूप में), Plausible, Databuddy, Fathom, OneDollarStats (हर प्रॉपर्टी मान को स्ट्रिंग के रूप में), Pirsch, Clarity, Hotjar, और Vercel। Cloudflare और Clearbit के पास कोई इवेंट API नहीं है। हर इवेंट `window` पर `blume:track` CustomEvent के रूप में भी फ़ायर होता है, जिसके `detail` में `{ event, props }` होता है, इसलिए कोई `script()` एडैप्टर उसे कहीं और भी फ़ॉरवर्ड कर सकता है। अपनी बिल्ट साइट को डिप्लॉय करने के लिए, [Deployment](/docs/deployment) देखें।

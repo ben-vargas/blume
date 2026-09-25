@@ -103,10 +103,10 @@ Das Modul stellt Folgendes bereit:
       description: "Generierte RSS-Feeds: { href, title }.",
     },
     fontCssVars: {
-      type: "string[]",
+      type: "FontHead[]",
       required: true,
       description:
-        "CSS-Variablennamen für die konfigurierten Schriftarten (Astro-<Font>-Integration).",
+        "Die konfigurierten Schriftarten für Astros <Font>-Komponente im Head, eine pro Schriftfamilie: { cssVariable, preloadWeights, preloadSubsets? }.",
     },
     ui: {
       type: "UIStrings",
@@ -291,7 +291,7 @@ Blume liefert ab Werk eine standardmäßige **Nicht gefunden**-Seite mit: eine z
 
 Die Seite hat außerdem ein Markdown-Gegenstück unter `/404.md` und ein JSON-Gegenstück unter `/404.json` ([RFC 9457](https://www.rfc-editor.org/rfc/rfc9457)-Problemdetails) mit denselben Rückkehr-Links (absolute URLs, sobald [`deployment.site`](/docs/deployment) gesetzt ist), dazu die [`openapi.json`](/docs/discoverability/json-api)-Beschreibung, wenn die JSON-API aktiviert ist. Bei einem [Vercel- oder Cloudflare-Server-Build](/docs/deployment#server-rendering) erhält eine Anfrage nach einer fehlenden Seite, die [`Accept: text/markdown`](/docs/discoverability/markdown#content-negotiation) sendet, den Markdown-Textkörper mit dem Status `404` statt der HTML-Hülle, und eine Anfrage, die `Accept: application/json` sendet, erhält das Problemdokument — sodass ein Agent nie eine Seite voller Chrome parsen muss, um zu erfahren, wohin es weitergeht. Auf Vercel gilt dasselbe für eine `.md`- oder `.json`-URL, hinter der keine Datei steht.
 
-Um sie durch deine eigene zu ersetzen, füge eine `pages/404.astro` hinzu. Sie übernimmt die `/404`-Route genauso, wie `pages/changelog.astro` den Changelog übernimmt — deine Seite gewinnt, und die Standardseite entfällt. Bau sie wie jede andere benutzerdefinierte Seite, in `PageLayout` oder `RootLayout`:
+Um sie durch deine eigene zu ersetzen, füge eine `pages/404.astro` hinzu. Sie übernimmt die `/404`-Route genauso, wie `pages/changelog.astro` den Changelog übernimmt — deine Seite gewinnt, und die Standardseite entfällt, samt ihrer Gegenstücke `/404.md` und `/404.json`. Bau sie wie jede andere benutzerdefinierte Seite, in `PageLayout` oder `RootLayout`:
 
 ```astro pages/404.astro lineNumbers
 ---

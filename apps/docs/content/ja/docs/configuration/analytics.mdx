@@ -48,6 +48,7 @@ export default defineConfig({
 | `hotjar()` | [Hotjar](#hotjar) | `id` |
 | `logrocket()` | [LogRocket](#logrocket) | `id` |
 | `mixpanel()` | [Mixpanel](#mixpanel) | `token` |
+| `oneDollarStats()` | [OneDollarStats](#onedollarstats) | — |
 | `pirsch()` | [Pirsch](#pirsch) | `code` |
 | `plausible()` | [Plausible](#plausible) | `domain` |
 | `posthog()` | [PostHog](#posthog) | `key` |
@@ -191,6 +192,22 @@ analytics: [
 ```
 
 `clientId` は `data-client-id` になります。その他のオプションはそれぞれタグ上の個別の `data-` 属性になるため、属性名と同じケバブケースで指定してください（`track-web-vitals`、`track-errors`、`track-outgoing-links`、`api-url` など）。`trackWebVitals` のようなキャメルケースの名前は Databuddy に無視されます。値は文字列です。オン／オフの切り替えには `"true"` または `"false"` を、`skip-patterns` と `mask-patterns` には JSON 配列を指定してください。それ以外の形式のリスト値は、Databuddy では空として扱われます。
+
+## OneDollarStats
+
+[OneDollarStats](https://onedollarstats.com) にサイトのドメインを追加してから、`oneDollarStats()` をリストに追加します。OneDollarStats はイベントの送信元ドメインによってイベントをサイトに対応付けるため、キーは不要です。
+
+```ts blume.config.ts lineNumbers
+analytics: [oneDollarStats()],
+```
+
+各オプションはそれぞれタグ上の個別の `data-` 属性になります。値は文字列です。
+
+- `hostname` を設定すると、`localhost` だけでなくすべてのホストで、すべてのイベントがそのホスト名（`https://` やパスを含まない `docs.example.com` の形式）でレポートされます。そのため、プレビューデプロイやステージング環境もそのサイトのトラフィックとしてカウントされます。すべてのビルドをその名前でレポートすべき場合を除き、設定しないでください。
+- `devmode: "true"` を `hostname` と組み合わせると、ローカルの `blume preview` からイベントを送信できます。`localhost` では両方を設定しない限りトラッカーは何も送信しないため、これらはコミットする設定には含めないでください。
+- `url` はサイトの URL ではなく、イベントの送信先となるコレクターのエンドポイントです（デフォルトは `https://collector.onedollarstats.com/events`）。
+- `autocollect: "false"` を指定すると、ページビューの自動計測がオフになります。
+- `"hash-routing": "true"` を指定すると、目次のクリックのように `#fragment` だけが変わる場合も含め、すべてのナビゲーションでページビューを送信します。トラッカーはこの属性が存在するだけでハッシュルーティングを有効にするため、`"false"` の場合 Blume はこの属性を出力しません。
 
 ## Mixpanel
 
@@ -392,6 +409,8 @@ analytics: [
 | `mixpanel()` | `token` | — | Mixpanel のプロジェクトトークン。必須です。 |
 | `mixpanel()` | `region` | `us` | データレジデンシーのリージョン：`us`、`eu`、`in` のいずれか。 |
 | `mixpanel()` | その他すべて | `track_pageview: "url-with-path-and-query-string"` | そのまま `mixpanel.init` のオプションにマージされます。 |
+| `oneDollarStats()` | `hostname` | — | すべてのホストで、すべてのイベントのレポートに使われるホスト名（スキームやパスなし）。 |
+| `oneDollarStats()` | その他すべて | — | タグ上の `data-` 属性としてレンダリングされます（`"hash-routing": "false"` は出力されません）。 |
 | `pirsch()` | `code` | — | Pirsch の識別コード。必須です。 |
 | `pirsch()` | その他すべて | — | タグ上の `data-` 属性としてレンダリングされます。 |
 | `plausible()` | `domain` | — | Plausible に登録したサイトのドメイン。必須です。 |
@@ -411,4 +430,4 @@ analytics: [
 
 ## カスタムイベント [#custom-events]
 
-Blume のページフィードバックは、クライアント API を持つ設定済みのすべてのアダプター — PostHog、Mixpanel、Heap、Segment、Hightouch、Amplitude、LogRocket、Adobe、Google Analytics、Google Tag Manager（`window.dataLayer` への `{ event }` の push として）、Plausible、Databuddy、Fathom、Pirsch、Clarity、Hotjar、Vercel — を通じてカスタムイベントを送信します。Cloudflare と Clearbit にはイベント API がありません。また、すべてのイベントは `detail` に `{ event, props }` を持つ `blume:track` CustomEvent として `window` 上でも発火するため、`script()` アダプターを使えば他の任意の送信先に転送できます。ビルドしたサイトのデプロイについては、[デプロイ](/docs/deployment)を参照してください。
+Blume のページフィードバックは、クライアント API を持つ設定済みのすべてのアダプター — PostHog、Mixpanel、Heap、Segment、Hightouch、Amplitude、LogRocket、Adobe、Google Analytics、Google Tag Manager（`window.dataLayer` への `{ event }` の push として）、Plausible、Databuddy、Fathom、OneDollarStats（各プロパティの値は文字列として）、Pirsch、Clarity、Hotjar、Vercel — を通じてカスタムイベントを送信します。Cloudflare と Clearbit にはイベント API がありません。また、すべてのイベントは `detail` に `{ event, props }` を持つ `blume:track` CustomEvent として `window` 上でも発火するため、`script()` アダプターを使えば他の任意の送信先に転送できます。ビルドしたサイトのデプロイについては、[デプロイ](/docs/deployment)を参照してください。

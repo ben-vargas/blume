@@ -4,7 +4,7 @@ description: >-
   Ein Feed pro datiertem Inhaltstyp — standardmäßig Blog und Changelog — bereitgestellt unter /<type>/rss.xml und automatisch an Feedreader gemeldet.
 ---
 
-Blume erstellt für jeden Inhaltstyp in `rss.types` — standardmäßig `blog` und `changelog` —, der Seiten hat, einen RSS-Feed, der unter `/<type>/rss.xml` bereitgestellt wird. Siehe [Feeds](/docs/content#feeds) zum Verfassen von Blog- und Changelog-Einträgen mit Datumsangaben.
+Blume erstellt für jeden Inhaltstyp in `seo.rss.types` — standardmäßig `blog` und `changelog` —, der Seiten hat, einen RSS-Feed, der unter `/<type>/rss.xml` bereitgestellt wird. Siehe [Feeds](/docs/content#feeds) zum Verfassen von Blog- und Changelog-Einträgen mit Datumsangaben.
 
 Die Links eines Feeds müssen absolut sein, daher brauchen Feeds eine Site-URL: Setze [`deployment.site`](/docs/deployment#set-your-site-url) oder deploye auf einen Host, von dem Blume sie automatisch erkennt (Vercel, Netlify, Cloudflare). Ohne sie erzeugt ein Build überhaupt keine Feeds. Während `blume dev` springt die URL des lokalen Servers ein, sodass die Feeds dort in jedem Fall erscheinen.
 

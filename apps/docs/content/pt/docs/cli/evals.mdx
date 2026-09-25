@@ -100,9 +100,9 @@ Isso grava o relatório JSON completo em um arquivo e abre o agente no modo inte
 ## Flags
 
 - `--agent codex|claude` — qual CLI de agente roda o leitor e o juiz. O padrão é `codex`.
-- `--file <path>` — o arquivo de evals. O padrão é `evals.yaml`.
-- `--threshold <0..1>` — fração mínima de aprovação para que a execução não saia com código diferente de zero; as falhas de perguntas com `severity: warning` contam como aprovadas. O padrão é `1`.
-- `--timeout <seconds>` — limite de tempo do leitor por pergunta. O padrão é `180`.
+- `--file <path>` — o arquivo de evals, relativo à raiz do projeto ou absoluto. O padrão é `evals.yaml`.
+- `--threshold <0..1>` — fração mínima de aprovação para que a execução não saia com código diferente de zero; as falhas de perguntas com `severity: warning` contam como aprovadas. O padrão é `1`. Um valor vazio gera erro, então `--threshold "$EVAL_THRESHOLD"` com a variável não definida não consegue desativar a exigência.
+- `--timeout <seconds>` — limite de tempo do leitor por pergunta. O padrão é `180`, e o máximo é `2147483` (cerca de 24 dias), o maior tempo que um timer consegue esperar.
 - `--json` — emite o relatório como JSON no stdout.
 - `--fix` — depois de uma execução com falhas, entrega o relatório ao agente para corrigir a documentação de forma interativa.
 - `--verbose` — inclui a resposta completa do leitor abaixo de cada falha.

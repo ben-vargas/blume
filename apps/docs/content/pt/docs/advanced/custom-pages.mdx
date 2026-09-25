@@ -103,10 +103,10 @@ O módulo expõe:
       description: "Feeds RSS gerados: { href, title }.",
     },
     fontCssVars: {
-      type: "string[]",
+      type: "FontHead[]",
       required: true,
       description:
-        "Nomes das variáveis CSS para as fontes configuradas (integração <Font> do Astro).",
+        "As fontes configuradas para o componente <Font> do Astro no head, uma por família: { cssVariable, preloadWeights, preloadSubsets? }.",
     },
     ui: {
       type: "UIStrings",
@@ -291,7 +291,7 @@ O Blume traz uma página **não encontrada** padrão de fábrica: uma mensagem "
 
 A página também tem uma gêmea em Markdown em `/404.md` e uma gêmea em JSON em `/404.json` (detalhes de problema conforme a [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457)) com os mesmos links de recuperação (URLs absolutas assim que [`deployment.site`](/docs/deployment) estiver definido), além da descrição [`openapi.json`](/docs/discoverability/json-api) quando a API JSON estiver ativa. Em um [build de servidor na Vercel ou na Cloudflare](/docs/deployment#server-rendering), uma requisição para uma página inexistente que envie [`Accept: text/markdown`](/docs/discoverability/markdown#content-negotiation) recebe o corpo em Markdown com o status `404` em vez da estrutura HTML, e uma que envie `Accept: application/json` recebe o documento de problema — assim um agente nunca precisa analisar uma página cheia de interface para descobrir para onde ir em seguida. Na Vercel, o mesmo vale para uma URL `.md` ou `.json` sem arquivo correspondente.
 
-Para substituí-la pela sua própria, adicione um `pages/404.astro`. Ela assume a rota `/404` da mesma forma que `pages/changelog.astro` assume o changelog — sua página prevalece e a padrão é descartada. Construa-a como qualquer outra página personalizada, em `PageLayout` ou `RootLayout`:
+Para substituí-la pela sua própria, adicione um `pages/404.astro`. Ela assume a rota `/404` da mesma forma que `pages/changelog.astro` assume o changelog — sua página prevalece e a padrão é descartada, junto com suas gêmeas `/404.md` e `/404.json`. Construa-a como qualquer outra página personalizada, em `PageLayout` ou `RootLayout`:
 
 ```astro pages/404.astro lineNumbers
 ---

@@ -4,7 +4,7 @@ description: >-
   日付付きコンテンツタイプごとのフィード（デフォルトではブログと変更履歴）。/<type>/rss.xml で配信され、フィードリーダーに自動的に通知されます。
 ---
 
-Blume は、`rss.types` に含まれるコンテンツタイプ（デフォルトでは `blog` と `changelog`）のうちページが存在するものについて RSS フィードを生成し、`/<type>/rss.xml` で配信します。日付付きのブログエントリや変更履歴エントリの作成については [フィード](/docs/content#feeds) を参照してください。
+Blume は、`seo.rss.types` に含まれるコンテンツタイプ（デフォルトでは `blog` と `changelog`）のうちページが存在するものについて RSS フィードを生成し、`/<type>/rss.xml` で配信します。日付付きのブログエントリや変更履歴エントリの作成については [フィード](/docs/content#feeds) を参照してください。
 
 フィード内のリンクは絶対 URL である必要があるため、フィードにはサイト URL が必要です。[`deployment.site`](/docs/deployment#set-your-site-url) を設定するか、Blume がサイト URL を検出できるホスト（Vercel、Netlify、Cloudflare）にデプロイしてください。サイト URL がない場合、ビルド時にフィードは一切生成されません。`blume dev` の実行中はローカルサーバーの URL が代わりに使われるため、どちらの場合でもフィードが表示されます。
 

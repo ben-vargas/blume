@@ -23,7 +23,7 @@ export default function Counter() {
 Here's a live counter: <Counter />
 ```
 
-O nome do arquivo é o nome do componente, então ele **deve ser um identificador em PascalCase** — apenas letras, dígitos e sublinhados (`Counter.tsx` → `<Counter />`). Nomes de arquivo em minúsculas, nomes com traços/pontos/espaços (como `Time-Picker.tsx`) e duas ilhas que resolvem para o mesmo nome são ignorados com um aviso de compilação.
+O nome do arquivo é o nome do componente, então ele **deve ser um identificador em PascalCase** — apenas letras, dígitos e sublinhados (`Counter.tsx` → `<Counter />`). Nomes de arquivo em minúsculas e nomes com traços/pontos/espaços (como `Time-Picker.tsx`) são ignorados com um aviso de compilação. Quando duas ilhas resolvem para o mesmo nome — `Counter.tsx` e `Counter.vue`, ou dois arquivos `Counter.tsx` em subpastas diferentes — o Blume mantém a primeira pela ordem dos caminhos de arquivo e ignora a outra, com um aviso de compilação.
 
 :::note
 Ilhas são para UI **interativa**. Para um componente estático que você reutiliza entre páginas (um destaque estilizado, uma tabela de preços), use uma [substituição MDX](/docs/configuration/customization) em vez disso — ela não envia nenhum JavaScript.

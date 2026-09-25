@@ -610,6 +610,20 @@ The core theme ships no client framework JS.
 
 `caution`、`error`、`important`、`warn` という名前は、それぞれ `warning`、`danger`、`note`、`warning` のエイリアスとして使えます。
 
+それ以外の名前はコールアウトにはなりません。その場合も内容はレンダリングされ、前後の `:::` の行も書いたとおりページ上に残ります。そのため、他のドキュメントツールから持ち込んだ `:::details` や、`:::warnig` のようなタイプミスがあっても、中身が隠れてしまうことはありません。`blume dev`、`blume build`、`blume check` は、これを `BLUME_UNKNOWN_DIRECTIVE` として警告し、上記のコールアウトの種類を案内します。
+
+コールアウトを別のコールアウトの中に入れるには、外側のコールアウトにより長いフェンスを使います：
+
+```md
+::::note
+Blume regenerates `.blume/` on every run.
+
+:::tip
+Commit `blume.config.ts`, not `.blume/`.
+:::
+::::
+```
+
 ## 数式 [#math]
 
 KaTeX で LaTeX を中央揃えのブロックとしてレンダリングします — 数式の多いドキュメントや科学系のドキュメントに便利です。数式を `$$…$$` で囲みます：

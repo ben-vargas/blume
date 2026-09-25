@@ -68,6 +68,8 @@ deployment: {
 
 `base`（および `site`）は、すべてのホストアダプターのオプションでもあります: `vercel({ base: "/docs" })`。
 
+ベースと同じ名前のコンテンツフォルダー内にあるページでも、各ページはベース配下で自身のパスを維持します: `base: "/docs"` の場合、`docs/setup.md` は `/docs/docs/setup` で配信され、その canonical URL、サイドバーのリンク、`llms.txt` のエントリーもそこを指します。書いたルート相対のリンクがすでにベースで始まっている場合は、ベースを含むものとみなされ、書いたとおりに残されます。そのため、そのページへは相対リンク（`./docs/setup`）か完全なパス（`/docs/docs/setup`）でリンクしてください。
+
 ## ドキュメントをパス配下にマウントする [#mount-the-docs-under-a-path]
 
 `basePath` は生成されるすべてのルートをあるセグメント配下（`/docs/getting-started`）にマウントしますが、サイドバーはそのままです — トップレベルはラッパーグループではなく、あなたのセクションのままです。ドキュメントは `/docs/*` に置きつつ、サイトのルートは自分のものとして残したい場合に使います（Docusaurus の `routeBasePath` や Fumadocs の `baseUrl` のようなものです）。
@@ -76,7 +78,7 @@ deployment: {
 basePath: "/docs",
 ```
 
-リンクはルートにマウントされている前提（`/getting-started`）で書いてください。Blume がリンクを書き換え、リダイレクト、サイトマップ、canonical URL、Open Graph 画像、`llms.txt`、検索インデックスも合わせて処理します。公開アセット（画像や `public/` 配下のファイル）はサイトのルートに残ります。
+リンクはルートにマウントされている前提（`/getting-started`）で書いてください。Blume がリンクを書き換え、リダイレクト、サイトマップ、canonical URL、Open Graph 画像、`llms.txt`、検索インデックスも合わせて処理します。公開アセット（画像や `public/` 配下のファイル）はサイトのルート、または [`base`](#subpath-deploys) を設定している場合はその配下に残ります。
 
 これは上記 2 つのパスとは別の概念です:
 
@@ -155,7 +157,7 @@ redirects: [{ from: "/old", to: "/new", status: 301 }],
 :::
 
 :::note
-`from` と `to` はどちらもルートにマウントされている前提で、`/` から始めて書いてください（`to` は完全な `https://` URL にすることもできます） — [`base`](#subpath-deploys) でも [`basePath`](#mount-the-docs-under-a-path) でも、Blume が両側を書き換えるため、リダイレクト先はベース配下に収まります。`to` に手動でベースを書き込んでいる場合は、二重にならずそのまま維持されます。
+`from` と `to` はどちらもルートにマウントされている前提で、`/` から始めて書いてください（`to` は完全な `https://` URL にすることもできます） — [`base`](#subpath-deploys) でも [`basePath`](#mount-the-docs-under-a-path) でも、Blume が両側を書き換えるため、リダイレクト先はベース配下に収まります。`public/` 内のファイルを指す `to`（`/files/guide.pdf`）には `base` は付加されますが、`basePath` は付加されません。ファイルが配信されるのはその場所だからです。`to` に手動でベースを書き込んでいる場合は、二重にならずそのまま維持されます。
 :::
 
 ## コンテンツタイプ [#content-types]
