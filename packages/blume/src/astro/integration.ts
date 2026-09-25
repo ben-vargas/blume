@@ -351,9 +351,11 @@ export const blumeIntegration = (
           return;
         }
         // `dir` is what Astro reports as the client output — `dist/`, or
-        // `dist/client` for a server build — which is what the platform
-        // serves (the Vercel adapter copies it into its Build Output static
-        // tree in a later hook).
+        // `dist/client` for a server build (`dist/client/<base>/` once
+        // `@astrojs/cloudflare` moves it under the base, whose `_headers` the
+        // writer places at the root served above it) — which is what the
+        // platform serves (the Vercel adapter copies it into its Build Output
+        // static tree in a later hook).
         await publishBuildArtifacts(project, fileURLToPath(dir), logger);
       },
       "astro:config:done": ({ config, injectTypes }) => {

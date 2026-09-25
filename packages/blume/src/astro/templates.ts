@@ -660,7 +660,8 @@ export const astroConfigTemplate = (options: {
   const basedRedirects = applyBaseToAstroRedirects(
     config.redirects,
     config.basePath,
-    deployment.options.base ?? ""
+    deployment.options.base ?? "",
+    new Set(contentRoutes)
   );
   const redirectsOption =
     basedRedirects.length > 0
