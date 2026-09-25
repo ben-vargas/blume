@@ -8,6 +8,29 @@ import { join } from "pathe";
 export const pathWithBin = (binDir: string): string =>
   `${binDir}${nodePath.delimiter}${process.env.PATH ?? ""}`;
 
+/** An environment variable name as the platform compares it. */
+const fold = (name: string): string =>
+  process.platform === "win32" ? name.toUpperCase() : name;
+
+/**
+ * The test's environment with `overrides` applied, for a subprocess. Windows
+ * names are case-insensitive and PATH is inherited as `Path`, so spreading
+ * `{ ...process.env, PATH }` hands the child both; libuv sorts that block
+ * case-insensitively, and which of the two the child reads then shifts with
+ * whatever else the environment holds — a fake `npm` drops off PATH once an
+ * earlier suite leaves a variable behind. Each overridden name is dropped in
+ * every spelling first.
+ */
+export const envWith = (overrides: Record<string, string>) => {
+  const replaced = new Set(Object.keys(overrides).map(fold));
+  return {
+    ...Object.fromEntries(
+      Object.entries(process.env).filter(([name]) => !replaced.has(fold(name)))
+    ),
+    ...overrides,
+  };
+};
+
 /**
  * A PATH on which no agent CLI can be found: a fresh, empty directory and
  * nothing else. The directory holding the test runtime is exactly where a

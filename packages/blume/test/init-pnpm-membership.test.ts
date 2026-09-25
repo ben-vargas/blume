@@ -9,7 +9,7 @@ import {
   workspaceNote,
 } from "../src/cli/init/scaffold.ts";
 import type { InitAnswers } from "../src/cli/init/scaffold.ts";
-import { pathWithBin, writeExecutable } from "./process-fixture.ts";
+import { envWith, pathWithBin, writeExecutable } from "./process-fixture.ts";
 
 /**
  * pnpm installs only the packages a workspace's `packages` globs list (and the
@@ -140,7 +140,7 @@ describe("blume init in a pnpm workspace that doesn't list the folder", () => {
 
   it("skips the install and says to add the folder first", async () => {
     const root = await workspace("packages:\n  - apps/*\n");
-    const env = { ...process.env, PATH: pathWithBin(bin) };
+    const env = envWith({ PATH: pathWithBin(bin) });
     // `bun test` sets NODE_ENV=test, which lowers consola's log level.
     delete env.NODE_ENV;
     const proc = Bun.spawn(

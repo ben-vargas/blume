@@ -280,7 +280,9 @@ describe("surfaceAdapterOutput", () => {
         "./.store/dep"
       );
     }
-  });
+    // A cold Node start that strips types from the module graph: 1.5-4s on
+    // the Windows runner, and past the 5s default when it opens the suite.
+  }, 30_000);
 
   it("copies through the links when the platform refuses to recreate them", async () => {
     // Windows without symlink privilege answers EPERM to the verbatim copy;

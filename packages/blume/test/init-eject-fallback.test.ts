@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 
 import { join } from "pathe";
 
-import { pathWithBin, writeExecutable } from "./process-fixture.ts";
+import { envWith, pathWithBin, writeExecutable } from "./process-fixture.ts";
 
 /**
  * `blume init --eject` when the eject step fails: after a skipped install the
@@ -49,7 +49,7 @@ const initEject = async (
     join(cwd, "site", "blume.config.ts"),
     "export default { lastModified: true };\n"
   );
-  const env = { ...process.env, PATH: pathWithBin(bin) };
+  const env = envWith({ PATH: pathWithBin(bin) });
   // `bun test` sets NODE_ENV=test, which lowers consola's log level.
   delete env.NODE_ENV;
   const proc = Bun.spawn(

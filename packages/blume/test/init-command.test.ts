@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 
 import { join } from "pathe";
 
-import { pathWithBin, writeExecutable } from "./process-fixture.ts";
+import { envWith, pathWithBin, writeExecutable } from "./process-fixture.ts";
 
 const CLI = join(import.meta.dir, "..", "src", "cli", "index.ts");
 
@@ -40,11 +40,7 @@ const runInit = async (
   args: string[],
   env: Record<string, string> = {}
 ) => {
-  const childEnv = {
-    ...process.env,
-    ...env,
-    PATH: pathWithBin(bin),
-  };
+  const childEnv = envWith({ ...env, PATH: pathWithBin(bin) });
   // `bun test` sets NODE_ENV=test, which lowers consola's default log level
   // and silences the install progress and next-steps box asserted on below.
   delete childEnv.NODE_ENV;

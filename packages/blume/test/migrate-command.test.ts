@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "pathe";
 
 import {
+  envWith,
   pathWithBin,
   pathWithoutAgents,
   writeExecutable,
@@ -48,7 +49,7 @@ const migrate = async (
   // CLI still has to be launchable without one.
   const proc = Bun.spawn([process.execPath, CLI, "migrate", ...args], {
     cwd,
-    env: { ...process.env, ...env },
+    env: envWith(env),
     stderr: "pipe",
     stdout: "pipe",
   });

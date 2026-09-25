@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "pathe";
 
 import {
+  envWith,
   pathWithBin,
   pathWithoutAgents,
   writeExecutable,
@@ -119,7 +120,7 @@ const run = async (
   const path = binDir ? pathWithBin(binDir) : await pathWithoutAgents();
   const proc = Bun.spawn([process.execPath, CLI, "translate", ...args], {
     cwd,
-    env: { ...process.env, PATH: path },
+    env: envWith({ PATH: path }),
     stderr: "pipe",
     stdout: "pipe",
   });
