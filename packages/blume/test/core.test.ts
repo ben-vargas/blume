@@ -626,12 +626,14 @@ describe(extractHeadings, () => {
     expect(extractHeadings(body).map((h) => h.text)).toStrictEqual(["After"]);
   });
 
-  it("keeps headings when the body opens with a thematic break", () => {
-    // A leading `---` followed by a blank line is a thematic break, not front
-    // matter — treating it as an unclosed block would eat every heading up to
-    // the next `---` line.
+  it("reads a body's leading --- block the way its renderer does", () => {
+    // The `.md` renderer parses front matter out of the body it is handed, so
+    // a leading `---` block — a blank line after the dashes included — never
+    // renders. The `.mdx` compiler reads the same lines as a thematic break
+    // and a heading, and so does the scan of an `.mdx` body.
     const body = ["---", "", "# First", "", "---", "", "## Second"].join("\n");
-    expect(extractHeadings(body).map((h) => h.text)).toStrictEqual([
+    expect(extractHeadings(body).map((h) => h.text)).toStrictEqual(["Second"]);
+    expect(scanBody(body, "mdx").headings.map((h) => h.text)).toStrictEqual([
       "First",
       "Second",
     ]);

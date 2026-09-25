@@ -13,14 +13,20 @@ import {
   blumeMdxProcessor,
 } from "../src/markdown/index.ts";
 
-/** The slugs the renderer gives a document's headings, in order. */
+/**
+ * The slugs the renderer gives a document's headings, in order. The heading of
+ * the footnotes section GFM appends (`footnote-label`) is the renderer's own,
+ * not one the author wrote, so it is left out.
+ */
 const renderedSlugs = async (
   processor: ReturnType<typeof blumeMarkdownProcessor>,
   source: string
 ): Promise<string[]> => {
   const renderer = await processor.createRenderer({});
   const { metadata } = await renderer.render(source);
-  return metadata.headings.map((heading: { slug: string }) => heading.slug);
+  return metadata.headings
+    .map((heading: { slug: string }) => heading.slug)
+    .filter((slug: string) => slug !== "footnote-label");
 };
 
 const scannedSlugs = (source: string): string[] =>
@@ -126,10 +132,67 @@ describe("heading anchors match the renderer", () => {
     expect(texts("<div>x</div>\n---")).toStrictEqual(["<div>x</div>"]);
   });
 
-  it("leaves a footnote reference literal", () => {
-    // Its rendered number depends on the page's footnote order.
-    expect(texts("## Notes[^1] here\n\n[^1]: A note.")).toStrictEqual([
-      "Notes[^1] here",
+  it("reads a footnote reference as the number it renders", async () => {
+    // GFM numbers footnotes by the body's first reference to each: `b` is
+    // cited first, so it is 1 wherever it appears. A reference inside a
+    // definition (`[^c]` in `b`'s) or a fence doesn't count, and labels match
+    // case-insensitively.
+    const source = [
+      "Cited first[^b], then[^a].",
+      "",
+      "## Setup[^a] and[^b]",
+      "",
+      "## Twice[^b][^b]",
+      "",
+      "```",
+      "## Fenced[^c]",
+      "```",
+      "",
+      "Setext[^Note]",
+      "---",
+      "",
+      "## Code[^c] [#pinned]",
+      "",
+      "## Last[^c]",
+      "",
+      "[^a]: A.",
+      "[^b]: B, citing [^c].",
+      "[^note]: Case-insensitive.",
+      "[^c]: C.",
+    ].join("\n");
+    const scanned = scannedSlugs(source);
+    expect(scanned).toStrictEqual(
+      await renderedSlugs(blumeMarkdownProcessor({}), source)
+    );
+    expect(scanned).toStrictEqual([
+      "setup2-and1",
+      "twice11",
+      "setext3",
+      "pinned",
+      "last4",
+    ]);
+    expect(texts(source)).toStrictEqual([
+      "Setup2 and1",
+      "Twice11",
+      "Setext3",
+      "Code4",
+      "Last4",
+    ]);
+  });
+
+  it("slugs a footnote reference in an .mdx page by its number", async () => {
+    const source = "Intro[^b].\n\n## Setup[^a]\n\n[^a]: A.\n[^b]: B.\n";
+    expect(scannedSlugs(source)).toStrictEqual(
+      await renderedSlugs(blumeMdxProcessor({}), source)
+    );
+    expect(scannedSlugs(source)).toStrictEqual(["setup2"]);
+  });
+
+  it("keeps a reference the body never numbers as written", () => {
+    // Inside an HTML block the renderer parses no footnote reference (nor a
+    // heading); the scan, which still records the line, reads it literally.
+    expect(texts("<div>\n## Inside[^z]\n</div>\n\n[^z]: Z.\n")).toStrictEqual([
+      "Inside[^z]",
     ]);
   });
 });
@@ -214,5 +277,37 @@ describe("wikilinks to a heading that holds a link", () => {
     // The heading renders as `See <a>Other</a>`, so its id is `see-other`
     // whatever the link's target.
     expect(links?.body.text).toContain("(/notes#see-other)");
+  });
+
+  it("stay addressable when the heading links to a heading", async () => {
+    const root = await mkdtemp(join(tmpdir(), "blume-heading-text-"));
+    dirs.push(root);
+    await writeFile(join(root, "Links.md"), "Go to [[Notes#See Section]].\n");
+    // `Notes` indexes its anchors before `Other` (vault order), so the link
+    // in its heading is first rewritten without `Other`'s anchor.
+    await writeFile(join(root, "Notes.md"), "## See [[Other#Section]]\n");
+    await writeFile(join(root, "Other.md"), "## Section\n");
+    const source = obsidianSource(
+      { name: "obsidian", vault: "." },
+      { cacheDir: join(root, ".cache"), mode: "build", projectRoot: root }
+    );
+    const { diagnostics, entries } = await source.load();
+    const byRef = new Map(entries.map((entry) => [entry.ref, entry]));
+    const notes = byRef.get("Notes.md");
+    if (!notes) {
+      throw new Error("expected the Notes entry");
+    }
+    // The staged heading ships with the anchor it links to...
+    expect(notes.body.text).toBe("## See [Section](/other#section)");
+    // ...and the wikilink lands on the id the page manifest records for it.
+    expect(byRef.get("Links.md")?.body.text).toContain("(/notes#see-section)");
+    const [page] = normalizeEntry(notes, {
+      defaultType: "doc",
+      source: { name: "obsidian", staged: true },
+    }).pages;
+    expect(page?.headings.map((heading) => heading.slug)).toStrictEqual([
+      "see-section",
+    ]);
+    expect(diagnostics).toStrictEqual([]);
   });
 });

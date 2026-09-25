@@ -90,10 +90,41 @@ const titleCase = (value: string): string =>
  * while Astro writes the page to `c%23/`; a `%` starts an escape, and a bare
  * one is an invalid URL Astro can't decode (and one it escapes, `%25`, finds
  * no static path). All are legal in macOS/Linux filenames, so they are
- * removed here rather than rejected: `c#.md` publishes at `/sdks/c`.
+ * removed here rather than rejected: `100%.md` publishes at `/100`, and a
+ * slug of `sdks/c#` at `/sdks/c`. A file whose own path holds `#` or `?`
+ * never gets this far — Astro can't load it (see
+ * {@link unloadablePathDiagnostic}).
  */
 const sanitizeSegment = (segment: string): string =>
   segment.replaceAll(/[:#?%\p{Cc}]/gu, "");
+
+// Astro's content loader reads each entry at `new URL("./" + encodeURI(entry),
+// base)`. `encodeURI` escapes `%` but leaves `#` and `?` alone, so in a path
+// they start the URL's fragment and query, and the read misses the file.
+const UNLOADABLE_PATH = /[#?]/u;
+
+/**
+ * The error for a content file Astro's content loader can't read, or
+ * undefined when it can. A `#` or `?` anywhere in the path the loader is
+ * handed (`sdks/c#.md`, `faq/why?.md`) truncates the file URL it reads
+ * through, so the read fails with ENOENT and the page renders "Page not
+ * found" at its route. A source leaves such a file out of its scan and
+ * reports this instead of publishing a route that can never render.
+ */
+export const unloadablePathDiagnostic = (
+  path: string,
+  file: string
+): Diagnostic | undefined =>
+  UNLOADABLE_PATH.test(path)
+    ? {
+        code: "BLUME_UNLOADABLE_FILE_NAME",
+        file,
+        message: `"${path}" has a "#" or "?" in its path, which Astro's content loader reads as the start of a URL fragment or query, so it can't load the file. It was left out of the site.`,
+        severity: "error",
+        suggestion:
+          'Rename the file (or its folder) without "#" or "?". Both are dropped from the page\'s URL anyway, so the page keeps its route.',
+      }
+    : undefined;
 
 /**
  * Fold one raw path part into the accumulating route segments/groups.
@@ -181,6 +212,9 @@ const SETEXT_UNDERLINE = /^ {0,3}(?<marker>=+|-+)\s*$/u;
 const PARAGRAPH_INTERRUPT = /^ {0,3}(?:[-+*][ \t]|\d{1,9}[.)][ \t]|>)/u;
 const THEMATIC_BREAK =
   /^ {0,3}(?:(?:-[ \t]*){3,}|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,})$/u;
+// Sätteri's front matter fences: exactly `---` to open, `---` or `...` to
+// close, each alone on its line apart from trailing whitespace.
+const FRONT_MATTER_OPEN = /^-{3}\s*$/u;
 const FRONT_MATTER_CLOSE = /^(?:-{3}|\.{3})\s*$/u;
 // `<Prompt>` renders its children into a permanently `hidden` DOM node (see
 // `Prompt.astro`) — the agent-facing prompt text is never visible page
@@ -198,29 +232,39 @@ const PROMPT_OPEN = /^<Prompt(?![\w-])/u;
 // children text (`...copy this.</Prompt>`), not just sit on its own line.
 const PROMPT_CLOSE = /<\/Prompt>/u;
 
+/** A body's format, which decides how its renderer treats a leading `---`. */
+type BodyFormat = SourceEntry["body"]["format"];
+
 /**
- * The body lines, minus a leading front matter block, plus the height of the
- * block that was dropped (`offset`) so line numbers can be reported against
- * the whole body. Bodies from the normalize pipeline are already
- * frontmatter-stripped, but `scanBody` also runs on raw documents — where a
- * leading `---` block (closed by `---` or `...`) is front matter, not a
- * thematic break whose closing `---` would underline the last metadata line
- * into a phantom setext heading.
+ * The body lines the renderer turns into content, plus the height of a
+ * leading front matter block it drops (`offset`), so line numbers can be
+ * reported against the whole body.
+ *
+ * Astro strips a page's own front matter before rendering, then hands a `.md`
+ * body — trimmed — to Sätteri, whose front matter parse strips a leading `---`
+ * block from it again: a `---` line, then anything (a blank line included),
+ * up to the next `---` or `...` line. That block never reaches the page, so
+ * its lines hold no headings and its closing `---` underlines nothing. A raw
+ * document's own front matter reads the same way — a blank line after the
+ * opening `---` included, as `core/frontmatter.ts` and Astro read it — rather
+ * than as a thematic break whose closing `---` turns the YAML into a phantom
+ * setext heading. An `.mdx` body reaches the MDX compiler behind the spaces
+ * that stand in for the page's front matter, where no second block opens, so
+ * a `---` at its top is a thematic break and the whole body is content.
  */
-const linesWithoutFrontMatter = (body: string) => {
+const linesWithoutFrontMatter = (body: string, format: BodyFormat) => {
   const lines = body.split("\n");
-  if (!/^-{3}\s*$/u.test(lines[0] ?? "")) {
-    return { lines, offset: 0 };
-  }
-  // A blank line directly after the dashes means the body *opens* with a
-  // thematic break, not front matter — YAML metadata starts on the very next
-  // line. Treating it as an unclosed block ate everything up to the next
-  // `---`/`...` line of an already-stripped body.
-  if ((lines[1] ?? "").trim() === "") {
+  // Astro trims the body first, so blank lines (and indentation) ahead of the
+  // opening `---` don't keep the block from opening.
+  const start = lines.findIndex((line) => line.trim() !== "");
+  if (
+    format === "mdx" ||
+    !FRONT_MATTER_OPEN.test((lines[start] ?? "").trimStart())
+  ) {
     return { lines, offset: 0 };
   }
   const close = lines.findIndex(
-    (line, index) => index > 0 && FRONT_MATTER_CLOSE.test(line)
+    (line, index) => index > start && FRONT_MATTER_CLOSE.test(line)
   );
   return close === -1
     ? { lines, offset: 0 }
@@ -369,10 +413,11 @@ const REF_DEFINITION =
 
 /**
  * The normalized labels of every link-reference definition in the body
- * (outside fenced code). A heading bracket whose label is defined is a
- * CommonMark reference link — `[text][label]`, or a shortcut `[label]` that
- * would otherwise read as a trailing `[toc]`/`[#id]` marker — so each heading
- * is parsed together with the definitions it names (see
+ * (outside fenced code), footnote definitions (`^1`) included. A heading
+ * bracket whose label is defined is a CommonMark reference link —
+ * `[text][label]`, or a shortcut `[label]` that would otherwise read as a
+ * trailing `[toc]`/`[#id]` marker — or a GFM footnote reference, so each
+ * heading is parsed together with the definitions it names (see
  * {@link definitionsFor}). Labels match case-insensitively with collapsed
  * internal whitespace (CommonMark).
  *
@@ -406,12 +451,11 @@ const refDefinitionLabels = (lines: readonly string[]): Set<string> => {
 };
 
 /**
- * The link-reference definitions a heading's brackets may name, as source
- * lines to parse the heading with. A definition the heading doesn't use
- * changes nothing, so matching is loose (the label anywhere in the folded
- * text). Footnote labels (`^1`) are left out: a footnote reference renders as
- * its number in the page's footnote order, which a lone heading can't know, so
- * it stays literal text.
+ * The link-reference and footnote definitions a heading's brackets may name,
+ * as source lines to parse the heading with. A definition the heading doesn't
+ * use changes nothing, so matching is loose (the label anywhere in the folded
+ * text). A footnote label (`^1`) is defined too, so `[^1]` parses as the
+ * footnote reference it renders as, not as literal text.
  */
 const definitionsFor = (raw: string, labels: ReadonlySet<string>): string => {
   if (!raw.includes("[")) {
@@ -420,7 +464,7 @@ const definitionsFor = (raw: string, labels: ReadonlySet<string>): string => {
   const folded = raw.replaceAll(/\s+/gu, " ").toLowerCase();
   let definitions = "";
   for (const label of labels) {
-    if (!label.startsWith("^") && folded.includes(label)) {
+    if (folded.includes(label)) {
       definitions += `\n\n[${label}]: /`;
     }
   }
@@ -428,12 +472,49 @@ const definitionsFor = (raw: string, labels: ReadonlySet<string>): string => {
 };
 
 /**
- * The text content of mdast inline nodes, the way the rendered heading reads
- * it: link and emphasis text, code-span contents, and decoded entities. Raw
- * HTML tags add no text (the text between them is its own node), and an
- * image's alt is an attribute rather than text content.
+ * The number each footnote renders as, keyed by identifier. GFM numbers
+ * footnotes in the order the body first references them, whatever order their
+ * definitions sit in, so a `[^b]` cited before `[^a]` renders as 1. A
+ * reference inside a footnote definition is left out: the renderer reaches
+ * those only after the body.
  */
-const inlineText = (nodes: readonly Nodes[]): string =>
+const footnoteNumbers = (body: string): Map<string, number> => {
+  const numbers = new Map<string, number>();
+  const visit = (nodes: readonly Nodes[]): void => {
+    for (const node of nodes) {
+      if (node.type === "footnoteReference") {
+        if (!numbers.has(node.identifier)) {
+          numbers.set(node.identifier, numbers.size + 1);
+        }
+      } else if (node.type !== "footnoteDefinition" && "children" in node) {
+        visit(node.children);
+      }
+    }
+  };
+  const tree = markdownToMdast(body, HEADING_PARSE);
+  visit("children" in tree ? tree.children : []);
+  return numbers;
+};
+
+/** What reading one heading needs from the rest of its body. */
+interface HeadingContext {
+  /**
+   * The number each footnote renders as (see {@link footnoteNumbers}),
+   * computed on first use: only a heading that cites a footnote needs it.
+   */
+  footnotes: () => ReadonlyMap<string, number>;
+  /** The body's link-reference and footnote definition labels. */
+  labels: ReadonlySet<string>;
+}
+
+/**
+ * The text content of mdast inline nodes, the way the rendered heading reads
+ * it: link and emphasis text, code-span contents, decoded entities, and a
+ * footnote reference's number. Raw HTML tags add no text (the text between
+ * them is its own node), and an image's alt is an attribute rather than text
+ * content.
+ */
+const inlineText = (nodes: readonly Nodes[], context: HeadingContext): string =>
   nodes
     .map((node) => {
       if (
@@ -446,8 +527,16 @@ const inlineText = (nodes: readonly Nodes[]): string =>
       if (node.type === "break") {
         return "\n";
       }
+      if (node.type === "footnoteReference") {
+        // A reference the body's own parse never numbered (a heading the scan
+        // finds inside an HTML block) is no footnote to the renderer either.
+        const number = context.footnotes().get(node.identifier);
+        return number === undefined
+          ? `[^${node.label ?? node.identifier}]`
+          : String(number);
+      }
       if ("children" in node) {
-        return inlineText(node.children);
+        return inlineText(node.children, context);
       }
       return "value" in node ? node.value : "";
     })
@@ -484,7 +573,7 @@ const plainHeading = (raw: string): RenderedHeading => {
 const renderHeading = (
   raw: string,
   form: "atx" | "setext",
-  labels: ReadonlySet<string>,
+  context: HeadingContext,
   parse: typeof HEADING_PARSE
 ): RenderedHeading => {
   if (!INLINE_MARKUP.test(raw)) {
@@ -492,7 +581,7 @@ const renderHeading = (
   }
   const source = form === "atx" ? `# ${raw}` : `${raw}\n=`;
   const tree = markdownToMdast(
-    `${source}${definitionsFor(raw, labels)}`,
+    `${source}${definitionsFor(raw, context.labels)}`,
     parse
   );
   const heading = "children" in tree ? tree.children.at(0) : undefined;
@@ -503,7 +592,7 @@ const renderHeading = (
     return plainHeading(raw);
   }
   const { children } = heading;
-  const text = inlineText(children);
+  const text = inlineText(children, context);
   const last = children.at(-1);
   if (last?.type !== "text") {
     return { text };
@@ -547,11 +636,11 @@ const toHeading = (
   raw: string,
   form: "atx" | "setext",
   slugger: GithubSlugger,
-  labels: ReadonlySet<string>
+  context: HeadingContext
 ): ScannedHeading => {
-  const rendered = renderHeading(raw, form, labels, HEADING_PARSE);
+  const rendered = renderHeading(raw, form, context, HEADING_PARSE);
   const display = SMART_PUNCTUATION.test(raw)
-    ? renderHeading(raw, form, labels, HEADING_TEXT_PARSE).text
+    ? renderHeading(raw, form, context, HEADING_TEXT_PARSE).text
     : rendered.text;
   const text = display.replaceAll(/[\t\n\f\r ]+/gu, " ").trim();
   if (rendered.id !== undefined) {
@@ -593,7 +682,7 @@ const scanContentLine = (
   state: HeadingScanState,
   slugger: GithubSlugger,
   headings: Heading[],
-  labels: ReadonlySet<string>
+  context: HeadingContext
 ): void => {
   // Inline code is masked so a documented `<a id="…">` isn't an anchor.
   state.anchorLines.push(line.replaceAll(INLINE_CODE, ""));
@@ -604,7 +693,7 @@ const scanContentLine = (
     pushHeading(
       headings,
       state,
-      toHeading(depth, text, "atx", slugger, labels),
+      toHeading(depth, text, "atx", slugger, context),
       state.line
     );
     noteCurlyMarker(text, state.line, state);
@@ -624,7 +713,7 @@ const scanContentLine = (
     pushHeading(
       headings,
       state,
-      toHeading(depth, text, "setext", slugger, labels),
+      toHeading(depth, text, "setext", slugger, context),
       state.line - 1
     );
     noteCurlyMarker(text, state.paragraphStart, state);
@@ -693,7 +782,7 @@ const scanHeadingLine = (
   state: HeadingScanState,
   slugger: GithubSlugger,
   headings: Heading[],
-  labels: ReadonlySet<string>
+  context: HeadingContext
 ): void => {
   // Comments hide fences too, and fences and prompts hide comments. A comment
   // line still goes to the anchor pass, which strips HTML comments itself.
@@ -737,7 +826,7 @@ const scanHeadingLine = (
     state.paragraph = [];
     return;
   }
-  scanContentLine(line, state, slugger, headings, labels);
+  scanContentLine(line, state, slugger, headings, context);
 };
 
 /** Where a heading's text ends in the scanned text, for appending a marker. */
@@ -767,9 +856,10 @@ export interface BodyScan {
 /**
  * Scan a body for its headings, explicit HTML anchors, and unescaped `{#id}`
  * markers in one fence-aware walk (the same walk `extractHeadings` exposes for
- * headings alone).
+ * headings alone). `format` is the page's: it decides whether a leading `---`
+ * block is content (see `linesWithoutFrontMatter`).
  */
-export const scanBody = (body: string): BodyScan => {
+export const scanBody = (body: string, format: BodyFormat = "md"): BodyScan => {
   const headings: Heading[] = [];
   const slugger = new GithubSlugger();
   const state: HeadingScanState = {
@@ -785,11 +875,18 @@ export const scanBody = (body: string): BodyScan => {
     sites: [],
   };
 
-  const { lines, offset } = linesWithoutFrontMatter(body);
-  const labels = refDefinitionLabels(lines);
+  const { lines, offset } = linesWithoutFrontMatter(body, format);
+  let footnotes: Map<string, number> | undefined;
+  const context: HeadingContext = {
+    footnotes: () => {
+      footnotes ??= footnoteNumbers(lines.join("\n"));
+      return footnotes;
+    },
+    labels: refDefinitionLabels(lines),
+  };
   for (const [index, line] of lines.entries()) {
     state.line = index + offset + 1;
-    scanHeadingLine(line, state, slugger, headings, labels);
+    scanHeadingLine(line, state, slugger, headings, context);
   }
 
   const anchors = new Set<string>();
@@ -1478,7 +1575,7 @@ export const normalizeEntry = (
   // so a partial's headings anchor-index and TOC under every including page
   // and its components register for the runtime import map.
   const bodyText = entry.expanded?.text ?? entry.body.text;
-  const { anchors, curlyMarkers, headings } = scanBody(bodyText);
+  const { anchors, curlyMarkers, headings } = scanBody(bodyText, format);
   const { staged } = ctx.source;
 
   const base = {
