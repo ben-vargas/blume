@@ -56,3 +56,43 @@ Creates a user in your workspace and sends them an invite.
 <ResponseField name="legacyId" type="integer" deprecated>
   The pre-2024 numeric ID. Use `id` instead.
 </ResponseField>
+
+<RequestExample>
+
+```bash cURL
+curl --request POST \
+  --url https://api.acme.dev/v1/workspaces/ws_123/users \
+  --header "Authorization: Bearer $ACME_TOKEN" \
+  --header "Content-Type: application/json" \
+  --data '{ "email": "ada@example.com", "role": "admin" }'
+```
+
+```ts title="Acme SDK"
+import { Acme } from "@acme/sdk";
+
+const acme = new Acme({ token: process.env.ACME_TOKEN });
+const user = await acme.users.create("ws_123", {
+  email: "ada@example.com",
+  role: "admin",
+});
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201
+{
+  "id": "usr_8f2k",
+  "status": "invited"
+}
+```
+
+```json 409
+{
+  "error": "email_taken",
+  "message": "A user with this email is already in the workspace."
+}
+```
+
+</ResponseExample>

@@ -21,6 +21,7 @@ import { SVG_ASSET_HEADERS } from "../deploy/headers.ts";
 import { deployPlatform } from "../deploy/platforms/index.ts";
 import { adapterRoot, distDir } from "../deploy/platforms/paths.ts";
 import { applyBaseToAstroRedirects } from "../deploy/redirects.ts";
+import { API_RAIL_KEY } from "../markdown/api-rail.ts";
 import type { OgCache } from "../og/cache.ts";
 import type { OgFont, OgFontFamilies, OgGoogleFont } from "../og/card.ts";
 import type { MixedbreadOptions } from "../search/adapters/mixedbread.ts";
@@ -2136,6 +2137,7 @@ const contentComponentsSource = (mathEnabled: boolean) => {
   return {
     imports: `import Accordion from "blume/components/content/Accordion.astro";
 import AccordionItem from "blume/components/content/AccordionItem.astro";
+import ApiRail from "blume/components/content/ApiRail.astro";
 import AutoTypeTable from "blume/components/content/AutoTypeTable.astro";
 import Badge from "blume/components/content/Badge.astro";
 import Callout from "blume/components/content/Callout.astro";
@@ -2157,6 +2159,8 @@ import GithubInfo from "blume/components/content/GithubInfo.astro";
 import Panel from "blume/components/content/Panel.astro";
 import ParamField from "blume/components/content/ParamField.astro";
 import Prompt from "blume/components/content/Prompt.astro";
+import RequestExample from "blume/components/content/RequestExample.astro";
+import ResponseExample from "blume/components/content/ResponseExample.astro";
 import ResponseField from "blume/components/content/ResponseField.astro";
 import Step from "blume/components/content/Step.astro";
 import Steps from "blume/components/content/Steps.astro";
@@ -2181,6 +2185,7 @@ ${mathImport}import { mdxComponents as userMdx, layoutOverrides } from "../gener
   Accordion,
   AccordionItem,
   ApiOverview,
+  ApiRail,
   ApiTagOperations,
   AutoTypeTable,
   Badge,
@@ -2203,6 +2208,8 @@ ${mathImport}import { mdxComponents as userMdx, layoutOverrides } from "../gener
   Panel,
   ParamField,
   Prompt,
+  RequestExample,
+  ResponseExample,
   ResponseField,
   Step,
   Steps,
@@ -2571,6 +2578,7 @@ const LayoutComponent = resolveSlot(layoutOverrides.Layout, RootLayout);
   discovery={data.config.discovery}
   siteUrl={data.config.site}
   pageType={frontmatter.type}
+  apiRail={remarkPluginFrontmatter?.${API_RAIL_KEY} === true}
   published={frontmatter.date ?? frontmatter.changelog?.date ?? null}
   lastModified={lastModified}
   noindex={effectiveNoindex}

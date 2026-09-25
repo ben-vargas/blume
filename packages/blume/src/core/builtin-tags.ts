@@ -33,6 +33,8 @@ export const BUILTIN_MDX_TAGS = new Set<string>([
   "Panel",
   "ParamField",
   "Prompt",
+  "RequestExample",
+  "ResponseExample",
   "ResponseField",
   "Step",
   "Steps",

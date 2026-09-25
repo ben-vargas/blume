@@ -882,6 +882,8 @@ const SERIALIZERS = {
   Panel: panel,
   ParamField: paramFieldMarkdown,
   Prompt: prompt,
+  RequestExample: cardGroup,
+  ResponseExample: cardGroup,
   ResponseField: responseFieldMarkdown,
   Steps: steps,
   Tabs: tabs,

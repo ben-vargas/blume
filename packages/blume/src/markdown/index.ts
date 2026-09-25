@@ -11,6 +11,7 @@ import { codeToHtml } from "shiki";
 
 import { hasVariables } from "../core/variables.ts";
 import type { ContentVariables } from "../core/variables.ts";
+import { apiRailPlugin } from "./api-rail.ts";
 import { baseLinksPlugin } from "./base-links.ts";
 import { codeTitleTransformer } from "./code-title.ts";
 import { directiveToCalloutPlugin } from "./directives.ts";
@@ -362,8 +363,9 @@ export type BlumeMdxOptions = BlumeMarkdownOptions;
  * Sätteri MDX processor: Blume's feature set plus the MDAST plugins that target
  * components — `package-install` → package-manager tabs, ` ```ts ts2js ` →
  * TypeScript/JavaScript tabs, `:::note` → `<Callout>`, ` ```mermaid ` → a
- * `<blume-mermaid>` element, and block math
- * (`$$…$$`) → the `<Math>` component. Used as the `processor` for
+ * `<blume-mermaid>` element, block math
+ * (`$$…$$`) → the `<Math>` component, and top-level `<RequestExample>` and
+ * `<ResponseExample>` → the page's `<ApiRail>`. Used as the `processor` for
  * `@astrojs/mdx` so these apply to `.mdx` only (plain `.md` uses
  * {@link blumeMarkdownProcessor}).
  *
@@ -388,5 +390,6 @@ export const blumeMdxProcessor = (options: BlumeMdxOptions = {}) =>
       asMdastPlugin(mermaidPlugin()),
       asMdastPlugin(mathPlugin()),
       ...blumeSharedMdastPlugins(options),
+      asMdastPlugin(apiRailPlugin()),
     ],
   });

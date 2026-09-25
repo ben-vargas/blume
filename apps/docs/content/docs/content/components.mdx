@@ -604,6 +604,36 @@ Nest an object's fields inside its description with an [`Expandable`](#expandabl
 
 The fields use the same names and props as Mintlify's, so pages written for it render as they are. The Markdown copy of the page lists each field with its type and flags.
 
+### Request and response examples
+
+`RequestExample` and `ResponseExample` hold code blocks, one tab per titled fence (`dropdown` switches to a language menu, as on [`CodeGroup`](#codegroup)). On a wide screen they pin to a column beside the page, the request above the response, and stay in view as the reader scrolls the fields, the way an OpenAPI operation's examples do; the page drops its table of contents to make room. On a narrow screen they follow the page's content.
+
+````mdx lineNumbers
+<RequestExample>
+
+```bash cURL
+curl --request POST https://api.acme.dev/v1/users \
+  --header "Authorization: Bearer $ACME_TOKEN" \
+  --data '{ "email": "ada@example.com" }'
+```
+
+```ts title="Acme SDK"
+await acme.users.create({ email: "ada@example.com" });
+```
+
+</RequestExample>
+
+<ResponseExample>
+
+```json 201
+{ "id": "usr_8f2k", "status": "invited" }
+```
+
+</ResponseExample>
+````
+
+Write them anywhere at the top level of the page; each moves to the column. One nested inside another component, such as a `Tab`, stays where it is written.
+
 ## GitHub info
 
 A card linking to a GitHub repository with its star and fork counts. The counts are fetched at build time — no client JavaScript — so they show the numbers as of your last build, not live ones; the card still renders without them if the API is unreachable. Pass `owner` and `repo`, or omit them to use the repository from your `blume.config`. Set a `GITHUB_TOKEN` environment variable to lift the API rate limit; a `token` prop overrides it for one card, but the environment variable keeps the token out of your content.

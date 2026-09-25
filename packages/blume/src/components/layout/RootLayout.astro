@@ -151,6 +151,12 @@ interface Props {
   discovery?: DiscoveryHeadLinks | null;
   siteUrl?: string | null;
   pageType?: string;
+  /**
+   * The page pins `<RequestExample>`/`<ResponseExample>` to a column beside
+   * its content (see `markdown/api-rail.ts`): it takes the API layout, with
+   * no table of contents, and the article makes room for the column.
+   */
+  apiRail?: boolean;
   published?: string | Date | null;
   lastModified?: string | null;
   noindex?: boolean;
@@ -261,6 +267,7 @@ const {
   discovery = data.config.discovery,
   siteUrl,
   pageType,
+  apiRail = false,
   published,
   lastModified,
   noindex,
@@ -332,11 +339,14 @@ const searchLocale = searchLocaleFor(data.config.i18n, locale);
 // API operation pages own a two-column body (docs + request panel) and their own
 // right rail, so they drop the table of contents and widen the content column.
 const isApiOperation = pageType === "openapi-operation";
+// A hand-written API page lays out like one: its example column replaces the
+// table of contents.
+const isApiLayout = isApiOperation || apiRail;
 // A "bare" page (the changelog index) is a standalone landing: no sidebar, no
 // TOC, just a wider centered column of content.
 const isBare = contentLayout === "bare";
 const showSidebar = !isBare;
-const showToc = !(isApiOperation || isBare);
+const showToc = !(isApiLayout || isBare);
 const tocHeadings =
   toc.enabled && showToc
     ? headings.filter((h) => h.depth >= toc.minLevel && h.depth <= toc.maxLevel)
@@ -348,12 +358,18 @@ let gridClass =
   "lg:grid-cols-[17.5rem_minmax(0,1fr)] xl:grid-cols-[17.5rem_minmax(0,1fr)_17.5rem]";
 if (isBare) {
   gridClass = "";
-} else if (isApiOperation) {
+} else if (isApiLayout) {
   gridClass = "lg:grid-cols-[17.5rem_minmax(0,1fr)]";
 }
 let articleClass = "prose mx-auto max-w-content";
 if (isBare) {
   articleClass = "prose mx-auto max-w-[54rem]";
+} else if (apiRail) {
+  // Room at `xl` for the example column (28rem plus the 2.5rem gap an
+  // operation page keeps), which `ApiRail.astro` positions in it, and a
+  // viewport's height so the column's capped panel never overhangs the page.
+  articleClass =
+    "prose max-w-none xl:relative xl:min-h-[calc(100dvh-7.25rem)] xl:pe-[30.5rem]";
 } else if (isApiOperation) {
   articleClass = "prose max-w-none";
 }
@@ -754,7 +770,7 @@ createIconSprite(Astro.locals);
         <BreadcrumbsSlot
           crumbs={crumbs}
           strings={navStrings}
-          wide={isApiOperation}
+          wide={isApiLayout}
         />
         {
           hasToc && (
@@ -782,7 +798,13 @@ createIconSprite(Astro.locals);
         </article>
         {
           !isApiOperation && (
-            <>
+            <div
+              class:list={[
+                // Aligned with a rail page's content column, not centered
+                // under the prose measure.
+                apiRail && "xl:pe-[30.5rem] [&>*]:max-w-none",
+              ]}
+            >
               <PageFooterSlot
                 headings={tocHeadings}
                 page={page}
@@ -795,7 +817,7 @@ createIconSprite(Astro.locals);
               )}
               {feedback && <FeedbackSlot strings={strings.feedback} />}
               <PaginationSlot next={next} prev={prev} strings={strings.page} />
-            </>
+            </div>
           )
         }
       </main>
