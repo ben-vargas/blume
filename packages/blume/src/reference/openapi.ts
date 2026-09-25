@@ -14,8 +14,12 @@ import type { PlaygroundOptions, ReferenceSourceOptions } from "./options.ts";
 
 /** Options for {@link openapi}. */
 export interface OpenApiOptions {
-  /** Code-sample languages shown per operation (Blume renderer). Defaults to `["curl", "js", "python"]`. */
-  codeSamples?: string[];
+  /**
+   * Code-sample languages generated per operation (Blume renderer), in
+   * order. Defaults to `["curl", "js", "python"]`; `false` generates none, so
+   * only the spec's own `x-codeSamples` show.
+   */
+  codeSamples?: string[] | false;
   /** Start nested schema rows expanded rather than collapsed (Blume renderer). Defaults to `false`. */
   expandSchemas?: boolean;
   /**

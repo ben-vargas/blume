@@ -157,8 +157,13 @@ export const sharedOptions = (defaults: {
   codeSamples: string[];
   route: string;
 }) => ({
-  /** Code-sample languages/tools shown per operation (Blume renderer). */
-  codeSamples: z.array(z.string()).default(defaults.codeSamples),
+  /**
+   * Code-sample languages/tools shown per operation (Blume renderer), or
+   * `false` for none: only the spec's own `x-codeSamples` then.
+   */
+  codeSamples: z
+    .union([z.literal(false), z.array(z.string())])
+    .default(defaults.codeSamples),
   /** The "Try it" panel; see {@link playgroundSchema}. */
   playground: playgroundSchema,
   /** Where the reference mounts. */

@@ -157,15 +157,15 @@ const ALIASES = new Map<string, ToolId>([
 /**
  * The sample tools to render for an operation. The protocol picks the
  * candidate set; a non-empty `codeSamples` config filters and orders it
- * (unknown ids are dropped, aliases accepted). No protocol, an unsupported
- * one, or a filter that matches nothing yields no samples.
+ * (unknown ids are dropped, aliases accepted). `false`, no protocol, an
+ * unsupported one, or a filter that matches nothing yields no samples.
  */
 export const asyncSampleLanguages = (
-  ids: string[],
+  ids: string[] | false,
   protocol?: string
 ): AsyncSampleLanguage[] => {
   const candidates = PROTOCOL_TOOLS.get(protocol ?? "") ?? [];
-  if (candidates.length === 0) {
+  if (ids === false || candidates.length === 0) {
     return [];
   }
   if (ids.length === 0) {

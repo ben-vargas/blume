@@ -2287,10 +2287,12 @@ describe("snippets", () => {
   });
 
   it("resolves language ids through aliases and drops unknowns", () => {
-    const ids = sampleLanguages(["shell", "typescript", "nope"]).map(
+    const ids = sampleLanguages(["shell", "javascript", "c#", "nope"]).map(
       (language) => language.id
     );
-    expect(ids).toStrictEqual(["curl", "js"]);
+    expect(ids).toStrictEqual(["curl", "js", "csharp"]);
+    // `false` generates none.
+    expect(sampleLanguages(false)).toStrictEqual([]);
     // Empty falls back to the default trio.
     expect(sampleLanguages([]).map((language) => language.id)).toStrictEqual([
       "curl",

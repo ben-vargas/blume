@@ -28,7 +28,7 @@ AsyncAPI **2.x specs are normalized to 3.x automatically** with the official Asy
 
 ## Code samples
 
-Code samples are **protocol-aware**, keyed off the operation's binding (or its servers' protocol): `wscat` and a browser `WebSocket` snippet for WebSockets, `kcat` for Kafka, `mosquitto_pub`/`mosquitto_sub` for MQTT. `codeSamples` filters that set, the same way it picks languages on `openapi()`; a protocol without a supported tool renders the message payload example alone rather than a fabricated client.
+Code samples are **protocol-aware**, keyed off the operation's binding (or its servers' protocol): `wscat` and a browser `WebSocket` snippet for WebSockets, `kcat` for Kafka, `mosquitto_pub`/`mosquitto_sub` for MQTT. `codeSamples` filters that set, the same way it picks languages on `openapi()`, and `codeSamples: false` shows none. A protocol without a supported tool renders the message payload example alone rather than a fabricated client.
 
 ## Shared options
 

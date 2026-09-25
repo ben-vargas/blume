@@ -16,9 +16,9 @@ import type { PlaygroundOptions, ReferenceSourceOptions } from "./options.ts";
 export interface AsyncApiOptions {
   /**
    * Code-sample tools shown per operation (Blume renderer). Defaults to every
-   * tool appropriate to the operation's protocol binding.
+   * tool appropriate to the operation's protocol binding; `false` shows none.
    */
-  codeSamples?: string[];
+  codeSamples?: string[] | false;
   /** Start nested schema rows expanded rather than collapsed (Blume renderer). Defaults to `false`. */
   expandSchemas?: boolean;
   /**

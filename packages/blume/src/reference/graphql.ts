@@ -13,8 +13,11 @@ import type { GraphqlSourceOptions, PlaygroundOptions } from "./options.ts";
 
 /** Options for {@link graphql}. */
 export interface GraphqlOptions {
-  /** Code-sample languages shown per operation. Defaults to `["curl", "js", "python"]`. */
-  codeSamples?: string[];
+  /**
+   * Code-sample languages shown per operation, in order. Defaults to
+   * `["curl", "js", "python"]`; `false` shows none.
+   */
+  codeSamples?: string[] | false;
   /**
    * URL of the live GraphQL endpoint the playground and code samples target —
    * a schema, unlike an OpenAPI document, names no server. Applies to every

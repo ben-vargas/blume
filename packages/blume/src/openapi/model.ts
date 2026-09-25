@@ -134,8 +134,8 @@ export interface ApiSpecData {
   /** Operations keyed by {@link ApiOperationRef.key}. */
   operations: Record<string, ApiOperationRef>;
   tags: ApiTagRef[];
-  /** Code-sample languages to render per operation. */
-  codeSamples: string[];
+  /** Code-sample languages to render per operation; `false` for none. */
+  codeSamples: string[] | false;
   /** Whether nested schema rows start expanded. */
   expandSchemas: boolean;
   /**

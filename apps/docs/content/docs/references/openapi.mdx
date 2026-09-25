@@ -55,17 +55,63 @@ reference: [
 
 ## Code samples and schemas
 
-`codeSamples` picks which languages render per operation (built in: `curl`, `js`, `python`); `expandSchemas` starts nested schema rows expanded rather than collapsed:
+`codeSamples` picks which languages render per operation, in the order you list them. It defaults to `["curl", "js", "python"]`. `expandSchemas` starts nested schema rows expanded rather than collapsed:
 
 ```ts blume.config.ts lineNumbers
 reference: [
   openapi({
     spec: "./openapi.yaml",
-    codeSamples: ["curl", "js"],
+    codeSamples: ["curl", "python", "go", "java", "csharp"],
     expandSchemas: true,
   }),
 ],
 ```
+
+Every sample is plain, copy-pasteable code for the request, written with the language's standard or most common HTTP client:
+
+| Id           | Language   | Client              | Also accepts          |
+| ------------ | ---------- | ------------------- | --------------------- |
+| `curl`       | cURL       | `curl`              | `bash`, `sh`, `shell` |
+| `python`     | Python     | `requests`          | `py`                  |
+| `js`         | JavaScript | `fetch`             | `javascript`          |
+| `node`       | Node.js    | `axios`             | `nodejs`, `node.js`   |
+| `typescript` | TypeScript | `fetch`             | `ts`                  |
+| `php`        | PHP        | the curl extension  |                       |
+| `go`         | Go         | `net/http`          | `golang`              |
+| `java`       | Java       | `java.net.http`     |                       |
+| `ruby`       | Ruby       | `net/http`          | `rb`                  |
+| `powershell` | PowerShell | `Invoke-RestMethod` | `ps1`                 |
+| `swift`      | Swift      | `URLSession`        |                       |
+| `csharp`     | C#         | `HttpClient`        | `c#`, `cs`            |
+| `dotnet`     | .NET       | RestSharp           | `.net`, `dot-net`     |
+| `c`          | C          | libcurl             |                       |
+| `cpp`        | C++        | cpr                 | `c++`                 |
+| `kotlin`     | Kotlin     | OkHttp              | `kt`                  |
+| `rust`       | Rust       | reqwest             | `rs`                  |
+| `dart`       | Dart       | `package:http`      | `flutter`             |
+
+Each value is quoted by its own language's rules, so a header like `If-Match: "33a64df5"` or a body with a `$` in it reaches the API as written.
+
+### Your own samples
+
+To show your SDK instead of a raw HTTP call, add `x-codeSamples` to an operation in the spec. It's the extension Redocly defined, and Speakeasy and Stainless can write it for you. Each entry takes a `lang`, the `source`, and an optional `label`:
+
+```yaml openapi.yaml lineNumbers
+paths:
+  /plants:
+    get:
+      x-codeSamples:
+        - lang: typescript
+          label: SDK
+          source: |
+            const plants = await planter.plants.list();
+        - lang: bash
+          label: CLI
+          source: |
+            planter list
+```
+
+These samples render as their own tabs, ahead of the generated ones, and stay as written when readers change the [Try it](#try-it-playground) form. The older `x-code-samples` spelling works too. To show only your own samples, set `codeSamples: false`.
 
 ## Try it playground
 

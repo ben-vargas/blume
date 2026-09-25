@@ -28,8 +28,8 @@ export type BlumeReferenceKind = Exclude<ReferenceKind, "scalar">;
 
 /** Per-adapter display options for the Blume renderer. */
 export interface ReferenceDisplay {
-  /** Code-sample languages shown per operation. */
-  codeSamples: string[];
+  /** Code-sample languages shown per operation; `false` for none. */
+  codeSamples: string[] | false;
   /** Whether nested schema rows start expanded. */
   expandSchemas: boolean;
   /**

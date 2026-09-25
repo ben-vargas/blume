@@ -21,6 +21,8 @@ import {
   type SecuritySchemeLike,
 } from "./security.ts";
 import { DEPRECATED_LABEL_CLASS } from "../colors.ts";
+import { customCodeSamples } from "./code-samples.ts";
+import type { CodeSamplesCarrier } from "./code-samples.ts";
 import { sampleLanguages } from "./snippets.ts";
 import AsyncApiOperation from "./AsyncApiOperation.astro";
 import GraphqlOperation from "./GraphqlOperation.astro";
@@ -57,7 +59,7 @@ interface ResponseLike {
   content?: Record<string, MediaTypeLike>;
 }
 
-interface FullOperation {
+interface FullOperation extends CodeSamplesCarrier {
   summary?: string;
   description?: string;
   deprecated?: boolean;
@@ -145,6 +147,8 @@ const model =
     : null;
 const sample = model ? buildRequest(model, defaultValues(model)) : null;
 const languages = sampleLanguages(spec?.codeSamples ?? []);
+// The spec's own `x-codeSamples`, shown ahead of the generated ones.
+const customSamples = operation ? customCodeSamples(operation) : [];
 ---
 {
   isAsyncApi ? (
@@ -197,6 +201,7 @@ const languages = sampleLanguages(spec?.codeSamples ?? []);
             )}
             <RequestPanel
               components={components}
+              customSamples={customSamples}
               languages={languages}
               responses={responses}
               sample={sample}

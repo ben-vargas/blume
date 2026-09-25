@@ -9,6 +9,7 @@ import {
   type SpecValue,
   toJson,
 } from "./helpers.ts";
+import type { CustomCodeSample } from "./code-samples.ts";
 import { languageSamplePanels } from "./sample-panels.ts";
 import PanelTabs from "./PanelTabs.astro";
 import type { RequestSample, SampleLanguage } from "./snippets.ts";
@@ -27,19 +28,39 @@ interface ResponseLike {
 interface Props {
   /** The document's `components`, which `$ref`'d examples resolve against. */
   components?: ComponentsLike;
+  /** The spec's hand-written `x-codeSamples`, shown first and never re-rendered live. */
+  customSamples?: CustomCodeSample[];
   sample: RequestSample;
   languages: SampleLanguage[];
   responses: Record<string, ResponseLike>;
   schemas: Record<string, SchemaLike>;
 }
 
-const { components, sample, languages, responses, schemas } = Astro.props;
-
-const requestPanels = await languageSamplePanels(
-  languages,
+const {
+  components,
+  customSamples = [],
   sample,
-  data.config.codeThemes
+  languages,
+  responses,
+  schemas,
+} = Astro.props;
+
+// Hand-written samples carry no `lang` key, so the playground leaves them
+// as written when it re-renders the generated ones from the form.
+const customPanels = await Promise.all(
+  customSamples.map(async (custom) => ({
+    html: await highlightCode(custom.source, custom.lang, {
+      icons: false,
+      themes: data.config.codeThemes,
+    }),
+    key: custom.key,
+    label: custom.label,
+  }))
 );
+const requestPanels = [
+  ...customPanels,
+  ...(await languageSamplePanels(languages, sample, data.config.codeThemes)),
+];
 
 const responsePanels = await Promise.all(
   Object.entries(responses).map(async ([status, response]) => {
