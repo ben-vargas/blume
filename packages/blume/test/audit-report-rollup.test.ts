@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { stripVTControlCharacters as strip } from "node:util";
 
 import { finding } from "../src/audit/catalog.ts";
 import { formatReport, reportJson, rollup } from "../src/audit/report.ts";
@@ -9,10 +10,6 @@ import type { AuditResult } from "../src/audit/run.ts";
  * not its findings, and its glyph shows the severity its findings actually
  * carry.
  */
-
-const strip = (value: string): string =>
-  // oxlint-disable-next-line no-control-regex -- strip ANSI colors for assertions
-  value.replaceAll(/\[[0-9;]*m/gu, "");
 
 const result = (diagnostics: AuditResult["diagnostics"]): AuditResult => ({
   diagnostics,
