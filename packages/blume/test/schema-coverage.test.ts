@@ -180,7 +180,6 @@ describe("pruned Mintlify-compat config fields", () => {
       "styling",
       "favicon",
       "icons",
-      "variables",
     ]) {
       expect(
         blumeConfigSchema.safeParse({ [field]: {} }).success,

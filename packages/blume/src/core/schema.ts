@@ -37,6 +37,7 @@ import { isStandardSchema } from "./standard-schema.ts";
 import type { StandardSchema } from "./standard-schema.ts";
 import { trimEnd } from "./trim.ts";
 import { unrecognizedKeysMessage } from "./unrecognized-keys.ts";
+import { VARIABLE_NAME } from "./variables.ts";
 
 /**
  * An absolute HTTP(S) URL, for any field that lands verbatim in an `href` —
@@ -1956,6 +1957,23 @@ export const blumeConfigSchema = z
       theme: themeConfigSchema.prefault({}),
       title: z.string().default("Documentation"),
       toc: tocConfigSchema,
+      /**
+       * Content variables: `{{name}}` in a page body reads the value (see
+       * `core/variables.ts`). Names take letters, digits, `_`, and `-`;
+       * values are one line, so a substitution never moves the lines a
+       * diagnostic points at.
+       */
+      variables: z
+        .record(
+          z.string().regex(VARIABLE_NAME, {
+            message:
+              "Variable names take letters, digits, `_`, and `-`, like `version` or `api-url`.",
+          }),
+          z.string().refine((value) => !/[\r\n]/u.test(value), {
+            message: "A variable's value must fit on one line.",
+          })
+        )
+        .default({}),
       versions: versionsConfigSchema.optional(),
     },
     {

@@ -21,7 +21,11 @@ import { resolveProjectContext } from "./project.ts";
 import type { ResolvedConfig } from "./schema.ts";
 import { normalizeEntry, strippedLineOffset } from "./sources/normalize.ts";
 import { resolveDocsCollection, resolveSources } from "./sources/resolve.ts";
-import type { ContentSource, SourceLoadResult } from "./sources/types.ts";
+import type {
+  ContentSource,
+  SourceEntry,
+  SourceLoadResult,
+} from "./sources/types.ts";
 import type {
   BlumeManifest,
   ContentGraph,
@@ -30,6 +34,12 @@ import type {
   PageRecord,
   ProjectContext,
 } from "./types.ts";
+import {
+  hasVariables,
+  substituteVariables,
+  undefinedVariables,
+} from "./variables.ts";
+import type { ContentVariables } from "./variables.ts";
 import { versionsDiagnostics } from "./versions.ts";
 
 /** Build mode: drafts are kept in `dev` and dropped in `build`. */
@@ -246,6 +256,51 @@ const isBannerShorthand = (
   banner: NonNullable<ResolvedConfig["banner"]>
 ): banner is string => typeof banner === "string";
 
+/**
+ * Report an entry's undefined content variables at their source lines, then
+ * replace the defined ones in the text the scan extracts from: the expanded
+ * text when includes were spliced (its `origins` map lines back to the file
+ * each came from), else the body.
+ */
+const substituteEntryVariables = (
+  entry: SourceEntry,
+  variables: ContentVariables
+): Diagnostic[] => {
+  const { expanded } = entry;
+  const text = expanded?.text ?? entry.body.text;
+  const offset = expanded ? 0 : strippedLineOffset(entry.raw, entry.body.text);
+  const diagnostics = undefinedVariables(text, variables).map(
+    ({ line, name }): Diagnostic => {
+      const origin = expanded?.origins[line - 1];
+      return {
+        code: "BLUME_UNDEFINED_VARIABLE",
+        file: origin?.file ?? entry.sourcePath,
+        line: origin?.line ?? line + offset,
+        message: `{{${name}}} isn't a defined variable, so it would show as written.`,
+        severity: "error",
+        suggestion: `Define "${name}" under variables in blume.config.ts, or put it in inline code to show it as written.`,
+      };
+    }
+  );
+  if (expanded) {
+    expanded.text = substituteVariables(expanded.text, variables);
+  } else {
+    entry.body.text = substituteVariables(entry.body.text, variables);
+  }
+  return diagnostics;
+};
+
+/** {@link substituteEntryVariables} over every loaded entry, when any are defined. */
+const substituteLoadedVariables = (
+  loaded: readonly SourceLoadResult[],
+  variables: ContentVariables
+): Diagnostic[] =>
+  hasVariables(variables)
+    ? loaded.flatMap(({ entries }) =>
+        entries.flatMap((entry) => substituteEntryVariables(entry, variables))
+      )
+    : [];
+
 /** The configured banner link target, when the banner has a link. */
 const bannerLinkHref = (
   banner: ResolvedConfig["banner"]
@@ -352,6 +407,14 @@ export const scanProject = async (
     })
   );
 
+  // Content variables: an undefined name in prose is an error at its source
+  // line, and every defined one is replaced in the text headings, links, and
+  // components are extracted from, so they match the rendered page.
+  const variableDiagnostics = substituteLoadedVariables(
+    loaded,
+    config.variables
+  );
+
   // Folder meta contributed by the sources themselves (the OpenAPI source
   // labels each tag directory with the spec's own tag name). It applies to
   // every locale, so it merges into the shared map — beneath user-authored
@@ -453,6 +516,7 @@ export const scanProject = async (
     diagnostics: [
       ...contentDiagnostics,
       ...includeDiagnostics,
+      ...variableDiagnostics,
       ...folderMeta.diagnostics,
       ...entryIdDiagnostics(
         pages,

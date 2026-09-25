@@ -2,10 +2,14 @@ import { readFile } from "node:fs/promises";
 
 import { expandIncludes, hasIncludeStatements } from "../includes.ts";
 import type { PageRecord } from "../types.ts";
+import { substituteVariablesInBody } from "../variables.ts";
+import type { ContentVariables } from "../variables.ts";
 import type { ContentSource } from "./types.ts";
 
 /** The subset of a scanned project the entry reader needs. */
 export interface EntryReadContext {
+  /** The site's content variables, substituted into what's read. */
+  config?: { variables?: ContentVariables };
   /** The instantiated sources, keyed for `read()` lookups. */
   sources?: ContentSource[];
 }
@@ -48,9 +52,10 @@ export const readExpandedEntryText = async (
   ctx: EntryReadContext,
   page: PageRecord
 ): Promise<string> => {
+  const variables = ctx.config?.variables;
   const raw = await readEntryText(ctx, page);
   if (!(page.sourcePath && hasIncludeStatements(raw))) {
-    return raw;
+    return substituteVariablesInBody(raw, variables);
   }
   const source = ctx.sources?.find(
     (candidate) => candidate.name === page.source.name
@@ -61,11 +66,11 @@ export const readExpandedEntryText = async (
   // here would splice text the rest of the pipeline never validated, with no
   // content-root bound on resolution.
   if (!source || source.staged || !source.contentRoot) {
-    return raw;
+    return substituteVariablesInBody(raw, variables);
   }
   const expansion = await expandIncludes(raw, {
     contentRoot: source.contentRoot,
     sourcePath: page.sourcePath,
   });
-  return expansion.text;
+  return substituteVariablesInBody(expansion.text, variables);
 };

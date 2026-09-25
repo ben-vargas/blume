@@ -9,6 +9,8 @@ import {
 import { escape as escapeHtml } from "html-escaper";
 import { codeToHtml } from "shiki";
 
+import { hasVariables } from "../core/variables.ts";
+import type { ContentVariables } from "../core/variables.ts";
 import { baseLinksPlugin } from "./base-links.ts";
 import { codeTitleTransformer } from "./code-title.ts";
 import { directiveToCalloutPlugin } from "./directives.ts";
@@ -26,6 +28,7 @@ import { tableWrapPlugin } from "./table-wrap.ts";
 import { DEFAULT_CODE_THEMES } from "./themes.ts";
 import type { CodeThemes } from "./themes.ts";
 import { ts2jsPlugin } from "./ts2js.ts";
+import { variablesPlugin } from "./variables.ts";
 
 export type { CodeTheme, CodeThemes } from "./themes.ts";
 
@@ -278,6 +281,12 @@ export interface BlumeMarkdownOptions {
    */
   deployBase?: string;
   /**
+   * `variables`: `{{name}}` references replaced in `.md` pages and in every
+   * included file (`.mdx` pages are substituted before parsing, by the
+   * `variablesVitePlugin`).
+   */
+  variables?: ContentVariables;
+  /**
    * The docs content root, bounding `<include>` target resolution (and
    * anchoring `/`-leading include paths). When unset, relative includes still
    * resolve from the including file. Also the base the `docs` collection's
@@ -326,7 +335,12 @@ const blumeSharedMdastPlugins = (
  * (callouts, mermaid, math, base links) like inline content.
  */
 const blumeIncludePlugin = (options: BlumeMarkdownOptions): MdastPlugin =>
-  asMdastPlugin(includePlugin({ contentRoot: options.contentRoot }));
+  asMdastPlugin(
+    includePlugin({
+      contentRoot: options.contentRoot,
+      variables: options.variables,
+    })
+  );
 
 /** Sätteri processor for plain `.md`, with Blume's curated feature set. */
 export const blumeMarkdownProcessor = (options: BlumeMarkdownOptions = {}) =>
@@ -335,6 +349,9 @@ export const blumeMarkdownProcessor = (options: BlumeMarkdownOptions = {}) =>
     hastPlugins: blumeHastPlugins(options),
     mdastPlugins: [
       blumeIncludePlugin(options),
+      ...(hasVariables(options.variables)
+        ? [asMdastPlugin(variablesPlugin(options.variables))]
+        : []),
       ...blumeSharedMdastPlugins(options),
     ],
   });

@@ -34,7 +34,7 @@ Resolve `$ref` includes first (Mintlify splits config across files). Map only wh
 | `search.prompt` | **drop** | no equivalent |
 | `seo.metatags` | **drop** | no equivalent; use per-page `seo` frontmatter |
 | `seo.indexing: "all"` | `search.indexing.includeHiddenPages: true` |  |
-| `variables` (`{{name}}`) | **inline into content** | Blume has no runtime `{{var}}` substitution — replace each `{{name}}` with its value in the pages |
+| `variables` (`{{name}}`) | `variables` | same syntax and names (letters, digits, `_`, `-`); pages keep their `{{name}}` references unchanged |
 | `integrations.posthog` (`{ apiKey, apiHost, sessionRecording }`) | `posthog({ key, host })` in the `analytics` list | preserve the host verbatim (e.g. `us.posthog.com` — Blume's default is `us.i.posthog.com`); `sessionRecording: false` → `disable_session_recording: true`; every adapter is imported from `blume/analytics` |
 | `integrations.ga4` (`{ measurementId }`) | `googleAnalytics({ id })` |  |
 | `integrations.gtm` (`{ tagId }`) | `googleTagManager({ id })` |  |

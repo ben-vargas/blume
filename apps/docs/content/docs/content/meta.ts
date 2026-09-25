@@ -8,6 +8,7 @@ export default defineMeta({
     "frontmatter",
     "syntax",
     "includes",
+    "variables",
     "components",
     "islands",
     "sources",

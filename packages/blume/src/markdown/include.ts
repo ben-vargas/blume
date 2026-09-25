@@ -9,6 +9,8 @@ import {
   hasIncludeStatements,
   matchIncludeStatement,
 } from "../core/includes.ts";
+import { substituteVariables } from "../core/variables.ts";
+import type { ContentVariables } from "../core/variables.ts";
 import type { MdastNode, MdastValue } from "./mdast.ts";
 
 /**
@@ -83,6 +85,8 @@ const errorBlock = (message: string): string =>
 export interface IncludePluginOptions {
   /** The docs content root; bounds include resolution when set. */
   contentRoot?: string;
+  /** Content variables, substituted in each included file before it's parsed. */
+  variables?: ContentVariables;
 }
 
 /** A plain string attribute value; expression values don't carry a path. */
@@ -147,7 +151,9 @@ export const includePlugin = (options: IncludePluginOptions = {}) => {
     for (const nested of expanded.errors) {
       ctx.report({ message: nested.message, node, severity: "warning" });
     }
-    return expanded.text;
+    // Substituted here, before the spliced text is parsed: in an MDX page it
+    // parses as MDX, where `{{name}}` would be a JavaScript expression.
+    return substituteVariables(expanded.text, options.variables);
   };
 
   /**

@@ -13,6 +13,7 @@ import { resolveDocsCollection } from "../core/sources/collection.ts";
 import { BLUME_IGNORE_DIRS } from "../core/sources/watch.ts";
 import { trimChar } from "../core/trim.ts";
 import type { ProjectContext } from "../core/types.ts";
+import { hasVariables } from "../core/variables.ts";
 import { deployPassthrough } from "../deploy/adapters/types.ts";
 import { SVG_ASSET_HEADERS } from "../deploy/headers.ts";
 import { deployPlatform } from "../deploy/platforms/index.ts";
@@ -759,12 +760,19 @@ export const astroConfigTemplate = (options: {
   const svelteImport = needsSvelte
     ? `import svelte from "@astrojs/svelte";\n`
     : "";
+  // Content variables in `.mdx` are replaced before the MDX compiler parses
+  // the source, which reads `{{name}}` as a JavaScript expression.
+  const substitutesVariables = hasVariables(config.variables);
+  const variablesPluginEntry = substitutesVariables
+    ? `variablesVitePlugin(${JSON.stringify(config.variables)}), `
+    : "";
   const blumeImports = [
     "blumeIntegration",
     "includeHmrPlugin",
     "prerenderDepsPlugin",
     ...runtimeModuleImports,
     ...(adapterOption.includes("withAdapterRoot") ? ["withAdapterRoot"] : []),
+    ...(substitutesVariables ? ["variablesVitePlugin"] : []),
   ];
   const blumeImport = `import { ${blumeImports.join(", ")} } from "blume/astro";\n`;
 
@@ -794,6 +802,7 @@ export const astroConfigTemplate = (options: {
     deployBase,
     externalLinks: config.markdown.externalLinks,
     headingAnchors: config.markdown.headingAnchors,
+    variables: config.variables,
   });
   const processorOptions =
     options.generatedModulesDir === undefined
@@ -885,7 +894,7 @@ ${userConfigSetup}export default defineConfig({
   // the overlap only adds memory.
   build: { concurrency: Math.min(8, availableParallelism()) },
   vite: {${viteCacheOption}
-    plugins: [${runtimeModulesPluginEntry}tailwindcss(), includeHmrPlugin(${configPath(
+    plugins: [${runtimeModulesPluginEntry}${variablesPluginEntry}tailwindcss(), includeHmrPlugin(${configPath(
       `${context.outDir}/src/generated/includes.json`,
       ejected
     )}), prerenderDepsPlugin()],

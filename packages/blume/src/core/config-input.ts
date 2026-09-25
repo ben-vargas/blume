@@ -1445,6 +1445,12 @@ export interface BlumeConfig {
   title?: string;
   /** On-page table of contents. Defaults to on (H2–H3). */
   toc?: TocConfig;
+  /**
+   * Content variables: `{{name}}` in a page reads the value, in prose, code,
+   * and links alike. Names take letters, digits, `_`, and `-`; an undefined
+   * name in prose fails the build. Defaults to none.
+   */
+  variables?: Record<string, string>;
   /** Docs versioning (opt-in frozen snapshots with a version switcher). */
   versions?: VersionsConfig;
 }
