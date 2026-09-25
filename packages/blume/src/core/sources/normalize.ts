@@ -212,10 +212,6 @@ const SETEXT_UNDERLINE = /^ {0,3}(?<marker>=+|-+)\s*$/u;
 const PARAGRAPH_INTERRUPT = /^ {0,3}(?:[-+*][ \t]|\d{1,9}[.)][ \t]|>)/u;
 const THEMATIC_BREAK =
   /^ {0,3}(?:(?:-[ \t]*){3,}|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,})$/u;
-// Sätteri's front matter fences: exactly `---` to open, `---` or `...` to
-// close, each alone on its line apart from trailing whitespace.
-const FRONT_MATTER_OPEN = /^-{3}\s*$/u;
-const FRONT_MATTER_CLOSE = /^(?:-{3}|\.{3})\s*$/u;
 // `<Prompt>` renders its children into a permanently `hidden` DOM node (see
 // `Prompt.astro`) — the agent-facing prompt text is never visible page
 // content, only read by client JS for the copy button. Any `##` inside it
@@ -231,45 +227,6 @@ const PROMPT_OPEN = /^<Prompt(?![\w-])/u;
 // Unanchored: while inside a prompt the close tag may trail the hidden
 // children text (`...copy this.</Prompt>`), not just sit on its own line.
 const PROMPT_CLOSE = /<\/Prompt>/u;
-
-/** A body's format, which decides how its renderer treats a leading `---`. */
-type BodyFormat = SourceEntry["body"]["format"];
-
-/**
- * The body lines the renderer turns into content, plus the height of a
- * leading front matter block it drops (`offset`), so line numbers can be
- * reported against the whole body.
- *
- * Astro strips a page's own front matter before rendering, then hands a `.md`
- * body — trimmed — to Sätteri, whose front matter parse strips a leading `---`
- * block from it again: a `---` line, then anything (a blank line included),
- * up to the next `---` or `...` line. That block never reaches the page, so
- * its lines hold no headings and its closing `---` underlines nothing. A raw
- * document's own front matter reads the same way — a blank line after the
- * opening `---` included, as `core/frontmatter.ts` and Astro read it — rather
- * than as a thematic break whose closing `---` turns the YAML into a phantom
- * setext heading. An `.mdx` body reaches the MDX compiler behind the spaces
- * that stand in for the page's front matter, where no second block opens, so
- * a `---` at its top is a thematic break and the whole body is content.
- */
-const linesWithoutFrontMatter = (body: string, format: BodyFormat) => {
-  const lines = body.split("\n");
-  // Astro trims the body first, so blank lines (and indentation) ahead of the
-  // opening `---` don't keep the block from opening.
-  const start = lines.findIndex((line) => line.trim() !== "");
-  if (
-    format === "mdx" ||
-    !FRONT_MATTER_OPEN.test((lines[start] ?? "").trimStart())
-  ) {
-    return { lines, offset: 0 };
-  }
-  const close = lines.findIndex(
-    (line, index) => index > start && FRONT_MATTER_CLOSE.test(line)
-  );
-  return close === -1
-    ? { lines, offset: 0 }
-    : { lines: lines.slice(close + 1), offset: close + 1 };
-};
 
 // A trailing `{#id}` heading marker written without a backslash escape. Both
 // pipelines resolve escapes before parsing markers (the scan parses each
@@ -856,10 +813,12 @@ export interface BodyScan {
 /**
  * Scan a body for its headings, explicit HTML anchors, and unescaped `{#id}`
  * markers in one fence-aware walk (the same walk `extractHeadings` exposes for
- * headings alone). `format` is the page's: it decides whether a leading `---`
- * block is content (see `linesWithoutFrontMatter`).
+ * headings alone). The body is the page's content with its front matter
+ * already stripped — the renderers read front matter off the page and never
+ * again from its body — so a leading `---` block is a thematic break and
+ * content, in `.md` and `.mdx` alike.
  */
-export const scanBody = (body: string, format: BodyFormat = "md"): BodyScan => {
+export const scanBody = (body: string): BodyScan => {
   const headings: Heading[] = [];
   const slugger = new GithubSlugger();
   const state: HeadingScanState = {
@@ -875,7 +834,7 @@ export const scanBody = (body: string, format: BodyFormat = "md"): BodyScan => {
     sites: [],
   };
 
-  const { lines, offset } = linesWithoutFrontMatter(body, format);
+  const lines = body.split("\n");
   let footnotes: Map<string, number> | undefined;
   const context: HeadingContext = {
     footnotes: () => {
@@ -885,7 +844,7 @@ export const scanBody = (body: string, format: BodyFormat = "md"): BodyScan => {
     labels: refDefinitionLabels(lines),
   };
   for (const [index, line] of lines.entries()) {
-    state.line = index + offset + 1;
+    state.line = index + 1;
     scanHeadingLine(line, state, slugger, headings, context);
   }
 
@@ -1575,7 +1534,7 @@ export const normalizeEntry = (
   // so a partial's headings anchor-index and TOC under every including page
   // and its components register for the runtime import map.
   const bodyText = entry.expanded?.text ?? entry.body.text;
-  const { anchors, curlyMarkers, headings } = scanBody(bodyText, format);
+  const { anchors, curlyMarkers, headings } = scanBody(bodyText);
   const { staged } = ctx.source;
 
   const base = {

@@ -626,28 +626,6 @@ describe(extractHeadings, () => {
     expect(extractHeadings(body).map((h) => h.text)).toStrictEqual(["After"]);
   });
 
-  it("reads a body's leading --- block the way its renderer does", () => {
-    // The `.md` renderer parses front matter out of the body it is handed, so
-    // a leading `---` block — a blank line after the dashes included — never
-    // renders. The `.mdx` compiler reads the same lines as a thematic break
-    // and a heading, and so does the scan of an `.mdx` body.
-    const body = ["---", "", "# First", "", "---", "", "## Second"].join("\n");
-    expect(extractHeadings(body).map((h) => h.text)).toStrictEqual(["Second"]);
-    expect(scanBody(body, "mdx").headings.map((h) => h.text)).toStrictEqual([
-      "First",
-      "Second",
-    ]);
-  });
-
-  it("still strips real front matter from a raw document", () => {
-    // YAML starts directly on the line after the dashes; the `#` line inside
-    // the block is a YAML comment and must not surface as a heading.
-    const body = ["---", "title: x", "# a yaml comment", "---", "# Real"].join(
-      "\n"
-    );
-    expect(extractHeadings(body).map((h) => h.text)).toStrictEqual(["Real"]);
-  });
-
   it("does not open a fence on a line-leading inline code span", () => {
     // ```inline``` is a paragraph-level code span (a backtick fence's info
     // string cannot contain a backtick) — opening a phantom fence on it would
@@ -703,12 +681,8 @@ describe(extractHeadings, () => {
     ]);
   });
 
-  it("does not misread front matter, breaks, lists, or tables as setext", () => {
+  it("does not misread breaks, lists, or tables as setext", () => {
     const body = [
-      "---",
-      "title: Foo",
-      "---",
-      "",
       "Intro paragraph.",
       "",
       "---",
@@ -720,9 +694,10 @@ describe(extractHeadings, () => {
       "| a |",
       "| --- |",
     ].join("\n");
-    // Front matter delimiters, a thematic break after a blank line, a break
-    // closing a list or blockquote, and a table delimiter row are all
-    // underline look-alikes that must not produce headings.
+    // A thematic break after a blank line, a break closing a list or
+    // blockquote, and a table delimiter row are all underline look-alikes that
+    // must not produce headings. (Bodies arrive with their front matter already
+    // stripped — see scan-front-matter.test.ts.)
     expect(extractHeadings(body)).toStrictEqual([]);
   });
 
