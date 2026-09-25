@@ -2329,6 +2329,14 @@ describe("security", () => {
     expect(effectiveSecurity()).toStrictEqual([]);
   });
 
+  it("gives a webhook only the security it declares, never the root's", () => {
+    const root = [{ bearerAuth: [] }];
+    expect(effectiveSecurity(undefined, root, true)).toStrictEqual([]);
+    expect(effectiveSecurity([{ apiHeader: [] }], root, true)).toStrictEqual([
+      { apiHeader: [] },
+    ]);
+  });
+
   it("resolves requirement names against the component schemes", () => {
     const { alternatives, optional } = resolveSecurity(
       [{ bearerAuth: [] }, { apiHeader: [], apiQuery: [] }],

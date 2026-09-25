@@ -139,7 +139,7 @@ const responses = Object.fromEntries(
 );
 
 const security = resolveSecurity(
-  effectiveSecurity(operation?.security, doc.security),
+  effectiveSecurity(operation?.security, doc.security, isWebhook),
   doc.components?.securitySchemes
 );
 

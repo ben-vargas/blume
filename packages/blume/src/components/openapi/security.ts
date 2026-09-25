@@ -45,12 +45,15 @@ export interface OperationSecurity {
 /**
  * The requirement list an operation actually enforces: its own `security` when
  * declared — the OpenAPI override rule, where `[]` removes the default and
- * makes the operation public — else the document's root `security`.
+ * makes the operation public — else the document's root `security`. A webhook
+ * takes only its own: the API sends it, so the root requirements, which guard
+ * calls to the API, say nothing about what the receiving endpoint checks.
  */
 export const effectiveSecurity = (
   operation?: SecurityRequirementLike[],
-  document?: SecurityRequirementLike[]
-): SecurityRequirementLike[] => operation ?? document ?? [];
+  document?: SecurityRequirementLike[],
+  webhook = false
+): SecurityRequirementLike[] => operation ?? (webhook ? [] : document) ?? [];
 
 /**
  * Resolve requirement names against `components.securitySchemes`. A name with
