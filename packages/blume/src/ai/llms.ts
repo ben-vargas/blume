@@ -25,6 +25,13 @@ const pageUrl = (route: string, site?: string, base = ""): string => {
   return encodeURI(site ? absoluteUrl(site, path) : path);
 };
 
+/**
+ * A title as Markdown link text. An unescaped bracket in it — `[Beta] Webhooks`
+ * — closes or nests the text early, and the line stops being a link.
+ */
+const linkText = (title: string): string =>
+  title.replaceAll(/[\\[\]]/gu, String.raw`\$&`);
+
 /** Inputs only the build has: the published skills, collected once per build. */
 export interface LlmsIndexOptions {
   /**
@@ -176,7 +183,7 @@ export const buildLlmsIndex = (
   const line = (page: PageRecord): string => {
     seen.add(page.route);
     const summary = page.description ? `: ${page.description}` : "";
-    return `- [${page.title}](${pageUrl(page.route, site, base)})${summary}`;
+    return `- [${linkText(page.title)}](${pageUrl(page.route, site, base)})${summary}`;
   };
 
   // One nav level -> Markdown blocks: the level's loose pages as a link list,
@@ -259,7 +266,10 @@ export const buildLlmsIndex = (
     blocks.push(
       "## RSS Feeds",
       feeds
-        .map((feed) => `- [${feed.title}](${pageUrl(feed.path, site, base)})`)
+        .map(
+          (feed) =>
+            `- [${linkText(feed.title)}](${pageUrl(feed.path, site, base)})`
+        )
         .join("\n")
     );
   }

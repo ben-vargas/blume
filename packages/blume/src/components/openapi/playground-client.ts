@@ -16,8 +16,14 @@ import type {
   PlaygroundModel,
   RequestValues,
 } from "./request.ts";
-import { buildRequest, redactAuth } from "./request.ts";
+import {
+  bodyEncoding,
+  buildRequest,
+  PROXY_HEADERS_HEADER,
+  redactAuth,
+} from "./request.ts";
 import { sampleLanguages } from "./snippets.ts";
+import type { RequestSample } from "./snippets.ts";
 import { validateJson } from "./validate-json.ts";
 
 /**
@@ -185,6 +191,50 @@ const removeStored = (key: string): void => {
   }
 };
 
+/**
+ * The headers a live send carries. A `Cookie` header can still arrive via a
+ * spec-declared header parameter; the browser would silently drop the
+ * forbidden name anyway, so it is stripped rather than earn a console
+ * warning. Blume's own proxy — always a path on this site — forwards only the
+ * headers named in {@link PROXY_HEADERS_HEADER}, never ones the browser or
+ * the platform add on their own; a multipart body's Content-Type is fetch's,
+ * written with the boundary, so it is named without being set. An external
+ * proxy on another origin gets no such header: it would only be one more name
+ * for its preflight to allow.
+ */
+const sendHeaders = (sample: RequestSample, proxy: string) => {
+  const headers = { ...sample.headers };
+  delete headers.Cookie;
+  if (proxy.startsWith("/") && !proxy.startsWith("//")) {
+    const names = Object.keys(headers);
+    if (sample.formData) {
+      names.push("Content-Type");
+    }
+    headers[PROXY_HEADERS_HEADER] = names.join(", ");
+  }
+  return headers;
+};
+
+/**
+ * The body a live send carries: multipart parts as `FormData`, anything else
+ * as its text. fetch throws a synchronous TypeError for a GET/HEAD with a
+ * body — which the send's catch would mislabel as CORS — so a spec that
+ * declares a GET requestBody keeps its samples, but the live send drops it.
+ */
+const sendBody = (sample: RequestSample): string | FormData | undefined => {
+  if (sample.method === "GET" || sample.method === "HEAD") {
+    return undefined;
+  }
+  if (!sample.formData) {
+    return sample.body;
+  }
+  const form = new FormData();
+  for (const [name, value] of sample.formData) {
+    form.append(name, value);
+  }
+  return form;
+};
+
 /** A one-line text element for the response/error regions. */
 const line = (className: string, text: string): HTMLElement => {
   const el = document.createElement("div");
@@ -332,9 +382,11 @@ export const initPlayground = (root: HTMLElement): void => {
     }
     // An emptied editor means "no body" (see `bodyFor`), not invalid JSON —
     // reporting a syntax error there would block a send the request builder is
-    // perfectly happy to make.
+    // perfectly happy to make. A raw media type (`text/plain`, XML) isn't
+    // JSON at all, so it isn't checked as JSON either.
+    const raw = bodyEncoding(model.body?.contentType ?? "") === "raw";
     const errors =
-      bodyArea.value.trim() === ""
+      raw || bodyArea.value.trim() === ""
         ? []
         : validateJson(bodyArea.value, model.body?.schema);
     bodyErrors.textContent = "";
@@ -494,11 +546,7 @@ export const initPlayground = (root: HTMLElement): void => {
           sample.url
         )}`
       : sample.url;
-    // A `Cookie` header can still arrive via a spec-declared header parameter;
-    // the browser would silently drop the forbidden name anyway, so strip it
-    // rather than earn a console warning.
-    const headers = { ...sample.headers };
-    delete headers.Cookie;
+    const headers = sendHeaders(sample, proxy);
     // fetch surfaces an invalid URL or header value as the same TypeError a
     // CORS rejection produces, and the catch below would misdiagnose it as the
     // CORS wall. Both are validated here, where the real error can be shown,
@@ -526,13 +574,7 @@ export const initPlayground = (root: HTMLElement): void => {
     const start = performance.now();
     try {
       const res = await fetch(url, {
-        // fetch throws a synchronous TypeError for a GET/HEAD with a body —
-        // which the catch below would mislabel as CORS. A spec that declares
-        // a GET requestBody keeps its samples, but the live send drops it.
-        body:
-          sample.method === "GET" || sample.method === "HEAD"
-            ? undefined
-            : sample.body,
+        body: sendBody(sample),
         headers,
         method: sample.method,
         // A `TimeoutError` DOMException is not a TypeError, so it reads as a
