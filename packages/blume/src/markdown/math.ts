@@ -7,10 +7,10 @@ interface MathNode extends MdastNode {
 
 /**
  * Satteri MDAST plugin that turns math nodes into Blume's `<Math>` component,
- * which renders them with KaTeX at build time. Block math (`$$…$$`) becomes a
- * block element. Blume runs the parser block-only (`singleDollarTextMath:
- * false`), so a bare `$` stays literal and no `inlineMath` nodes are produced;
- * the `inlineMath` visitor remains as a harmless safety net.
+ * which renders them with KaTeX at build time. `$$…$$` on its own lines is
+ * block math and becomes a display element; `$$…$$` inside a sentence is
+ * inline math and stays inline. The parser runs with `singleDollarTextMath:
+ * false`, so a single `$` (currency, a shell variable) never opens math.
  */
 export const mathPlugin = () => ({
   inlineMath(node: MathNode, ctx: MdastVisitorContext) {

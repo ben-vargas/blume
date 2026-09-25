@@ -350,8 +350,9 @@ export type BlumeMdxOptions = BlumeMarkdownOptions;
  * `@astrojs/mdx` so these apply to `.mdx` only (plain `.md` uses
  * {@link blumeMarkdownProcessor}).
  *
- * Math is always on but block-only: `singleDollarTextMath: false` keeps a bare
- * `$` (currency, shell, code) as literal text and only parses `$$…$$`. The
+ * Math is always on and written `$$…$$`, as a block or inline:
+ * `singleDollarTextMath: false` keeps a bare `$` (currency, shell, code) as
+ * literal text. The
  * generated runtime imports the `<Math>` component (and KaTeX's stylesheet) only
  * when content actually uses `$$`, so a math-free site ships no KaTeX CSS.
  *

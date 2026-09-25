@@ -29,7 +29,7 @@ Resolve `$ref` includes first (Mintlify splits config across files). Map only wh
 | `background.decoration` | **drop** | no Blume equivalent |
 | `fonts.family` / `fonts.{heading,body}.family` | `theme.fonts.{display,body}` | a curated slug (kebab-case, e.g. `space-grotesk`) maps directly; any other Google family maps to the object form `{ name: "Family Name" }`; a self-hosted font (`fonts.*.src` URLs) maps to `{ name, variants: [{ src, weight }] }` after downloading the files into the project |
 | `banner` | `banner` (`{ content, dismissible, id, link: { href, text } }`) | **only** those keys — drop `banner.color`/`banner.type` |
-| `styling.latex: true` | **drop the field** — block math `$$…$$` renders in `.mdx` with no config | there is **no** `markdown.math` field; inline `$…$` is **not** supported — convert inline math to `$$…$$` or drop it (report) |
+| `styling.latex: true` | **drop the field** — block math `$$…$$` renders in `.mdx` with no config | there is **no** `markdown.math` field; Blume writes inline math with two dollar signs too — convert each inline `$…$` to `$$…$$` inside the sentence, checking every pair is math and not currency or a shell variable |
 | `styling.codeblocks.theme` | `markdown.code.theme` (`{ light, dark }`) |  |
 | `search.prompt` | **drop** | no equivalent |
 | `seo.metatags` | **drop** | no equivalent; use per-page `seo` frontmatter |

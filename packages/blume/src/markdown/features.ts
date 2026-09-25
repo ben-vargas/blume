@@ -11,8 +11,9 @@ export const MARKDOWN_FEATURES = {
 
 /**
  * The `.mdx` feature set: Markdown's plus `:::` directives (→ `<Callout>`) and
- * block-only math — `singleDollarTextMath: false` keeps a bare `$` (currency,
- * shell, code) as literal text and only parses `$$…$$`.
+ * math — `singleDollarTextMath: false` keeps a bare `$` (currency, shell,
+ * code) as literal text and only parses `$$…$$`, as a block on its own lines
+ * or inline within a sentence.
  */
 export const MDX_FEATURES = {
   ...MARKDOWN_FEATURES,

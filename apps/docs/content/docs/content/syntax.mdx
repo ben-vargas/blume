@@ -625,7 +625,7 @@ Commit `blume.config.ts`, not `.blume/`.
 
 ## Math
 
-Render LaTeX with KaTeX as centered blocks — useful for math-heavy or scientific docs. Wrap a formula in `$$…$$`:
+Render LaTeX with KaTeX, useful for math-heavy or scientific docs. Put `$$…$$` on lines of its own for a centered block:
 
 $$
 \int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}
@@ -637,8 +637,14 @@ a^2 + b^2 = c^2
 $$
 ```
 
+Or write `$$…$$` inside a sentence for inline math, like Euler's identity $$e^{i\pi} + 1 = 0$$:
+
+```md
+Like Euler's identity $$e^{i\pi} + 1 = 0$$.
+```
+
 :::note
-Math is block-only and on automatically — write `$$…$$` and it renders; write none and KaTeX's stylesheet never ships. There's no inline `$…$` math: a lone `$` (currency, shell variables, code) is always left as literal text, so there's no delimiter to escape and no setting to toggle. Math is an MDX-only feature. The class names inside the rendered markup (`.katex-html`, `.katex-base`, …) are KaTeX's own internals, not a styling contract Blume maintains — they can change when KaTeX upgrades, so target the `.katex-display` wrapper for custom styles.
+Math is on automatically: write `$$…$$` and it renders; write none and KaTeX's stylesheet never ships. Both block and inline math use two dollar signs. A single `$` (currency, shell variables, code) is always literal text, so "$5 and $10" never turns into math, and there's no delimiter to escape and no setting to toggle. Math is an MDX-only feature. The class names inside the rendered markup (`.katex-html`, `.katex-base`, …) are KaTeX's own internals, not a styling contract Blume maintains — they can change when KaTeX upgrades, so target the `.katex-display` wrapper for custom styles.
 :::
 
 ## Smart punctuation
