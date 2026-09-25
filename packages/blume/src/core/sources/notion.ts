@@ -22,7 +22,7 @@ import {
   renderInline,
   renderLink,
 } from "./lower.ts";
-import { slugifyPath } from "./normalize.ts";
+import { slugify, slugifyPath } from "./normalize.ts";
 import type {
   ContentSource,
   SourceContext,
@@ -307,10 +307,14 @@ const renderVideo = (data: NotionBlockPayload): string => {
   const title = caption ? ` title=${jsxString(richToPlain(data.caption))}` : "";
   // Everything else (a Notion upload, or a direct link to a media file) is a
   // real video file: `materializeAssets` rewrites the `src`, which matters most
-  // for uploads, whose Notion URLs are signed and expire.
+  // for uploads, whose Notion URLs are signed and expire. It finds the file by
+  // that quoted `src`, where MDX decodes no backslash escapes — a JSON
+  // string's `\\` and `\"` would corrupt the URL or end the attribute — so the
+  // URL goes in as written, with a double quote as the `%22` it means anyway.
+  // The embed's `url` takes the expression form, like every string prop here.
   const media = isYouTubeUrl(url)
-    ? `<YouTube${title} url=${JSON.stringify(url)} />`
-    : `<video controls src=${JSON.stringify(url)} />`;
+    ? `<YouTube${title} url=${jsxString(url)} />`
+    : `<video controls src="${url.replaceAll('"', "%22")}" />`;
   return caption
     ? `<Frame caption=${jsxString(caption.replaceAll(FRAME_ESCAPED, ""))}>\n${media}\n</Frame>`
     : media;
@@ -577,9 +581,14 @@ export const notionSource = (
     const slugProp = richToPlain(
       page.properties[props.slug ?? "Slug"]?.rich_text
     );
-    // Path-aware: a `guides/setup` slug keeps its `/` (per-segment slugging)
-    // instead of mashing into `guidessetup`.
-    const slug = slugifyPath(slugProp || title) || page.id;
+    // A Slug property is path-aware: `guides/setup` keeps its `/` (per-segment
+    // slugging) instead of mashing into `guidessetup`. A title is one name, so
+    // its slashes become hyphens: "CI/CD Setup" routes to `ci-cd-setup`, not
+    // to `cd-setup` inside an invented `ci` group.
+    const slug =
+      (slugProp
+        ? slugifyPath(slugProp)
+        : slugify(title.replaceAll("/", "-"))) || page.id;
     return { data, slug };
   };
 

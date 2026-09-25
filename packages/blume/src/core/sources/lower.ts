@@ -9,13 +9,20 @@ import { isSafeHref } from "../safe-href.ts";
 
 // Markdown/raw-HTML structure characters. Rich-text leaves are *plain text* —
 // formatting arrives as marks, never as syntax in the text — so a literal
-// `*`, `_`, `[`, backtick, `~`, or `<` typed in the CMS must render as
-// itself. Unescaped, it opened emphasis or a code span mid-paragraph, and `<`
-// let CMS prose inject raw HTML into the rendered page. `{` and `}` open an
-// expression once an entry is written as MDX (see {@link writesMdx}). CommonMark
+// `*`, `_`, `[`, backtick, `~`, `^`, or `<` typed in the CMS must render as
+// itself. Unescaped, it opened emphasis, a code span, or a superscript
+// (`2^10 and 2^20`) mid-paragraph, and `<` let CMS prose inject raw HTML into
+// the rendered page. `{` and `}` open an expression once an entry is written
+// as MDX (see {@link writesMdx}), and `$$` opens math there. CommonMark
 // backslash-escapes every ASCII punctuation character, so `\*` is always the
 // literal asterisk, in `.md` and `.mdx` alike.
-const MARKDOWN_SPECIALS = /[\\`*_{}[\]~<]/gu;
+const MARKDOWN_SPECIALS = /[\\`*_{}[\]~<$^]/gu;
+
+// MDX reads a colon ahead of a letter or digit as a text directive (`10:30`,
+// `og:image`, `pets:read`), so that colon is escaped too. One inside a bare
+// URL (`http://localhost:3000`) stays as written: an escape there would end
+// the autolink early.
+const DIRECTIVE_COLON = /(?<!(?:[a-z][\w+.-]*:\/\/|www\.)\S*):(?=[a-z\d])/giu;
 
 // An entity or numeric character reference (`&copy;`, `&#38;`) is decoded
 // even in plain text, so one typed in the CMS would render as the character
@@ -66,6 +73,7 @@ export const escapeMarkdownText = (text: string): string =>
     escapeBlockStart(
       text
         .replaceAll(MARKDOWN_SPECIALS, String.raw`\$&`)
+        .replaceAll(DIRECTIVE_COLON, String.raw`\:`)
         .replaceAll(CHARACTER_REFERENCE, String.raw`\&`)
     )
   );
@@ -100,16 +108,37 @@ export const codeSpan = (code: string): string => {
   return `${fence}${pad}${code}${pad}${fence}`;
 };
 
+// Two struck runs side by side meet as `~~~~`: a closer and an opener that
+// GFM reads as one four-tilde run, so both print as literal tildes. A literal
+// `~` is always escaped, so an unescaped `~~~~` outside a code span or a link
+// destination is exactly that seam, and dropping it merges the runs into one
+// strikethrough. The other alternatives only step over escapes, code spans,
+// and destinations so the seam is never matched inside them.
+const STRIKE_SEAM =
+  /\\[\s\S]|(?<ticks>`+)[\s\S]*?(?<!`)\k<ticks>(?!`)|\]\((?:<(?:\\.|[^\\<>\n])*>|(?:\\.|[^\\\s)])+)\)|~~~~/gu;
+
+// A heading that ends in a space and a run of `#` reads that run as the
+// optional closing sequence and drops it (`## Issue #` renders "Issue").
+const CLOSING_HASHES = /(?<=[ \t])#+(?=[ \t]*$)/u;
+
 /**
  * A block's inline text, guarded where only the whole block can tell. Runs
  * are escaped one at a time, but "import" ending one run and a space or code
  * span opening the next form an MDX `import` statement only once they are
- * joined, and whitespace the first runs put in front of a block turns it into
- * an indented code block. Apply it to the joined text of a paragraph,
- * heading, quote, or list item — never to code.
+ * joined, whitespace the first runs put in front of a block turns it into
+ * an indented code block, two struck runs fuse into literal tildes, and a
+ * trailing ` #` is a heading's closing sequence. Apply it to the joined text
+ * of a paragraph, heading, quote, or list item — never to code.
  */
 export const guardBlockStart = (text: string): string =>
-  escapeEsmStart(text.replaceAll(BLOCK_INDENT, ""));
+  escapeEsmStart(
+    text
+      .replaceAll(BLOCK_INDENT, "")
+      .replaceAll(STRIKE_SEAM, (match: string) =>
+        match === "~~~~" ? "" : match
+      )
+      .replace(CLOSING_HASHES, String.raw`\$&`)
+  );
 
 const EDGE_SPACE = /^(?<lead>\s*)(?<body>[\s\S]*?)(?<trail>\s*)$/u;
 
