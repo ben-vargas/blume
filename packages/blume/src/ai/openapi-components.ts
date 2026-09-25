@@ -1,4 +1,4 @@
-import { normalizeBasePath, withBasePath } from "../core/base-path.ts";
+import { mountBasePath, normalizeBasePath } from "../core/base-path.ts";
 import type { ApiOperationRef, OpenApiData } from "../openapi/model.ts";
 import { operationOf, specAddresses, specOf } from "../openapi/model.ts";
 import { asSentence } from "../openapi/sentence.ts";
@@ -111,7 +111,7 @@ export const openapiComponentSerializers = (
         .map((operation) =>
           listItem(
             operationSignature(data, operation),
-            withBasePath(base, operation.route),
+            mountBasePath(base, operation.route),
             operation
           )
         );

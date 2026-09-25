@@ -295,9 +295,9 @@ export interface BlumeMarkdownOptions {
 
 /**
  * MDAST plugins that apply to both `.md` and `.mdx`: relative page links
- * rewritten to the root-relative route they mean, then the base-path link
- * rewrite (added only when a `basePath` or `deployBase` is configured), which
- * layers `deployment.base` over the rewritten routes.
+ * rewritten to the served URL of the route they mean, then the base-path link
+ * rewrite for root-relative links (added only when a `basePath` or
+ * `deployBase` is configured).
  */
 const blumeSharedMdastPlugins = (
   options: BlumeMarkdownOptions
@@ -306,6 +306,7 @@ const blumeSharedMdastPlugins = (
     relativeLinksPlugin({
       contentRoot: options.contentRoot,
       dataFile: options.dataFile,
+      deployBase: options.deployBase,
     })
   ),
   ...(options.basePath || options.deployBase

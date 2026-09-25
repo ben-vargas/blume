@@ -1,4 +1,4 @@
-import { normalizeBasePath, withBasePath } from "../core/base-path.ts";
+import { mountBasePath, normalizeBasePath } from "../core/base-path.ts";
 import { rewriteRelativeImages } from "../core/content-assets.ts";
 import matter from "../core/frontmatter.ts";
 import type { BlumeProject } from "../core/project-graph.ts";
@@ -17,11 +17,12 @@ import type { SkillArtifact } from "./skills.ts";
 import { applyAgentVisibility } from "./visibility.ts";
 
 // Routes carry `basePath`; a `deployment.base` subdirectory is layered on top —
-// with or without a `site` (the mcp.json convention) — so the emitted URL
-// matches where the page is served. Encoded like the sitemap: a route with
-// spaces or non-ASCII must still yield a valid Markdown link.
+// with or without a `site` (the mcp.json convention), and even over a route
+// that starts with the base's own name — so the emitted URL matches where the
+// page is served. Encoded like the sitemap: a route with spaces or non-ASCII
+// must still yield a valid Markdown link.
 const pageUrl = (route: string, site?: string, base = ""): string => {
-  const path = withBasePath(base, route);
+  const path = mountBasePath(base, route);
   return encodeURI(site ? absoluteUrl(site, path) : path);
 };
 
