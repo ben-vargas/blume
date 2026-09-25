@@ -5,6 +5,7 @@ import {
   AMPLITUDE_SCRIPT_ORIGIN,
 } from "../src/analytics/amplitude.ts";
 import { CLEARBIT_TAG_ORIGIN } from "../src/analytics/clearbit.ts";
+import { DATABUDDY_SCRIPT_SRC } from "../src/analytics/databuddy.ts";
 import { FATHOM_SCRIPT_SRC } from "../src/analytics/fathom.ts";
 import { GOOGLE_TAG_SRC } from "../src/analytics/google-analytics.ts";
 import type { HeadScript } from "../src/analytics/head.ts";
@@ -16,6 +17,7 @@ import {
   amplitude,
   clarity,
   clearbit,
+  databuddy,
   fathom,
   googleAnalytics,
   googleTagManager,
@@ -43,6 +45,7 @@ const all = () => [
   amplitude({ key: "amp" }),
   clarity({ id: "abc123" }),
   clearbit({ key: "pk_1a1882" }),
+  databuddy({ clientId: "client" }),
   fathom({ site: "YSVMSDAY" }),
   googleAnalytics({ id: "G-XXXX" }),
   googleTagManager({ id: "GTM-XXXX" }),
@@ -75,6 +78,7 @@ describe("provider adapter factories", () => {
       "amplitude",
       "clarity",
       "clearbit",
+      "databuddy",
       "fathom",
       "google-analytics",
       "google-tag-manager",
@@ -100,12 +104,16 @@ describe("provider adapter factories", () => {
         amplitude({ key: "amp", serverZone: "EU" }),
         fathom({ site: "S", spa: "auto" }),
         mixpanel({ persistence: "localStorage", region: "eu", token: "t" }),
+        databuddy({ clientId: "c", "track-web-vitals": "true" }),
       ],
     });
-    expect(config.analytics).toHaveLength(18);
-    expect(config.analytics[15]?.options).toMatchObject({ serverZone: "EU" });
-    expect(config.analytics[16]?.options).toMatchObject({ spa: "auto" });
-    expect(config.analytics[17]?.options).toMatchObject({ region: "eu" });
+    expect(config.analytics).toHaveLength(20);
+    expect(config.analytics[16]?.options).toMatchObject({ serverZone: "EU" });
+    expect(config.analytics[17]?.options).toMatchObject({ spa: "auto" });
+    expect(config.analytics[18]?.options).toMatchObject({ region: "eu" });
+    expect(config.analytics[19]?.options).toMatchObject({
+      "track-web-vitals": "true",
+    });
   });
 
   it("reject an empty identifier on every adapter", () => {
@@ -114,6 +122,7 @@ describe("provider adapter factories", () => {
       amplitude({ key: "" }),
       clarity({ id: "" }),
       clearbit({ key: "" }),
+      databuddy({ clientId: "" }),
       fathom({ site: "" }),
       googleAnalytics({ id: "" }),
       googleTagManager({ id: "" }),
@@ -135,6 +144,14 @@ describe("provider adapter factories", () => {
     expect(
       analyticsConfigSchema.safeParse([
         { ...fathom({ site: "S" }), options: { site: "S", spa: true } },
+      ]).success
+    ).toBe(false);
+    expect(
+      analyticsConfigSchema.safeParse([
+        {
+          ...databuddy({ clientId: "c" }),
+          options: { clientId: "c", "track-errors": true },
+        },
       ]).success
     ).toBe(false);
     expect(
@@ -325,6 +342,23 @@ describe("provider adapter heads", () => {
       mixpanel({ api_host: "https://mp.example.com", token: "t" })
     );
     expect(raw?.content).toContain('"api_host":"https://mp.example.com"');
+  });
+
+  it("databuddy: the async tag with data-client-id and passthrough data attributes", () => {
+    expect(
+      scripts(databuddy({ clientId: "abc", "track-web-vitals": "true" }))
+    ).toEqual([
+      {
+        attributes: {
+          async: true,
+          crossorigin: "anonymous",
+          "data-client-id": "abc",
+          "data-track-web-vitals": "true",
+          src: DATABUDDY_SCRIPT_SRC,
+        },
+        content: null,
+      },
+    ]);
   });
 
   it("pirsch: the deferred tag with its id, data-code, and passthrough data attributes", () => {
