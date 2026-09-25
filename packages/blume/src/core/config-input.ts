@@ -810,11 +810,19 @@ type RedirectStatus = RedirectStatusPermanent | RedirectStatusTemporary;
 
 /** A URL redirect rule. */
 export interface RedirectConfig {
-  /** Path to redirect from. */
+  /**
+   * Path to redirect from: an exact path, or a pattern. `:name` matches one
+   * segment, `:name*` as the last segment the rest of the path
+   * (`/beta/:slug*`), and `*` ending a segment the rest from there
+   * (`/old/article-*`).
+   */
   from: string;
   /** HTTP status. Defaults to `301`. */
   status?: RedirectStatus;
-  /** Path or URL to redirect to. */
+  /**
+   * Path or URL to redirect to. Reads `from`'s captures as `/:name` (or `*`
+   * for what `*` matched): `/v2/:slug*`.
+   */
   to: string;
 }
 

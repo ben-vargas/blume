@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import { fileToUrl, parseRobots, parseSitemap } from "../src/audit/crawl.ts";
 import { buildGraph, orphanPages } from "../src/audit/graph.ts";
-import { resolveRedirects } from "../src/audit/redirects.ts";
+import { redirectAt, resolveRedirects } from "../src/audit/redirects.ts";
 import {
   decodePath,
   normalizePath,
@@ -226,6 +226,25 @@ describe("resolveRedirects", () => {
     expect(result?.outcome).toBe("loop");
   });
 
+  it("leaves a pattern unwalked, and follows a hop through one", () => {
+    const [pattern, via] = resolveRedirects(
+      [
+        { from: "/beta/:slug*", status: 301, to: "/v2/:slug*" },
+        { from: "/older", status: 301, to: "/beta/final" },
+        { from: "/v2/final", status: 301, to: "/final" },
+      ],
+      served
+    );
+    expect(pattern?.outcome).toBe("pattern");
+    expect(via?.chain).toEqual([
+      "/older",
+      "/beta/final",
+      "/v2/final",
+      "/final",
+    ]);
+    expect(via?.outcome).toBe("chain");
+  });
+
   it("detects a self-redirect as a loop", () => {
     const [result] = resolveRedirects(
       [{ from: "/a", status: 301, to: "/a" }],
@@ -371,5 +390,21 @@ describe("parseRobots", () => {
   it("records a line that is not a directive", () => {
     const doc = parseRobots("/f", "User-agent: *\nthis is not a directive\n");
     expect(doc.invalid).toEqual([{ line: 2, text: "this is not a directive" }]);
+  });
+});
+
+describe(redirectAt, () => {
+  const redirects = resolveRedirects(
+    [
+      { from: "/old", status: 301, to: "/new" },
+      { from: "/beta/:slug*", status: 301, to: "/v2/:slug*" },
+    ],
+    () => true
+  );
+
+  it("finds the exact redirect from a path, else the pattern covering it", () => {
+    expect(redirectAt(redirects, "/old")?.to).toBe("/new");
+    expect(redirectAt(redirects, "/beta/a/b")).toEqual({ to: "/v2/a/b" });
+    expect(redirectAt(redirects, "/elsewhere")).toBeUndefined();
   });
 });

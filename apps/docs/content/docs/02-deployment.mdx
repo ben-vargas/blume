@@ -152,12 +152,31 @@ Two hosts need more than the file:
 - **Vercel** reads `vercel.json` from the project's root directory, never from the output directory, so the copy in `dist/` applies only when you deploy that folder itself with the Vercel CLI (`vercel deploy dist`). A Git-connected project never reads it: it serves the redirect pages and none of the headers from [Content types](#content-types). Copy the `redirects` and `headers` from `dist/vercel.json` into the `vercel.json` in your project's root directory, or use `vercel()` for a server build, whose routing config carries the redirects and the discovery headers.
 
 :::note
-`from` and `to` are exact paths — a `:param` segment or `*` wildcard (e.g. `/blog/:slug` or `/old/*`) fails config validation, since hosts disagree on patterns. If you need pattern-based rules, handle them in an infrastructure file like `vercel.json` (which supports wildcard `source` patterns) or your host's redirect config instead. A `vercel.json` you ship in `public/` is preserved as-is.
-:::
-
-:::note
 Write both `from` and `to` as if mounted at root, starting with `/` (`to` can also be a full `https://` URL) — under [`base`](#subpath-deploys) and [`basePath`](#mount-the-docs-under-a-path) alike, Blume rewrites both sides for you, so a redirect lands inside the base. A `to` that names a file in `public/` (`/files/guide.pdf`) gains `base` but not `basePath`, since that's where the file is served. A base you've already written into `to` by hand is preserved rather than doubled.
 :::
+
+### Pattern redirects
+
+A `from` can cover many paths at once, written the way Mintlify and `vercel.json` write them:
+
+```ts blume.config.ts
+redirects: [
+  { from: "/beta/:slug*", to: "/v2/:slug*" },
+  { from: "/blog/:slug", to: "/articles/:slug" },
+  { from: "/articles/concepts-*", to: "/concepts" },
+  { from: "/old/article-*", to: "/new/article-*" },
+],
+```
+
+- `:name` matches one whole segment: `/blog/:slug` covers `/blog/hello`, not `/blog/a/b`.
+- `:name*` as the last segment matches the rest of the path, any number of segments: `/beta/:slug*` sends `/beta/guides/setup` to `/v2/guides/setup`, and `/beta` itself to `/v2`. A last segment of `*` does the same.
+- `*` at the end of a segment matches the rest of the path from there: `/articles/concepts-*` covers `/articles/concepts-overview`.
+
+`to` reads a capture by name, as a whole segment (`/:slug*`, `/:slug`), or a `*` for what the `*` in `from` matched (`:splat`, the way `_redirects` spells it, reads it too). A `to` that reads no capture sends every path the pattern covers to one page. An exact redirect wins over a pattern that covers the same path, and patterns are tried in the order you list them.
+
+Each host gets the patterns in its own syntax: splats in `_redirects`, `path-to-regexp` sources in `vercel.json`, and the routing config of a `vercel()` or `netlify()` server build. The `node()` and `cloudflare()` servers match them themselves, and so does `blume dev`. A static build writes no redirect page for a pattern, since it would need one for every path the pattern covers, so a host that reads none of these files (GitHub Pages, say) applies only the exact redirects; `blume-redirects.json` lists patterns as you wrote them.
+
+A pattern can't also match a page: hosts disagree on which of the two answers, so the build stops with `BLUME_REDIRECT_MATCHES_PAGE`, naming the page. Narrow the pattern to the paths that moved.
 
 ## Content types
 

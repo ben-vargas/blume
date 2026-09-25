@@ -1,5 +1,6 @@
 import { isAbsolute, relative } from "pathe";
 
+import { withBasePath } from "./base-path.ts";
 import { CHANGELOG_INDEX_ROUTE, hasChangelogIndex } from "./changelog-index.ts";
 import { loadConfig } from "./config.ts";
 import { customStaticRoutes, discoverPages } from "./custom-pages.ts";
@@ -18,6 +19,7 @@ import { buildManifest } from "./manifest.ts";
 import { discoverFolderMeta } from "./meta.ts";
 import type { FolderMetaSource } from "./meta.ts";
 import { resolveProjectContext } from "./project.ts";
+import { pathsUnderPattern } from "./redirect-patterns.ts";
 import type { ResolvedConfig } from "./schema.ts";
 import { normalizeEntry, strippedLineOffset } from "./sources/normalize.ts";
 import { resolveDocsCollection, resolveSources } from "./sources/resolve.ts";
@@ -301,6 +303,40 @@ const substituteLoadedVariables = (
       )
     : [];
 
+/**
+ * A pattern redirect that also matches a page. Hosts disagree on which
+ * answers (Vercel and Cloudflare apply the rule ahead of the page, Netlify
+ * and the Node server serve the page), so the pattern is rejected rather than
+ * let the answer depend on the host. `pages` are the served page paths, which
+ * carry `basePath`, as the based `from` does.
+ */
+const redirectPageDiagnostics = (
+  config: ResolvedConfig,
+  pages: readonly string[],
+  configFile: string | null
+): Diagnostic[] =>
+  config.redirects.flatMap((redirect) => {
+    const matched = pathsUnderPattern(
+      withBasePath(config.basePath, redirect.from),
+      pages
+    );
+    const [first] = matched;
+    if (first === undefined) {
+      return [];
+    }
+    const more = matched.length > 1 ? ` and ${matched.length - 1} more` : "";
+    return [
+      {
+        code: "BLUME_REDIRECT_MATCHES_PAGE",
+        file: configFile ?? undefined,
+        message: `The redirect from ${redirect.from} also matches the page ${first}${more}, which some hosts would redirect and others would serve.`,
+        severity: "error",
+        suggestion:
+          "Narrow the pattern to the paths that moved, or move the pages out from under it.",
+      } satisfies Diagnostic,
+    ];
+  });
+
 /** The configured banner link target, when the banner has a link. */
 const bannerLinkHref = (
   banner: ResolvedConfig["banner"]
@@ -487,14 +523,15 @@ export const scanProject = async (
   const customPages = context.pagesRoot
     ? await discoverPages(context.pagesRoot)
     : [];
+  const extraRoutes = new Set([
+    ...customStaticRoutes(customPages),
+    ...(hasChangelogIndex(pages, config) ? [CHANGELOG_INDEX_ROUTE] : []),
+  ]);
   const graph = buildContentGraph(pages, {
     bannerHref: bannerLinkHref(config.banner),
     basePath: config.basePath,
     brandHref: logoHref(config.logo),
-    extraRoutes: new Set([
-      ...customStaticRoutes(customPages),
-      ...(hasChangelogIndex(pages, config) ? [CHANGELOG_INDEX_ROUTE] : []),
-    ]),
+    extraRoutes,
     folderMeta: folderMeta.meta,
     i18n: config.i18n,
     navigation: config.navigation,
@@ -526,6 +563,11 @@ export const scanProject = async (
       ...i18nWarnings,
       ...versionWarnings,
       ...lastModifiedWarnings,
+      ...redirectPageDiagnostics(
+        config,
+        [...manifest.routes.map((route) => route.path), ...extraRoutes],
+        context.configFile
+      ),
     ],
     droppedPages,
     graph,

@@ -3,13 +3,9 @@ import type { Diagnostic } from "../../core/types.ts";
 import { finding } from "../catalog.ts";
 import { orphanPages } from "../graph.ts";
 import { pageSite } from "../locate.ts";
-import type {
-  AuditContext,
-  CheckModule,
-  PageSnapshot,
-  SnapshotLink,
-} from "../types.ts";
-import { isServed, normalizePath, resolveHref, siteOrigin } from "../url.ts";
+import { redirectAt } from "../redirects.ts";
+import type { CheckModule, PageSnapshot, SnapshotLink } from "../types.ts";
+import { isServed, resolveHref, siteOrigin } from "../url.ts";
 
 /** Browser-magic fragments that scroll without needing a matching id. */
 const MAGIC_FRAGMENTS = new Set(["", "top"]);
@@ -32,9 +28,6 @@ const anchorResolves = (target: PageSnapshot, fragment: string): boolean => {
     return target.ids.has(fragment);
   }
 };
-
-const redirectFrom = (context: AuditContext, path: string) =>
-  context.redirects.find((entry) => normalizePath(entry.from) === path);
 
 /**
  * Internal links, and what they land on.
@@ -150,7 +143,7 @@ export const linkChecks: CheckModule = {
       }
 
       const { path } = resolved;
-      const redirect = redirectFrom(context, path);
+      const redirect = redirectAt(context.redirects, path);
       if (redirect) {
         if (link.content) {
           found.push(
@@ -200,7 +193,7 @@ export const linkChecks: CheckModule = {
       );
     }
     for (const [path, page] of redirectedChrome) {
-      const redirect = redirectFrom(context, path);
+      const redirect = redirectAt(context.redirects, path);
       found.push(
         finding(
           "BLUME_AUDIT_LINK_TO_REDIRECT",

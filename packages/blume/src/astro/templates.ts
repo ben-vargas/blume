@@ -8,6 +8,8 @@ import type { AskBackend } from "../ai/ask.ts";
 import { buildHomeLinkHeader } from "../ai/link-headers.ts";
 import { normalizeBasePath } from "../core/base-path.ts";
 import { TOC_HIDDEN_KEY } from "../core/heading-markers.ts";
+import { compileRedirects, isPatternPath } from "../core/redirect-patterns.ts";
+import type { CompiledRedirect } from "../core/redirect-patterns.ts";
 import type { ResolvedConfig } from "../core/schema.ts";
 import { resolveDocsCollection } from "../core/sources/collection.ts";
 import { BLUME_IGNORE_DIRS } from "../core/sources/watch.ts";
@@ -556,17 +558,23 @@ const blumeIntegrationOptions = (options: {
   contentRoutes: string[];
   ejected: boolean;
   pages: BlumePageRoute[];
-}): BlumeIntegrationOptions =>
-  options.ejected
+  redirects: CompiledRedirect[];
+}): BlumeIntegrationOptions => {
+  const shared: BlumeIntegrationOptions = { pages: options.pages };
+  if (options.redirects.length > 0) {
+    shared.redirects = options.redirects;
+  }
+  return options.ejected
     ? {
+        ...shared,
         buildArtifactsRoot: ".",
         contentRoutes: options.contentRoutes,
         homeLinkHeader:
           buildHomeLinkHeader(options.config, options.contentRoutes, "dev") ??
           undefined,
-        pages: options.pages,
       }
-    : { pages: options.pages };
+    : shared;
+};
 
 export const astroConfigTemplate = (options: {
   context: ProjectContext;
@@ -688,11 +696,17 @@ export const astroConfigTemplate = (options: {
     deployment.options.base ?? "",
     new Set(contentRoutes)
   );
+  // Only exact redirects: Astro can't prerender a pattern's redirect pages
+  // (it would need every path the pattern covers), so a pattern reaches the
+  // dev server through the integration and each host through its own rules.
+  const exactRedirects = basedRedirects.filter(
+    (redirect) => !isPatternPath(redirect.from)
+  );
   const redirectsOption =
-    basedRedirects.length > 0
+    exactRedirects.length > 0
       ? `\n  redirects: ${JSON.stringify(
           Object.fromEntries(
-            basedRedirects.map((redirect) => [
+            exactRedirects.map((redirect) => [
               redirect.from,
               { destination: redirect.to, status: redirect.status },
             ])
@@ -831,6 +845,7 @@ export const astroConfigTemplate = (options: {
         contentRoutes,
         ejected,
         pages,
+        redirects: compileRedirects(basedRedirects),
       })
     )})`
   );

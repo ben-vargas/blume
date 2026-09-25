@@ -15,6 +15,7 @@ import {
   showBlumeErrorOverlay,
 } from "../src/astro/integration.ts";
 import { scanProject } from "../src/core/project-graph.ts";
+import { compileRedirects } from "../src/core/redirect-patterns.ts";
 import type { Diagnostic } from "../src/core/types.ts";
 
 interface OverlayPayload {
@@ -29,9 +30,14 @@ interface DevRequest {
   url: string | undefined;
 }
 
-/** The response surface the middleware touches: header stamping only. */
+/**
+ * The response surface the middleware touches: header stamping, and the
+ * redirect answer the pattern-redirect middleware writes.
+ */
 interface DevResponse {
+  end?: () => void;
   setHeader: (name: string, value: string) => void;
+  writeHead?: (status: number, headers: Record<string, string>) => void;
 }
 
 type MiddlewareHandle = (
@@ -653,5 +659,41 @@ describe("showBlumeErrorOverlay", () => {
       [key]?: { overlay: DevServerStub | null };
     };
     expect(host[key]?.overlay?.hot).toBe(channel);
+  });
+});
+
+describe("pattern redirects in dev", () => {
+  it("answers a path a pattern covers ahead of Astro, and passes the rest on", () => {
+    const stack = serverSetup({
+      redirects: compileRedirects([
+        { from: "/beta/:slug*", status: 302, to: "/v2/:slug*" },
+      ]),
+    });
+    // The pattern middleware, then Markdown negotiation.
+    expect(stack).toHaveLength(2);
+    const handle = handleOf(stack);
+    const answers: [number, Record<string, string>][] = [];
+    const passed: (string | undefined)[] = [];
+    for (const url of ["/beta/a%20b?x=1", "/guide", undefined]) {
+      handle(
+        { headers: {}, method: "GET", url },
+        {
+          end: () => {},
+          setHeader: () => {},
+          writeHead: (status, headers) => {
+            answers.push([status, headers]);
+          },
+        },
+        () => {
+          passed.push(url);
+        }
+      );
+    }
+    expect(answers).toStrictEqual([[302, { Location: "/v2/a%20b" }]]);
+    expect(passed).toStrictEqual(["/guide", undefined]);
+  });
+
+  it("adds no middleware for a site without patterns", () => {
+    expect(serverSetup()).toHaveLength(1);
   });
 });

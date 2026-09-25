@@ -3,6 +3,7 @@ import type { Diagnostic } from "../../core/types.ts";
 import { deployPlatform } from "../../deploy/platforms/index.ts";
 import { finding } from "../catalog.ts";
 import { pageSite } from "../locate.ts";
+import { redirectAt } from "../redirects.ts";
 import { ERROR_ROUTES } from "../types.ts";
 import type { AuditContext, CheckModule, PageSnapshot } from "../types.ts";
 import { decodePath, normalizePath, siteOrigin } from "../url.ts";
@@ -118,9 +119,7 @@ const canonicalChecks = (
 
   // The canonical points at another page on this site. It must exist, and it
   // must not itself redirect — a canonical to a redirect is a dead end.
-  const redirect = context.redirects.find(
-    (entry) => normalizePath(entry.from) === target
-  );
+  const redirect = redirectAt(context.redirects, target);
   if (redirect) {
     found.push(
       finding(

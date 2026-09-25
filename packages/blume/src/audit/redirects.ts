@@ -1,3 +1,7 @@
+import {
+  isPatternPath,
+  patternDestination,
+} from "../core/redirect-patterns.ts";
 import type { RedirectResolution } from "./types.ts";
 import { normalizePath } from "./url.ts";
 
@@ -7,18 +11,6 @@ interface ConfiguredRedirect {
   status: number;
 }
 
-/**
- * Follow every configured redirect through to its destination, classifying what
- * it lands on.
- *
- * - `loop`   — the chain revisits a hop it has already been to. Never resolves.
- * - `broken` — the chain ends somewhere the build does not serve.
- * - `chain`  — it resolves, but through at least one intermediate redirect.
- * - `ok`     — one hop, straight to a real page.
- *
- * An external destination (`https://…`) is always `ok`: it's outside the site,
- * so there's no local page to check it against.
- */
 /**
  * A destination's page path: the part before any query string or fragment. A
  * redirect to `/guide#setup` or `/search?q=x` lands on the `/guide` / `/search`
@@ -30,6 +22,22 @@ const pathOnly = (value: string): string => {
   return cut === -1 ? value : value.slice(0, cut);
 };
 
+/**
+ * Follow every configured redirect through to its destination, classifying what
+ * it lands on.
+ *
+ * - `loop`    — the chain revisits a hop it has already been to. Never resolves.
+ * - `broken`  — the chain ends somewhere the build does not serve.
+ * - `chain`   — it resolves, but through at least one intermediate redirect.
+ * - `ok`      — one hop, straight to a real page.
+ * - `pattern` — a pattern (`/beta/:slug*`), which covers paths rather than
+ *   naming one, so there is no single chain to walk; {@link redirectAt}
+ *   resolves a path it covers.
+ *
+ * An external destination (`https://…`) is always `ok`: it's outside the site,
+ * so there's no local page to check it against. A hop onto a path a pattern
+ * covers continues through that pattern.
+ */
 export const resolveRedirects = (
   redirects: readonly ConfiguredRedirect[],
   /** Whether the build serves a normalized path — see `isServed`. */
@@ -39,9 +47,14 @@ export const resolveRedirects = (
   for (const redirect of redirects) {
     byFrom.set(normalizePath(redirect.from), redirect);
   }
+  const hopFrom = (path: string): string | undefined =>
+    byFrom.get(path)?.to ?? patternDestination(redirects, path);
 
   return redirects.map((redirect) => {
     const from = normalizePath(redirect.from);
+    if (isPatternPath(redirect.from)) {
+      return { ...redirect, chain: [from], outcome: "pattern" as const };
+    }
     const chain: string[] = [from];
     const seen = new Set<string>([from]);
     let current = redirect.to;
@@ -63,11 +76,11 @@ export const resolveRedirects = (
       }
       chain.push(next);
       seen.add(next);
-      const hop = byFrom.get(next);
-      if (!hop) {
+      const hop = hopFrom(next);
+      if (hop === undefined) {
         break;
       }
-      current = hop.to;
+      current = hop;
     }
 
     const destination = chain.at(-1) ?? from;
@@ -83,4 +96,22 @@ export const resolveRedirects = (
       outcome: chain.length > 2 ? ("chain" as const) : ("ok" as const),
     };
   });
+};
+
+/**
+ * The configured redirect a path takes, for the checks that report a link,
+ * canonical, sitemap entry, or `hreflang` pointing through one: the exact
+ * redirect from that path, else the pattern covering it, its `to` filled in
+ * for this path.
+ */
+export const redirectAt = (
+  redirects: readonly RedirectResolution[],
+  path: string
+): { to: string } | undefined => {
+  const exact = redirects.find((entry) => normalizePath(entry.from) === path);
+  if (exact) {
+    return exact;
+  }
+  const to = patternDestination(redirects, path);
+  return to === undefined ? undefined : { to };
 };

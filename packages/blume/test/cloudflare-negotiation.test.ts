@@ -819,6 +819,33 @@ describe("negotiation worker — configured redirects", () => {
     expect(bare.headers.get("location")).toBe("/docs/quickstart#install");
   });
 
+  it("answers a path a pattern covers, after the exact paths, forwarding the query", async () => {
+    const worker = await loadWorker(
+      workerText({
+        redirects: [
+          ...REDIRECTS,
+          { from: "/docs/beta/:slug*", status: 308, to: "/docs/v2/:slug*" },
+          { from: "/docs/beta/pinned", status: 301, to: "/docs/pinned" },
+        ],
+      })
+    );
+    const locate = async (url: string) => {
+      const answer = await worker.fetch(new Request(url), makeEnv().env, {});
+      return [answer.status, answer.headers.get("location")];
+    };
+    expect(await locate("https://site.test/docs/beta")).toStrictEqual([
+      308,
+      "/docs/v2",
+    ]);
+    expect(
+      await locate("https://site.test/docs/beta/a/%C3%BC?ref=x")
+    ).toStrictEqual([308, "/docs/v2/a/%C3%BC?ref=x"]);
+    expect(await locate("https://site.test/docs/beta/pinned")).toStrictEqual([
+      301,
+      "/docs/pinned",
+    ]);
+  });
+
   it("applies redirects to every method, like the static layer", async () => {
     const worker = await loadWorker(workerText({ redirects: REDIRECTS }));
     const { calls, env } = makeEnv();

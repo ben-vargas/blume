@@ -29,8 +29,15 @@ import {
   blumeDependencyNames,
   functionBundleVerdict,
 } from "../function-bundle.ts";
-import { buildVercelConfig } from "../redirects.ts";
-import { injectNegotiationRoutes } from "../vercel-negotiation.ts";
+import {
+  buildVercelConfig,
+  platformRedirects,
+  vercelPatternRoutes,
+} from "../redirects.ts";
+import {
+  injectNegotiationRoutes,
+  injectRedirectRoutes,
+} from "../vercel-negotiation.ts";
 import { adapterRoot, toSiteUrl } from "./paths.ts";
 import type { BuildLog, DeployPlatform, RedirectFile } from "./types.ts";
 
@@ -142,6 +149,33 @@ export const emitVercelNegotiation = async (
 };
 
 /**
+ * Route the pattern redirects (`/beta/:slug*`) in the adapter's Build Output
+ * config: Astro's `redirects` carry only the exact ones, since it can't
+ * prerender a pattern's pages, so the adapter never sees these.
+ */
+export const emitVercelPatternRedirects = async (
+  project: BlumeProject,
+  log: BuildLog
+): Promise<void> => {
+  const routes = vercelPatternRoutes(platformRedirects(project));
+  const configPath = join(buildOutputDir(project.context), "config.json");
+  if (routes.length === 0 || !existsSync(configPath)) {
+    return;
+  }
+  const injected = injectRedirectRoutes(
+    await readFile(configPath, "utf-8"),
+    routes
+  );
+  if (injected === null) {
+    log.warn(
+      "Could not route the pattern redirects in .vercel/output/config.json, so paths they cover answer 404."
+    );
+    return;
+  }
+  await writeFile(configPath, injected, "utf-8");
+};
+
+/**
  * Vercel. A server build's Build Output tree lands at `.vercel/output` — at
  * the project root, because the adapter is handed that root up front: its
  * `@vercel/nft` dependency trace is rooted there too, and tracing from the
@@ -180,6 +214,7 @@ export const vercelPlatform: DeployPlatform = {
     // config is a deploy artifact and stays untouched.
     if (!isolated) {
       await emitVercelNegotiation(project, log);
+      await emitVercelPatternRedirects(project, log);
     }
     return true;
   },

@@ -10,6 +10,7 @@ import {
 import type { LocaleRouting } from "./i18n.ts";
 import { localizeLinkPath } from "./locale-links.ts";
 import { gradeExternal, probeAll } from "./probe.ts";
+import { isPatternPath, pathsUnderPattern } from "./redirect-patterns.ts";
 import type {
   ContentGraph,
   Diagnostic,
@@ -87,6 +88,8 @@ interface LinkContext {
   publicDir: string | null;
   /** Normalized `redirect.from` paths — valid targets that resolve at runtime. */
   redirects: Set<string>;
+  /** Pattern `redirect.from`s (`/beta/:slug*`), based like `redirects`. */
+  redirectPatterns: string[];
   routes: Set<string>;
 }
 
@@ -322,10 +325,16 @@ const checkPathLink = (
   if (ctx.extraRoutes.has(route)) {
     return null;
   }
-  // A configured `redirect.from` resolves at runtime, so it's a valid target.
+  // A configured `redirect.from`, or a path a pattern `from` covers, resolves
+  // at runtime, so it's a valid target.
   // Its destination (and any anchor there) is validated on its own page, so we
   // don't follow the redirect to check the fragment here.
-  if (ctx.redirects.has(route)) {
+  if (
+    ctx.redirects.has(route) ||
+    ctx.redirectPatterns.some(
+      (from) => pathsUnderPattern(from, [route]).length > 0
+    )
+  ) {
     return null;
   }
 
@@ -585,6 +594,11 @@ export const validateLinks = async (
     fileRoutes: buildFileRouteIndex(graph.pages, options.i18n ?? null),
     i18n: options.i18n ?? null,
     publicDir: options.publicDir,
+    redirectPatterns: (options.redirects ?? []).flatMap((redirect) =>
+      isPatternPath(redirect.from)
+        ? [withBasePath(basePath, redirect.from)]
+        : []
+    ),
     redirects: new Set(
       (options.redirects ?? []).map((redirect) =>
         toRoute(withBasePath(basePath, redirect.from))

@@ -110,7 +110,7 @@ export interface RedirectResolution {
   status: number;
   /** Every hop from `from` to the final target, inclusive. */
   chain: string[];
-  outcome: "ok" | "loop" | "broken" | "chain";
+  outcome: "ok" | "loop" | "broken" | "chain" | "pattern";
 }
 
 /** One urlset file behind a sitemap, for the per-file size limits. */

@@ -9,7 +9,11 @@ import type { BlumeProject } from "../../core/project-graph.ts";
 import { NETLIFY_ADAPTER_PACKAGE } from "../adapters/netlify.ts";
 import { buildNetlifyConfigHeaders } from "../headers.ts";
 import type { NetlifyConfigHeaders } from "../headers.ts";
-import { buildNetlifyRedirects } from "../redirects.ts";
+import {
+  buildNetlifyRedirects,
+  netlifyPatternRedirects,
+  platformRedirects,
+} from "../redirects.ts";
 import { distDir, toSiteUrl } from "./paths.ts";
 import type { BuildLog, DeployPlatform, RedirectFile } from "./types.ts";
 
@@ -77,6 +81,33 @@ export const emitNetlifyHeaders = async (
 };
 
 /**
+ * Carry the pattern redirects (`/beta/:slug*`) into a server build, as
+ * `redirects` in the Frameworks API config: Astro's `redirects` carry only
+ * the exact ones, since it can't prerender a pattern's pages, so the adapter
+ * never writes these. Netlify appends them after any rules of the user's own.
+ */
+export const emitNetlifyPatternRedirects = async (
+  project: BlumeProject
+): Promise<void> => {
+  const ours = netlifyPatternRedirects(platformRedirects(project));
+  const configPath = join(project.context.root, NETLIFY_CONFIG_FILE);
+  if (ours.length === 0 || !existsSync(configPath)) {
+    return;
+  }
+  // Only `redirects` is read; every other key rides through as parsed.
+  const frameworks: { redirects?: { from: string }[] } = JSON.parse(
+    await readFile(configPath, "utf-8")
+  );
+  // A second pass over the same build replaces its own entries.
+  const froms = new Set(ours.map((entry) => entry.from));
+  frameworks.redirects = [
+    ...(frameworks.redirects ?? []).filter((entry) => !froms.has(entry.from)),
+    ...ours,
+  ];
+  await writeFile(configPath, JSON.stringify(frameworks), "utf-8");
+};
+
+/**
  * Netlify. A server build runs on Netlify Functions from the Frameworks API
  * tree the adapter writes to `.netlify/v1`, relative to the Astro root —
  * which for Blume is the hidden `.blume` runtime, so the tree is moved up to
@@ -106,6 +137,7 @@ export const netlifyPlatform: DeployPlatform = {
     // never surfaces it.
     if (!isolated) {
       await emitNetlifyHeaders(project, log);
+      await emitNetlifyPatternRedirects(project);
     }
     return true;
   },

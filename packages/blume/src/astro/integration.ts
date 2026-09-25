@@ -9,6 +9,11 @@ import type { CustomPageRoute } from "../core/custom-pages.ts";
 import { enrichDiagnostic } from "../core/diagnostics.ts";
 import { scanProject } from "../core/project-graph.ts";
 import type { BlumeProject } from "../core/project-graph.ts";
+import {
+  matchCompiledRedirect,
+  requestPath,
+} from "../core/redirect-patterns.ts";
+import type { CompiledRedirect } from "../core/redirect-patterns.ts";
 import type { Diagnostic } from "../core/types.ts";
 import { publishBuildArtifacts } from "../deploy/artifacts.ts";
 import type { ArtifactLogger } from "../deploy/artifacts.ts";
@@ -336,6 +341,13 @@ export interface BlumeIntegrationOptions {
    * its already-scanned project instead.
    */
   buildArtifactsRoot?: string;
+  /**
+   * The pattern redirects (`/beta/:slug*`), compiled against base-less
+   * request paths (see `core/redirect-patterns.ts`). Astro's own `redirects`
+   * carry only the exact ones, since it can't prerender a pattern's pages, so
+   * the dev server answers these itself.
+   */
+  redirects?: CompiledRedirect[];
 }
 
 /**
@@ -395,6 +407,23 @@ const negotiateMarkdown =
       }
     }
     next();
+  };
+
+/**
+ * Answer a pattern redirect in dev with its configured status, the way the
+ * server wrappers do in a build. Request URLs arrive base-less (see
+ * {@link negotiateMarkdown}), and the patterns were based to match.
+ */
+const answerPatternRedirects =
+  (redirects: readonly CompiledRedirect[]) =>
+  (req: IncomingMessage, res: ServerResponse, next: () => void): void => {
+    const answer = matchCompiledRedirect(redirects, requestPath(req.url ?? ""));
+    if (!answer) {
+      next();
+      return;
+    }
+    res.writeHead(answer[1], { Location: answer[0] });
+    res.end();
   };
 
 /** The `.d.ts` the integration injects for the `blume:*` virtual modules. */
@@ -502,6 +531,12 @@ export const blumeIntegration = (
           }),
           route: "",
         });
+        if (options.redirects) {
+          server.middlewares.stack.unshift({
+            handle: answerPatternRedirects(options.redirects),
+            route: "",
+          });
+        }
       },
     },
     name: "blume",

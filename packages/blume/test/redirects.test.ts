@@ -100,7 +100,7 @@ describe("redirect emitters", () => {
     } as ResolvedConfig;
     expect(
       platformRedirects({ config: unbased, manifest: { routes: [] } })
-    ).toBe(redirects);
+    ).toStrictEqual(redirects);
   });
 
   it("bases only `to` for Astro, which applies `base` to `from` itself", () => {
@@ -194,11 +194,21 @@ const redirectIssues = (redirect: { from: string; to: string }): string[] => {
 };
 
 describe("redirect paths", () => {
-  it("rejects a `:param` segment or a `*` wildcard at either end", () => {
+  it("accepts patterns whose captures `to` reads", () => {
     expect(
       redirectIssues({ from: "/legacy/:slug", to: "/guides/:slug" })
-    ).toEqual(["redirects.0.from", "redirects.0.to"]);
-    expect(redirectIssues({ from: "/old/*", to: "/new" })).toEqual([
+    ).toEqual([]);
+    expect(redirectIssues({ from: "/beta/:slug*", to: "/v2/:slug*" })).toEqual(
+      []
+    );
+    expect(redirectIssues({ from: "/old/*", to: "/new/:splat" })).toEqual([]);
+    expect(
+      redirectIssues({ from: "/old/article-*", to: "/new/article-*" })
+    ).toEqual([]);
+  });
+
+  it("rejects a malformed capture in `from`, and a `to` reading one it doesn't make", () => {
+    expect(redirectIssues({ from: "/a/:b*/c", to: "/new" })).toEqual([
       "redirects.0.from",
     ]);
     expect(

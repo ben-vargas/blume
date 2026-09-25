@@ -2,6 +2,7 @@ import { normalizeBasePath, stripBasePath } from "../../core/base-path.ts";
 import type { Diagnostic } from "../../core/types.ts";
 import { finding } from "../catalog.ts";
 import { pageSite } from "../locate.ts";
+import { redirectAt } from "../redirects.ts";
 import type { AuditContext, CheckModule, PageSnapshot } from "../types.ts";
 import { decodePath, normalizePath } from "../url.ts";
 import { isArchivedLatestCanonical } from "./indexability.ts";
@@ -134,9 +135,7 @@ const hreflangChecks = (
     }
 
     const target = context.byUrl.get(path);
-    const redirect = context.redirects.find(
-      (entry) => normalizePath(entry.from) === path
-    );
+    const redirect = redirectAt(context.redirects, path);
     if (redirect) {
       found.push(
         finding(

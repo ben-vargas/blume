@@ -2,6 +2,7 @@ import { normalizeBasePath, stripBasePath } from "../../core/base-path.ts";
 import type { Diagnostic } from "../../core/types.ts";
 import { finding } from "../catalog.ts";
 import { pageSite } from "../locate.ts";
+import { redirectAt } from "../redirects.ts";
 import type { AuditContext, CheckModule } from "../types.ts";
 import { decodePath, normalizePath, siteOrigin } from "../url.ts";
 
@@ -100,9 +101,7 @@ const checkListedUrl = (
   );
   const page = context.byUrl.get(path);
   if (!page) {
-    const redirect = context.redirects.find(
-      (entry) => normalizePath(entry.from) === path
-    );
+    const redirect = redirectAt(context.redirects, path);
     return [
       finding(
         "BLUME_AUDIT_SITEMAP_BAD_URL",

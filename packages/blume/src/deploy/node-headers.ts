@@ -15,6 +15,8 @@ import {
 } from "../ai/web-bot-auth.ts";
 import { normalizeBasePath, normalizePath } from "../core/base-path.ts";
 import type { BlumeProject } from "../core/project-graph.ts";
+import { compileRedirects, isPatternPath } from "../core/redirect-patterns.ts";
+import type { CompiledRedirect } from "../core/redirect-patterns.ts";
 import type { ResolvedConfig } from "../core/schema.ts";
 import { SVG_ASSET_HEADERS, svgAssetPath } from "./headers.ts";
 import { distDir } from "./platforms/paths.ts";
@@ -106,11 +108,12 @@ const patternRules = (
 export type NodeRedirects = Record<string, [string, number]>;
 
 /**
- * The configured redirects, based the way the host matches them (see
+ * The configured exact redirects, based the way the host matches them (see
  * `platformRedirects`) and keyed for the wrapper's lookup, the `Location`
  * percent-encoded as Astro sends it. A redirect at a content route's own path
  * is left out: the prerendered page owns that URL, and the static handler
- * serves it before Astro's redirect ever could.
+ * serves it before Astro's redirect ever could. Patterns are compiled apart
+ * ({@link nodePatternRedirects}).
  */
 export const nodeRedirects = (project: BlumeProject): NodeRedirects => {
   const { config } = project;
@@ -125,7 +128,13 @@ export const nodeRedirects = (project: BlumeProject): NodeRedirects => {
   );
   return Object.fromEntries(
     platformRedirects(project)
-      .filter((redirect) => !pages.has(normalizePath(redirect.from)))
+      .filter(
+        (redirect) =>
+          !(
+            isPatternPath(redirect.from) ||
+            pages.has(normalizePath(redirect.from))
+          )
+      )
       .map((redirect) => [
         normalizePath(redirect.from),
         [encodeURI(redirect.to), redirect.status],
@@ -133,12 +142,27 @@ export const nodeRedirects = (project: BlumeProject): NodeRedirects => {
   );
 };
 
+/**
+ * The configured pattern redirects (`/beta/:slug*`), based the way the host
+ * matches them and compiled for the wrapper, which tries them in order after
+ * the exact ones. None can match a page: the scan rejects a pattern that
+ * does (`BLUME_REDIRECT_MATCHES_PAGE`).
+ */
+export const nodePatternRedirects = (
+  project: BlumeProject
+): CompiledRedirect[] =>
+  project.config.redirects.length === 0
+    ? []
+    : compileRedirects(platformRedirects(project));
+
 /** What the wrapper needs beyond the header rules. */
 export interface NodeEntryOptions {
   /** `deployment.base`, normalized (`""` at the root). */
   base?: string;
   /** The configured redirects, from {@link nodeRedirects}. */
   redirects?: NodeRedirects;
+  /** The configured pattern redirects, from {@link nodePatternRedirects}. */
+  patternRedirects?: CompiledRedirect[];
 }
 
 /**
@@ -177,6 +201,9 @@ const BASE = ${JSON.stringify(options.base ?? "")};
 const RULES = new Map(${JSON.stringify(exactRules(rules))});
 const PATTERNS = ${JSON.stringify(patternRules(rules))};
 const REDIRECTS = ${JSON.stringify(options.redirects ?? {})};
+const PATTERN_REDIRECTS = ${JSON.stringify(options.patternRedirects ?? [])}.map(
+  ([source, location, status]) => [new RegExp(source, "u"), location, status]
+);
 const safeDecode = (path) => {
   try {
     return decodeURIComponent(path);
@@ -210,16 +237,37 @@ const applyHeaders = (req, res) => {
     }
   }
 };
+// A pattern redirect's Location: its template, each $n filled with that
+// capture, encoded so it can't grow a query or fragment.
+const fillLocation = (location, match) =>
+  location.replace(/\\$(\\d+)/gu, (_reference, index) =>
+    encodeURI(match[Number(index)] ?? "")
+      .replaceAll("?", "%3F")
+      .replaceAll("#", "%23")
+  );
+// The configured redirect for a decoded path: an exact one, else the first
+// pattern that matches it.
+const redirectFor = (path) => {
+  const trimmed = path !== "/" && path.endsWith("/") ? path.slice(0, -1) : path;
+  if (Object.hasOwn(REDIRECTS, trimmed)) {
+    return REDIRECTS[trimmed];
+  }
+  for (const [pattern, location, status] of PATTERN_REDIRECTS) {
+    const match = pattern.exec(path);
+    if (match) {
+      return [fillLocation(location, match), status];
+    }
+  }
+  return null;
+};
 // Answer a configured redirect with its exact status; Astro's handler would
 // send a 301 (a 308 for other methods) whatever the configured one.
 const answerRedirect = (req, res) => {
-  const path = urlPath(req);
-  const trimmed = path !== "/" && path.endsWith("/") ? path.slice(0, -1) : path;
-  const key = safeDecode(trimmed);
-  if (!Object.hasOwn(REDIRECTS, key)) {
+  const redirect = redirectFor(safeDecode(urlPath(req)));
+  if (redirect === null) {
     return false;
   }
-  const [location, status] = REDIRECTS[key];
+  const [location, status] = redirect;
   res.writeHead(status, { location });
   res.end();
   return true;
@@ -291,7 +339,12 @@ export const wrapNodeEntry = async (
       : []),
   ];
   const redirects = nodeRedirects(project);
-  if (rules.length === 0 && Object.keys(redirects).length === 0) {
+  const patternRedirects = nodePatternRedirects(project);
+  if (
+    rules.length === 0 &&
+    Object.keys(redirects).length === 0 &&
+    patternRedirects.length === 0
+  ) {
     return;
   }
   const serverDir = join(distDir(project.context), "server");
@@ -311,6 +364,7 @@ export const wrapNodeEntry = async (
     entry,
     nodeEntryWrapper(rules, {
       base: normalizeBasePath(project.config.deployment.options.base),
+      patternRedirects,
       redirects,
     }),
     "utf-8"

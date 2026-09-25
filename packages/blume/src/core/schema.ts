@@ -33,6 +33,7 @@ import { normalizeBasePath } from "./base-path.ts";
 import { PUBLIC_HOST_URL } from "./github.ts";
 import { uiLocaleOverridesSchema } from "./i18n-ui.ts";
 import { openInChatProviders } from "./open-in-chat.ts";
+import { redirectPatternError } from "./redirect-patterns.ts";
 import { isStandardSchema } from "./standard-schema.ts";
 import type { StandardSchema } from "./standard-schema.ts";
 import { trimEnd } from "./trim.ts";
@@ -1185,13 +1186,6 @@ const versionsConfigSchema = z
     }
   });
 
-/**
- * A pattern segment in a redirect path: a named `:param` segment or a `*`
- * splat. `from` is matched as an exact path, and hosts disagree on patterns —
- * a static build would even write a literal `:slug` folder — so both ends are
- * checked. An absolute `to` URL's own scheme and host are skipped.
- */
-const REDIRECT_PATTERN = /(?:^|\/):[A-Za-z_]|\*/u;
 const URL_ORIGIN = /^[a-z][\d+.a-z-]*:\/\/[^/]*/iu;
 
 /**
@@ -1212,23 +1206,33 @@ const REDIRECT_START = {
   },
 };
 
-const exactRedirectPath = (end: "from" | "to") =>
-  z
-    .string()
-    .refine(REDIRECT_START[end].allows, {
-      message: REDIRECT_START[end].message,
-    })
-    .refine((path) => !REDIRECT_PATTERN.test(path.replace(URL_ORIGIN, "")), {
-      message: `redirects take exact paths: \`${end}\` can't hold a \`:param\` segment or a \`*\` wildcard. Add one redirect per path, or put pattern rules in your host's redirect config (vercel.json, _redirects).`,
-    });
+const redirectPath = (end: "from" | "to") =>
+  z.string().refine(REDIRECT_START[end].allows, {
+    message: REDIRECT_START[end].message,
+  });
 
-const redirectSchema = z.strictObject({
-  from: exactRedirectPath("from"),
-  status: z
-    .union([z.literal(301), z.literal(302), z.literal(307), z.literal(308)])
-    .default(301),
-  to: exactRedirectPath("to"),
-});
+/**
+ * A redirect: an exact path, or a pattern (`/beta/:slug*`, `/old/*`) whose
+ * captures `to` may read (see `core/redirect-patterns.ts`).
+ */
+const redirectSchema = z
+  .strictObject({
+    from: redirectPath("from"),
+    status: z
+      .union([z.literal(301), z.literal(302), z.literal(307), z.literal(308)])
+      .default(301),
+    to: redirectPath("to"),
+  })
+  .superRefine((redirect, ctx) => {
+    const error = redirectPatternError(redirect.from, redirect.to);
+    if (error) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: error.message,
+        path: [error.end],
+      });
+    }
+  });
 
 /**
  * One authorized remote image source, passed through to Astro's

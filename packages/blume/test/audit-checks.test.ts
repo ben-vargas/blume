@@ -559,6 +559,16 @@ describe("link checks", () => {
     expect(run(linkChecks, ctx)).toContain("LINK_TO_REDIRECT");
   });
 
+  it("reports a link into a pattern redirect", () => {
+    const ctx = context({
+      pages: [snapshot({ links: [link("/beta/intro")], url: "/a" })],
+      redirects: [{ from: "/beta/:slug*", status: 301, to: "/a" }],
+    });
+    expect(run(linkChecks, ctx)).toContain("LINK_TO_REDIRECT");
+    // A pattern has no single chain to walk, so it reports nothing itself.
+    expect(run(redirectChecks, ctx)).toEqual([]);
+  });
+
   it("reports a nav link to a redirect once", () => {
     const pages = Array.from({ length: 3 }, (_, index) =>
       snapshot({ links: [link("/old", false)], url: `/p${index}` })

@@ -15,7 +15,7 @@ Throughout this skill (including the `references/` files), **`<skill>` means the
 
 - **Target idiomatic Blume, not a mechanical port.** Prefer filesystem-derived navigation over an exhaustive explicit `navigation.sidebar`. Prefer `:::` directives over JSX callouts. Prefer Blume defaults over restating them in config.
 - **Every field has a default; `{}` is a valid config.** Map only what the source _declares_. If the source uses a framework default, don't write it.
-- **Drop chrome that has no Blume equivalent — and say so.** Navbar CTAs, footer columns, custom theming, dynamic redirects, and unmappable icons get reported to the user, not silently discarded or faked.
+- **Drop chrome that has no Blume equivalent — and say so.** Navbar CTAs, footer columns, custom theming, conditional redirects, and unmappable icons get reported to the user, not silently discarded or faked.
 - **Convert, don't preserve.** Blume's page frontmatter schema is **strict** — unknown keys are build errors. A source-only frontmatter key must be mapped to a Blume key or removed (and reported), never left to "maybe validate."
 
 ## Migration workflow
@@ -162,13 +162,13 @@ content: {
 
 ### Redirects are static
 
-A `redirects: [{ from, to, status? }]` array **in `blume.config.ts`** maps old URLs when you restructure routes — Blume serves these itself, so any reorganization that moves a page (folder-per-tab, materialized nested groups, renamed slugs, index promotion) is fixed by adding an entry there; no host config needed. **Restructuring is the main source of these:** every page you moved in step 4 (folder-per-tab, renamed slugs, index promotion) needs an entry, or old URLs 404. `status` defaults to **301 (permanent — browsers cache it indefinitely)**; that's correct for genuine moves, but never use 301/308 for redirects you might reverse. Dynamic/wildcard patterns (`:slug*`) can't be modeled as static path-to-path; move those to host-level config (`_redirects`, `vercel.json`) and report them.
+A `redirects: [{ from, to, status? }]` array **in `blume.config.ts`** maps old URLs when you restructure routes — Blume serves these itself, so any reorganization that moves a page (folder-per-tab, materialized nested groups, renamed slugs, index promotion) is fixed by adding an entry there; no host config needed. **Restructuring is the main source of these:** every page you moved in step 4 (folder-per-tab, renamed slugs, index promotion) needs an entry, or old URLs 404. `status` defaults to **301 (permanent — browsers cache it indefinitely)**; that's correct for genuine moves, but never use 301/308 for redirects you might reverse. Patterns carry over as written: `:name` for one segment, `:name*` or a trailing `*` for the rest of the path (`{ from: "/beta/:slug*", to: "/v2/:slug*" }`). A pattern can't also match a page, so the build fails (`BLUME_REDIRECT_MATCHES_PAGE`) if one covers a page you kept; narrow it. Rules a pattern can't express (regex params, header or cookie conditions) move to host-level config (`_redirects`, `vercel.json`); report them.
 
 ## Verification & reporting
 
 1. Run **`blume build`** — it validates the frontmatter schema, duplicate routes, and config, and fails on any error diagnostic by default (**don't pass `--no-strict`**: that builds anyway and silently drops invalid pages). Then run **`blume validate --strict`** — links, heading anchors, and assets live here, not in `build` (add `--external` to also check outbound HTTP links). OpenAPI operation pages are real routes to `validate`, so dead links to them are caught too. Iterate until both are clean.
 2. Run `blume dev` and review the site visually — nav structure, tabs, theme, rendered components.
-3. **Write a migration summary** covering: what was migrated (config, N pages, nav, API references), what was **dropped** (navbar CTAs, footers, custom theming, dynamic redirects, unmappable icons, unsupported components), and suggested follow-ups (`blume eject` for full control, `blume add` to vendor a component for customization).
+3. **Write a migration summary** covering: what was migrated (config, N pages, nav, API references), what was **dropped** (navbar CTAs, footers, custom theming, conditional redirects, unmappable icons, unsupported components), and suggested follow-ups (`blume eject` for full control, `blume add` to vendor a component for customization).
 
 ## Full documentation
 

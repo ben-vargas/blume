@@ -6,6 +6,8 @@ import { pathToFileURL } from "node:url";
 import { join } from "pathe";
 
 import type { BlumeProject } from "../src/core/project-graph.ts";
+import { compileRedirects } from "../src/core/redirect-patterns.ts";
+import type { CompiledRedirect } from "../src/core/redirect-patterns.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
 import type { BlumeConfigInput } from "../src/core/schema.ts";
 import { node } from "../src/deploy/adapters/index.ts";
@@ -13,6 +15,7 @@ import {
   NODE_ASTRO_ENTRY_FILE,
   NODE_ENTRY_FILE,
   nodeEntryWrapper,
+  nodePatternRedirects,
   nodeRedirects,
   wrapNodeEntry,
 } from "../src/deploy/node-headers.ts";
@@ -121,13 +124,14 @@ interface WrapperModule {
 }
 
 const loadWrapper = async (
-  redirects: NodeRedirects
+  redirects: NodeRedirects,
+  patternRedirects: CompiledRedirect[] = []
 ): Promise<WrapperModule> => {
   const dir = await scratch();
   await writeFile(join(dir, NODE_ASTRO_ENTRY_FILE), FAKE_ASTRO_ENTRY, "utf-8");
   await writeFile(
     join(dir, NODE_ENTRY_FILE),
-    nodeEntryWrapper([], { base: "/docs", redirects }),
+    nodeEntryWrapper([], { base: "/docs", patternRedirects, redirects }),
     "utf-8"
   );
   // SAFETY: the wrapper's exports are the Astro entry contract above.
@@ -247,6 +251,64 @@ describe("the entry wrapper's redirects", () => {
   });
 });
 
+describe("the entry wrapper's pattern redirects", () => {
+  const PATTERNS = compileRedirects([
+    { from: "/docs/beta/:slug*", status: 308, to: "/docs/v2/:slug*" },
+    { from: "/docs/old/article-*", status: 302, to: "/docs/new/article-*" },
+  ]);
+
+  it("answer a path a pattern covers, after the exact paths", async () => {
+    const wrapper = await loadWrapper(
+      { "/docs/beta/pinned": ["/docs/pinned", 301] },
+      PATTERNS
+    );
+    const answers = [
+      "/docs/beta",
+      "/docs/beta/a/b/",
+      "/docs/beta/%C3%BC%3F",
+      "/docs/old/article-9",
+      "/docs/beta/pinned",
+    ].map((url) => {
+      const { answer, res } = response();
+      wrapper.handler({ url }, res);
+      return [answer.status, answer.headers.location];
+    });
+    expect(answers).toStrictEqual([
+      [308, "/docs/v2"],
+      [308, "/docs/v2/a/b"],
+      [308, "/docs/v2/%C3%BC%3F"],
+      [302, "/docs/new/article-9"],
+      [301, "/docs/pinned"],
+    ]);
+    expect(wrapper.handler({ url: "/docs/betas" }, response().res)).toBe(
+      "handled"
+    );
+  });
+});
+
+describe(nodePatternRedirects, () => {
+  it("compiles the based patterns, and nothing without redirects", () => {
+    const project = projectAt("/tmp/unused", {
+      deployment: node({ base: "/docs" }),
+      redirects: [
+        { from: "/old", status: 302, to: "/new" },
+        { from: "/beta/:slug*", status: 302, to: "/v2/:slug*" },
+      ],
+    });
+    expect(nodePatternRedirects(project)).toStrictEqual([
+      ["^/docs/beta/?$", "/docs/v2", 302],
+      ["^/docs/beta/(.+?)/?$", "/docs/v2/$1", 302],
+    ]);
+    // The exact paths stay in the lookup table.
+    expect(nodeRedirects(project)).toStrictEqual({
+      "/docs/old": ["/docs/new", 302],
+    });
+    expect(nodePatternRedirects(projectAt("/tmp/unused", {}))).toStrictEqual(
+      []
+    );
+  });
+});
+
 describe("wrapNodeEntry with redirects", () => {
   it("wraps the entry for redirects alone", async () => {
     const root = await scratch();
@@ -265,5 +327,25 @@ describe("wrapNodeEntry with redirects", () => {
     const wrapper = await readFile(join(serverDir, NODE_ENTRY_FILE), "utf-8");
     expect(wrapper).toContain('const REDIRECTS = {"/old":["/new",302]};');
     expect(wrapper).toContain('const BASE = "";');
+  });
+});
+
+describe("wrapNodeEntry with pattern redirects", () => {
+  it("wraps the entry for pattern redirects alone", async () => {
+    const root = await scratch();
+    const serverDir = join(root, "dist", "server");
+    await mkdir(serverDir, { recursive: true });
+    await writeFile(join(serverDir, NODE_ENTRY_FILE), "// astro\n", "utf-8");
+    await wrapNodeEntry(
+      projectAt(root, {
+        agents: { api: false },
+        deployment: node(),
+        redirects: [{ from: "/beta/:slug*", status: 302, to: "/v2/:slug*" }],
+      }),
+      log
+    );
+    const wrapper = await readFile(join(serverDir, NODE_ENTRY_FILE), "utf-8");
+    expect(wrapper).toContain("const REDIRECTS = {};");
+    expect(wrapper).toContain('["^/beta/(.+?)/?$","/v2/$1",302]');
   });
 });

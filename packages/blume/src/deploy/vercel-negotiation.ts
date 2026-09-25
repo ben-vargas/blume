@@ -399,3 +399,39 @@ export const injectNegotiationRoutes = (
   config.routes = routes;
   return `${JSON.stringify(config, null, "\t")}\n`;
 };
+
+/**
+ * Splice routes for the pattern redirects (see `vercelPatternRoutes`) into a
+ * Build Output `config.json`, in the main phase just ahead of
+ * `handle: "filesystem"`: after the exact redirects the adapter puts first,
+ * so an exact path still wins. A second pass replaces its own routes. Returns
+ * the updated JSON text, or `null` when there is nowhere safe to splice: an
+ * unparsable config, no `routes` array, or no `handle: "filesystem"` marker.
+ */
+export const injectRedirectRoutes = (
+  configText: string,
+  redirectRoutes: readonly VercelRoute[]
+): string | null => {
+  let config: { routes?: VercelRoute[] };
+  try {
+    config = JSON.parse(configText);
+  } catch {
+    return null;
+  }
+  if (!Array.isArray(config.routes)) {
+    return null;
+  }
+  const ours = new Set(redirectRoutes.map((route) => route.src));
+  const routes = config.routes.filter(
+    (route) => !(ours.has(route.src) && isString(route.headers?.Location))
+  );
+  const filesystemIndex = routes.findIndex(
+    (route) => route.handle === "filesystem"
+  );
+  if (filesystemIndex === -1) {
+    return null;
+  }
+  routes.splice(filesystemIndex, 0, ...redirectRoutes);
+  config.routes = routes;
+  return `${JSON.stringify(config, null, "\t")}\n`;
+};
