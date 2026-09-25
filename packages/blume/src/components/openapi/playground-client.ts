@@ -22,7 +22,7 @@ import {
   PROXY_HEADERS_HEADER,
   redactAuth,
 } from "./request.ts";
-import { sampleLanguages } from "./snippets.ts";
+import { fetchRefusesMethod, sampleLanguages } from "./snippets.ts";
 import type { RequestSample } from "./snippets.ts";
 import { validateJson } from "./validate-json.ts";
 
@@ -47,6 +47,16 @@ const COOKIE_MESSAGE =
   "Browsers don't allow a page to set a `Cookie` header, so this panel can't " +
   "send the cookie credential you entered. Copy the sample above and run it " +
   "from a terminal instead.";
+
+/**
+ * fetch refuses the TRACE method outright, proxied or not: the browser throws
+ * before anything is sent, which the send's catch would misdiagnose as the
+ * CORS wall or an unreachable host. The cURL and Python samples can send it.
+ */
+const TRACE_MESSAGE =
+  "Browsers don't allow a page to send a `TRACE` request, so this panel " +
+  "can't send it. Run the cURL or Python sample above from a terminal " +
+  "instead.";
 
 /**
  * A fetch that fails before any response when the API couldn't be reached at
@@ -503,6 +513,11 @@ export const initPlayground = (root: HTMLElement): void => {
    */
   const send = async (): Promise<void> => {
     if (!response || sending) {
+      return;
+    }
+    if (fetchRefusesMethod(model.method)) {
+      response.textContent = "";
+      response.append(line(ERROR_TEXT, TRACE_MESSAGE));
       return;
     }
     if (validateBody().length > 0) {

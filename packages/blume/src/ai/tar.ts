@@ -34,6 +34,11 @@ const TYPEFLAG_OFFSET = 156;
 const PREFIX_OFFSET = 345;
 const BLOCK_SIZE = 512;
 
+/** The two zero blocks that mark the end of an archive. */
+const END_OF_ARCHIVE = 2 * BLOCK_SIZE;
+/** tar's default record size (20 blocks), which the archive is padded to. */
+const RECORD_SIZE = 20 * BLOCK_SIZE;
+
 /** The PAX extended-header typeflag (`x`). */
 const PAX_TYPEFLAG = 0x78;
 
@@ -171,6 +176,15 @@ export const buildTarGz = (entries: readonly TarEntry[]): Uint8Array => {
     offset +=
       BLOCK_SIZE * (1 + Math.ceil(block.content.byteLength / BLOCK_SIZE));
   }
+  // nanotar pads the entries to a whole record but writes no end-of-archive
+  // marker, so entries ending within two blocks of a record boundary leave
+  // fewer than the two zero blocks readers expect (GNU tar warns "A lone zero
+  // block"). Pad to the first record that fits both; for every other archive
+  // that is the size nanotar already wrote, so its bytes are unchanged.
+  const archive = new Uint8Array(
+    Math.ceil((offset + END_OF_ARCHIVE) / RECORD_SIZE) * RECORD_SIZE
+  );
+  archive.set(tar.subarray(0, offset));
   // Sync gzip with a pinned level; Node writes no timestamp into the header.
-  return new Uint8Array(gzipSync(tar, { level: 9 }));
+  return new Uint8Array(gzipSync(archive, { level: 9 }));
 };

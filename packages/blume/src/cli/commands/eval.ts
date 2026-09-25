@@ -275,7 +275,10 @@ export const evalCommand = defineCommand({
     }
 
     if (failed) {
-      process.exit(1);
+      // Set the code and return rather than `process.exit`, which doesn't wait
+      // for a piped stderr: a long `--verbose` report was cut off mid-write, in
+      // exactly the CI logs that need to show every failure.
+      process.exitCode = 1;
     }
   },
 });

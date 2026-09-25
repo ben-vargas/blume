@@ -73,6 +73,8 @@ Operation pages rendered natively ship an interactive **Try it** panel by defaul
 
 The panel and the code samples stay in lockstep: values typed into the form update the generated samples live, so a copied curl command always matches exactly what **Send** would do. And it stays out of the way — the panel is server-rendered collapsed, and its JavaScript loads only when a reader first opens it. Readers who never touch it download none of it.
 
+The one method a browser can't send is `TRACE`: `fetch` refuses it, so on a `trace` operation **Send** says so instead of sending, and the JavaScript sample (built on `fetch`) is a note rather than code. The cURL and Python samples send it fine.
+
 `playground: false` is the entire off switch:
 
 ```ts blume.config.ts lineNumbers

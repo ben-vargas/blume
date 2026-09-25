@@ -70,7 +70,29 @@ const curlSnippet = (sample: RequestSample): string => {
   return lines.join(" \\\n");
 };
 
+/**
+ * Whether fetch refuses to send `method` (an upper-case HTTP method). TRACE is
+ * one of the Fetch standard's forbidden methods, and the only one an OpenAPI
+ * spec can declare: browsers and Node's fetch alike throw a TypeError before
+ * any request goes out.
+ */
+export const fetchRefusesMethod = (method: string): boolean =>
+  method === "TRACE";
+
+/**
+ * The JavaScript sample for a method fetch refuses: a note in place of a call
+ * that could only throw.
+ */
+const FETCH_REFUSED_NOTE = [
+  "// fetch() refuses the TRACE method: browsers and Node both throw before",
+  "// sending, so there's no fetch sample for this operation. Send it with",
+  "// curl or another HTTP client instead.",
+].join("\n");
+
 const fetchSnippet = (sample: RequestSample): string => {
+  if (fetchRefusesMethod(sample.method)) {
+    return FETCH_REFUSED_NOTE;
+  }
   const options = [`  method: ${stringLiteral(sample.method)}`];
   if (Object.keys(sample.headers).length > 0) {
     const headers = headerLines(

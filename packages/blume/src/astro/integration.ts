@@ -55,6 +55,13 @@ interface DevServer {
   ws?: OverlayChannel;
 }
 
+/** The dev server's file watcher, as far as the data-store watch uses it. */
+interface WatchedServer {
+  watcher: {
+    on: (event: "add" | "change", listener: (path: string) => void) => void;
+  };
+}
+
 /** The parameters Astro hands `astro:server:setup`. */
 type ServerSetupParams = Parameters<
   NonNullable<AstroIntegration["hooks"]["astro:server:setup"]>
@@ -205,6 +212,32 @@ const invalidateDataStore = (server: DevServer): void => {
   // before the invalidation above; reload again so no page renders the
   // stale copy.
   overlayChannelOf(server)?.send({ type: "full-reload" });
+};
+
+/**
+ * Where Astro keeps the dev content store: `data-store.json` in the root's
+ * `.astro/` directory. Astro reloads its virtual module from this file.
+ */
+const devDataStoreFile = (root: URL): string =>
+  fileURLToPath(new URL(".astro/data-store.json", root));
+
+/**
+ * Invalidate the data store in every environment whenever Astro rewrites it.
+ * Astro's own file watcher updates the store on a content edit — a `.md`
+ * page's rendered body lives in it — but invalidates the module in `ssr`
+ * only, so with `@astrojs/cloudflare` a body edit stayed stale in
+ * `prerender` until something structural re-synced it. Keyed on the store
+ * write rather than Blume's regeneration, which can finish first.
+ */
+const watchDataStore = (server: DevServer & WatchedServer, root: URL): void => {
+  const file = devDataStoreFile(root);
+  const onWrite = (path: string): void => {
+    if (path === file) {
+      invalidateDataStore(server);
+    }
+  };
+  server.watcher.on("add", onWrite);
+  server.watcher.on("change", onWrite);
 };
 
 /**
@@ -456,6 +489,10 @@ export const blumeIntegration = (
         const shared = registry();
         shared.overlay = server;
         shared.refreshContent = refreshContent ?? null;
+        // `astro:config:done` always runs first; the root locates the store.
+        if (astroRoot) {
+          watchDataStore(server, astroRoot);
+        }
         // Prepend so the rewrite happens before Astro's own request handler,
         // letting the rewritten URL resolve to the `.md` endpoint.
         server.middlewares.stack.unshift({

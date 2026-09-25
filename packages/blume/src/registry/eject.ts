@@ -54,6 +54,8 @@ import {
   mcpEndpointTemplate,
   mcpPageFile,
   mixedbreadSearchEndpointTemplate,
+  notFoundJsonTemplate,
+  notFoundMarkdownTemplate,
   notFoundPageTemplate,
   ogEndpointTemplate,
   playgroundProxyTemplate,
@@ -827,14 +829,26 @@ export const eject = async (
     ...playgroundProxyFiles(config, openApiData, srcDir)
   );
 
-  // Default 404 page, unless the project already owns `/404` (a custom
-  // `pages/404.astro` or a `404.md` content page). The ejected project owns the
-  // file afterwards and can edit or remove it.
+  // Default 404 page and its Markdown (`/404.md`) and JSON (`/404.json`)
+  // twins, mirroring `writeNotFoundPage` in generate.ts: all three are skipped
+  // when the project already owns `/404` (a custom `pages/404.astro` or a
+  // `404.md` content page). The ejected project owns the files afterwards and
+  // can edit or remove them.
   if (!routeIsTaken(pages, project.graph.pages, "/404")) {
-    files.push({
-      content: notFoundPageTemplate(),
-      path: join(srcDir, "pages", "404.astro"),
-    });
+    files.push(
+      {
+        content: notFoundPageTemplate(),
+        path: join(srcDir, "pages", "404.astro"),
+      },
+      {
+        content: notFoundMarkdownTemplate(),
+        path: join(srcDir, "pages", "404.md.ts"),
+      },
+      {
+        content: notFoundJsonTemplate(),
+        path: join(srcDir, "pages", "404.json.ts"),
+      }
+    );
   }
 
   // The client-feature loaders behind the `blume:features` alias, and the

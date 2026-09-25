@@ -2,10 +2,10 @@ import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 
 import { dirname, join, relative } from "pathe";
-import { glob } from "tinyglobby";
 
 import { localeTargetPath } from "../core/i18n.ts";
 import { createModuleLoader } from "../core/load-module.ts";
+import { findFolderMetaFiles } from "../core/meta.ts";
 import type { BlumeProject } from "../core/project-graph.ts";
 import { folderMetaSchema } from "../core/schema.ts";
 import type { FolderMeta, ResolvedI18nConfig } from "../core/schema.ts";
@@ -81,8 +81,9 @@ export const metaTargetPath = (
 /**
  * Discover the default-locale `meta.{ts,js,mjs}` files whose titles a
  * translation run covers. Skips (in order): non-`dir` i18n projects entirely,
- * files matching the source's `exclude` globs (application code, which the
- * scan's own folder-meta discovery never imports either), files inside a
+ * files the scan's own folder-meta discovery never reads either — those
+ * matching the source's `exclude` globs (application code) or in folders its
+ * `include` globs don't reach (see `findFolderMetaFiles`) — files inside a
  * configured locale directory (those ARE translations), files inside an
  * archived-version snapshot (frozen, with their own translations — the same
  * folders the navigation's meta lookup hoists as versions), modules that fail
@@ -114,19 +115,24 @@ export const discoverTranslatableMeta = async (
   const roots = project.sources.flatMap((source) =>
     source.staged || !source.contentRoot
       ? []
-      : [{ contentRoot: source.contentRoot, exclude: source.exclude ?? [] }]
+      : [
+          {
+            contentRoot: source.contentRoot,
+            exclude: source.exclude,
+            include: source.include,
+          },
+        ]
   );
-  for (const { contentRoot, exclude } of roots) {
+  for (const { contentRoot, exclude, include } of roots) {
+    // The scan's own file set (`discoverFolderMeta`): a `meta.ts` under an
+    // excluded folder (`src/lib/meta.ts` beside `exclude: ["src/**"]`) is
+    // application code, and one in a folder no `include` glob reaches
+    // configures no group the build renders.
     // oxlint-disable-next-line no-await-in-loop -- a project has O(1) sources
-    const files = await glob(META_FILES, {
-      absolute: true,
-      cwd: contentRoot,
-      // The same ignores as the scan's `discoverFolderMeta`: a `meta.ts`
-      // under an excluded folder (`src/lib/meta.ts` beside `exclude:
-      // ["src/**"]`) is application code, and importing it can fail.
-      ignore: [...exclude, "**/node_modules/**", "**/.blume/**", "**/dist/**"],
-      onlyFiles: true,
-    });
+    const files = await findFolderMetaFiles(
+      { exclude, include, root: contentRoot },
+      META_FILES
+    );
     for (const file of files.toSorted()) {
       const dir = relative(contentRoot, dirname(file));
       const [head] = dir.split("/");
