@@ -2,9 +2,9 @@
  * Bridges `theme.fonts` into the OG card renderer. A site that explicitly
  * picks its typefaces gets matching cards (and non-Latin coverage) without
  * configuring `seo.og.fonts`; untouched defaults derive nothing, so plain
- * sites keep Takumi's built-in font and gain no build-time font fetch. Locales
- * in scripts that font can't draw (Japanese, Hindi, Russian, …) add a Noto
- * fallback for their script either way.
+ * sites keep Takumi's built-in font. Either way every card gets a Noto
+ * fallback stack for the scripts that font can't draw (Japanese, Hindi,
+ * Russian, …), which it fetches only when its text needs one.
  */
 
 import { existsSync } from "node:fs";
@@ -19,9 +19,10 @@ import type {
 import { GOOGLE_FONTS, isFontSlug, localeFontSubsets } from "../theme/fonts.ts";
 import type { OgFont, OgFontFamilies, OgLocalFont } from "./card.ts";
 
-/** Fonts plus per-role families for the generated OG endpoint. */
+/** Fonts, script fallbacks, and per-role families for the OG endpoint. */
 export interface DerivedOgFonts {
   families?: OgFontFamilies;
+  fallbacks?: OgFallbackFont[];
   fonts: OgFont[];
 }
 
@@ -165,17 +166,17 @@ export const deriveOgFonts = (
 /**
  * The family Takumi renders a card in when no font is loaded: its embedded
  * Geist, which covers Latin only. Naming it keeps a card's Latin text in that
- * face once locale fallbacks are loaded, since Takumi otherwise tries loaded
- * fonts first; a glyph Geist lacks still falls back to them. Were Takumi to
- * rename it, the name would resolve to nothing and cards would fall back to
- * the loaded fonts, never to tofu.
+ * face once fallbacks are loaded, since Takumi otherwise tries loaded fonts
+ * first; a glyph Geist lacks still falls back to them. Were Takumi to rename
+ * it, the name would resolve to nothing and cards would fall back to the
+ * loaded fonts, never to tofu.
  */
 const BUILT_IN_FAMILY = "Geist";
 
 /**
  * The Google Noto family that draws each language's script, keyed by BCP 47
  * language subtag, for scripts beyond the Latin, Cyrillic, Greek, and
- * Vietnamese that `Noto Sans` covers (see {@link localeOgFonts}). Keep keys
+ * Vietnamese that `Noto Sans` covers (see {@link localeFamily}). Keep keys
  * alphabetical.
  */
 const SCRIPT_FAMILIES = {
@@ -219,8 +220,8 @@ const isScriptLanguage = (
 ): language is keyof typeof SCRIPT_FAMILIES =>
   Object.hasOwn(SCRIPT_FAMILIES, language);
 
-/** A locale fallback: a Google family at the weights the card renders. */
-export interface LocaleOgFont {
+/** A script fallback: a Google family at the weights the card renders. */
+export interface OgFallbackFont {
   name: string;
   weight: number[];
 }
@@ -246,16 +247,28 @@ const localeFamily = (locale: string): string | null => {
 };
 
 /**
- * The fallback card fonts the configured locales' scripts need, at the card's
- * weights. Takumi's built-in font covers only basic Latin, so without these a
- * Japanese or Hindi page's card renders every glyph as tofu. The renderer
- * fetches only the glyph subsets a card's text uses, so an English card on
- * the same site pulls nothing extra.
+ * Every script's fallback, in the order a card tries them: `Noto Sans` for
+ * extended Latin, Cyrillic, Greek, and Vietnamese, then a family per script.
+ * The CJK families all draw Han ideographs, so the first one wins them —
+ * Japanese forms, unless a configured locale moves its own family ahead.
  */
-export const localeOgFonts = (locales: string[]): LocaleOgFont[] => {
+const DEFAULT_FALLBACKS = [
+  "Noto Sans",
+  ...new Set(Object.values(SCRIPT_FAMILIES)),
+  "Noto Sans TC",
+];
+
+/**
+ * The card's script fallbacks, at the card's weights: each configured
+ * locale's family first, so a Chinese site draws Han in Chinese forms, then
+ * every other script's, so a page in a language the site never configured
+ * still renders instead of tofu. Takumi's built-in font covers only basic
+ * Latin; the card fetches these only when its text needs a glyph beyond it,
+ * and then only the families and subsets that glyph needs.
+ */
+export const ogFallbackFonts = (locales: string[]): OgFallbackFont[] => {
   const names = new Set<string>();
-  for (const locale of locales) {
-    const family = localeFamily(locale);
+  for (const family of [...locales.map(localeFamily), ...DEFAULT_FALLBACKS]) {
     if (family) {
       names.add(family);
     }
@@ -272,27 +285,24 @@ const ogFontName = (font: OgFont): string =>
   isGoogleFamilyName(font) ? font : font.name;
 
 /**
- * `derived` plus the locale fallbacks it doesn't already load. A card that
+ * `derived` plus the script fallbacks it doesn't already load. A card that
  * names no family is pinned to {@link BUILT_IN_FAMILY}, so its Latin text
  * keeps the face it had before any fallback was loaded.
  */
-const withLocaleFonts = (
+const withFallbacks = (
   derived: DerivedOgFonts,
   locales: string[]
 ): DerivedOgFonts => {
   const loaded = new Set(derived.fonts.map(ogFontName));
-  const fallbacks = localeOgFonts(locales).filter(
-    (font) => !loaded.has(ogFontName(font))
-  );
-  if (fallbacks.length === 0) {
-    return derived;
-  }
   return {
+    fallbacks: ogFallbackFonts(locales).filter(
+      (font) => !loaded.has(font.name)
+    ),
     families: derived.families ?? {
       body: BUILT_IN_FAMILY,
       title: BUILT_IN_FAMILY,
     },
-    fonts: [...derived.fonts, ...fallbacks],
+    fonts: derived.fonts,
   };
 };
 
@@ -307,8 +317,8 @@ export const resolveOgFontSources = (fonts: OgFont[], root: string): OgFont[] =>
  * always wins (including `[]` to opt out, keeping the card's role styling
  * untouched); otherwise a site that explicitly set `theme.fonts` gets its
  * display/body fonts derived so cards match the site without extra config,
- * and either way the configured locales add a fallback for each script the
- * built-in font can't draw.
+ * and either way every card gets the script fallbacks, the configured
+ * locales' first.
  */
 export const resolveOgFonts = (
   options: {
@@ -328,7 +338,7 @@ export const resolveOgFonts = (
   const derived = options.themeFontsConfigured
     ? deriveOgFonts(options.themeFonts, root)
     : { fonts: [] };
-  return withLocaleFonts(derived, options.locales ?? []);
+  return withFallbacks(derived, options.locales ?? []);
 };
 
 /**

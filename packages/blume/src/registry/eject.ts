@@ -78,6 +78,7 @@ import {
 } from "../core/sources/collection.ts";
 import type { ProjectContext } from "../core/types.ts";
 import { buildRssFeeds, renderRssFeed } from "../deploy/rss.ts";
+import { resolveOgFonts } from "../og/derive.ts";
 import type { OpenApiData } from "../openapi/model.ts";
 import {
   hasScalarReferences,
@@ -90,6 +91,7 @@ import {
   examplesEntryTemplate,
   tailwindEntryTemplate,
 } from "../theme/entry.ts";
+import { fontLocaleCodes } from "../theme/fonts.ts";
 import { buildThemeCss } from "../theme/palette.ts";
 import { rebaseSourceDirectives } from "../theme/sources.ts";
 import { twoslashCss } from "../theme/twoslash.ts";
@@ -802,10 +804,26 @@ export const eject = async (
   });
 
   if (config.seo.og.enabled) {
+    // The default script fallbacks ride along (Google family names, nothing
+    // machine-specific), so a non-Latin card still renders after eject. An
+    // explicit seo.og.fonts replaces them, and isn't carried over.
+    const { fallbacks, families } = resolveOgFonts(
+      {
+        locales: fontLocaleCodes(config.i18n),
+        ogFonts: config.seo.og.fonts,
+        themeFonts: config.theme.fonts,
+        themeFontsConfigured: false,
+      },
+      root
+    );
     files.push({
       content: ogEndpointTemplate(
         customOgRoutes(pages, config.title, config.seo.og.titles),
-        { pageDescriptions: config.seo.og.description !== false },
+        {
+          fallbacks,
+          families,
+          pageDescriptions: config.seo.og.description !== false,
+        },
         changelog.length > 0
       ),
       path: join(srcDir, "pages", "og", "[...slug].png.ts"),

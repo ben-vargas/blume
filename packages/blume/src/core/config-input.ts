@@ -958,13 +958,15 @@ export interface OgConfig {
    */
   enabled?: boolean;
   /**
-   * Fonts for the generated card, extending Takumi's Latin-only default so
-   * non-Latin titles (CJK, and so on) render instead of tofu. A bare string is
-   * a Google Fonts family fetched at build; the name-only object form pins
-   * weights (`700`, `[400, 700]`, or a `"100..900"` variable range) and
-   * styles; the `src` form reads a local font file from the project instead.
-   * When omitted and `theme.fonts` is explicitly configured, the theme's
-   * display and body fonts are used automatically — pass `[]` to opt out.
+   * Fonts for the generated card, replacing the default stack: Takumi's
+   * Latin-only built-in font plus a Noto fallback per script, which a card
+   * fetches only when its text needs one. A bare string is a Google Fonts
+   * family fetched at build; the name-only object form pins weights (`700`,
+   * `[400, 700]`, or a `"100..900"` variable range) and styles; the `src`
+   * form reads a local font file from the project instead. When omitted and
+   * `theme.fonts` is explicitly configured, the theme's display and body
+   * fonts are used automatically, ahead of the fallbacks — pass `[]` to opt
+   * out of both.
    */
   fonts?: (
     | string

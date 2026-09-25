@@ -5,8 +5,14 @@ import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 
 import { join } from "pathe";
+import { render } from "takumi-js";
+import { container, text } from "takumi-js/helpers";
 
-import { cachedOgImage, renderOgImage } from "../src/og/card.ts";
+import {
+  BUILT_IN_GLYPHS,
+  cachedOgImage,
+  renderOgImage,
+} from "../src/og/card.ts";
 import type { OgCardOptions } from "../src/og/card.ts";
 
 // A real woff2 (shipped by katex) to serve as the subset bytes, so `googleFonts`
@@ -17,15 +23,24 @@ const SUBSET_WOFF2 = readFileSync(
   )
 );
 
-// Stub `fetch` so `googleFonts` is hermetic: a css2 request returns one
-// `@font-face` block, and the subset URL returns the woff2 bytes. Returns the
-// css2 request count so a test can assert the metadata is fetched once. Mirrors
+// One `@font-face` block: a family's subset served from `file`, claiming the
+// `unicode-range` given.
+const face = (family: string, file: string, range: string): string =>
+  `@font-face { font-family: '${family}'; font-style: normal; font-weight: 400; ` +
+  `src: url(https://fonts.gstatic.com/s/${file}) format('woff2'); ` +
+  `unicode-range: ${range}; }`;
+
+// Stub `fetch` so `googleFonts` is hermetic: a css2 request returns `css`, and
+// any subset URL returns the woff2 bytes. Hands the test the css2 requests (to
+// assert the metadata is fetched once) and the subset files downloaded. Mirrors
 // `withStubbedGlyphFetch`, and shields against Bun's fetch retaining a proxy.
 const withStubbedFonts = async (
-  body: (css2Requests: string[]) => Promise<void>
+  body: (css2Requests: string[], files: string[]) => Promise<void>,
+  css = face("Noto Sans JP", "notosansjp/x.woff2", "U+0000-00FF, U+3040-30FF")
 ): Promise<void> => {
   const original = globalThis.fetch;
   const css2Requests: string[] = [];
+  const files: string[] = [];
   // SAFETY: the font pipeline only calls fetch(url); fetch's static
   // properties (e.g. Bun's preconnect) are never touched by the code under
   // test.
@@ -33,20 +48,17 @@ const withStubbedFonts = async (
     const url = String(input instanceof Request ? input.url : input);
     if (url.includes("css2")) {
       css2Requests.push(url);
-      const css =
-        "@font-face { font-family: 'Noto Sans JP'; font-style: normal; font-weight: 400; " +
-        "src: url(https://fonts.gstatic.com/s/notosansjp/x.woff2) format('woff2'); " +
-        "unicode-range: U+0000-00FF, U+3040-30FF; }";
       return Promise.resolve(
         new Response(css, { headers: { "Content-Type": "text/css" } })
       );
     }
+    files.push(url.slice(url.indexOf("/s/") + 3));
     return Promise.resolve(
       new Response(SUBSET_WOFF2, { headers: { "Content-Type": "font/woff2" } })
     );
   }) as typeof fetch;
   try {
-    await body(css2Requests);
+    await body(css2Requests, files);
   } finally {
     globalThis.fetch = original;
   }
@@ -351,6 +363,95 @@ describe("renderOgImage", () => {
       ],
       title: "Styled title",
     });
+  });
+});
+
+/** A glyph drawn alone, as PNG bytes in base64. */
+const drawGlyph = async (glyph: string): Promise<string> =>
+  Buffer.from(
+    await render(
+      container({
+        children: [text(glyph, { color: "#000", fontSize: 32 })],
+        style: {
+          backgroundColor: "#fff",
+          display: "flex",
+          height: 48,
+          width: 48,
+        },
+      }),
+      { format: "png", height: 48, width: 48 }
+    )
+  ).toString("base64");
+
+describe("renderOgImage script fallbacks", () => {
+  it("draws every glyph the built-in table lists without a font", async () => {
+    // The table decides when a card fetches its fallbacks, so a glyph it
+    // lists but Geist lacks would ship as tofu. With no font loaded, a Han
+    // character renders as the missing-glyph box.
+    const tofu = await drawGlyph("日");
+    const codePoints = BUILT_IN_GLYPHS.flatMap(([from, to]) =>
+      Array.from({ length: to - from + 1 }, (_, index) => from + index)
+    );
+    const drawn = await Promise.all(
+      codePoints.map((codePoint) => drawGlyph(String.fromCodePoint(codePoint)))
+    );
+    const missing = codePoints.filter((_, index) => drawn[index] === tofu);
+    expect(missing.map((codePoint) => codePoint.toString(16))).toEqual([]);
+  });
+
+  it("fetches nothing for a card the built-in font draws", async () => {
+    await withStubbedFonts(async (css2Requests, files) => {
+      await expectPng({
+        description: "Fast docs — “quoted” text… €5 ™ café, œuvre\nnext",
+        fallbacks: ["Stub Latin"],
+        repo: "acme/docs",
+        site: "docs.acme.com",
+        title: "Getting started",
+      });
+      expect(css2Requests).toEqual([]);
+      expect(files).toEqual([]);
+    });
+  });
+
+  it("fetches nothing for emoji, which render as images", async () => {
+    await withStubbedGlyphFetch(async (urls) => {
+      await expectPng({ fallbacks: ["Stub Emoji"], title: "Ship it 🚀✨" });
+      expect(urls.some((url) => url.includes("css2"))).toBe(false);
+    });
+  });
+
+  it("loads a CJK character from the first family that claims it", async () => {
+    // Google slices CJK fonts by the glyphs each really has, so the later
+    // families' slices for the same characters are never downloaded. A
+    // family claiming none of a card's glyphs loads nothing.
+    const css = [
+      face("Stub JP", "jp.woff2", "U+3040-30FF"),
+      face("Stub KR", "kr.woff2", "U+3040-30FF, U+AC00-D7A3"),
+      face("Stub Thai", "thai.woff2", "U+0E00-0E7F"),
+    ].join("\n");
+    await withStubbedFonts(async (_, files) => {
+      const fallbacks = ["Stub JP", "Stub KR", "Stub Thai"];
+      await expectPng({ fallbacks, title: "こんにちは" });
+      expect(files).toEqual(["jp.woff2"]);
+      await expectPng({ fallbacks, title: "こんにちは 한국어" });
+      expect(files).toEqual(["jp.woff2", "kr.woff2"]);
+    }, css);
+  });
+
+  it("loads every family claiming a glyph outside the CJK scripts", async () => {
+    // Named subsets claim a shared range whatever the font holds, so a claim
+    // there proves nothing and Takumi's per-glyph fallback decides.
+    const css = [
+      face("Stub Arrows A", "arrows-a.woff2", "U+2190-21FF"),
+      face("Stub Arrows B", "arrows-b.woff2", "U+2190-21FF"),
+    ].join("\n");
+    await withStubbedFonts(async (_, files) => {
+      await expectPng({
+        fallbacks: ["Stub Arrows A", "Stub Arrows B"],
+        title: "Before → after",
+      });
+      expect(files.toSorted()).toEqual(["arrows-a.woff2", "arrows-b.woff2"]);
+    }, css);
   });
 });
 

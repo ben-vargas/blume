@@ -2383,6 +2383,7 @@ describe("static endpoint templates", () => {
     expect(endpoint).toContain(
       "const families: OgFontFamilies | undefined = undefined"
     );
+    expect(endpoint).toContain("const fallbacks: OgGoogleFont[] = []");
     expect(endpoint).not.toContain("data.config.og.fonts");
   });
 
@@ -2396,7 +2397,7 @@ describe("static endpoint templates", () => {
       'const cache: OgCache | undefined = {"dir":"/p/node_modules/.cache/blume/og","version":"1.2.3"};'
     );
     expect(endpoint).toContain(
-      'import type { OgCache, OgFont, OgFontFamilies } from "blume/og";'
+      'import type { OgCache, OgFont, OgFontFamilies, OgGoogleFont } from "blume/og";'
     );
   });
 
@@ -2438,6 +2439,16 @@ describe("static endpoint templates", () => {
     );
     expect(endpoint).toContain("families,");
     expect(endpoint).toContain("fonts,");
+  });
+
+  it("bakes the script fallbacks into the OG endpoint", () => {
+    const endpoint = ogEndpointTemplate([], {
+      fallbacks: [{ name: "Noto Sans JP", weight: [400, 600] }],
+    });
+    expect(endpoint).toContain(
+      'const fallbacks: OgGoogleFont[] = [{"name":"Noto Sans JP","weight":[400,600]}]'
+    );
+    expect(endpoint).toContain("fallbacks,");
   });
 
   it("serves one RSS feed per section", () => {

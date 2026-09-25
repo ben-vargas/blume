@@ -72,11 +72,13 @@ seo: {
 
 By default the card renders in Takumi's built-in font, which covers only basic Latin glyphs — on its own, a title in another script (Japanese, Chinese, Korean, Arabic, Hindi, Russian, …) would render as tofu, empty boxes.
 
-**Your [locales](/docs/content/i18n) cover their own scripts.** For each configured locale whose script the built-in font can't draw, the card adds a Google Noto family as a fallback: `Noto Sans JP` for `ja`, `Noto Sans Devanagari` for `hi`, `Noto Sans SC` or `Noto Sans TC` for Chinese, `Noto Sans` for Cyrillic, Greek, Vietnamese, and accented Latin, and so on. Fallback is per glyph, so Latin text keeps the built-in font and an English card looks the same as on a single-language site. The fallbacks come from Google Fonts at build time, which needs network access, and a card fetches only the glyph subsets its text uses. They apply unless `og.fonts` is set, which takes over the whole list.
+**Every script is covered by default.** Behind the built-in font, cards carry a fallback stack of Google Noto families, one per script: `Noto Sans` for Cyrillic, Greek, Vietnamese, and accented Latin, then `Noto Sans JP`, `Noto Sans Arabic`, `Noto Sans Devanagari`, and so on. A Japanese or Hindi title renders with nothing to configure, even on a site with no [locales](/docs/content/i18n). Fallback is per glyph, so Latin text keeps the built-in font. A card fetches from Google Fonts only when its text has a glyph the built-in font can't draw, and then only the subsets those glyphs need: an English card fetches nothing, so a Latin-only site still builds offline. The stack applies unless `og.fonts` is set, which takes over the whole list.
+
+Chinese, Japanese, and Korean share most Han characters but draw some of them differently, and cards use Japanese forms by default. Each configured locale moves its own family to the front, so a site with a `zh` locale draws Han in Simplified Chinese forms, and `zh-Hant` or `zh-TW` in Traditional ones.
 
 **Set [`theme.fonts`](/docs/configuration/theming#fonts) and the card follows it.** When your config picks its own fonts, the generated cards automatically render the headline in your display font and the description and footer in your body font, so shared links match the site — including non-Latin coverage, with nothing to configure here. (Families from non-Google providers are skipped — the card renderer can only fetch from Google Fonts — but local font files work.)
 
-To use different fonts on cards than on the site, or to add script coverage without touching the theme, set `og.fonts` explicitly — it always wins over the theme-derived fonts and the locale fallbacks:
+To use different fonts on cards than on the site, set `og.fonts` explicitly. It always wins over the theme-derived fonts and replaces the script fallbacks, so list every family your cards need:
 
 ```ts blume.config.ts lineNumbers
 seo: {
@@ -94,7 +96,7 @@ Each entry is a Google Fonts family name, an object pinning its `weight` (a numb
 
 Google families are fetched at build — so a build that uses them needs network access — and the renderer only pulls the glyph subsets each title actually uses. Fallback is per-glyph, so adding a family only affects glyphs the other fonts can't draw.
 
-An explicit `og.fonts: []` opts out entirely: cards keep the built-in font even when `theme.fonts` is set or a locale's script needs a fallback.
+An explicit `og.fonts: []` opts out entirely: cards keep the built-in font even when `theme.fonts` is set or a title needs a script fallback.
 
 ## Card cache
 

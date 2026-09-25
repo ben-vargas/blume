@@ -161,7 +161,9 @@ describe("resolveOgFonts", () => {
       { ogFonts: undefined, themeFonts, themeFontsConfigured: false },
       ROOT
     );
-    expect(resolved).toEqual({ fonts: [] });
+    // Only the script fallbacks, which a card fetches on demand.
+    expect(resolved.fonts).toEqual([]);
+    expect(resolved.families).toEqual({ body: "Geist", title: "Geist" });
   });
 });
 

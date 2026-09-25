@@ -1303,9 +1303,9 @@ const ogConfigSchema = z.strictObject({
    */
   enabled: z.boolean().optional(),
   /**
-   * Google Font families for the generated card, extending Takumi's Latin-only
-   * default so non-Latin titles (CJK, and so on) render instead of tofu.
-   * Fetched from Google Fonts at build.
+   * Fonts for the generated card, replacing the default stack (Takumi's
+   * Latin-only built-in font plus a Noto fallback per script). Google
+   * families are fetched from Google Fonts at build.
    */
   fonts: z.array(ogFontSchema).optional(),
   /**

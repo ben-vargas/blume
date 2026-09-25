@@ -206,4 +206,39 @@ describe("eject OG cards", () => {
       '"changelog"'
     );
   });
+
+  it("keeps the default script fallbacks so non-Latin cards render", async () => {
+    const root = await project({
+      "blume.config.ts":
+        'export default { deployment: { site: "https://example.com" } };\n',
+      "docs/index.md": "---\ntitle: はじめに\n---\n# はじめに\n",
+    });
+
+    await eject(root);
+
+    const endpoint = read(root, "src/pages/og/[...slug].png.ts");
+    expect(endpoint).toContain(
+      'const fallbacks: OgGoogleFont[] = [{"name":"Noto Sans","weight":[400,600]}'
+    );
+    expect(endpoint).toContain('{"name":"Noto Sans JP","weight":[400,600]}');
+    expect(endpoint).toContain(
+      'const families: OgFontFamilies | undefined = {"body":"Geist","title":"Geist"}'
+    );
+  });
+
+  it("leaves the fallbacks out when seo.og.fonts takes over", async () => {
+    const root = await project({
+      "blume.config.ts":
+        'export default { deployment: { site: "https://example.com" }, seo: { og: { fonts: ["Inter"] } } };\n',
+      "docs/index.md": "---\ntitle: Home\n---\n# Home\n",
+    });
+
+    await eject(root);
+
+    const endpoint = read(root, "src/pages/og/[...slug].png.ts");
+    expect(endpoint).toContain("const fallbacks: OgGoogleFont[] = [];");
+    expect(endpoint).toContain(
+      "const families: OgFontFamilies | undefined = undefined;"
+    );
+  });
 });

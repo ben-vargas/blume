@@ -11,4 +11,5 @@ export type {
   OgCardPalette,
   OgFont,
   OgFontFamilies,
+  OgGoogleFont,
 } from "./card.ts";

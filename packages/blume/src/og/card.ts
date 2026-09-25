@@ -2,7 +2,13 @@ import { readFile } from "node:fs/promises";
 
 import { render } from "takumi-js";
 import type { RenderOptions } from "takumi-js";
-import { container, googleFonts, image, text } from "takumi-js/helpers";
+import {
+  collectCodepoints,
+  container,
+  googleFonts,
+  image,
+  text,
+} from "takumi-js/helpers";
 import type { FontSubset, GoogleFontFamily, Node } from "takumi-js/helpers";
 
 import { svgDimensions } from "../core/svg-dimensions.ts";
@@ -41,6 +47,9 @@ export type OgFont =
       style?: "normal" | "italic" | ("normal" | "italic")[];
     }
   | OgLocalFont;
+
+/** An OG font fetched from Google Fonts (a bare family name or the object form). */
+export type OgGoogleFont = Exclude<OgFont, OgLocalFont>;
 
 /**
  * Which loaded family each card role renders in. Takumi still falls back
@@ -106,6 +115,12 @@ export interface OgCardOptions {
    * from disk instead of Google Fonts.
    */
   fonts?: OgFont[];
+  /**
+   * Script fallbacks, tried after `fonts` for glyphs nothing else draws. A
+   * card loads them only when its text needs one, so a Latin-only card never
+   * fetches them — see {@link fallbackSubsets}.
+   */
+  fallbacks?: OgGoogleFont[];
   /** Per-role families from the loaded fonts (title vs body text). */
   families?: OgFontFamilies;
 }
@@ -145,9 +160,7 @@ const fontSubsetCache = new Map<string, Promise<FontSubset[]>>();
  * fetch failure rejects, failing the build with the cause rather than silently
  * shipping tofu — the same fail-fast the OG accent relies on.
  */
-const loadFonts = (
-  fonts: Exclude<OgFont, OgLocalFont>[]
-): Promise<FontSubset[]> => {
+const loadFonts = (fonts: OgGoogleFont[]): Promise<FontSubset[]> => {
   const key = JSON.stringify(fonts);
   let pending = fontSubsetCache.get(key);
   if (!pending) {
@@ -158,6 +171,113 @@ const loadFonts = (
     fontSubsetCache.set(key, pending);
   }
   return pending;
+};
+
+/**
+ * The code points Takumi's built-in Geist draws: whitespace, printable ASCII,
+ * Latin-1 except `µ`, a few Latin extras French needs, and the typographic
+ * punctuation English copy leans on. Probed against the renderer, and
+ * `og-card.test.ts` renders every one, so a Takumi upgrade that drops a glyph
+ * fails there instead of shipping tofu.
+ */
+export const BUILT_IN_GLYPHS: [number, number][] = [
+  [0x09, 0x0d],
+  [0x20, 0x7e],
+  [0xa0, 0xb4],
+  [0xb6, 0xff],
+  [0x1_31, 0x1_31],
+  [0x1_52, 0x1_53],
+  [0x1_78, 0x1_78],
+  [0x20_00, 0x20_0f],
+  [0x20_13, 0x20_14],
+  [0x20_18, 0x20_1a],
+  [0x20_1c, 0x20_1e],
+  [0x20_20, 0x20_22],
+  [0x20_26, 0x20_26],
+  [0x20_28, 0x20_30],
+  [0x20_32, 0x20_33],
+  [0x20_39, 0x20_3a],
+  [0x20_44, 0x20_44],
+  [0x20_5f, 0x20_6f],
+  [0x20_ac, 0x20_ac],
+  [0x21_22, 0x21_22],
+  [0x21_91, 0x21_91],
+  [0x21_93, 0x21_93],
+  [0x22_12, 0x22_12],
+];
+
+/** Emoji render as Twemoji images, never from a font. */
+const EMOJI = /\p{Emoji_Presentation}|\p{Emoji_Component}/u;
+
+/** Whether a card draws `codePoint` without any loaded font. */
+const drawnWithoutFonts = (codePoint: number): boolean =>
+  BUILT_IN_GLYPHS.some(([from, to]) => codePoint >= from && codePoint <= to) ||
+  EMOJI.test(String.fromCodePoint(codePoint));
+
+/** Whether `subset` claims `codePoint` (a subset without ranges claims all). */
+const subsetClaims = (subset: FontSubset, codePoint: number): boolean =>
+  subset.ranges.length === 0 ||
+  subset.ranges.some(([from, to]) => codePoint >= from && codePoint <= to);
+
+/** `family`'s subsets that claim any of `codePoints`. */
+const familySubsets = (
+  subsets: FontSubset[],
+  family: string,
+  codePoints: number[]
+): FontSubset[] =>
+  subsets.filter(
+    (subset) =>
+      subset.subsetOf === family &&
+      codePoints.some((codePoint) => subsetClaims(subset, codePoint))
+  );
+
+/**
+ * The scripts only the CJK families draw. Google slices those fonts by the
+ * glyphs each one really has, so the first family claiming such a character
+ * draws it. Other claims follow Google's shared subset definitions whatever
+ * the font holds — every family's `latin` claims `※`, Arabic's `symbols`
+ * claims `→` — so a claim there proves nothing.
+ */
+const CJK_SCRIPTS =
+  /[\p{Script=Bopomofo}\p{Script=Han}\p{Script=Hangul}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+
+/** Whether a claim on `codePoint` means the claiming family draws it. */
+const claimIsExact = (codePoint: number): boolean =>
+  CJK_SCRIPTS.test(String.fromCodePoint(codePoint));
+
+/**
+ * The fallback subsets a card's text needs. Nothing loads, and nothing is
+ * fetched, when the built-in font draws every glyph, so a Latin-only card
+ * builds offline. Otherwise only subsets claiming a glyph beyond the built-in
+ * font load (not every family's `latin`), and a CJK character stops at the
+ * first family that claims it: all four CJK families claim most Han, so left
+ * to `render` each would download its matching slices although only the
+ * first ever paints them.
+ */
+const fallbackSubsets = async (
+  fallbacks: OgGoogleFont[] | undefined,
+  node: Node
+): Promise<FontSubset[]> => {
+  let missing = [...collectCodepoints(node)].filter(
+    (codePoint) => !drawnWithoutFonts(codePoint)
+  );
+  if (!fallbacks?.length || missing.length === 0) {
+    return [];
+  }
+  const subsets = await loadFonts(fallbacks);
+  const needed: FontSubset[] = [];
+  for (const family of new Set(subsets.map((subset) => subset.subsetOf))) {
+    const matching = familySubsets(subsets, family, missing);
+    needed.push(...matching);
+    missing = missing.filter(
+      (codePoint) =>
+        !(
+          claimIsExact(codePoint) &&
+          matching.some((subset) => subsetClaims(subset, codePoint))
+        )
+    );
+  }
+  return needed;
 };
 
 /**
@@ -422,7 +542,11 @@ export const renderOgImage = async (
   const fontSubsets = googleFamilies.length
     ? await loadFonts(googleFamilies)
     : [];
-  const cardFonts = [...fontSubsets, ...localFonts.map(localFontLoader)];
+  const cardFonts = [
+    ...fontSubsets,
+    ...localFonts.map(localFontLoader),
+    ...(await fallbackSubsets(options.fallbacks, node)),
+  ];
 
   return render(node, {
     fonts: cardFonts.length ? cardFonts : undefined,
