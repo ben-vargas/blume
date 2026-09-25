@@ -496,6 +496,12 @@ export interface AskBackendTemplate {
 export interface AskBackend {
   /** Whether Blume grounds answers in the docs (Inkeep retrieves itself). */
   grounded: boolean;
+  /**
+   * Whether the docs tools are on when `ai.assistant.tools` is unset: yes for
+   * the hosted model catalogs, whose models call tools, and no for an
+   * OpenAI-compatible backend, which may be a local model that can't.
+   */
+  toolsByDefault: boolean;
   kind: AssistantAdapterKind;
   /** Human-readable adapter name for diagnostics ("AI Gateway"). */
   label: string;
@@ -573,6 +579,7 @@ const gatewayBackend = (
   apiKey: ${secretExpr(options.apiKeyEnv)},${headersLine(options.headers)}
 });\n`,
   },
+  toolsByDefault: true,
 });
 
 const openrouterBackend = (
@@ -600,6 +607,7 @@ const openrouterBackend = (
   apiKey: ${secretExpr(options.apiKeyEnv)},${headersLine(options.headers)}
 });\n`,
     },
+    toolsByDefault: true,
   };
 };
 
@@ -612,6 +620,7 @@ const openaiCompatibleBackend = (
   kind: AssistantAdapterKind,
   label: string,
   grounded: boolean,
+  toolsByDefault: boolean,
   options: {
     apiKeyEnv: string;
     baseUrl: string;
@@ -641,6 +650,7 @@ const openaiCompatibleBackend = (
   name: ${JSON.stringify(options.name)},
 });\n`,
   },
+  toolsByDefault,
 });
 
 /** Resolve a parsed `ai.assistant.provider` descriptor into its backend. */
@@ -657,7 +667,7 @@ export const resolveAskBackend = (
       return openrouterBackend(provider.options);
     }
     case "llmgateway": {
-      return openaiCompatibleBackend("llmgateway", "LLMGateway", true, {
+      return openaiCompatibleBackend("llmgateway", "LLMGateway", true, true, {
         ...provider.options,
         name: "llmgateway",
       });
@@ -665,7 +675,7 @@ export const resolveAskBackend = (
     case "inkeep": {
       // Inkeep answers from the content indexed in its dashboard, so injected
       // excerpts would conflict with its own retrieval.
-      return openaiCompatibleBackend("inkeep", "Inkeep", false, {
+      return openaiCompatibleBackend("inkeep", "Inkeep", false, false, {
         ...provider.options,
         name: "inkeep",
       });
@@ -675,6 +685,7 @@ export const resolveAskBackend = (
         "openai-compatible",
         "OpenAI-compatible",
         true,
+        false,
         provider.options
       );
     }

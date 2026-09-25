@@ -1101,6 +1101,11 @@ export interface AskEndpointOptions {
   instructions?: string;
   /** `ai.assistant.retrieval` — how much documentation each question carries. */
   retrieval?: AskRetrievalOptions;
+  /**
+   * `ai.assistant.tools`, resolved against the adapter's default: give the
+   * model the docs search and read-page tools.
+   */
+  tools?: boolean;
 }
 
 /** The pieces `askEndpointTemplate` splices in for `ai.assistant.cors`. */
@@ -1174,6 +1179,8 @@ export const askEndpointTemplate = (
 ): string => {
   const { instructions, retrieval } = options ?? {};
   const { grounded } = backend;
+  // The tools read the grounding snapshot, so an ungrounded backend has none.
+  const tools = grounded && Boolean(options?.tools);
   const fallbackPrompt = instructions
     ? `${ASK_FALLBACK_PROMPT}\n\n${instructions}`
     : ASK_FALLBACK_PROMPT;
@@ -1201,9 +1208,19 @@ export const askEndpointTemplate = (
     if (retrieval) {
       groundFields.push(`retrieval: ${JSON.stringify(retrieval)}`);
     }
+    if (tools) {
+      groundFields.push("tools: true");
+    }
     const groundOptions =
       groundFields.length > 0 ? `, { ${groundFields.join(", ")} }` : "";
     setup += `\nconst ground = createAskContext(askData${groundOptions});\n`;
+    if (tools) {
+      imports.push(
+        'import { stepCountIs } from "ai";',
+        'import { ASK_MAX_STEPS, createAskTools } from "blume/ai/ask-tools.ts";'
+      );
+      setup += "const askTools = createAskTools(askData);\n";
+    }
   }
   const cors = askCorsTemplate(options?.cors);
   imports.push(...cors.imports);
@@ -1273,6 +1290,11 @@ export const askEndpointTemplate = (
       ? "instructions"
       : `instructions:\n        ${JSON.stringify(fallbackPrompt)}`,
     "messages",
+    // The model may search and read pages, then answer, within one request:
+    // tool calls run here on the server and only the text reaches the reader.
+    ...(tools
+      ? ["tools: askTools(body.page)", "stopWhen: stepCountIs(ASK_MAX_STEPS)"]
+      : []),
     ...backend.template.fields,
   ];
   // The request's signal aborts when the reader closes the panel mid-answer

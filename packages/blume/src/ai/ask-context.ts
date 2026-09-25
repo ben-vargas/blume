@@ -228,6 +228,17 @@ const queryTerms = (query: string): string[] =>
 const BASE_INSTRUCTION =
   "You are a helpful documentation assistant for this project. Answer the user's question using ONLY the documentation excerpts below. Each excerpt is headed by its page as `## Page Title (/route)`. If the answer is not covered by the excerpts, say you don't know and suggest where in the docs to look — do not invent details. Always cite the pages you drew from, and write every citation as a Markdown link to that page using its route, e.g. [Page Title](/route).";
 
+/**
+ * Appended when the endpoint gives the model the docs tools (see
+ * `ask-tools.ts`): the excerpts are a head start, not the whole of the docs.
+ */
+const TOOL_INSTRUCTION =
+  "You can also search the documentation yourself. When the excerpts don't fully answer the question, call search_docs with a focused query to find other pages, and read_page to read a page in full (one an excerpt cuts off, say) before you answer. Treat tool results exactly like the excerpts: answer only from them, and cite the pages you drew from the same way.";
+
+/** Said instead of the excerpts when retrieval found none but tools can look. */
+const NO_EXCERPTS_WITH_TOOLS =
+  "No documentation excerpts matched this question up front. Use search_docs to look before you answer.";
+
 /** The non-empty user turns, oldest first. Assistant turns never seed retrieval. */
 const userTurns = (messages: AskMessage[]): string[] =>
   messages
@@ -591,6 +602,48 @@ export const sectionExcerpt = (
   max: number
 ): string => excerptPage(parsePage(content), query, max);
 
+// One Orama index per snapshot, shared by the grounding function and the
+// docs tools so a cold endpoint builds it once.
+const indexes = new WeakMap<AskData, ReturnType<typeof buildOramaIndex>>();
+
+/** The search index over an assistant snapshot, built on first use. */
+export const askIndex = (data: AskData): ReturnType<typeof buildOramaIndex> => {
+  let index = indexes.get(data);
+  if (!index) {
+    index = buildOramaIndex(data.documents, data.defaultLocale);
+    indexes.set(data, index);
+  }
+  return index;
+};
+
+/** The page the reader is on, and the search filters it implies. */
+export interface ReaderScope {
+  current: OramaDoc | undefined;
+  filters: { locale: string | undefined; version: string | undefined };
+}
+
+/**
+ * Where the reader is: their page, when it's in the snapshot, and the locale
+ * and docs version retrieval keeps to. Without a page, a versioned site
+ * grounds in the current docs rather than every archived copy of each page.
+ */
+export const readerScope = (
+  data: AskData,
+  byRoute: ReadonlyMap<string, OramaDoc>,
+  page?: AskPage
+): ReaderScope => {
+  const current = page?.path
+    ? byRoute.get(normalizeRoute(page.path))
+    : undefined;
+  return {
+    current,
+    filters: {
+      locale: current?.locale || undefined,
+      version: data.versioned ? (current?.version ?? "") : undefined,
+    },
+  };
+};
+
 /**
  * Build the request-time grounding function for the assistant endpoint.
  *
@@ -607,20 +660,22 @@ export const sectionExcerpt = (
  *
  * `options.retrieval` (the `ai.assistant.retrieval` config) sizes how much
  * documentation each question carries; omitted fields keep today's defaults.
+ *
+ * `options.tools` says the endpoint also hands the model the docs tools: the
+ * prompt then says so, and a question retrieval found nothing for still gets
+ * a grounded prompt, since the model can go and search.
  */
 export const createAskContext = (
   data: AskData,
-  options?: { instructions?: string; retrieval?: AskRetrievalOptions }
+  options?: {
+    instructions?: string;
+    retrieval?: AskRetrievalOptions;
+    tools?: boolean;
+  }
 ): ((
   messages: AskMessage[],
   page?: AskPage
 ) => Promise<string | undefined>) => {
-  let dbPromise: Promise<Awaited<ReturnType<typeof buildOramaIndex>>> | null =
-    null;
-  const index = () => {
-    dbPromise ??= buildOramaIndex(data.documents, data.defaultLocale);
-    return dbPromise;
-  };
   const byRoute = new Map(data.documents.map((doc) => [doc.route, doc]));
   // Section splitting and tokenizing are per page, not per question, so each
   // page is parsed on first use and reused for the life of the endpoint.
@@ -633,9 +688,12 @@ export const createAskContext = (
     }
     return page;
   };
-  const instruction = options?.instructions
-    ? `${BASE_INSTRUCTION}\n\n${options.instructions}`
+  const base = options?.tools
+    ? `${BASE_INSTRUCTION} ${TOOL_INSTRUCTION}`
     : BASE_INSTRUCTION;
+  const instruction = options?.instructions
+    ? `${base}\n\n${options.instructions}`
+    : base;
   const maxResults = options?.retrieval?.maxResults ?? MAX_RESULTS;
   const excerptChars = options?.retrieval?.excerptChars ?? EXCERPT_CHARS;
   const contextBudget = options?.retrieval?.contextBudget ?? CONTEXT_BUDGET;
@@ -652,16 +710,9 @@ export const createAskContext = (
     const [query = ""] = queries;
 
     // The current page anchors retrieval to its locale and docs version, and
-    // is injected first. Without one, a versioned site grounds in the
-    // current docs rather than every archived copy of each page.
-    const current = page?.path
-      ? byRoute.get(normalizeRoute(page.path))
-      : undefined;
-    const db = await index();
-    const filters = {
-      locale: current?.locale || undefined,
-      version: data.versioned ? (current?.version ?? "") : undefined,
-    };
+    // is injected first.
+    const { current, filters } = readerScope(data, byRoute, page);
+    const db = await askIndex(data);
     const hits = interleave(
       await Promise.all(
         queries.map((text) => queryOramaIndex(db, text, maxResults, filters))
@@ -700,7 +751,9 @@ export const createAskContext = (
     }
 
     if (sections.length === 0) {
-      return;
+      return options?.tools
+        ? `${instruction}\n\n${NO_EXCERPTS_WITH_TOOLS}`
+        : undefined;
     }
     return `${instruction}\n\n<docs>\n${sections.join("\n\n")}\n</docs>`;
   };

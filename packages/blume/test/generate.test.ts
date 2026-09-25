@@ -1441,7 +1441,9 @@ describe("generateRuntime", () => {
     expect(route).toContain(
       'model: openrouter("x/y", { reasoning: { effort: "none" } }),'
     );
-    expect(route).toContain("createAskContext(askData)");
+    // OpenRouter's models call tools, so the docs tools are on by default.
+    expect(route).toContain("createAskContext(askData, { tools: true })");
+    expect(route).toContain("tools: askTools(body.page),");
     // The provider SDK is declared in the generated manifest.
     const manifest = await readFile(
       join(project.context.outDir, "package.json"),

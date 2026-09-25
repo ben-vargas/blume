@@ -893,6 +893,11 @@ const aiConfigFields = {
             })
           )
           .default([]),
+        // Search and read-page tools the model can call over several steps.
+        // No default here: unset follows the adapter (`toolsByDefault` in
+        // `ai/ask.ts`), on for the hosted catalogs and off for an
+        // OpenAI-compatible backend that may not speak tool calling.
+        tools: z.boolean().optional(),
       },
       assistantMovedFieldsHint
     )

@@ -564,6 +564,14 @@ export interface AssistantConfig {
   retrieval?: AssistantRetrievalConfig;
   /** Starter prompts shown before the first question. */
   suggestions?: AssistantSuggestion[];
+  /**
+   * Let the model search the docs and read whole pages itself, over several
+   * steps, instead of answering only from the excerpts retrieved up front.
+   * Defaults to `true` for `gateway()`, `openrouter()`, and `llmgateway()`,
+   * and to `false` for `openaiCompatible()`, whose model may not support tool
+   * calling. `inkeep()` does its own retrieval and ignores it.
+   */
+  tools?: boolean;
 }
 
 /** What the AI Catalog (ARD) manifest carries. */

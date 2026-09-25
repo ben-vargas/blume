@@ -300,11 +300,13 @@ export default defineComponents({
         },
       },
     }).ai.assistant;
+    const askBackend = resolveAskBackend(parsedAsk?.provider);
     expect(ejectedAsk).toBe(
-      askEndpointTemplate(resolveAskBackend(parsedAsk?.provider), {
+      askEndpointTemplate(askBackend, {
         cors: parsedAsk?.cors,
         instructions: parsedAsk?.instructions,
         retrieval: parsedAsk?.retrieval,
+        tools: parsedAsk?.tools ?? askBackend.toolsByDefault,
       })
     );
     expect(has("src/generated/ask-data.json")).toBe(true);

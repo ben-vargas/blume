@@ -1650,6 +1650,7 @@ const writeAskFiles = async (
       cors: assistant.cors,
       instructions: assistant.instructions,
       retrieval: assistant.retrieval,
+      tools: assistant.tools ?? backend.toolsByDefault,
     })
   );
 };

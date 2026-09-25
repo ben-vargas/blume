@@ -165,6 +165,7 @@ const askFiles = async (
         cors: assistant.cors,
         instructions: assistant.instructions,
         retrieval: assistant.retrieval,
+        tools: assistant.tools ?? backend.toolsByDefault,
       }),
       path: join(srcDir, "pages", "api", "ask.ts"),
     },

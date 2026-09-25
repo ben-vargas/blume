@@ -58,6 +58,24 @@ The page the reader is currently on is added to the context first and used to sc
 
 Grounding is on for every adapter except **[Inkeep](#inkeep)**, which runs its own retrieval over the content you've indexed in its dashboard.
 
+## Searching and reading pages
+
+The retrieved pages are a head start. The assistant can also look things up itself: it has a `search_docs` tool that searches your docs, and a `read_page` tool that reads a whole page, for when an excerpt stops short of the answer. It can search, read a page or two, search again, and then answer, all within one question. Tool calls run on your server against the same snapshot as the grounding, keep to the reader's language and docs version, and never reach the reader; they only see the answer.
+
+The tools are on by default for the [Vercel AI Gateway](#vercel-ai-gateway), [OpenRouter](#openrouter), and [LLMGateway](#llmgateway) adapters, whose models support tool calling. They're off for [OpenAI-compatible endpoints](#openai-compatible-endpoints), since a self-hosted model may not. Set `tools` to change either default:
+
+```ts blume.config.ts lineNumbers
+ai: {
+  assistant: {
+    enabled: true,
+    provider: openaiCompatible({ baseUrl, name, model, apiKeyEnv }),
+    tools: true, // this model supports tool calling
+  },
+}
+```
+
+Each question takes at most five model steps: up to four rounds of tool calls, then the answer. With `tools: false`, the assistant answers from the retrieved pages alone, as it did before tools existed.
+
 ## Retrieval size
 
 How much documentation a question carries is the biggest lever on how long the reader waits for the first word: the model reads every injected character before it emits a token. On a hosted frontier model that's invisible, but on a self-hosted backend it dominates. `retrieval` sizes it:
