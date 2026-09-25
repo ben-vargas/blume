@@ -16,12 +16,18 @@ afterAll(async () => {
   await Promise.all(dirs.map((d) => rm(d, { force: true, recursive: true })));
 });
 
-/** Render MDX through Blume's processor and return its HTML. */
-const render = async (source: string, fileURL?: URL): Promise<string> => {
+/**
+ * Render MDX through Blume's processor and return its HTML. `root` is the
+ * content root and the page's folder, as a filesystem path — never derived
+ * from the file URL's `pathname`, which reads `/C:/…` on Windows.
+ */
+const render = async (source: string, root?: string): Promise<string> => {
   const renderer = await blumeMdxProcessor({
-    contentRoot: fileURL ? join(fileURL.pathname, "..") : undefined,
+    contentRoot: root,
   }).createRenderer({});
-  const result = await renderer.render(source, { fileURL });
+  const result = await renderer.render(source, {
+    fileURL: root ? pathToFileURL(join(root, "page.mdx")) : undefined,
+  });
   return result.code.trim();
 };
 
@@ -89,10 +95,7 @@ describe("a container directive that isn't a callout", () => {
       join(root, "part.mdx"),
       ":::details[Sum **up**]{open}\nPartial body.\n:::\n"
     );
-    const html = await render(
-      "<include>./part.mdx</include>\n",
-      pathToFileURL(join(root, "page.mdx"))
-    );
+    const html = await render("<include>./part.mdx</include>\n", root);
     expect(html).toContain(
       "<p>:::details[Sum up]{open}</p>\n<p>Partial body.</p>\n<p>:::</p>"
     );
