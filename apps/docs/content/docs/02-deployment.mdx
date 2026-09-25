@@ -136,6 +136,23 @@ On Vercel and Cloudflare, a server build also turns on [`Accept: text/markdown` 
 Server features have their own configuration — for example, the assistant needs a model API key. See the [assistant guide](/docs/configuration/assistant) for setup.
 :::
 
+## Private docs
+
+Blume has no sign-in of its own. A static build is plain files, and anyone who can reach the host can fetch anything in `dist/`. To keep a site private, turn on your host's access protection, which checks every request before a file is served:
+
+- **Vercel**: [Deployment Protection](https://vercel.com/docs/deployment-protection) with the **All Deployments** scope, so production is covered and not only previews. Vercel Authentication lets in members of your Vercel team; Password Protection lets in anyone with a shared password, on paid plans.
+- **Netlify**: [password protection](https://docs.netlify.com/manage/security/secure-access-to-sites/password-protection/) on all deploys, with a shared password, or with team login on Enterprise plans.
+- **Cloudflare**: [Cloudflare Access](https://developers.cloudflare.com/workers/configuration/cloudflare-access/) on the Worker that serves the site (**Workers & Pages**, then your Worker, then **Access**), which covers every domain it answers on. Choose who can sign in by email address, email domain, or Cloudflare account membership.
+- **GitHub Pages**: publish the site privately from an organization on GitHub Enterprise Cloud, and only people with read access to the repository can view it.
+- **Your own server**: put authentication in front of `dist/`, such as nginx's `auth_basic` or an identity-aware proxy.
+
+Host protection works the same for [server builds](#server-rendering). It covers the whole site: to keep some pages public, publish them as a separate site.
+
+Everything Blume writes to `dist/` sits behind the protection, including pages, the search index, the `.md` copies, `llms.txt`, and Open Graph images. A few features reach outside it:
+
+- A hosted [search provider](/docs/configuration/search) (Algolia, Orama Cloud, Typesense, or Mixedbread) keeps its own copy of your content on that service. The built-in Orama, FlexSearch, and Pagefind indexes are files in `dist/`, so they stay private.
+- Services outside the protection can't read your pages. **Open in chat** hands ChatGPT or Claude a link it can't open, link previews in Slack or X can't show your Open Graph cards, and agents can't read `llms.txt` or the MCP server. Set `ai.openInChat: false` to hide the chat actions.
+
 ## Redirects
 
 Map old URLs to new ones in `blume.config.ts`:

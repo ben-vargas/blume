@@ -168,5 +168,6 @@ Mintlify serves every top-level dir (e.g. `/images`) at the site root. Blume ser
 
 ## Dropped — report these
 
+- **Authentication** (password or SSO, set in the Mintlify dashboard) → Blume has none of its own; point the user at host-level protection (Vercel Deployment Protection, Netlify password protection, Cloudflare Access), per the deployment docs' **Private docs** section. It covers the whole site, so a mix of public and private pages needs two sites.
 - **Per-language banners** (`navigation.languages[].banner`) → no equivalent.
 - **`<Update>`** changelog components, `iconType`, `background.decoration`, `search.prompt`, `seo.metatags`.
