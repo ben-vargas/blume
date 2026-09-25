@@ -28,6 +28,7 @@ import {
   computeWorkList,
   scanForTranslation,
 } from "../../translate/work-list.ts";
+import { parseTimeoutSeconds } from "../args.ts";
 import { commandMeta } from "../command-meta.ts";
 import { reportInternalError } from "../internal-error.ts";
 import { flushStdout, logger, reportDiagnostics } from "../log.ts";
@@ -80,12 +81,7 @@ const parseFlags = (args: TranslateFlags): ParsedTranslateFlags => {
     );
     process.exit(1);
   }
-  const timeoutS =
-    args.timeout === undefined ? DEFAULT_TIMEOUT_S : Number(args.timeout);
-  if (!Number.isInteger(timeoutS) || timeoutS <= 0) {
-    logger.error(`Invalid --timeout "${args.timeout}" (whole seconds).`);
-    process.exit(1);
-  }
+  const timeoutS = parseTimeoutSeconds(args.timeout, DEFAULT_TIMEOUT_S);
   const concurrency =
     args.concurrency === undefined
       ? DEFAULT_CONCURRENCY
