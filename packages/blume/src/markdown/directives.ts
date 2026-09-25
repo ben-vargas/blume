@@ -3,7 +3,7 @@ import { toString as mdastToString } from "mdast-util-to-string";
 import { jsxAttribute, jsxFlowElement } from "./mdast.ts";
 import type { MdastNode, MdastVisitorContext } from "./mdast.ts";
 
-interface DirectiveNode extends MdastNode {
+export interface DirectiveNode extends MdastNode {
   attributes?: Record<string, string | null | undefined> | null;
   // Satteri gives an empty container directive (`:::note\n:::`) `children: null`.
   children?: MdastNode[] | null;
@@ -15,21 +15,18 @@ interface DirectiveNode extends MdastNode {
 }
 
 /**
- * The visitor-context slice the container visitor uses. `source` is the page
+ * The visitor-context slice the directive visitors use. `source` is the page
  * the directive offsets index into; without it the literal fallback rebuilds
- * a directive from its node instead.
+ * a directive from its node instead. `parent` walks up to an enclosing
+ * container directive, which renders the directives inside it itself.
  */
 interface DirectiveVisitorContext extends MdastVisitorContext {
+  parent?: (node: MdastNode) => MdastNode | undefined;
   source?: string;
 }
 
-/** The context slice the text and leaf visitors add: the parent chain. */
-interface LiteralVisitorContext extends DirectiveVisitorContext {
-  parent: (node: MdastNode) => MdastNode | undefined;
-}
-
 /** Directive names that map directly onto a Callout type. */
-const CALLOUT_TYPES = new Set([
+export const CALLOUT_TYPES: ReadonlySet<string> = new Set([
   "danger",
   "info",
   "note",
@@ -43,7 +40,7 @@ interface CalloutAliases {
   [alias: string]: string;
 }
 
-const ALIASES: CalloutAliases = {
+export const CALLOUT_ALIASES: Readonly<CalloutAliases> = {
   caution: "warning",
   error: "danger",
   important: "note",
@@ -56,7 +53,7 @@ export const calloutTypeFor = (name: string): string | null => {
   if (CALLOUT_TYPES.has(lower)) {
     return lower;
   }
-  return ALIASES[lower] ?? null;
+  return CALLOUT_ALIASES[lower] ?? null;
 };
 
 /** The markers that open a text (`:name`) and a leaf (`::name`) directive. */
@@ -65,6 +62,29 @@ const LITERAL_MARKERS = new Map([
   ["textDirective", ":"],
 ]);
 
+/** A directive's `[label]` rebuilt from its label's text, or nothing. */
+const labelSource = (label: MdastNode[]): string =>
+  label.length > 0
+    ? `[${mdastToString(label, { includeImageAlt: false })}]`
+    : "";
+
+/** A directive's `{attributes}` rebuilt from its node, or nothing. */
+const attributeSource = (node: DirectiveNode): string => {
+  const attributes = Object.entries(node.attributes ?? {}).map(
+    ([key, value]) => (value ? `${key}="${value}"` : key)
+  );
+  return attributes.length > 0 ? `{${attributes.join(" ")}}` : "";
+};
+
+/** The source a directive node spans, when its offsets point into `source`. */
+const spannedSource = (node: DirectiveNode, source: string): string | null => {
+  const start = node.position?.start?.offset;
+  const end = node.position?.end?.offset;
+  return start !== undefined && end !== undefined
+    ? source.slice(start, end)
+    : null;
+};
+
 /**
  * A text or leaf directive exactly as the author wrote it. The slice by
  * offsets is the exact text — `[label]` and `{attrs}` included — and is
@@ -72,31 +92,17 @@ const LITERAL_MARKERS = new Map([
  * content an `<include>` spliced in carries no offsets into this page, so it
  * is rebuilt from the node instead.
  */
-const directiveSource = (
+export const directiveSource = (
   node: DirectiveNode,
   marker: string,
   source: string
 ): string => {
-  const start = node.position?.start?.offset;
-  const end = node.position?.end?.offset;
   const opening = `${marker}${node.name}`;
-  if (start !== undefined && end !== undefined) {
-    const slice = source.slice(start, end);
-    if (slice.startsWith(opening)) {
-      return slice;
-    }
+  const slice = spannedSource(node, source);
+  if (slice?.startsWith(opening)) {
+    return slice;
   }
-  const children = node.children ?? [];
-  const label =
-    children.length > 0
-      ? `[${mdastToString(children, { includeImageAlt: false })}]`
-      : "";
-  const attributes = Object.entries(node.attributes ?? {}).map(
-    ([key, value]) => (value ? `${key}="${value}"` : key)
-  );
-  const attributeText =
-    attributes.length > 0 ? `{${attributes.join(" ")}}` : "";
-  return `${opening}${label}${attributeText}`;
+  return `${opening}${labelSource(node.children ?? [])}${attributeSource(node)}`;
 };
 
 /**
@@ -112,42 +118,133 @@ const literalDirective = (
   return marker === ":" ? text : { children: [text], type: "paragraph" };
 };
 
+const FENCE = /^:{3,}/u;
+
+// The line that closes a container: a colon fence, after whatever quote or
+// list indentation the container sits in.
+const CLOSING_FENCE = /\n[\t >]*(?<fence>:{3,})\s*$/u;
+
+/** A paragraph holding one line of literal text. */
+const literalLine = (value: string): MdastNode => ({
+  children: [{ type: "text", value }],
+  type: "paragraph",
+});
+
 /**
- * Swap every text and leaf directive under `node` for its literal source. The
- * callout visitor reads its label and moves its body before Satteri reaches
- * the directives inside them, so it literalizes both itself.
+ * The fence lines of a container directive as the author wrote them — the
+ * opening one with its `[label]` and `{attrs}` — or, without offsets into
+ * this page (an `<include>`), rebuilt from the node. A container left
+ * unclosed runs to the end of its parent and has no closing line.
  */
-const literalize = (node: MdastNode, source: string): MdastNode => {
+const containerFences = (
+  node: DirectiveNode,
+  label: MdastNode | undefined,
+  source: string
+): string[] => {
+  const slice = spannedSource(node, source) ?? "";
+  const fence = FENCE.exec(slice)?.[0];
+  if (fence === undefined || !slice.startsWith(node.name, fence.length)) {
+    const labelText = labelSource(label ? [label] : []);
+    return [`:::${node.name}${labelText}${attributeSource(node)}`, ":::"];
+  }
+  const [opening = ""] = slice.split("\n", 1);
+  const closing = CLOSING_FENCE.exec(slice.slice(opening.length))?.groups
+    ?.fence;
+  // A shorter fence can't close the container; it is the body's last line.
+  return closing !== undefined && closing.length >= fence.length
+    ? [opening.trimEnd(), closing]
+    : [opening.trimEnd()];
+};
+
+/**
+ * What a container directive renders as. A callout name becomes a
+ * `<Callout>`: the title comes from a `[label]` or a `{title="…"}` attribute,
+ * and the body becomes the callout content. Blume has no other container, and
+ * dropping one would drop its body with it, so any other name — `:::details`,
+ * a `:::warnig` typo — renders its body between its fence lines, as written.
+ * The directives inside render here too, since Satteri reaches them only
+ * after this replacement has taken their original.
+ */
+const renderContainer = (
+  node: DirectiveNode,
+  source: string
+): MdastNode | MdastNode[] => {
+  const children = (node.children ?? []).flatMap((child) =>
+    // oxlint-disable-next-line no-use-before-define -- mutual recursion: a container's body holds directives, containers included
+    literalize(child, source)
+  );
+
+  // A leading `:::name[Label]` parses to a paragraph flagged `directiveLabel`.
+  // SAFETY: Satteri stamps `directiveLabel` on that paragraph's `data`; any
+  // other node reads undefined and fails the check.
+  const labelIndex = children.findIndex(
+    (child) =>
+      child.type === "paragraph" &&
+      (child.data as { directiveLabel?: boolean } | undefined)?.directiveLabel
+  );
+  const [label] = labelIndex === -1 ? [] : children.splice(labelIndex, 1);
+
+  const type = calloutTypeFor(node.name);
+  if (type === null) {
+    const [opening = "", closing] = containerFences(node, label, source);
+    return [
+      literalLine(opening),
+      ...children,
+      ...(closing === undefined ? [] : [literalLine(closing)]),
+    ];
+  }
+
+  // Flatten the label's phrasing children so `:::note[Read **this**]` yields
+  // `Read this`; image alt is excluded (an image is not label text), matching
+  // the historical child-values-only behavior.
+  const title =
+    node.attributes?.title ??
+    (label ? mdastToString(label, { includeImageAlt: false }) : undefined);
+  const attributes = [jsxAttribute("type", type)];
+  if (title) {
+    attributes.push(jsxAttribute("title", title));
+  }
+  return jsxFlowElement("Callout", attributes, children);
+};
+
+/**
+ * `node` with every directive in it rendered: text and leaf directives as
+ * their literal source, containers as {@link renderContainer}.
+ */
+const literalize = (node: MdastNode, source: string): MdastNode[] => {
+  if (node.type === "containerDirective") {
+    // SAFETY: a `containerDirective` carries a `name` plus optional
+    // attributes, children, and position — the `DirectiveNode` shape.
+    return [renderContainer(node as DirectiveNode, source)].flat();
+  }
   const marker = LITERAL_MARKERS.get(node.type);
   if (marker) {
     // SAFETY: only Satteri's `textDirective`/`leafDirective` nodes have a
     // marker, and they carry a `name` plus optional attributes, children,
     // and position — the `DirectiveNode` shape.
-    return literalDirective(node as DirectiveNode, marker, source);
+    return [literalDirective(node as DirectiveNode, marker, source)];
   }
   // SAFETY: a parent's `children` is always a node list; leaves carry none.
   const children = node.children as MdastNode[] | null | undefined;
   if (!children) {
-    return node;
+    return [node];
   }
-  return {
-    ...node,
-    children: children.map((child) => literalize(child, source)),
-  };
+  return [
+    {
+      ...node,
+      children: children.flatMap((child) => literalize(child, source)),
+    },
+  ];
 };
 
-/** Whether a callout the container visitor rewrote (and literalized) holds `node`. */
-const insideCallout = (node: MdastNode, ctx: LiteralVisitorContext) => {
+/** Whether a container directive (already rendered, body and all) holds `node`. */
+const insideContainer = (node: MdastNode, ctx: DirectiveVisitorContext) => {
   for (
-    let parent = ctx.parent(node);
+    let parent = ctx.parent?.(node);
     parent !== undefined;
-    parent = ctx.parent(parent)
+    parent = ctx.parent?.(parent)
   ) {
-    if (
-      parent.type === "containerDirective" &&
-      // SAFETY: a `containerDirective` always carries its string `name`.
-      calloutTypeFor((parent as DirectiveNode).name) !== null
-    ) {
+    if (parent.type === "containerDirective") {
       return true;
     }
   }
@@ -156,11 +253,11 @@ const insideCallout = (node: MdastNode, ctx: LiteralVisitorContext) => {
 
 /** The text and leaf visitor: render the directive as its literal source. */
 const renderLiteral =
-  (marker: string) => (node: DirectiveNode, ctx: LiteralVisitorContext) => {
-    // A callout's body was already literalized into its replacement; a
+  (marker: string) => (node: DirectiveNode, ctx: DirectiveVisitorContext) => {
+    // A container's body was already rendered into its replacement; a
     // transform queued on the replaced original would be dropped with a
     // warning.
-    if (insideCallout(node, ctx)) {
+    if (insideContainer(node, ctx)) {
       return;
     }
     ctx.replaceNode(node, literalDirective(node, marker, ctx.source ?? ""));
@@ -168,10 +265,9 @@ const renderLiteral =
 
 /**
  * Satteri MDAST plugin for directives. Container directives (`:::note`,
- * `:::warning`, `:::tip`, …) map onto Blume's `<Callout>` component: the title
- * comes from a `[label]` or a `{title="…"}` attribute, and the body becomes
- * the callout content; container names that are not callouts are left
- * untouched.
+ * `:::warning`, `:::tip`, …) map onto Blume's `<Callout>` component, and any
+ * other container renders its body between its literal fence lines (see
+ * {@link renderContainer}).
  *
  * Blume handles no text (`:name`) or leaf (`::name`) directives, and prose is
  * full of text that parses as one — `16:9`, `10:30am`, `og:image`,
@@ -180,45 +276,16 @@ const renderLiteral =
  */
 export const directiveToCalloutPlugin = () => ({
   containerDirective(node: DirectiveNode, ctx: DirectiveVisitorContext) {
-    const type = calloutTypeFor(node.name);
-    if (type === null) {
+    // A container inside another was rendered with its enclosing one.
+    if (insideContainer(node, ctx)) {
       return;
     }
-
-    const source = ctx.source ?? "";
-    const children = (node.children ?? []).map((child) =>
-      literalize(child, source)
-    );
-    let title = node.attributes?.title ?? undefined;
-
-    // A leading `:::name[Label]` parses to a paragraph flagged `directiveLabel`.
-    // SAFETY: Satteri stamps `directiveLabel` on that paragraph's `data`; any
-    // other node reads undefined and fails the check.
-    const labelIndex = children.findIndex(
-      (child) =>
-        child.type === "paragraph" &&
-        (child.data as { directiveLabel?: boolean } | undefined)?.directiveLabel
-    );
-    if (labelIndex !== -1) {
-      const [label] = children.splice(labelIndex, 1);
-      if (label) {
-        // Flatten the label's phrasing children so `:::note[Read **this**]`
-        // yields `Read this`; image alt is excluded (an image is not label
-        // text), matching the historical child-values-only behavior.
-        title ??= mdastToString(label, { includeImageAlt: false }) || undefined;
-      }
-    }
-
-    const attributes = [jsxAttribute("type", type)];
-    if (title) {
-      attributes.push(jsxAttribute("title", title));
-    }
-    ctx.replaceNode(node, jsxFlowElement("Callout", attributes, children));
+    ctx.replaceNode(node, renderContainer(node, ctx.source ?? ""));
   },
   leafDirective: renderLiteral("::"),
   name: "blume-directive-callout",
-  // Positions are opt-in since satteri 0.10; the literal fallback slices text
-  // and leaf directives out of the source by offset.
+  // Positions are opt-in since satteri 0.10; the literal fallback slices
+  // directives out of the source by offset.
   options: { position: true },
   textDirective: renderLiteral(":"),
 });

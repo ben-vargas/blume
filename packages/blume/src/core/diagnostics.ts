@@ -69,6 +69,7 @@ const DOCS_PATHS = new Map(
     BLUME_TRANSLATE_MISSING: "/docs/cli/translate",
     BLUME_TRANSLATE_STALE: "/docs/cli/translate",
     BLUME_UNKNOWN_COMPONENT: "/docs/configuration/customization",
+    BLUME_UNKNOWN_DIRECTIVE: "/docs/content/syntax",
     BLUME_UNKNOWN_ICON: DOCS_CONTENT_NAVIGATION,
     BLUME_UNKNOWN_OPTION: "/docs/cli",
     BLUME_UNLOADABLE_FILE_NAME: "/docs/content",

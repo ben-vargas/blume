@@ -13,7 +13,7 @@ import { baseLinksPlugin } from "./base-links.ts";
 import { codeTitleTransformer } from "./code-title.ts";
 import { directiveToCalloutPlugin } from "./directives.ts";
 import { externalLinksPlugin } from "./external-links.ts";
-import { MARKDOWN_FEATURES, MDX_FEATURES } from "./features.ts";
+import { MARKDOWN_BODY_FEATURES, MDX_BODY_FEATURES } from "./features.ts";
 import { headingAnchorPlugin } from "./heading-anchors.ts";
 import { includePlugin } from "./include.ts";
 import { inlineCodeHighlightPlugin } from "./inline-code.ts";
@@ -331,7 +331,7 @@ const blumeIncludePlugin = (options: BlumeMarkdownOptions): MdastPlugin =>
 /** Sätteri processor for plain `.md`, with Blume's curated feature set. */
 export const blumeMarkdownProcessor = (options: BlumeMarkdownOptions = {}) =>
   satteri({
-    features: { ...MARKDOWN_FEATURES },
+    features: { ...MARKDOWN_BODY_FEATURES },
     hastPlugins: blumeHastPlugins(options),
     mdastPlugins: [
       blumeIncludePlugin(options),
@@ -360,7 +360,7 @@ export type BlumeMdxOptions = BlumeMarkdownOptions;
  */
 export const blumeMdxProcessor = (options: BlumeMdxOptions = {}) =>
   satteri({
-    features: { ...MDX_FEATURES },
+    features: { ...MDX_BODY_FEATURES },
     hastPlugins: blumeHastPlugins(options),
     mdastPlugins: [
       blumeIncludePlugin(options),

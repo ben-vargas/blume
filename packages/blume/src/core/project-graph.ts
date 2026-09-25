@@ -3,6 +3,7 @@ import { isAbsolute, relative } from "pathe";
 import { CHANGELOG_INDEX_ROUTE, hasChangelogIndex } from "./changelog-index.ts";
 import { loadConfig } from "./config.ts";
 import { customStaticRoutes, discoverPages } from "./custom-pages.ts";
+import { unknownDirectiveDiagnostics } from "./directive-diagnostics.ts";
 import { buildContentGraph } from "./graph.ts";
 import { i18nDiagnostics } from "./i18n.ts";
 import { expandIncludes, hasIncludeStatements } from "./includes.ts";
@@ -197,6 +198,9 @@ const normalizeLoadedEntries = (
       }
       pages.push(...normalized.pages);
       allDiagnostics.push(...normalized.diagnostics);
+      if (normalized.pages.length > 0) {
+        allDiagnostics.push(...unknownDirectiveDiagnostics(entry, source.name));
+      }
     }
   }
   return { diagnostics: allDiagnostics, droppedPages, pages };

@@ -15,12 +15,13 @@ import {
   pollingWatch,
   snapshotCache,
 } from "./cache.ts";
+import type { InlineRun } from "./lower.ts";
 import {
   codeFence,
   guardBlockStart,
   image,
+  linkParts,
   renderInline,
-  renderLink,
 } from "./lower.ts";
 import { slugify, slugifyPath } from "./normalize.ts";
 import type {
@@ -160,26 +161,43 @@ interface NotionFrontmatter {
   [key: string]: boolean | string | { order: number } | undefined;
 }
 
+/** Neighboring rich-text runs that link to one `href` (or none), and it. */
+interface LinkedRuns {
+  href?: string;
+  runs: InlineRun[];
+}
+
 /**
- * Rich text as Markdown for an MDX body. Each run goes through the shared
+ * Rich text as Markdown for an MDX body. The runs go through the shared
  * lowering, so a literal `{`, `<`, `*`, or `[` typed in Notion renders as
- * itself instead of opening a JSX expression, a tag, or emphasis, and a code
- * run keeps its text verbatim inside a long-enough code span.
+ * itself instead of opening a JSX expression, a tag, or emphasis, a code run
+ * keeps its text verbatim inside a long-enough code span, neighbors share
+ * their marks' delimiters, and neighbors that link to one `href` share one
+ * link.
  */
-const richToMarkdown = (rich: NotionRichText[] = []): string =>
-  rich
-    .map(({ annotations = {}, href, plain_text: text }) =>
-      renderLink(
-        renderInline(text, {
-          bold: annotations.bold,
-          code: annotations.code,
-          italic: annotations.italic,
-          strike: annotations.strikethrough,
-        }),
-        href ?? undefined
-      )
-    )
-    .join("");
+const richToMarkdown = (rich: NotionRichText[] = []): string => {
+  const linked: LinkedRuns[] = [];
+  for (const { annotations = {}, href, plain_text: text } of rich) {
+    const run: InlineRun = {
+      marks: {
+        bold: annotations.bold,
+        code: annotations.code,
+        italic: annotations.italic,
+        strike: annotations.strikethrough,
+      },
+      text,
+    };
+    const last = linked.at(-1);
+    if (last && last.href === (href ?? undefined)) {
+      last.runs.push(run);
+    } else {
+      linked.push({ href: href ?? undefined, runs: [run] });
+    }
+  }
+  return renderInline(
+    linked.flatMap(({ href, runs }) => linkParts(runs, href))
+  );
+};
 
 const isBlockPayload = (
   value: NotionBlockPayload | boolean | string | undefined

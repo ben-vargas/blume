@@ -118,7 +118,7 @@ describe("directiveToCalloutPlugin text visitor", () => {
   it("rebuilds a directive whose offsets don't point at it in the source", () => {
     // Offsets rebased onto other text (a spliced subtree) must not be
     // trusted: the slice here is `zz`, not the directive.
-    let replacement: MdastNode | undefined;
+    let replacement: MdastNode | MdastNode[] | undefined;
     directiveToCalloutPlugin().textDirective(
       {
         name: "x",
@@ -150,11 +150,12 @@ describe("container directives", () => {
     expect(code).toContain('<_components.p>{"::youtube[x]{id=1}"}');
   });
 
-  it("only skip a text directive a callout already literalized", async () => {
-    // `:::details` isn't a callout, so the text directive visitor walks past
-    // it to the root and renders its directive itself, as it does the one
-    // in the paragraph before it.
+  it("only leave a text directive to the container that renders it", async () => {
+    // The text directive visitor renders the directive before the container
+    // itself, walking past its paragraph to the root; the one inside
+    // `:::details` was rendered with the container's body.
     const code = await compileJsx("Before 9:15.\n\n:::details\nAt 10:30\n:::");
     expect(code).toContain('{"Before 9"}{":15"}');
+    expect(code).toContain('{"At 10"}{":30"}');
   });
 });

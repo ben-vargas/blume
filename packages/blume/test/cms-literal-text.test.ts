@@ -7,9 +7,10 @@ import {
   escapeMarkdownText,
   guardBlockStart,
   headingPrefix,
+  linkParts,
   renderInline,
-  renderLink,
 } from "../src/core/sources/lower.ts";
+import type { InlineMarks } from "../src/core/sources/lower.ts";
 import { notionSource } from "../src/core/sources/notion.ts";
 import type { NotionClientLike } from "../src/core/sources/notion.ts";
 import {
@@ -31,6 +32,14 @@ const render = async (
 };
 
 const strike = { strike: true };
+
+/** One text run as a lowerer renders it. */
+const renderRun = (text: string, marks: InlineMarks): string =>
+  renderInline([{ marks, text }]);
+
+/** A link over a plain label, as a lowerer renders one. */
+const renderLink = (label: string, href?: string): string =>
+  renderInline(linkParts([{ marks: {}, text: label }], href));
 
 describe("CMS text that reads as Blume syntax", () => {
   it("escapes `^`, `$`, and a directive colon", () => {
@@ -72,9 +81,9 @@ describe("adjacent struck runs", () => {
   it("merge into one strikethrough instead of printing `~~~~`", async () => {
     const text = guardBlockStart(
       [
-        renderInline("one", strike),
-        renderInline("two", { bold: true, strike: true }),
-        renderInline("three", strike),
+        renderRun("one", strike),
+        renderRun("two", { bold: true, strike: true }),
+        renderRun("three", strike),
       ].join("")
     );
     expect(text).toBe("~~one**two**three~~");
@@ -85,7 +94,7 @@ describe("adjacent struck runs", () => {
   it("merge across an escaped tilde or backslash at the seam", () => {
     expect(
       guardBlockStart(
-        `${renderInline("a~", strike) + renderInline("b\\", strike)}~~c~~`
+        `${renderRun("a~", strike) + renderRun("b\\", strike)}~~c~~`
       )
     ).toBe(String.raw`~~a\~b\\c~~`);
   });
@@ -107,7 +116,7 @@ describe("adjacent struck runs", () => {
 describe("a heading that ends in ` #`", () => {
   it("keeps the `#` instead of reading it as a closing sequence", async () => {
     const heading = `${headingPrefix(2)}${guardBlockStart(
-      renderInline("Pricing #", {})
+      renderRun("Pricing #", {})
     )}`;
     expect(heading).toBe(String.raw`## Pricing \#`);
     const html = await render(blumeMdxProcessor({}), heading);
