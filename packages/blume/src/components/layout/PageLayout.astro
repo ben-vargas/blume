@@ -57,6 +57,7 @@ import {
 import Header from "./Header.astro";
 import { currentTabForRoute } from "./nav-utils.ts";
 import NavTabMenu from "./NavTabMenu.astro";
+import DrawerSwitchers from "./DrawerSwitchers.astro";
 import SiteFooter from "./SiteFooter.astro";
 import WebMcp from "./WebMcp.astro";
 
@@ -432,6 +433,12 @@ createIconSprite(Astro.locals);
             data-blume-nav-drawer
             id="blume-nav-drawer"
           >
+            <DrawerSwitchers
+              localeSwitch={localeSwitch}
+              route={route}
+              selectors={navigation.selectors}
+              switcherStrings={strings.languageSwitcher}
+            />
             <nav aria-label={navStrings.sections}>
               <ul class="m-0 list-none p-0">
                 {navigation.tabs.map((tab) => (

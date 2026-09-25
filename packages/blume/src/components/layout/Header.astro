@@ -129,11 +129,19 @@ const activeTab = currentTabForRoute(navigation.tabs, route, navigation.root);
 // mobile nav below `lg`, so the inline tabs wait until `lg` to avoid duplicating
 // the drawer's links between `md` and `lg`.
 const tabsNavClass = hasSidebar
-  ? "hidden gap-1 md:flex"
-  : "hidden gap-1 lg:flex";
+  ? "hidden shrink-0 gap-1 md:flex"
+  : "hidden shrink-0 gap-1 lg:flex";
 
 const iconButton =
-  "inline-flex size-9 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
+  "inline-flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground";
+
+// Below `lg`, where the sidebar is a drawer, the selectors, version selector,
+// and language switcher move into a row at the top of it (see
+// DrawerSwitchers.astro): they scope what the sidebar lists, and beside the
+// logo, tabs, search, and icon buttons they'd overflow a phone or tablet
+// header. With no drawer to open they have nowhere else to go, so they stay.
+// Nothing in the header shrinks except the logo, whose title truncates.
+const switcherClass = showNavToggle ? "hidden shrink-0 lg:block" : "shrink-0";
 
 // Header links: plain actions are secondary and hide below `sm`, where the
 // header has room for the logo and the drawer toggle and nothing else. The one
@@ -186,7 +194,7 @@ const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-b
 ---
 
 <header
-  class="sticky top-0 z-40 flex h-16 items-center gap-3 bg-background/90 px-4 backdrop-blur md:px-6"
+  class="sticky top-0 z-40 flex h-16 items-center gap-2 bg-background/90 px-4 backdrop-blur sm:gap-3 md:px-6"
   data-blume-header
   data-blume-header-transparent={transparent ? "" : undefined}
 >
@@ -207,7 +215,7 @@ const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-b
   <LogoSlot locale={locale} logo={logo} site={site} />
   {
     navigation.selectors.length > 0 && (
-      <div class="flex items-center gap-1.5">
+      <div class:list={["flex items-center gap-1.5", switcherClass]}>
         {navigation.selectors.map((selector) => (
           <NavSelector route={route} selector={selector} />
         ))}
@@ -248,16 +256,20 @@ const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-b
        keep the logo, tabs, and the rest of this cluster in place — no layout
        shift when crossing into the docs. */
     versionSelector && (
-      <NavSelector align="end" route={route} selector={versionSelector} />
+      <div class={switcherClass}>
+        <NavSelector align="end" route={route} selector={versionSelector} />
+      </div>
     )
   }
   {
     localeSwitch && localeSwitch.length > 1 && (
-      <LanguageSwitcher
-        label={switcherStrings?.label ?? "Language"}
-        options={localeSwitch}
-        untranslatedLabel={switcherStrings?.untranslated ?? "Not translated"}
-      />
+      <div class={switcherClass}>
+        <LanguageSwitcher
+          label={switcherStrings?.label ?? "Language"}
+          options={localeSwitch}
+          untranslatedLabel={switcherStrings?.untranslated ?? "Not translated"}
+        />
+      </div>
     )
   }
   {
@@ -272,7 +284,7 @@ const clickScript = `(()=>{const dr=()=>{const h=document.querySelector("[data-b
       />
     )
   }
-  <div class="flex items-center gap-2">
+  <div class="flex shrink-0 items-center gap-2">
     {
       /* Plain links first, then the one filled button: the reader's eye lands
          on the button because nothing beside it competes. */

@@ -48,6 +48,7 @@ import Banner from "./Banner.astro";
 import Breadcrumbs from "./Breadcrumbs.astro";
 import Empty from "./Empty.astro";
 import DiscoveryLinks from "./DiscoveryLinks.astro";
+import DrawerSwitchers from "./DrawerSwitchers.astro";
 import Favicon from "./Favicon.astro";
 import Fonts from "./Fonts.astro";
 import {
@@ -619,6 +620,13 @@ createIconSprite(Astro.locals);
           !showSidebar && "lg:hidden",
         ]}
       >
+        <DrawerSwitchers
+          localeSwitch={localeSwitch}
+          route={page.route}
+          selectors={navigation.selectors}
+          switcherStrings={strings.languageSwitcher}
+          versionSelector={versionSelector}
+        />
         {
           // Pinned links (blog, changelog, contact…) sit above every section on
           // all breakpoints, outside the tab-scoped sidebar so they never change

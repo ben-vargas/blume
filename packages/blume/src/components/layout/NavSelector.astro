@@ -19,9 +19,15 @@ interface Props {
    * overflow the viewport — pass `end` there.
    */
   align?: "start" | "end";
+  /**
+   * `bar` (the default) for the header; `drawer` for the top of the nav
+   * drawer, where the trigger spans the drawer, always shows its label, and
+   * opens a panel as wide as itself, so nothing reaches past the drawer edge.
+   */
+  variant?: "bar" | "drawer";
 }
 
-const { selector, route, align = "start" } = Astro.props;
+const { selector, route, align = "start", variant = "bar" } = Astro.props;
 
 // The active item is the deepest path the current route sits under (on a path
 // boundary, so `/api` never claims `/api-reference` routes), falling back to
@@ -37,7 +43,12 @@ const active =
 // version like "v2" or "Latest"): on a phone a bare chevron doesn't say what
 // it switches. Longer product names still collapse to the icon there.
 const label = active?.label ?? selector.label;
-const labelClass = label.length <= 6 ? undefined : "max-sm:hidden";
+let labelClass: string | undefined;
+if (variant === "drawer") {
+  labelClass = "flex-1 text-start";
+} else if (label.length > 6) {
+  labelClass = "max-sm:hidden";
+}
 // The accessible name carries the visible active label too (WCAG 2.5.3,
 // label in name), so a voice-control user can say "v2" to open it — the
 // language switcher's pattern.
@@ -52,10 +63,17 @@ const menuRowClass =
 
 {
   selector.items.length > 0 && (
-    <details class="group relative" data-blume-dropdown>
+    <details
+      class:list={["group relative", variant === "drawer" && "w-full"]}
+      data-blume-dropdown
+    >
       <summary
         aria-label={summaryLabel}
-        class={`${iconButton} list-none [&::-webkit-details-marker]:hidden`}
+        class:list={[
+          iconButton,
+          "list-none [&::-webkit-details-marker]:hidden",
+          variant === "drawer" && "w-full",
+        ]}
       >
         {active?.icon && <Icon name={active.icon} size={16} />}
         <span class={labelClass}>{label}</span>
@@ -66,7 +84,15 @@ const menuRowClass =
         />
       </summary>
       <div
-        class={`absolute z-50 mt-2 min-w-56 max-w-[calc(100vw-1rem)] rounded-blume border border-border bg-background p-1 shadow-xl ${align === "end" ? "end-0" : "start-0"}`}
+        class:list={[
+          "absolute z-50 mt-2 rounded-blume border border-border bg-background p-1 shadow-xl",
+          variant === "drawer"
+            ? "inset-x-0"
+            : [
+                "min-w-56 max-w-[calc(100vw-1rem)]",
+                align === "end" ? "end-0" : "start-0",
+              ],
+        ]}
         data-blume-dropdown-panel
       >
         {selector.items.map((item) => (

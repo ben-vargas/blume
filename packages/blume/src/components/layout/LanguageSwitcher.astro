@@ -7,9 +7,16 @@ interface Props {
   options: LocaleSwitchOption[];
   label: string;
   untranslatedLabel: string;
+  /**
+   * `bar` (the default) for the header, where the language name collapses to
+   * the globe below `lg`; `drawer` for the top of the nav drawer, where the
+   * trigger spans the drawer, shows the name, and opens a panel as wide as
+   * itself, so nothing reaches past the drawer edge.
+   */
+  variant?: "bar" | "drawer";
 }
 
-const { options, label, untranslatedLabel } = Astro.props;
+const { options, label, untranslatedLabel, variant = "bar" } = Astro.props;
 const current = options.find((option) => option.current);
 // The accessible name carries the visible language name too (WCAG 2.5.3,
 // label in name), so a voice-control user can say "English" to open it.
@@ -23,21 +30,35 @@ const menuRowClass =
 
 {
   options.length > 1 && (
-    <details class="group relative" data-blume-dropdown>
+    <details
+      class:list={["group relative", variant === "drawer" && "w-full"]}
+      data-blume-dropdown
+    >
       <summary
         aria-label={summaryLabel}
-        class={`${iconButton} list-none [&::-webkit-details-marker]:hidden`}
+        class:list={[
+          iconButton,
+          "list-none [&::-webkit-details-marker]:hidden",
+          variant === "drawer" && "w-full",
+        ]}
       >
         <Icon name="globe" size={16} />
         {/* Collapses to the globe icon below `lg`, matching the search field. */}
-        <span class="max-lg:hidden">{current?.label ?? label}</span>
+        <span class={variant === "bar" ? "max-lg:hidden" : "flex-1 text-start"}>
+          {current?.label ?? label}
+        </span>
         <Icon
           class="transition-transform group-open:rotate-180"
           name="chevron-down"
           size={14}
         />
       </summary>
-      <div class="absolute end-0 z-50 mt-2 min-w-44 rounded-blume border border-border bg-background p-1 shadow-xl">
+      <div
+        class:list={[
+          "absolute z-50 mt-2 rounded-blume border border-border bg-background p-1 shadow-xl",
+          variant === "bar" ? "end-0 min-w-44" : "inset-x-0",
+        ]}
+      >
         {options.map((option) => (
           <a
             aria-current={option.current ? "true" : undefined}
