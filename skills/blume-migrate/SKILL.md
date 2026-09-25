@@ -15,7 +15,7 @@ Throughout this skill (including the `references/` files), **`<skill>` means the
 
 - **Target idiomatic Blume, not a mechanical port.** Prefer filesystem-derived navigation over an exhaustive explicit `navigation.sidebar`. Prefer `:::` directives over JSX callouts. Prefer Blume defaults over restating them in config.
 - **Every field has a default; `{}` is a valid config.** Map only what the source _declares_. If the source uses a framework default, don't write it.
-- **Drop chrome that has no Blume equivalent — and say so.** Navbar CTAs, footer columns, custom theming, conditional redirects, and unmappable icons get reported to the user, not silently discarded or faked.
+- **Drop chrome that has no Blume equivalent — and say so.** Navbar CTAs, footer copyright text, custom theming, conditional redirects, and unmappable icons get reported to the user, not silently discarded or faked.
 - **Convert, don't preserve.** Blume's page frontmatter schema is **strict** — unknown keys are build errors. A source-only frontmatter key must be mapped to a Blume key or removed (and reported), never left to "maybe validate."
 
 ## Migration workflow
@@ -168,7 +168,7 @@ A `redirects: [{ from, to, status? }]` array **in `blume.config.ts`** maps old U
 
 1. Run **`blume build`** — it validates the frontmatter schema, duplicate routes, and config, and fails on any error diagnostic by default (**don't pass `--no-strict`**: that builds anyway and silently drops invalid pages). Then run **`blume validate --strict`** — links, heading anchors, and assets live here, not in `build` (add `--external` to also check outbound HTTP links). OpenAPI operation pages are real routes to `validate`, so dead links to them are caught too. Iterate until both are clean.
 2. Run `blume dev` and review the site visually — nav structure, tabs, theme, rendered components.
-3. **Write a migration summary** covering: what was migrated (config, N pages, nav, API references), what was **dropped** (navbar CTAs, footers, custom theming, conditional redirects, unmappable icons, unsupported components), and suggested follow-ups (`blume eject` for full control, `blume add` to vendor a component for customization).
+3. **Write a migration summary** covering: what was migrated (config, N pages, nav, API references), what was **dropped** (navbar CTAs, footer copyright text, custom theming, conditional redirects, unmappable icons, unsupported components), and suggested follow-ups (`blume eject` for full control, `blume add` to vendor a component for customization).
 
 ## Full documentation
 

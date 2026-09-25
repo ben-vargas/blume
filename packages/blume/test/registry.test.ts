@@ -645,6 +645,7 @@ describe("registry", () => {
       "breadcrumbs",
       "table-of-contents",
       "pagination",
+      "footer",
     ]) {
       expect(findItem(name)?.files[0]?.rewrite).toBe(true);
     }

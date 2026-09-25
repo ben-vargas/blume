@@ -30,6 +30,7 @@ import {
 } from "../sources/registry.ts";
 import { FONT_SLUGS, isFontSlug } from "../theme/fonts.ts";
 import { normalizeBasePath } from "./base-path.ts";
+import { FOOTER_SOCIALS, MAX_FOOTER_COLUMNS } from "./footer.ts";
 import { PUBLIC_HOST_URL } from "./github.ts";
 import { uiLocaleOverridesSchema } from "./i18n-ui.ts";
 import { openInChatProviders } from "./open-in-chat.ts";
@@ -350,6 +351,29 @@ const bannerConfigSchema = z.union([
     link: z.strictObject({ href: z.string(), text: z.string() }).optional(),
   }),
 ]);
+
+/**
+ * The site footer: social profile icons and up to four link columns. Unset,
+ * the site has no footer (a `components.ts` `Footer` still renders).
+ */
+const footerConfigSchema = z.strictObject({
+  /** Link columns, each an optional heading over its links. */
+  links: z
+    .array(
+      z.strictObject({
+        items: z
+          .array(z.strictObject({ href: z.string(), label: z.string() }))
+          .min(1),
+        label: z.string().optional(),
+      })
+    )
+    .max(MAX_FOOTER_COLUMNS, {
+      message: `footer.links holds at most ${MAX_FOOTER_COLUMNS} columns.`,
+    })
+    .default([]),
+  /** Social profiles, platform to URL, shown as icons in the order written. */
+  socials: z.partialRecord(z.enum(FOOTER_SOCIALS), z.string()).default({}),
+});
 
 /** A validated `content.sources` entry: an adapter descriptor from `blume/sources`. */
 export type { ContentSourceAdapter } from "../sources/registry.ts";
@@ -1941,6 +1965,7 @@ export const blumeConfigSchema = z
       examples: examplesConfigSchema.prefault("examples"),
       export: exportConfigSchema.prefault(false),
       feedback: z.boolean().default(true),
+      footer: footerConfigSchema.optional(),
       /** Opt-in custom frontmatter keys, validated by user-supplied schemas. */
       frontmatter: frontmatterConfigSchema.prefault({}),
       github: githubConfigSchema.optional(),

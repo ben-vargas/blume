@@ -157,6 +157,8 @@ export interface BlumeDataConfig {
   };
   favicon: BlumeFavicon;
   feedback: boolean;
+  /** `footer`: social profile icons and link columns, or `null` when unset. */
+  footer: ResolvedConfig["footer"] | null;
   /**
    * Repo coordinates for content components that address the API or build
    * their own repo links (`<GithubInfo>`, the OG card's footer slug), carrying

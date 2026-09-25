@@ -415,6 +415,7 @@ describe("buildRuntimeData", () => {
     expect(data.config.i18n).toBeNull();
     expect(data.config.repoUrl).toBeNull();
     expect(data.config.banner).toBeNull();
+    expect(data.config.footer).toBeNull();
     expect(data.config.logo).toBeNull();
     expect(data.config.mcp).toBeNull();
     expect(data.config.og.enabled).toBe(false);
@@ -732,12 +733,23 @@ describe("buildRuntimeData", () => {
     );
   });
 
+  it("leaves an empty footer out of the snapshot", async () => {
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts": "export default { footer: { socials: {} } };\n",
+        "docs/index.md": "# Home\n",
+      })
+    );
+    expect(JSON.parse(buildRuntimeData(project)).config.footer).toBeNull();
+  });
+
   it("resolves github edit urls, repo url, banner, logo, mcp and og", async () => {
     const project = await scanProject(
       await writeProject({
         "blume.config.ts": `export default {
   banner: { content: "Hello", dismissible: true, id: "promo", link: { href: "/x", text: "Go" } },
   deployment: { site: "https://example.com" },
+  footer: { socials: { github: "https://github.com/acme" } },
   github: { owner: "acme", repo: "docs" },
   agents: { mcp: { enabled: true, name: "Docs MCP" } },
   logo: { href: "/home", image: { alt: "Logo", dark: "/dark.png", light: "/light.png" } },
@@ -759,6 +771,10 @@ describe("buildRuntimeData", () => {
       dismissible: true,
       key: "promo",
       link: { href: "/x", text: "Go" },
+    });
+    expect(data.config.footer).toEqual({
+      links: [],
+      socials: { github: "https://github.com/acme" },
     });
     expect(data.config.logo).toEqual({
       alt: "Logo",

@@ -262,6 +262,12 @@ export const registry: RegistryItem[] = [
     name: "feedback",
     slot: "Feedback",
   }),
+  layoutComponent({
+    description: "The site footer: social icons and link columns.",
+    file: "SiteFooter.astro",
+    name: "footer",
+    slot: "Footer",
+  }),
   ...CONTENT_COMPONENTS.map(contentComponent),
 ];
 

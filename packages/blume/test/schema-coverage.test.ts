@@ -175,7 +175,6 @@ describe("pruned Mintlify-compat config fields", () => {
   it("rejects config fields that were removed", () => {
     for (const field of [
       "navbar",
-      "footer",
       "contextual",
       "styling",
       "favicon",

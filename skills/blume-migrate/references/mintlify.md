@@ -53,6 +53,7 @@ Resolve `$ref` includes first (Mintlify splits config across files). Map only wh
 | `integrations.adobe` (`{ launchUrl }`) | `adobe({ url })` |  |
 | any other `integrations` script | `script({ src, strategy, attributes })` / `vercel()` in the `analytics` list | one `script()` adapter per provider without a factory |
 | `contextual` (`["copy","chatgpt","claude",…]`) | **mostly free** | Copy-as-Markdown and Open-in-chat are default page actions; `mcp` needs `agents.mcp.enabled` + server output (report as a follow-up) |
+| `footer` (`{ socials, links }`) | `footer: { socials, links }` | `socials` keeps its keys, except `twitter`/`x-twitter` → `x` and `earth-americas` → `website`; a key outside Blume's list drops (report); each `links` column's `header` → `label`, its `items` (`{ label, href }`) as written |
 | `redirects` (`{ source, destination, permanent }`) | `redirects: [{ from, to, status }]` | `source` → `from`, `destination` → `to` as written, patterns included (`/beta/:slug*`, `/old/article-*`); `permanent: false` → `status: 307`, otherwise `status: 308` |
 | `navigation.languages` | `i18n` | see i18n below |
 
@@ -167,6 +168,5 @@ Mintlify serves every top-level dir (e.g. `/images`) at the site root. Blume ser
 
 ## Dropped — report these
 
-- **`footer.socials`** → suggest the `github` config, or a Footer override.
 - **Per-language banners** (`navigation.languages[].banner`) → no equivalent.
 - **`<Update>`** changelog components, `iconType`, `background.decoration`, `search.prompt`, `seo.metatags`.

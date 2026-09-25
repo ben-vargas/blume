@@ -966,6 +966,17 @@ const resolveBanner = (config: ResolvedConfig): BlumeBanner | null => {
   };
 };
 
+/** The footer config for the runtime: `null` when unset or empty, so no bare border renders. */
+const resolveFooter = (
+  config: ResolvedConfig
+): ResolvedConfig["footer"] | null => {
+  const { footer } = config;
+  return footer &&
+    (footer.links.length > 0 || Object.keys(footer.socials).length > 0)
+    ? footer
+    : null;
+};
+
 /**
  * The OG card's brand mark: a `seo.og.logo` of `false` opts out of any mark,
  * a configured SVG wins over the site logo, and a non-SVG value resolves to
@@ -1140,6 +1151,7 @@ export const buildRuntimeData = (project: BlumeProject): string => {
       },
       favicon: resolveFavicon(project),
       feedback: config.feedback,
+      footer: resolveFooter(config),
       github: resolveGithubData(github),
       i18n: i18n
         ? {

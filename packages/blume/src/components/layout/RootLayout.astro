@@ -73,6 +73,7 @@ import { pageDirection, pageLocale } from "./page-locale.ts";
 import { searchLocaleFor } from "./search-locale.ts";
 import PageActions from "./PageActions.astro";
 import PageFeedback from "./PageFeedback.astro";
+import SiteFooter from "./SiteFooter.astro";
 import Pagination from "./Pagination.astro";
 import TableOfContents from "./TableOfContents.astro";
 import VersionBanner from "./VersionBanner.astro";
@@ -201,9 +202,10 @@ interface Props {
    * User layout-slot overrides from `components.ts` (`defineComponents`). Each
    * key replaces the matching built-in; unknown keys are ignored. Wired slots:
    * `Header`, `Logo`, `Search`, `Sidebar`, `MobileNav`, `Breadcrumbs`,
-   * `TableOfContents`, `Pagination`, `Feedback`, plus the content-injection slots
-   * `PageHeader`, `PageFooter`, and `Footer` (which have no built-in and render
-   * only when overridden). `Layout` (replacing this whole component) is wired in
+   * `TableOfContents`, `Pagination`, `Feedback`, `Footer` (the built-in renders
+   * only when `footer` is configured), plus the content-injection slots
+   * `PageHeader` and `PageFooter` (which have no built-in and render only when
+   * overridden). `Layout` (replacing this whole component) is wired in
    * the generated page templates, not here.
    */
   layout?: Record<string, ComponentOverride>;
@@ -304,9 +306,10 @@ const PaginationSlot = resolveSlot(layout.Pagination, Pagination);
 const MobileNavSlot = layout.MobileNav
   ? resolveSlot(layout.MobileNav, NavTree)
   : null;
+// The site footer renders nothing when `footer` is unset.
+const FooterSlot = resolveSlot(layout.Footer, SiteFooter);
 // Content-injection slots with no built-in: the `Empty` fallback renders nothing
 // when unconfigured, so these are safe to render unconditionally.
-const FooterSlot = resolveSlot(layout.Footer, Empty);
 const PageHeaderSlot = resolveSlot(layout.PageHeader, Empty);
 const PageFooterSlot = resolveSlot(layout.PageFooter, Empty);
 // The "Was this page helpful?" rating (rendered only when `feedback` is on).
@@ -817,7 +820,12 @@ createIconSprite(Astro.locals);
         )
       }
     </div>
-    <FooterSlot navigation={navigation} site={site} ui={strings} />
+    <FooterSlot
+      footer={data.config.footer}
+      navigation={navigation}
+      site={site}
+      ui={strings}
+    />
     {
       clientDataJson && (
         <script

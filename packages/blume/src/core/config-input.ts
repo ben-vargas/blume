@@ -11,6 +11,7 @@ import type { ReferenceAdapter } from "../reference/schema.ts";
 import type { AnySearchAdapter } from "../search/adapters/registry.ts";
 import type { SourceAdapterInput } from "../sources/registry.ts";
 import type { FontSlug } from "../theme/fonts.ts";
+import type { FooterSocial } from "./footer.ts";
 import type {
   blumeConfigSchema,
   OpenInChatProvider,
@@ -106,6 +107,36 @@ export type BannerConfig =
         text: string;
       };
     };
+
+/** A link in a footer column. */
+export interface FooterLink {
+  /** Link target (internal route or external URL). An external href opens in a new tab. */
+  href: string;
+  /** Link text. */
+  label: string;
+}
+
+/** A footer link column. */
+export interface FooterColumn {
+  /** Links in the column, top to bottom. */
+  items: FooterLink[];
+  /** Column heading. */
+  label?: string;
+}
+
+/**
+ * The site footer: social profile icons and link columns, rendered below the
+ * content on every page.
+ */
+export interface FooterConfig {
+  /** Link columns, at most four, left to right. */
+  links?: FooterColumn[];
+  /**
+   * Social profiles, platform to URL, shown as icons in the order written:
+   * `{ github: "https://github.com/acme", x: "https://x.com/acme" }`.
+   */
+  socials?: Partial<Record<FooterSocial, string>>;
+}
 
 /**
  * Where content lives and how it's discovered. `root`/`include`/`exclude` are
@@ -1413,6 +1444,11 @@ export interface BlumeConfig {
   export?: ExportConfig;
   /** Show the per-page "Was this helpful?" widget. Defaults to `true`. */
   feedback?: boolean;
+  /**
+   * The site footer: social profile icons and up to four link columns. Unset,
+   * the site has no footer.
+   */
+  footer?: FooterConfig;
   /** Opt-in custom frontmatter keys, validated by schemas you supply. */
   frontmatter?: FrontmatterConfig;
   /** Source repository (Edit-this-page links and the header repo link). */
