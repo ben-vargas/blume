@@ -694,9 +694,10 @@ describe(extractHeadings, () => {
   });
 
   it("joins a multi-line paragraph into one setext heading", () => {
+    // The rendered text keeps the line break, which github-slugger drops.
     const body = ["Long", "title", "===="].join("\n");
     expect(extractHeadings(body)).toStrictEqual([
-      { depth: 1, slug: "long-title", text: "Long title" },
+      { depth: 1, slug: "longtitle", text: "Long title" },
     ]);
   });
 
@@ -782,10 +783,10 @@ describe(extractHeadings, () => {
 
   it("keeps a bracket with a matching link-reference definition, like CommonMark", () => {
     // With a definition anywhere in the doc, the rendered heading ends in a
-    // shortcut reference link, not a marker — the bracket is heading text.
+    // shortcut reference link, not a marker — its text is heading text.
     const body = ["## Overview [toc]", "", "[toc]: /url"].join("\n");
     expect(extractHeadings(body)).toStrictEqual([
-      { depth: 2, slug: "overview-toc", text: "Overview [toc]" },
+      { depth: 2, slug: "overview-toc", text: "Overview toc" },
     ]);
   });
 
@@ -839,12 +840,13 @@ describe(extractHeadings, () => {
 
   it("stops at a defined bracket but still strips markers to its right", () => {
     // The renderer's trailing text node is " [toc]", so that marker strips;
-    // `[#privacy]` resolves as a link and stays in the text and the slug.
+    // `[#privacy]` resolves as a link, whose text stays in the heading's
+    // text and slug.
     const body = ["## X [#privacy] [toc]", "", "[#privacy]: /url"].join("\n");
     expect(extractHeadings(body)[0]).toStrictEqual({
       depth: 2,
       slug: "x-privacy",
-      text: "X [#privacy]",
+      text: "X #privacy",
     });
   });
 
@@ -912,8 +914,9 @@ describe(extractHeadings, () => {
 
   it("keeps a heading whose text mentions <Prompt>", () => {
     const body = ["## The <Prompt> component", "## After"].join("\n");
+    // The tag renders no text of its own; the heading itself survives.
     expect(extractHeadings(body).map((h) => h.text)).toStrictEqual([
-      "The <Prompt> component",
+      "The component",
       "After",
     ]);
   });
