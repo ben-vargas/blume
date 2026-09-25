@@ -364,10 +364,17 @@ export const builtinProxyReferences = (
   );
 
 /**
+ * Whether hand-written endpoint pages (`api` frontmatter) send their Try it
+ * requests through the built-in proxy: `api.playground.proxy: true`.
+ */
+export const apiPagesUseBuiltinProxy = (config: ResolvedConfig): boolean =>
+  config.api.playground.enabled && config.api.playground.proxy === true;
+
+/**
  * Whether the built-in playground CORS proxy endpoint (`/_api-proxy`) must be
  * generated: some Blume-rendered reference's playground opted into it with
- * `proxy: true`. Shared by the server feature gate and the generator so the
- * two can never disagree.
+ * `proxy: true`, or the hand-written endpoint pages' did. Shared by the server
+ * feature gate and the generator so the two can never disagree.
  */
 export const needsPlaygroundProxy = (config: ResolvedConfig): boolean =>
-  builtinProxyReferences(config).length > 0;
+  builtinProxyReferences(config).length > 0 || apiPagesUseBuiltinProxy(config);

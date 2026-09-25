@@ -1103,10 +1103,12 @@ describe("openapi playground sources", () => {
   it("keeps operation renderers the only importers of Playground.astro", async () => {
     // The no-playground-JS-on-non-operation-pages guarantee: any other .astro
     // importing the panel would pull its loader script onto that page too.
-    // GraphqlOperation renders only via Operation.astro's kind dispatch, so
-    // both importers still sit exclusively on operation pages.
+    // GraphqlOperation renders only via Operation.astro's kind dispatch, and
+    // ApiPlayground only on a hand-written page with `api` frontmatter, so
+    // every importer still sits exclusively on an endpoint's page.
     const importers = await astroImportersOf("Playground");
     expect(importers.toSorted()).toEqual([
+      "components/content/ApiPlayground.astro",
       "components/openapi/GraphqlOperation.astro",
       "components/openapi/Operation.astro",
     ]);

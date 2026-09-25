@@ -1,3 +1,4 @@
+import type { EndpointAuth } from "../components/content/api-page.ts";
 import type { SearchAdapterKind } from "../search/adapters/registry.ts";
 import type { StructuredDataIdentity } from "../seo/jsonld.ts";
 import type { FontHead } from "../theme/fonts.ts";
@@ -127,6 +128,16 @@ export interface BlumeDataConfig {
     endpoint: string | null;
     suggestions: NonNullable<ResolvedConfig["ai"]["assistant"]>["suggestions"];
   } | null;
+  /**
+   * Defaults for hand-written endpoint pages (`api` frontmatter): the server a
+   * path joins, the default auth, and the playground, its `proxy` resolved to
+   * the URL sends go through (the built-in route under `basePath`) or `false`.
+   */
+  api: {
+    auth?: EndpointAuth;
+    playground: { enabled: boolean; proxy: string | false };
+    server?: string;
+  };
   banner: BlumeBanner | null;
   /** Site-wide route mount point, normalized to `""` or `/seg` (see config). */
   basePath: string;

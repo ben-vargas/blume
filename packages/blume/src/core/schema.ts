@@ -8,10 +8,16 @@ import {
 } from "../ai/ask.ts";
 import type { ComponentMarkdown } from "../ai/component-markdown.ts";
 import { analyticsConfigSchema } from "../analytics/schema.ts";
+import {
+  API_ENDPOINT,
+  AUTH_METHODS,
+  PLAYGROUND_MODES,
+} from "../components/content/api-page.ts";
 import { resolvedDeploymentSchema } from "../deploy/adapters/registry.ts";
 import type { CodeTheme } from "../markdown/themes.ts";
 import { narrationProviderSchema } from "../narration/provider.ts";
 import { normalizeRoute } from "../openapi/references.ts";
+import { playgroundSchema } from "../reference/options.ts";
 import {
   referenceConfigSchema,
   removedReferenceKeysHint,
@@ -208,6 +214,20 @@ const authorSchema = z.union([
 /** Frontmatter accepted on any content page. */
 const pageMetaBaseSchema = z.strictObject({
   ai: aiMetaSchema.prefault({}),
+  /**
+   * A hand-written endpoint: an HTTP method and a path or full URL
+   * (`POST /v1/users`). The page's `<ParamField>`s build its playground and
+   * request samples.
+   */
+  api: z
+    .string()
+    .refine((value) => API_ENDPOINT.test(value.trim()), {
+      message:
+        'api takes an HTTP method and a path or URL, like "POST /v1/users" or "GET https://api.acme.com/v1/users/{id}".',
+    })
+    .optional(),
+  /** How this page's endpoint authenticates, over the site's `api.auth`. */
+  authMethod: z.enum(AUTH_METHODS).optional(),
   /** Post author(s) for blog/changelog content; preserved, not yet rendered. */
   authors: z.union([authorSchema, z.array(authorSchema)]).optional(),
   changelog: changelogMetaSchema.optional(),
@@ -223,6 +243,8 @@ const pageMetaBaseSchema = z.strictObject({
   /** `false` keeps the "Listen to this page" player off this page. */
   narration: z.boolean().default(true),
   noindex: z.boolean().default(false),
+  /** What an `api` page's playground shows: `interactive`, `simple` (samples only), or `none`. */
+  playground: z.enum(PLAYGROUND_MODES).optional(),
   search: searchMetaSchema.prefault({}),
   seo: seoMetaSchema.prefault({}),
   sidebar: sidebarMetaSchema.prefault({}),
@@ -351,6 +373,24 @@ const bannerConfigSchema = z.union([
     link: z.strictObject({ href: z.string(), text: z.string() }).optional(),
   }),
 ]);
+
+/**
+ * Defaults for hand-written endpoint pages (`api` frontmatter): the server a
+ * path joins, how requests authenticate, and the playground, which takes an
+ * OpenAPI reference's `playground` option.
+ */
+const apiConfigSchema = z.strictObject({
+  auth: z
+    .strictObject({
+      method: z.enum(AUTH_METHODS),
+      /** The header an API key goes in. Defaults to `x-api-key`. */
+      name: z.string().optional(),
+    })
+    .optional(),
+  playground: playgroundSchema,
+  /** The base URL an `api` path joins (`https://api.acme.com/v1`). */
+  server: z.string().optional(),
+});
 
 /**
  * The site footer: social profile icons and up to four link columns. Unset,
@@ -1924,6 +1964,7 @@ export const blumeConfigSchema = z
       ai: aiConfigSchema.prefault({}),
       // Adapters from `blume/analytics`, each a serializable descriptor.
       analytics: analyticsConfigSchema,
+      api: apiConfigSchema.prefault({}),
       banner: bannerConfigSchema.optional(),
       /**
        * Site-wide mount point prepended to every generated route (e.g. `/docs`),

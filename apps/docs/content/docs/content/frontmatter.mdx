@@ -65,6 +65,22 @@ Every page accepts the following frontmatter. All fields are optional.
       description:
         'Pin the page\'s "last updated" date (ISO or YAML date); overrides the git-derived date.',
     },
+    api: {
+      type: "string",
+      description:
+        "An endpoint this page documents by hand, as an HTTP method and a path or URL (POST /v1/users). See Hand-written API pages.",
+    },
+    authMethod: {
+      type: '"bearer" | "basic" | "key" | "none"',
+      description:
+        "How an api page's endpoint authenticates, over the site's api.auth.",
+    },
+    playground: {
+      type: '"interactive" | "simple" | "none"',
+      default: '"interactive"',
+      description:
+        "What an api page shows: the Try it panel and samples, the samples only, or neither.",
+    },
   }}
 />
 

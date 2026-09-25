@@ -2137,6 +2137,8 @@ const contentComponentsSource = (mathEnabled: boolean) => {
   return {
     imports: `import Accordion from "blume/components/content/Accordion.astro";
 import AccordionItem from "blume/components/content/AccordionItem.astro";
+import ApiEndpoint from "blume/components/content/ApiEndpoint.astro";
+import ApiPlayground from "blume/components/content/ApiPlayground.astro";
 import ApiRail from "blume/components/content/ApiRail.astro";
 import AutoTypeTable from "blume/components/content/AutoTypeTable.astro";
 import Badge from "blume/components/content/Badge.astro";
@@ -2184,7 +2186,9 @@ ${mathImport}import { mdxComponents as userMdx, layoutOverrides } from "../gener
     map: `{
   Accordion,
   AccordionItem,
+  ApiEndpoint,
   ApiOverview,
+  ApiPlayground,
   ApiRail,
   ApiTagOperations,
   AutoTypeTable,

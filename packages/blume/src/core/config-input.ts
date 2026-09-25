@@ -7,6 +7,7 @@ import type { ComponentMarkdown } from "../ai/component-markdown.ts";
 import type { AnalyticsAdapter } from "../analytics/schema.ts";
 import type { DeploymentInput } from "../deploy/adapters/registry.ts";
 import type { CodeTheme } from "../markdown/themes.ts";
+import type { PlaygroundOptions } from "../reference/options.ts";
 import type { ReferenceAdapter } from "../reference/schema.ts";
 import type { AnySearchAdapter } from "../search/adapters/registry.ts";
 import type { SourceAdapterInput } from "../sources/registry.ts";
@@ -107,6 +108,24 @@ export type BannerConfig =
         text: string;
       };
     };
+
+/** Defaults for hand-written endpoint pages, the ones with `api` frontmatter. */
+export interface ApiConfig {
+  /** How requests authenticate, unless a page sets `authMethod`. Defaults to none. */
+  auth?: {
+    method: "bearer" | "basic" | "key" | "none";
+    /** The header an API key goes in. Defaults to `x-api-key`. */
+    name?: string;
+  };
+  /**
+   * The Try it panel: `false` hides it, and `{ proxy }` sends requests through
+   * a CORS proxy, a URL or `true` for the built-in `/_api-proxy` route (server
+   * output only). Defaults to `true`, sending directly.
+   */
+  playground?: PlaygroundOptions;
+  /** The base URL an `api` path joins, like `https://api.acme.com/v1`. */
+  server?: string;
+}
 
 /** A link in a footer column. */
 export interface FooterLink {
@@ -1401,6 +1420,8 @@ export interface BlumeConfig {
   agents?: AgentsConfig;
   /** Model-facing features: the assistant and the "Open in chat" action. */
   ai?: AiConfig;
+  /** Defaults for hand-written endpoint pages (`api` frontmatter). */
+  api?: ApiConfig;
   /**
    * Analytics adapters from `blume/analytics`, emitted into `<head>` of every
    * production page in this order: `[posthog({ key }), vercel(),

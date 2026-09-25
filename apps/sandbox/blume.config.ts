@@ -25,6 +25,11 @@ export default defineConfig({
       ],
     },
   },
+  api: {
+    auth: { method: "bearer" },
+    playground: { proxy: true },
+    server: "https://api.acme.dev/v1",
+  },
   banner: {
     content: "This is the Blume kitchen-sink sandbox.",
     dismissible: true,

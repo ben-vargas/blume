@@ -27,6 +27,7 @@ import type { RawMarkdownEntry } from "../ai/markdown.ts";
 import { buildMcpData } from "../ai/mcp/data.ts";
 import type { McpData } from "../ai/mcp/data.ts";
 import { buildMcpDiscovery, buildMcpServerCard } from "../ai/mcp/discovery.ts";
+import { parseApiEndpoint } from "../components/content/api-page.ts";
 import {
   hasDeferrableGroups,
   navVariants,
@@ -44,6 +45,7 @@ import {
 } from "../core/content-assets.ts";
 import type {
   BlumeBanner,
+  BlumeDataConfig,
   BlumeData,
   BlumeFavicon,
   BlumeLogo,
@@ -85,6 +87,7 @@ import type { AsyncApiSpecValue } from "../openapi/asyncapi.ts";
 import type { ApiSpecData, HttpMethod, OpenApiData } from "../openapi/model.ts";
 import { HTTP_METHODS, withServerDefaults } from "../openapi/model.ts";
 import {
+  apiPagesUseBuiltinProxy,
   builtinProxyReferences,
   hasScalarReferences,
   needsPlaygroundProxy,
@@ -966,6 +969,35 @@ const resolveBanner = (config: ResolvedConfig): BlumeBanner | null => {
   };
 };
 
+/** The URL the built-in proxy is injected at (see {@link planPlaygroundProxy}). */
+export const playgroundProxyPattern = (config: ResolvedConfig): string =>
+  withBasePath(config.basePath, "/_api-proxy");
+
+/**
+ * The hand-written endpoint defaults for the runtime, the playground's
+ * `proxy: true` resolved to the built-in route's URL, as an OpenAPI
+ * reference's is.
+ */
+const resolveApiPages = (config: ResolvedConfig): BlumeDataConfig["api"] => {
+  const { auth, playground, server } = config.api;
+  const resolved: BlumeDataConfig["api"] = {
+    playground: {
+      enabled: playground.enabled,
+      proxy:
+        playground.proxy === true
+          ? playgroundProxyPattern(config)
+          : playground.proxy,
+    },
+  };
+  if (auth) {
+    resolved.auth = auth;
+  }
+  if (server) {
+    resolved.server = server;
+  }
+  return resolved;
+};
+
 /** The footer config for the runtime: `null` when unset or empty, so no bare border renders. */
 const resolveFooter = (
   config: ResolvedConfig
@@ -1128,6 +1160,7 @@ export const buildRuntimeData = (project: BlumeProject): string => {
   const data: BlumeData = {
     config: {
       analytics: config.analytics,
+      api: resolveApiPages(config),
       appleIcon: resolveAppleIcon(project),
       assistant: config.ai.assistant?.enabled
         ? {
@@ -1511,10 +1544,6 @@ const writeApiFiles = async (
 /** The proxy endpoint's file under the Astro `src/` dir (eject writes it too). */
 export const PLAYGROUND_PROXY_ENTRY = join("blume-openapi", "api-proxy.ts");
 
-/** The URL the built-in proxy is injected at (see {@link planPlaygroundProxy}). */
-export const playgroundProxyPattern = (config: ResolvedConfig): string =>
-  withBasePath(config.basePath, "/_api-proxy");
-
 /**
  * Decide whether to generate the playground's built-in CORS proxy endpoint.
  * Only the Blume renderer's playground with `proxy: true` needs it — a proxy
@@ -1606,6 +1635,47 @@ type DocumentPathItem = { servers?: DocumentServer[] } & Partial<
 /** The built-in proxy's allowlist: every spec's origins, deduped and sorted. */
 export const specOrigins = (data: OpenApiData): string[] =>
   [...new Set(Object.values(data).flatMap(specOriginsOf))].toSorted();
+
+/** The origin of an absolute URL, or `null` for a path or anything unparsable. */
+const originOf = (url: string): string | null => {
+  try {
+    return new URL(url).origin;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * The origins hand-written endpoint pages send to through the built-in
+ * proxy: the site's `api.server`, and every page whose `api` names a full
+ * URL. Empty unless those pages use the built-in proxy.
+ */
+export const apiPageOrigins = (project: BlumeProject): string[] => {
+  const { config } = project;
+  if (!apiPagesUseBuiltinProxy(config)) {
+    return [];
+  }
+  const targets = project.graph.pages.map(
+    (page) => parseApiEndpoint(page.meta.api ?? "")?.target ?? ""
+  );
+  return [config.api.server ?? "", ...targets].flatMap((target) => {
+    const origin = originOf(target);
+    return origin ? [origin] : [];
+  });
+};
+
+/**
+ * A warning when the hand-written endpoint pages send through the built-in
+ * proxy but name no absolute origin for it to allow, so it would refuse every
+ * request they send.
+ */
+export const apiPageProxyWarnings = (project: BlumeProject): string[] =>
+  apiPagesUseBuiltinProxy(project.config) &&
+  apiPageOrigins(project).length === 0
+    ? [
+        "api.playground.proxy is true, but api.server isn't an absolute URL and no page's api frontmatter names one, so the built-in proxy has no origin to allow and will refuse every request the endpoint pages send. Set api.server to the API's URL, like https://api.acme.com/v1.",
+      ]
+    : [];
 
 /**
  * Build-time diagnostics for playground sends the built-in proxy would refuse.
@@ -2016,7 +2086,9 @@ export const generateRuntime = async (
   // Computed once: the endpoint template bakes it in below. A spec that
   // contributes no origin of its own gets a per-spec diagnostic
   // (`proxyAllowlistWarnings`) — the proxy would refuse its every send.
-  const proxyOrigins = specOrigins(openApiData);
+  const proxyOrigins = [
+    ...new Set([...specOrigins(openApiData), ...apiPageOrigins(project)]),
+  ].toSorted();
 
   const hasStaged = staged.size > 0;
   // Only emit a project-scanning `docs` collection when a filesystem source
@@ -2274,6 +2346,7 @@ export const generateRuntime = async (
   const warnings: string[] = [
     ...(depsLinkWarning ? [depsLinkWarning] : []),
     ...proxyAllowlistWarnings(config, openApiData),
+    ...apiPageProxyWarnings(project),
     ...reactCompilerWarnings(config, needsReact, reactCompilerPath),
     ...mcp.warnings,
     ...islandDiscovery.warnings,
