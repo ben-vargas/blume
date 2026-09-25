@@ -1,7 +1,10 @@
 ---
+import data from "blume:data";
+
 import { EN_UI } from "../../core/i18n-ui.ts";
 import type { UIStrings } from "../../core/i18n-ui.ts";
 import type { Navigation } from "../../core/types.ts";
+import { scopesVersions } from "../../search/adapters/version-scope.ts";
 import { resolvePopularIconMarkup } from "../../search/popular-icon.ts";
 import Icon from "../Icon.astro";
 import { flattenPages } from "./nav-utils.ts";
@@ -21,7 +24,8 @@ interface Props {
   locale?: string;
   /**
    * Docs version to filter results to (`""` = the current docs — a meaningful
-   * value, so `null`/omitted is what disables version filtering).
+   * value, so `null`/omitted is what disables version filtering). Ignored when
+   * the configured provider can't scope by version.
    */
   version?: string | null;
 }
@@ -32,8 +36,14 @@ const {
   popularPages,
   strings,
   locale,
-  version = null,
+  version: viewedVersion = null,
 } = Astro.props;
+// Pagefind, Orama Cloud, and Mixedbread search every version whatever the
+// dialog asks, so on those an "All versions" toggle would change nothing:
+// treat the site as unversioned for search instead.
+const version = scopesVersions(data.config.search.provider)
+  ? viewedVersion
+  : null;
 // Merge over the English baseline per key (rather than `strings ?? …`) so a
 // partial — or empty `{}` — strings object still resolves every label to a
 // default, matching the pattern PageActions uses for its own dictionary.

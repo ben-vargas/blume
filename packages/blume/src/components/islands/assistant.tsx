@@ -262,6 +262,22 @@ const Assistant = ({
     };
   }, [open]);
 
+  // Stamp the incoming body before the swap installs it, as the theme and
+  // banner scripts do for <html>. Stamped only after the swap (below, in a
+  // passive effect), the new body would first paint without the push padding,
+  // replaying its transition on every navigation with the panel docked.
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    const onBeforeSwap = (event: DocumentEventMap["astro:before-swap"]) => {
+      event.newDocument.body.dataset.blumeAssistant = "open";
+    };
+    document.addEventListener("astro:before-swap", onBeforeSwap);
+    return () =>
+      document.removeEventListener("astro:before-swap", onBeforeSwap);
+  }, [open]);
+
   // Re-stamp the push attribute after a swap while the panel is open — the new
   // body arrives without it. Deliberately separate from the effect above: a
   // navigation must not re-run the focus handling and yank focus out of the
