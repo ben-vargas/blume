@@ -26,12 +26,14 @@ import {
   hotjar,
   logrocket,
   mixpanel,
+  oneDollarStats,
   pirsch,
   plausible,
   segment,
 } from "../src/analytics/index.ts";
 import { LOGROCKET_SCRIPT_SRC } from "../src/analytics/logrocket.ts";
 import { MIXPANEL_REGION_HOSTS } from "../src/analytics/mixpanel.ts";
+import { ONE_DOLLAR_STATS_SCRIPT_SRC } from "../src/analytics/one-dollar-stats.ts";
 import { PIRSCH_SCRIPT_SRC } from "../src/analytics/pirsch.ts";
 import { PLAUSIBLE_QUEUE } from "../src/analytics/plausible.ts";
 import { analyticsConfigSchema } from "../src/analytics/schema.ts";
@@ -54,6 +56,7 @@ const all = () => [
   hotjar({ id: 1234 }),
   logrocket({ id: "org/app" }),
   mixpanel({ token: "tok" }),
+  oneDollarStats(),
   pirsch({ code: "code" }),
   plausible({ domain: "docs.example.com" }),
   segment({ key: "wk" }),
@@ -87,6 +90,7 @@ describe("provider adapter factories", () => {
       "hotjar",
       "logrocket",
       "mixpanel",
+      "one-dollar-stats",
       "pirsch",
       "plausible",
       "segment",
@@ -105,14 +109,18 @@ describe("provider adapter factories", () => {
         fathom({ site: "S", spa: "auto" }),
         mixpanel({ persistence: "localStorage", region: "eu", token: "t" }),
         databuddy({ clientId: "c", "track-web-vitals": "true" }),
+        oneDollarStats({ hostname: "docs.example.com" }),
       ],
     });
-    expect(config.analytics).toHaveLength(20);
-    expect(config.analytics[16]?.options).toMatchObject({ serverZone: "EU" });
-    expect(config.analytics[17]?.options).toMatchObject({ spa: "auto" });
-    expect(config.analytics[18]?.options).toMatchObject({ region: "eu" });
-    expect(config.analytics[19]?.options).toMatchObject({
+    expect(config.analytics).toHaveLength(22);
+    expect(config.analytics[17]?.options).toMatchObject({ serverZone: "EU" });
+    expect(config.analytics[18]?.options).toMatchObject({ spa: "auto" });
+    expect(config.analytics[19]?.options).toMatchObject({ region: "eu" });
+    expect(config.analytics[20]?.options).toMatchObject({
       "track-web-vitals": "true",
+    });
+    expect(config.analytics[21]?.options).toMatchObject({
+      hostname: "docs.example.com",
     });
   });
 
@@ -140,7 +148,7 @@ describe("provider adapter factories", () => {
     }
   });
 
-  it("reject a non-string data attribute, an unknown region, and a fractional Hotjar id", () => {
+  it("reject a non-string data attribute, a non-bare OneDollarStats hostname, an unknown region, and a fractional Hotjar id", () => {
     expect(
       analyticsConfigSchema.safeParse([
         { ...fathom({ site: "S" }), options: { site: "S", spa: true } },
@@ -154,6 +162,35 @@ describe("provider adapter factories", () => {
         },
       ]).success
     ).toBe(false);
+    expect(
+      analyticsConfigSchema.safeParse([
+        { ...oneDollarStats(), options: { devmode: true } },
+      ]).success
+    ).toBe(false);
+    for (const hostname of [
+      "https://docs.example.com",
+      "docs.example.com/guide",
+      "docs.example.com?ref=x",
+      "docs.example.com#top",
+      "user@docs.example.com",
+      "docs..example.com",
+      "",
+    ]) {
+      expect(
+        analyticsConfigSchema.safeParse([oneDollarStats({ hostname })]).success,
+        `hostname ${JSON.stringify(hostname)} should be rejected`
+      ).toBe(false);
+    }
+    for (const hostname of [
+      "docs.example.com",
+      "localhost:4321",
+      "bücher.example",
+    ]) {
+      expect(
+        analyticsConfigSchema.safeParse([oneDollarStats({ hostname })]).success,
+        `hostname ${JSON.stringify(hostname)} should be accepted`
+      ).toBe(true);
+    }
     expect(
       analyticsConfigSchema.safeParse([
         { ...mixpanel({ token: "t" }), options: { region: "ap", token: "t" } },
@@ -355,6 +392,47 @@ describe("provider adapter heads", () => {
           "data-client-id": "abc",
           "data-track-web-vitals": "true",
           src: DATABUDDY_SCRIPT_SRC,
+        },
+        content: null,
+      },
+    ]);
+  });
+
+  it("one-dollar-stats: the deferred tag with passthrough data attributes", () => {
+    expect(scripts(oneDollarStats())).toEqual([
+      {
+        attributes: { defer: true, src: ONE_DOLLAR_STATS_SCRIPT_SRC },
+        content: null,
+      },
+    ]);
+    expect(
+      scripts(oneDollarStats({ autocollect: "false", hostname: "d.example" }))
+    ).toEqual([
+      {
+        attributes: {
+          "data-autocollect": "false",
+          "data-hostname": "d.example",
+          defer: true,
+          src: ONE_DOLLAR_STATS_SCRIPT_SRC,
+        },
+        content: null,
+      },
+    ]);
+  });
+
+  it('one-dollar-stats: leaves data-hash-routing off for "false", since presence turns it on', () => {
+    expect(scripts(oneDollarStats({ "hash-routing": "false" }))).toEqual([
+      {
+        attributes: { defer: true, src: ONE_DOLLAR_STATS_SCRIPT_SRC },
+        content: null,
+      },
+    ]);
+    expect(scripts(oneDollarStats({ "hash-routing": "true" }))).toEqual([
+      {
+        attributes: {
+          "data-hash-routing": "true",
+          defer: true,
+          src: ONE_DOLLAR_STATS_SCRIPT_SRC,
         },
         content: null,
       },
