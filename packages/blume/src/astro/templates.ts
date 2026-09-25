@@ -21,7 +21,10 @@ import { applyBaseToAstroRedirects } from "../deploy/redirects.ts";
 import type { OgCache } from "../og/cache.ts";
 import type { OgFont, OgFontFamilies } from "../og/card.ts";
 import type { MixedbreadOptions } from "../search/adapters/mixedbread.ts";
-import type { ResolvedSearchAdapter } from "../search/adapters/registry.ts";
+import type {
+  ResolvedSearchAdapter,
+  SearchAdapterKind,
+} from "../search/adapters/registry.ts";
 import { buildFontEntries, fontLocaleCodes } from "../theme/fonts.ts";
 import { importSpecifier, wrapperPropsType } from "./component-slots.ts";
 import type { ExampleSpec } from "./examples.ts";
@@ -398,14 +401,32 @@ export interface ClientFeatures {
 /** Every feature on: what a checkout that predates the detection shipped. */
 const ALL_CLIENT_FEATURES: ClientFeatures = { epub: true, mermaid: true };
 
+/**
+ * The npm module each browser-queried search adapter's client imports (see
+ * `components/layout/search/`). The `<Search>` dialog lazy-imports that client
+ * on first open, after the dev dep optimizer's startup run, so the first
+ * search of a fresh `blume dev` session discovered the library, re-ran the
+ * optimizer, and reloaded the page. Pagefind loads its script from the build
+ * output and Mixedbread queries through the server, so neither has one.
+ */
+const SEARCH_CLIENT_DEPS: Partial<Record<SearchAdapterKind, string>> = {
+  algolia: "algoliasearch/lite",
+  flexsearch: "flexsearch",
+  orama: "@orama/orama",
+  "orama-cloud": "@oramacloud/client",
+  typesense: "typesense",
+};
+
 const resolveOptimizeDeps = (options: {
   aliases: Record<string, string> | undefined;
   context: ProjectContext;
   features: ClientFeatures;
   needsReact: boolean;
   reactCompilerPath: string | null | undefined;
+  searchKind: SearchAdapterKind;
 }): OptimizeDepsConfig => {
   const { context, features } = options;
+  const searchDep = SEARCH_CLIENT_DEPS[options.searchKind];
   const optimizeDepsEntries = [
     ...(context.pagesRoot ? [`${context.pagesRoot}/**/*.astro`] : []),
     `${context.root}/islands/**/*.{jsx,svelte,tsx,vue}`,
@@ -418,6 +439,8 @@ const resolveOptimizeDeps = (options: {
     // Mermaid costs the dev server seconds at startup for nothing otherwise.
     ...(features.mermaid ? ["blume > mermaid"] : []),
     ...(features.epub ? ["blume > epub-gen-memory/bundle"] : []),
+    // Only the configured search adapter's client library.
+    ...(searchDep ? [`blume > ${searchDep}`] : []),
     // Astro's own client-router/prefetch virtual modules are deliberately NOT
     // forced in here: they read Vite `define`-injected constants
     // (__PREFETCH_PREFETCH_ALL__ and friends) that a pre-bundled copy loses,
@@ -538,7 +561,7 @@ const blumeIntegrationOptions = (options: {
         buildArtifactsRoot: ".",
         contentRoutes: options.contentRoutes,
         homeLinkHeader:
-          buildHomeLinkHeader(options.config, options.contentRoutes) ??
+          buildHomeLinkHeader(options.config, options.contentRoutes, "dev") ??
           undefined,
         pages: options.pages,
       }
@@ -623,6 +646,7 @@ export const astroConfigTemplate = (options: {
     features,
     needsReact,
     reactCompilerPath: options.reactCompilerPath,
+    searchKind: config.search.provider.kind,
   });
 
   const {
@@ -893,6 +917,10 @@ ${userConfigSetup}export default defineConfig({
     // \`/bundle\` subpath that is actually imported: optimizing the package
     // root leaves that entry out. Production (Rollup) already handles the
     // interop, so all of this only affects dev.
+    //
+    // The search adapter's client library rides the list for the same reason
+    // as the compiler runtime: the search dialog lazy-imports it on first
+    // open, and discovering it then re-optimizes and reloads the page.
     optimizeDeps: {
       entries: ${JSON.stringify(optimizeDepsEntries)},
       include: ${JSON.stringify(optimizeDepsInclude)},
@@ -1247,9 +1275,15 @@ export const askEndpointTemplate = (
     "messages",
     ...backend.template.fields,
   ];
+  // The request's signal aborts when the reader closes the panel mid-answer
+  // (the client drops the connection): passing it on stops the model call,
+  // which otherwise kept generating, and billing, to completion into a closed
+  // connection. `streamText` ends an aborted call through its abort path, not
+  // `onError`, so the reader leaving is never logged as a provider error.
   const call = `    const result = streamText({
       ${streamFields.join(",\n      ")},
 ${onError}
+      abortSignal: request.signal,
     });`;
   const stream = grounded
     ? `    const instructions =

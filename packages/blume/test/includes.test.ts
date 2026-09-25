@@ -1045,25 +1045,48 @@ const registerRefresh = (refreshContent?: () => Promise<void>) =>
   // handle, both provided by the fixture.
   blumeIntegration({ pages: [] }).hooks["astro:server:setup"]?.({
     refreshContent,
-    server: { middlewares: { stack: [] } },
+    server: { environments: {}, middlewares: { stack: [] } },
   } as never);
 
-/** A fake Vite dev server capturing invalidations and websocket sends. */
-const fakeServer = (modulesByFile: Record<string, unknown[]>) => {
+/**
+ * A fake Vite dev server capturing invalidations and websocket sends. Each
+ * entry of `modulesByEnvironment` is one environment's module graph, keyed by
+ * file; a bare `modulesByFile` is the `ssr` environment's.
+ */
+const fakeServer = (
+  modulesByFile: Record<string, unknown[]>,
+  modulesByEnvironment?: Record<string, Record<string, unknown[]>>
+) => {
   const invalidated: unknown[] = [];
   const sent: { type: string }[] = [];
+  const environments: Record<
+    string,
+    {
+      moduleGraph: {
+        getModulesByFile: (file: string) => Set<unknown> | undefined;
+        invalidateModule: (mod: never) => void;
+      };
+    }
+  > = {};
+  for (const [name, graph] of Object.entries(
+    modulesByEnvironment ?? { ssr: modulesByFile }
+  )) {
+    environments[name] = {
+      moduleGraph: {
+        getModulesByFile: (file: string) =>
+          graph[file] ? new Set(graph[file]) : undefined,
+        invalidateModule: (mod: never) => {
+          invalidated.push(mod);
+        },
+      },
+    };
+  }
   return {
     invalidated,
     sent,
     server: {
       config: { root: "/" },
-      moduleGraph: {
-        getModulesByFile: (file: string) =>
-          modulesByFile[file] ? new Set(modulesByFile[file]) : undefined,
-        invalidateModule: (mod: never) => {
-          invalidated.push(mod);
-        },
-      },
+      environments,
       ws: {
         send: (payload: { type: "full-reload" }) => {
           sent.push(payload);
@@ -1089,6 +1112,33 @@ describe("includeHmrPlugin", () => {
     });
     expect(result).toEqual([]);
     expect(invalidated).toEqual([modA]);
+    expect(sent).toEqual([{ type: "full-reload" }]);
+  });
+
+  it("invalidates the including pages in every environment's graph", async () => {
+    // With @astrojs/cloudflare the content pages render in the `prerender`
+    // environment, which Vite's legacy `server.moduleGraph` (client + ssr)
+    // never reaches: a partial edit kept serving the page's stale module.
+    const root = await fixture({ "p.md": "u" });
+    const graphPath = join(root, "includes.json");
+    const partial = join(root, "docs", "_s.md");
+    const page = join(root, "docs", "a.mdx");
+    await writeFile(graphPath, JSON.stringify({ [partial]: [page] }));
+    const ssrPage = { id: "ssr:a" };
+    const prerenderPage = { id: "prerender:a" };
+    const { server, invalidated, sent } = fakeServer(
+      {},
+      {
+        client: {},
+        prerender: { [page]: [prerenderPage] },
+        ssr: { [page]: [ssrPage] },
+      }
+    );
+    await includeHmrPlugin(graphPath).handleHotUpdate({
+      file: partial,
+      server,
+    });
+    expect(invalidated).toEqual([prerenderPage, ssrPage]);
     expect(sent).toEqual([{ type: "full-reload" }]);
   });
 

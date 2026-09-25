@@ -28,9 +28,29 @@ interface OverlayErrorPayload {
 
 /** The dev server's HMR channel — either `.ws` (Vite ≤5) or `.hot` (Vite 6+). */
 interface OverlayChannel {
-  send: (payload: OverlayErrorPayload) => void;
+  send: (payload: OverlayErrorPayload | { type: "full-reload" }) => void;
 }
-interface OverlayServer {
+
+/** A node in a Vite environment's module graph; only its identity matters. */
+interface DevModuleNode {
+  id: string | null;
+}
+
+/**
+ * The dev-server slice the integration keeps: the overlay channel, and every
+ * Vite environment's module graph for the content re-sync (structurally
+ * typed, like every Blume-authored Vite plugin).
+ */
+interface DevServer {
+  environments: Record<
+    string,
+    {
+      moduleGraph: {
+        getModuleById: (id: string) => DevModuleNode | undefined;
+        invalidateModule: (mod: never) => void;
+      };
+    }
+  >;
   hot?: OverlayChannel;
   ws?: OverlayChannel;
 }
@@ -74,7 +94,7 @@ interface DevNegotiation {
 interface DevServerRegistry {
   buildProject: BlumeProject | null;
   negotiation: DevNegotiation | null;
-  overlay: OverlayServer | null;
+  overlay: DevServer | null;
   refreshContent: RefreshContent | null;
 }
 
@@ -155,6 +175,38 @@ export const publishDevNegotiation = (
     : null;
 };
 
+/** A dev server's HMR channel: `.ws`, or `.hot` where only that exists. */
+const overlayChannelOf = (
+  server: DevServer | null
+): OverlayChannel | undefined => server?.ws ?? server?.hot;
+
+/** Astro's content-layer data store, a virtual module in each environment. */
+const DATA_STORE_MODULE_ID = "\0astro:data-layer-content";
+
+/**
+ * Invalidate Astro's data store in every Vite environment, then reload the
+ * browser. Astro invalidates it after a sync in the `ssr` environment only,
+ * which is where pages render on most adapters. With `@astrojs/cloudflare`
+ * the `ssr` environment runs in workerd and the prerendered pages (every
+ * content page) render in the `prerender` environment, whose copy of the
+ * store then stayed at its startup snapshot: a page added in dev resolved
+ * its route but `getEntry` still missed it, so it 404ed until a restart.
+ */
+const invalidateDataStore = (server: DevServer): void => {
+  for (const { moduleGraph } of Object.values(server.environments)) {
+    const mod = moduleGraph.getModuleById(DATA_STORE_MODULE_ID);
+    if (mod) {
+      // SAFETY: the node came out of this same module graph; `never` only
+      // reflects that the structural slice doesn't model the node type.
+      moduleGraph.invalidateModule(mod as never);
+    }
+  }
+  // Astro reloaded the browser when the store was written, which can land
+  // before the invalidation above; reload again so no page renders the
+  // stale copy.
+  overlayChannelOf(server)?.send({ type: "full-reload" });
+};
+
 /**
  * Re-run Astro's content-layer loaders against the live dev server. Returns
  * `false` when no server has registered one — before the first
@@ -165,20 +217,21 @@ export const publishDevNegotiation = (
  * stale store and the moved page 404s.
  */
 export const refreshBlumeContent = async (): Promise<boolean> => {
-  const { refreshContent } = registry();
+  const { overlay, refreshContent } = registry();
   if (!refreshContent) {
     return false;
   }
   // No loader filter: every collection re-syncs (the docs glob and any
   // staged collection alike).
   await refreshContent({});
+  if (overlay) {
+    invalidateDataStore(overlay);
+  }
   return true;
 };
 
-const overlayChannel = (): OverlayChannel | undefined => {
-  const { overlay } = registry();
-  return overlay?.ws ?? overlay?.hot;
-};
+const overlayChannel = (): OverlayChannel | undefined =>
+  overlayChannelOf(registry().overlay);
 
 /**
  * Surface Blume's own diagnostics (config/frontmatter/content errors) in the
@@ -237,8 +290,9 @@ export interface BlumeIntegrationOptions {
   /**
    * Homepage `Link` header value for agent discovery (see
    * `ai/link-headers.ts`); the dev-server counterpart of the `_headers` /
-   * Vercel-config emission, so `curl -I` against `blume dev` shows what the
-   * deployed site will send. Published the same way as `contentRoutes`.
+   * Vercel-config emission, so `curl -I` against `blume dev` shows it too —
+   * built for the `"dev"` surface, which leaves out the targets only a build
+   * writes. Published the same way as `contentRoutes`.
    */
   homeLinkHeader?: string;
   /**
@@ -279,7 +333,8 @@ const isHomeUrl = (rawUrl: string | undefined): boolean => {
  * variant falls back to the synthesized llms.txt mirror when it's a landing
  * page (see `markdownRoutePaths`). The same
  * middleware also stamps the homepage agent-discovery `Link` header, mirroring
- * what the deployed site sends via `_headers` / the Vercel routing config.
+ * what the deployed site sends via `_headers` / the Vercel routing config
+ * minus the targets the dev server doesn't serve.
  *
  * Request URLs arrive base-less: Astro unshifts its own dev middlewares (base,
  * trailing slash, route guard) ahead of this one from its post-`configureServer`

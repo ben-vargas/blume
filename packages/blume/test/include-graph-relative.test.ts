@@ -50,13 +50,17 @@ describe("includeHmrPlugin with a project-relative graph", () => {
       file: join(root, "docs", "_s.md"),
       server: {
         config: { root },
-        moduleGraph: {
-          getModulesByFile: (file: string) => {
-            const found = modules.get(file);
-            return found ? new Set(found) : undefined;
-          },
-          invalidateModule: (mod: never) => {
-            invalidated.push(mod);
+        environments: {
+          ssr: {
+            moduleGraph: {
+              getModulesByFile: (file: string) => {
+                const found = modules.get(file);
+                return found ? new Set(found) : undefined;
+              },
+              invalidateModule: (mod: never) => {
+                invalidated.push(mod);
+              },
+            },
           },
         },
         ws: {
