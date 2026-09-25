@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 
+import { gateway } from "../src/ai/ask.ts";
 import { checkRequiredSecrets } from "../src/cli/required-secrets.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
 import { mixedbread } from "../src/search/adapters/index.ts";
@@ -38,6 +39,20 @@ describe("checkRequiredSecrets", () => {
     expect(result[0]?.message).toBe(
       "Assistant (AI Gateway) is enabled but AI_GATEWAY_API_KEY is not set (on Vercel the gateway can also authenticate via OIDC)."
     );
+  });
+
+  it("warns when generated narration has no key to build with", () => {
+    Reflect.deleteProperty(process.env, "AI_GATEWAY_API_KEY");
+    const config = blumeConfigSchema.parse({
+      narration: { provider: gateway() },
+    });
+    expect(checkRequiredSecrets(config)[0]?.message).toBe(
+      "Narration audio is enabled but AI_GATEWAY_API_KEY is not set (read at build; without it pages use browser voices)."
+    );
+    // Browser voices need no key.
+    expect(
+      checkRequiredSecrets(blumeConfigSchema.parse({ narration: true }))
+    ).toEqual([]);
   });
 
   it("is satisfied when the key is set", () => {

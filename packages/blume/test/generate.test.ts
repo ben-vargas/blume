@@ -380,6 +380,32 @@ describe("buildRuntimeData — navigation.repo", () => {
 });
 
 describe("buildRuntimeData", () => {
+  it("tells the player whether the build generates narration audio", async () => {
+    const off = await scanProject(
+      await writeProject({ "docs/index.md": "# Home\n" })
+    );
+    expect(JSON.parse(buildRuntimeData(off)).config.narration).toBeNull();
+    const browser = await scanProject(
+      await writeProject({
+        "blume.config.ts": "export default { narration: true };\n",
+        "docs/index.md": "# Home\n",
+      })
+    );
+    expect(JSON.parse(buildRuntimeData(browser)).config.narration).toEqual({
+      generated: false,
+    });
+    const generated = await scanProject(
+      await writeProject({
+        "blume.config.ts":
+          'export default { narration: { provider: { kind: "gateway", options: {}, requiredSecrets: [], runtimeDeps: [] } } };\n',
+        "docs/index.md": "# Home\n",
+      })
+    );
+    expect(JSON.parse(buildRuntimeData(generated)).config.narration).toEqual({
+      generated: true,
+    });
+  });
+
   it("serializes a minimal project with feature defaults off", async () => {
     const project = await scanProject(
       await writeProject({ "docs/index.md": "# Home\n" })

@@ -33,6 +33,19 @@ export const checkRequiredSecrets = (config: ResolvedConfig): Diagnostic[] => {
     }
   }
 
+  // Generated narration reads its key at build, not at runtime; without it the
+  // build skips the audio and pages read with browser voices.
+  const { narration } = config;
+  if (narration.enabled && narration.provider) {
+    for (const env of narration.provider.requiredSecrets) {
+      requireSecret(
+        "Narration audio",
+        env,
+        "read at build; without it pages use browser voices"
+      );
+    }
+  }
+
   // Each search adapter declares the secrets its generated runtime reads.
   const { provider } = config.search;
   for (const env of provider.requiredSecrets) {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
+import { gateway } from "../src/ai/ask.ts";
 import {
   blumeConfigSchema,
   folderMetaSchema,
@@ -238,6 +239,59 @@ describe("export config normalization", () => {
     expect(
       blumeConfigSchema.parse({ export: { epub: true } }).export
     ).toStrictEqual({ epub: true, pdf: false });
+  });
+});
+
+describe("narration config normalization", () => {
+  it("is off by default", () => {
+    expect(blumeConfigSchema.parse({}).narration).toStrictEqual({
+      enabled: false,
+      provider: null,
+    });
+  });
+
+  it("reads with browser voices for the boolean shorthand", () => {
+    expect(
+      blumeConfigSchema.parse({ narration: true }).narration
+    ).toStrictEqual({ enabled: true, provider: null });
+  });
+
+  it("fills in the speech defaults on a gateway() provider", () => {
+    const { narration } = blumeConfigSchema.parse({
+      narration: { provider: gateway() },
+    });
+    expect(narration.enabled).toBe(true);
+    expect(narration.provider?.options).toStrictEqual({
+      apiKeyEnv: "AI_GATEWAY_API_KEY",
+      model: "openai/tts-1-hd",
+      voice: "alloy",
+    });
+    expect(narration.provider?.requiredSecrets).toStrictEqual([
+      "AI_GATEWAY_API_KEY",
+    ]);
+  });
+
+  it("rejects the assistant's reasoning option on a narration provider", () => {
+    expect(
+      blumeConfigSchema.safeParse({
+        narration: { provider: gateway({ reasoning: "low" }) },
+      }).success
+    ).toBe(false);
+  });
+
+  it("rejects narration's voice option on the assistant", () => {
+    expect(
+      blumeConfigSchema.safeParse({
+        ai: {
+          assistant: { enabled: true, provider: gateway({ voice: "alloy" }) },
+        },
+      }).success
+    ).toBe(false);
+  });
+
+  it("lets a page opt out in frontmatter", () => {
+    expect(pageMetaSchema.parse({}).narration).toBe(true);
+    expect(pageMetaSchema.parse({ narration: false }).narration).toBe(false);
   });
 });
 

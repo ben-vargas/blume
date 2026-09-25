@@ -17,6 +17,7 @@ const canRenderIcon =
 
 <div
   class="relative [counter-increment:blume-step]"
+  data-blume-step
 >
   <span class:list={[markerClass, !canRenderIcon && "before:[content:counter(blume-step)]"]}>
     {canRenderIcon && <Icon name={icon} size={14} />}

@@ -29,6 +29,7 @@ import { normalizeBasePath } from "../core/base-path.ts";
 import { discoverPagesSync } from "../core/custom-pages.ts";
 import type { BlumeProject } from "../core/project-graph.ts";
 import type { ResolvedConfig } from "../core/schema.ts";
+import { buildNarration } from "../narration/build.ts";
 import { buildSearchIndex } from "../search/build.ts";
 import { syncSearchProvider } from "../search/sync/index.ts";
 import { readsHeaderFiles } from "./adapter-output.ts";
@@ -381,6 +382,10 @@ export const publishBuildArtifacts = async (
     const indexed = await indexSearch(distDir);
     logger.info(`Indexed ${indexed} page(s) for search`);
   }
+
+  // Generated narration reads the built pages, so it runs once they exist.
+  // Nothing happens without `narration.provider`.
+  await buildNarration(project, distDir, logger);
 
   // Upload the index to a hosted provider (Algolia, Orama Cloud, Typesense).
   // Skipped with a warning when its admin key isn't configured.

@@ -1159,6 +1159,38 @@ describe("UI dictionaries", () => {
     }
   });
 
+  it("localizes the narration player and spoken cues in every shipped pack", () => {
+    // The page-narration player's chrome and the cues its voice speaks before
+    // a callout, step, tab, or collapsible section. Parameterized: `{n}` is
+    // the step number or minute count and `{title}` the tab's label, so every
+    // translation must carry its placeholder.
+    expect(EN_UI.narration.label).toBe("Listen to this page");
+    const de = resolveUIStrings("de", { defaultLocale: "en" });
+    expect(de.narration.label).toBe("Diese Seite anhören");
+    const keys = Object.keys(EN_UI.narration);
+    for (const [code, pack] of Object.entries(UI_PACKS)) {
+      expect(
+        Object.keys(pack.narration ?? {}),
+        `pack "${code}" narration keys differ from English`
+      ).toEqual(keys);
+      for (const [key, value] of Object.entries(pack.narration ?? {})) {
+        expect(value, `pack "${code}" misses narration.${key}`).toBeTruthy();
+      }
+      expect(
+        pack.narration?.cueStep,
+        `pack "${code}" narration.cueStep misses {n}`
+      ).toContain("{n}");
+      expect(
+        pack.narration?.minutes,
+        `pack "${code}" narration.minutes misses {n}`
+      ).toContain("{n}");
+      expect(
+        pack.narration?.cueTab,
+        `pack "${code}" narration.cueTab misses {title}`
+      ).toContain("{title}");
+    }
+  });
+
   it("localizes the new-tab link description in every shipped pack", () => {
     // Every new-tab link's aria-describedby target, rendered once per page.
     expect(EN_UI.nav.opensInNewTab).toBe("Opens in a new tab");

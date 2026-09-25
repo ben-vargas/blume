@@ -177,6 +177,12 @@ export interface BlumeDataConfig {
   /** Hosted MCP server, or `null` when MCP is off. */
   mcp: { name: string; route: string } | null;
   /**
+   * "Listen to this page": `generated` when a `narration.provider` makes
+   * `blume build` write audio clips the player should look for, else the
+   * player reads with browser voices. `null` when narration is off.
+   */
+  narration: { generated: boolean } | null;
+  /**
    * Open Graph image generation. Card fonts are baked into the generated OG
    * endpoint (they can carry absolute build-machine paths) and deliberately
    * kept out of this snapshot, which pages serialize into HTML.

@@ -10,6 +10,7 @@ import type { ComponentMarkdown } from "../ai/component-markdown.ts";
 import { analyticsConfigSchema } from "../analytics/schema.ts";
 import { resolvedDeploymentSchema } from "../deploy/adapters/registry.ts";
 import type { CodeTheme } from "../markdown/themes.ts";
+import { narrationProviderSchema } from "../narration/provider.ts";
 import { normalizeRoute } from "../openapi/references.ts";
 import {
   referenceConfigSchema,
@@ -216,6 +217,8 @@ const pageMetaBaseSchema = z.strictObject({
   icon: iconName.optional(),
   /** Overrides the git-derived last-modified date when `lastModified` is on. */
   lastModified: dateSchema.optional(),
+  /** `false` keeps the "Listen to this page" player off this page. */
+  narration: z.boolean().default(true),
   noindex: z.boolean().default(false),
   search: searchMetaSchema.prefault({}),
   seo: seoMetaSchema.prefault({}),
@@ -1024,6 +1027,26 @@ const exportConfigSchema = z
   ])
   .transform((value) =>
     isBoolean(value) ? { epub: value, pdf: value } : value
+  );
+
+// "Listen to this page". Off by default. `true` reads pages aloud with the
+// reader's browser voices, which needs no key and works on any host; an object
+// with a `provider` (`gateway()` from `blume/ai`) generates neural audio at
+// build instead, one cached clip per sentence, and falls back to the browser's
+// voices where no clips exist (`blume dev`, a build without the key). Both
+// normalize to `{ enabled, provider }`.
+const narrationConfigSchema = z
+  .union([
+    z.boolean(),
+    z.strictObject({
+      enabled: z.boolean().default(true),
+      provider: narrationProviderSchema.optional(),
+    }),
+  ])
+  .transform((value) =>
+    isBoolean(value)
+      ? { enabled: value, provider: null }
+      : { enabled: value.enabled, provider: value.provider ?? null }
   );
 
 /** A configured locale: ISO-ish code plus display metadata for the switcher. */
@@ -1917,6 +1940,7 @@ export const blumeConfigSchema = z
       lastModified: lastModifiedConfigSchema.default(false),
       logo: logoConfigSchema.optional(),
       markdown: markdownConfigSchema.prefault({}),
+      narration: narrationConfigSchema.prefault(false),
       navigation: navigationConfigSchema.prefault({}),
       react: reactConfigSchema.prefault({}),
       redirects: z.array(redirectSchema).default([]),

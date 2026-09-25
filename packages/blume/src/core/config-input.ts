@@ -2,7 +2,7 @@ import type { AstroIntegration } from "astro";
 import type { z } from "zod";
 
 import type { AskRetrievalOptions } from "../ai/ask-context.ts";
-import type { AssistantAdapter } from "../ai/ask.ts";
+import type { AssistantAdapter, AssistantGatewayAdapter } from "../ai/ask.ts";
 import type { ComponentMarkdown } from "../ai/component-markdown.ts";
 import type { AnalyticsAdapter } from "../analytics/schema.ts";
 import type { DeploymentInput } from "../deploy/adapters/registry.ts";
@@ -1242,6 +1242,25 @@ export type ExportConfig =
     };
 
 /**
+ * "Listen to this page". `true` reads pages aloud with the reader's browser
+ * voices (no key, any host). The object form's `provider` generates neural
+ * audio at build instead, one cached clip per sentence, and falls back to
+ * browser voices where no clips exist. Defaults to `false`.
+ */
+export type NarrationConfig =
+  | boolean
+  | {
+      /** Show the player. Defaults to `true` in the object form. */
+      enabled?: boolean;
+      /**
+       * Generate audio at build with a speech model:
+       * `gateway({ model: "openai/tts-1-hd", voice: "alloy" })` from
+       * `blume/ai`. Without it, pages are read with browser voices.
+       */
+      provider?: AssistantGatewayAdapter;
+    };
+
+/**
  * Opt-in custom frontmatter keys. Page frontmatter is strictly validated —
  * an unknown key fails the build so typos are caught — and `extend` carves
  * out project-specific keys from that rule, each validated by a schema you
@@ -1394,6 +1413,8 @@ export interface BlumeConfig {
   logo?: LogoConfig;
   /** Markdown / MDX rendering behavior. */
   markdown?: MarkdownConfig;
+  /** "Listen to this page" narration. Defaults to `false`. */
+  narration?: NarrationConfig;
   /** Header, sidebar, tabs, and switchers. */
   navigation?: NavigationConfig;
   /** React island behavior (compiler auto-memoization). */

@@ -114,6 +114,36 @@ const uiStringsObject = z.object({
       untranslated: z.string().default("Not translated"),
     })
     .prefault({}),
+  narration: z
+    .object({
+      // Spoken, not shown: the cues that introduce a callout of each type, a
+      // step (`{n}` is its number), a tab (`{title}` is its label), and a
+      // collapsible section. End each with a full stop so it reads as its own
+      // sentence.
+      cueDanger: z.string().default("Danger."),
+      cueInfo: z.string().default("Info."),
+      cueNote: z.string().default("Note."),
+      cueSection: z.string().default("Expandable section."),
+      cueStep: z.string().default("Step {n}."),
+      cueSuccess: z.string().default("Success."),
+      cueTab: z.string().default("{title} tab."),
+      cueTip: z.string().default("Tip."),
+      cueWarning: z.string().default("Warning."),
+      error: z.string().default("The narration couldn't load."),
+      // Resumes following the sentence being read after the reader scrolls away.
+      follow: z.string().default("Follow along"),
+      label: z.string().default("Listen to this page"),
+      // The estimated listening time; `{n}` is whole minutes.
+      minutes: z.string().default("{n} min"),
+      next: z.string().default("Next sentence"),
+      pause: z.string().default("Pause"),
+      play: z.string().default("Play"),
+      previous: z.string().default("Previous sentence"),
+      progress: z.string().default("Narration progress"),
+      speed: z.string().default("Playback speed"),
+      stop: z.string().default("Stop listening"),
+    })
+    .prefault({}),
   nav: z
     .object({
       back: z.string().default("Back"),

@@ -2124,6 +2124,7 @@ import Visibility from "blume/components/content/Visibility.astro";
 import YouTube from "blume/components/content/YouTube.astro";
 import Icon from "blume/components/Icon.astro";
 import LocaleLinks from "blume/components/layout/LocaleLinks.astro";
+import NarrationPlayer from "blume/components/layout/NarrationPlayer.astro";
 import ApiOverview from "blume/components/openapi/ApiOverview.astro";
 import ApiTagOperations from "blume/components/openapi/ApiTagOperations.astro";
 import Operation from "blume/components/openapi/Operation.astro";
@@ -2320,6 +2321,11 @@ const htmlLang = i18n ? locale : "en";
 // follows that language — not the (mirrored) page locale.
 const contentLocale =
   fallback && i18n?.fallbackLocale ? i18n.fallbackLocale : locale;
+// "Listen to this page", unless the page opts out. The spoken cues are read
+// between the content's own sentences, so they come from the content's
+// language (a fallback page's), while the player's labels follow the page.
+const narration = frontmatter.narration ? data.config.narration : null;
+const narrationCues = (i18n ? (data.uiByLocale[contentLocale] ?? data.ui) : data.ui).narration;
 const contentDir = i18n
   ? (i18n.locales.find((l) => l.code === contentLocale)?.dir ?? "ltr")
   : "ltr";
@@ -2522,6 +2528,15 @@ const LayoutComponent = resolveSlot(layoutOverrides.Layout, RootLayout);
 >
   <h1>{title}</h1>
   {frontmatter.description && <p class="text-lg text-muted-foreground">{frontmatter.description}</p>}
+  {narration && (
+    <NarrationPlayer
+      audioBase={narration.generated ? withMountedBase("/blume-narration/audio/") : undefined}
+      cues={narrationCues}
+      lang={i18n ? contentLocale : htmlLang}
+      manifest={narration.generated ? withMountedBase(encodeURI(\`/blume-narration/\${route === "/" ? "index" : route.slice(1)}.json\`)) : undefined}
+      strings={ui.narration}
+    />
+  )}
   <LocaleLinks locale={locale}>
     <Content components={components} />
   </LocaleLinks>

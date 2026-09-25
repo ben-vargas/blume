@@ -1172,6 +1172,9 @@ export const buildRuntimeData = (project: BlumeProject): string => {
             route: config.agents.mcp.route,
           }
         : null,
+      narration: config.narration.enabled
+        ? { generated: config.narration.provider !== null }
+        : null,
       // `og.enabled` is resolved to a definite boolean in `loadConfig`; coerce
       // the optional schema type so the serialized shape stays `boolean`.
       // Card fonts are baked into the generated OG endpoint (they can carry

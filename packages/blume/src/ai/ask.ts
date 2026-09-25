@@ -69,7 +69,7 @@ const providerOptionsSchema = z.record(
 );
 
 /** The shared option schema, with the adapter's own key env var default. */
-const sharedOptions = (apiKeyEnv: string) => ({
+export const sharedOptions = (apiKeyEnv: string) => ({
   apiKeyEnv: z.string().min(1).default(apiKeyEnv),
   headers: z.record(z.string(), z.string()).optional(),
   providerOptions: providerOptionsSchema.optional(),
@@ -81,13 +81,21 @@ const reasoningOption = z.enum(assistantReasoningLevels).optional();
 // gateway()
 // ---------------------------------------------------------------------------
 
-const GATEWAY_API_KEY_ENV = "AI_GATEWAY_API_KEY";
+export const GATEWAY_API_KEY_ENV = "AI_GATEWAY_API_KEY";
 /** The model the gateway adapter uses when none is configured. */
 const DEFAULT_GATEWAY_MODEL = "openai/gpt-5.5";
 
 /** Options for {@link gateway}. */
 export interface AssistantGatewayOptions extends AssistantAdapterOptions {
-  /** A `provider/model` id routed by the gateway. Defaults to `openai/gpt-5.5`. */
+  /**
+   * Narration only: how the voice should sound, for speech models that take
+   * instructions ("Read calmly, like a teacher").
+   */
+  instructions?: string;
+  /**
+   * A `provider/model` id routed by the gateway. Defaults to `openai/gpt-5.5`
+   * for the assistant and `openai/tts-1-hd` for narration.
+   */
   model?: string;
   /**
    * How much the model reasons before answering. Sent as the AI SDK's
@@ -96,6 +104,8 @@ export interface AssistantGatewayOptions extends AssistantAdapterOptions {
    * offer the level you pick. Omitted keeps the model's default.
    */
   reasoning?: AssistantReasoning;
+  /** Narration only: the speech model's voice. Defaults to `alloy`. */
+  voice?: string;
 }
 
 const gatewayOptionsSchema = z.strictObject({
@@ -115,7 +125,8 @@ export const gatewayAdapterSchema = adapterDescriptorSchema(
 );
 
 /**
- * Route the assistant through the Vercel AI Gateway (the default). `model` is a
+ * Route the assistant through the Vercel AI Gateway (the default), or generate
+ * narration audio with one of its speech models. `model` is a
  * `provider/model` string; the key is `AI_GATEWAY_API_KEY`, or Vercel's OIDC
  * token when deployed there. Needs no provider SDK beyond the `ai` package
  * Blume ships.

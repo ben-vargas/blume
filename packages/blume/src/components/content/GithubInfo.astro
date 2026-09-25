@@ -73,6 +73,7 @@ const { content: strings } = contentStrings(data, Astro.currentLocale);
   owner && repo && (
     <a
       class="not-prose my-6 flex flex-col gap-2 rounded-blume border border-border p-4 no-underline! transition-colors hover:border-foreground/30 hover:bg-muted/40"
+      data-blume-narration="skip"
       href={`${host}/${owner}/${repo}`}
       {...NEW_TAB_ATTRS}
     >

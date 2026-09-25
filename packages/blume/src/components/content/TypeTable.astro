@@ -37,7 +37,10 @@ const columns = "grid grid-cols-[1fr_2fr_auto] items-center gap-4";
 
 {
   entries.length > 0 && (
-    <div class="not-prose my-6 rounded-blume border border-border bg-muted/30 p-1.5">
+    <div
+      class="not-prose my-6 rounded-blume border border-border bg-muted/30 p-1.5"
+      data-blume-narration="skip"
+    >
       <div class={`${columns} px-3 py-2 font-medium text-muted-foreground text-xs`}>
         <span>{strings.prop}</span>
         <span>{strings.type}</span>

@@ -128,6 +128,28 @@ const exportOpts = {
 };
 
 describe("catchAllPageTemplate", () => {
+  it("renders the narration player after the description unless the page opts out", () => {
+    const out = catchAllPageTemplate({ ...exportOpts, mathEnabled: false });
+    expect(out).toContain(
+      'import NarrationPlayer from "blume/components/layout/NarrationPlayer.astro";'
+    );
+    expect(out).toContain(
+      "const narration = frontmatter.narration ? data.config.narration : null;"
+    );
+    // The clips' and manifest's URLs are only set when the build generates them.
+    expect(out).toContain(
+      'audioBase={narration.generated ? withMountedBase("/blume-narration/audio/") : undefined}'
+    );
+    expect(out).toContain(
+      "manifest={narration.generated ? withMountedBase(encodeURI(`/blume-narration/"
+    );
+    const description = out.indexOf("{frontmatter.description &&");
+    expect(out.indexOf("<NarrationPlayer")).toBeGreaterThan(description);
+    expect(out.indexOf("<NarrationPlayer")).toBeLessThan(
+      out.indexOf("<Content ")
+    );
+  });
+
   it("imports layout overrides and passes them to RootLayout", () => {
     const out = catchAllPageTemplate({ ...exportOpts, mathEnabled: false });
     expect(out).toContain(
