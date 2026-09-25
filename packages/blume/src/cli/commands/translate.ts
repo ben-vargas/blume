@@ -31,7 +31,7 @@ import {
 import { parseTimeoutSeconds } from "../args.ts";
 import { commandMeta } from "../command-meta.ts";
 import { reportInternalError } from "../internal-error.ts";
-import { flushStdout, logger, reportDiagnostics } from "../log.ts";
+import { logger, reportDiagnostics } from "../log.ts";
 
 /** Wall-clock ceiling per file, in seconds. */
 const DEFAULT_TIMEOUT_S = DEFAULT_TRANSLATE_TIMEOUT_MS / 1000;
@@ -224,8 +224,9 @@ export const translateCommand = defineCommand({
           process.stdout.write(checkReportJson(workList));
         }
         if (hasDrift(workList)) {
-          await flushStdout();
-          process.exit(1);
+          // Set the code and return rather than `process.exit`, which waits for
+          // neither a piped stderr (the drift report) nor a piped stdout.
+          process.exitCode = 1;
         }
         return;
       }
@@ -286,9 +287,9 @@ export const translateCommand = defineCommand({
       }
       if (result.counts.failed > 0 || result.counts.partial > 0) {
         // The ledger write above already persisted every success, so a failed
-        // rerun only retries what actually failed.
-        await flushStdout();
-        process.exit(1);
+        // rerun only retries what actually failed. Set the code rather than
+        // `process.exit`, which would cut off a piped stderr summary.
+        process.exitCode = 1;
       }
     } catch (error) {
       if (error instanceof BlumeError) {
