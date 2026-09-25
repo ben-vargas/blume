@@ -237,7 +237,13 @@ export default defineConfig({
     x: { creator: "@haydenbleasel", handle: "@haydenbleasel" },
   },
   theme: {
-    accent: "rgb(72 120 176)",
+    // Cornflower, step 4 of the marketing pages' bloom ramp
+    // (pages/_home/bloom.css); a step lighter in dark mode so links keep
+    // their contrast on the dark background.
+    accent: {
+      dark: "oklch(0.62 0.13 266)",
+      light: "oklch(0.54 0.14 266)",
+    },
   },
   title: "Blume",
 });

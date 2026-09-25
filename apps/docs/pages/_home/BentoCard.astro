@@ -1,7 +1,7 @@
 ---
 // One bento card: a decorative illustration (the default slot) centered in
-// the space above the caption, over a faint dot grid and sky glow that fade
-// out from the middle, with the caption at the bottom-left. Cards live in a
+// the space above the caption, over a faint dot grid that fades out from the
+// middle, with the caption at the bottom-left. Cards live in a
 // <dl>, so the caption is the card's dt/dd pair; the illustration is a
 // trailing dd, hidden from assistive tech and search snippets, that `order`
 // lifts above the caption. It stays in the flow, so a caption that wraps on a
@@ -9,6 +9,7 @@
 // `body` may mark code spans with backticks. Each card is its own reveal
 // container (see Motion.astro), so its illustration animates as it scrolls
 // into view.
+import "./bloom.css";
 import { inlineCode } from "./shared.ts";
 
 interface Props {
@@ -22,7 +23,7 @@ const { body, class: className, title } = Astro.props;
 
 <div
   class:list={[
-    "isolate flex flex-col gap-1 overflow-hidden rounded-[20px] bg-muted p-6 sm:min-h-96 sm:p-8",
+    "isolate flex flex-col gap-1 overflow-hidden rounded-[28px] bg-muted p-6 inset-ring inset-ring-foreground/5 sm:min-h-96 sm:p-8",
     className,
   ]}
   data-reveal
@@ -43,35 +44,18 @@ const { body, class: className, title } = Astro.props;
 </div>
 
 <style>
-  /* A dot grid over a whisper of the hero sky, both fading out toward the
-     card's edges so the illustration sits in a pool of light. */
+  /* The bloom's dot lattice, fading out toward the card's edges so the
+     illustration sits at its densest point. */
   .bento-backdrop {
-    background-image:
-      radial-gradient(
-        color-mix(in oklab, var(--blume-foreground) 14%, transparent) 1px,
-        transparent 1px
-      ),
-      radial-gradient(
-        closest-side,
-        color-mix(in oklab, rgb(72 120 176) 16%, transparent),
-        transparent
-      );
-    background-size:
-      16px 16px,
-      100% 100%;
     mask-image: radial-gradient(70% 80% at 50% 50%, black 20%, transparent);
   }
 
-  :global([data-theme="dark"]) .bento-backdrop {
-    background-image:
-      radial-gradient(
-        color-mix(in oklab, var(--blume-foreground) 12%, transparent) 1px,
-        transparent 1px
-      ),
-      radial-gradient(
-        closest-side,
-        color-mix(in oklab, rgb(72 120 176) 22%, transparent),
-        transparent
-      );
+  .bento-backdrop::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-color: color-mix(in oklab, var(--blume-foreground) 16%, transparent);
+    mask-image: var(--bloom-dots);
+    mask-size: var(--bloom-dots-size);
   }
 </style>

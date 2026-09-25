@@ -1,27 +1,21 @@
 ---
-// Landing hero: a full-bleed radial gradient, deep blue at the top fading into
-// the page background by the bottom, with the launch badge, headline, and the
-// install box with its two paths (get started, or migrate existing docs) in
-// white on the blue and the product
-// preview sitting on the fade below them. It lives outside the page container
-// so the gradient spans the viewport, and pulls itself up under the sticky
-// header (`h-16` in Header.astro) so the blue starts at the top of the page;
-// the page passes `transparentHeader` to PageLayout so the header sits over it
-// see-through until the page scrolls. The gradient's tail is mixed toward
-// `--blume-background`, so it lands on white in light mode and on the dark
-// surface in dark mode; dark mode also swaps the blue stops for a night-sky
-// navy so toggling the theme reads as day turning to night. The install box copy
-// button uses the page-level delegated `data-blume-copy-install` handler in
-// index.astro.
+// Landing hero on the plain page: the launch badge, the two-tone headline,
+// the tagline, and the install box with its two paths (get started, or
+// migrate existing docs). Beneath, the product preview stands in a rounded
+// bloom panel — pale at the top, deepening to cornflower toward the bottom
+// (see bloom.css) — the same language as the feature trays further down,
+// running off the panel's lower edge. The install box copy button uses the
+// page-level delegated `data-blume-copy-install` handler in index.astro.
+import "./bloom.css";
 import InstallBox from "./InstallBox.astro";
 import ProductPreview from "./ProductPreview.astro";
 import TextLink from "./TextLink.astro";
 ---
 
-<section class="hero-gradient -mt-16 overflow-hidden pt-36 text-white sm:pt-44">
+<section class="pt-16 pb-16 sm:pt-24 sm:pb-20">
   <div class="mx-auto max-w-[1400px] px-6">
     <a
-      class="inline-flex items-center py-1 text-white/70 text-xs transition-colors hover:text-white"
+      class="inline-flex items-center py-1 text-muted-foreground text-xs hover:text-foreground"
       href="/changelog"
     >
       Introducing Blume 2.0
@@ -31,60 +25,50 @@ import TextLink from "./TextLink.astro";
     >
       <span class="block">The open-source</span>
       <span class="block">docs framework</span>
-      <span class="block text-white/70">for humans and agents</span>
+      <span class="block text-muted-foreground">for humans and agents</span>
     </h1>
 
     <!-- Tagline, then the install command with the two paths beside it -->
-    <p class="mt-8 max-w-xl text-balance text-lg text-white/80">
+    <p class="mt-8 max-w-xl text-pretty text-lg text-muted-foreground">
       Fast, AI-ready, and zero-config. Drop Markdown into a folder and ship a
       production-grade docs site with no app boilerplate to write or maintain.
       Free and open source, forever.
     </p>
     <div class="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4">
-      <div class="w-full max-w-xs"><InstallBox variant="glass" /></div>
+      <div class="w-full max-w-xs"><InstallBox /></div>
       <div class="flex items-center gap-6">
-        <TextLink href="/docs/quickstart" tone="inverse">Get started</TextLink>
-        <TextLink href="#migrate" tone="inverse">Migrate your docs</TextLink>
+        <TextLink href="/docs/quickstart">Get started</TextLink>
+        <TextLink href="#migrate">Migrate your docs</TextLink>
       </div>
     </div>
   </div>
 
-  <div class="mx-auto mt-16 max-w-[1400px] px-6 sm:mt-24">
-    <ProductPreview />
+  <div class="mx-auto mt-16 max-w-[1400px] px-6 sm:mt-20">
+    <div
+      class="hero-bloom relative overflow-hidden rounded-[28px] px-3 pt-8 after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit] after:inset-ring after:inset-ring-foreground/10 sm:px-10 sm:pt-14 lg:px-16 lg:pt-16"
+    >
+      <ProductPreview />
+    </div>
   </div>
 </section>
 
 <style>
-  /* Day sky in light mode, night sky in dark mode: the same radial shape with
-     the stops swapped for deep navy, so the theme toggle reads as day → night.
-     The tail mixes toward `--blume-background` in both. */
-  .hero-gradient {
-    --sky-1: rgb(31 83 144);
-    --sky-2: rgb(38 88 150);
-    --sky-3: rgb(47 95 156);
-    --sky-4: rgb(55 104 163);
-    --sky-5: rgb(72 120 176);
-    --sky-6: rgb(93 137 186);
-    background-image: radial-gradient(
-      150% 108% at 50% -4%,
-      var(--sky-1) 0%,
-      var(--sky-2) 8%,
-      var(--sky-3) 18%,
-      var(--sky-4) 29%,
-      var(--sky-5) 44%,
-      var(--sky-6) 60%,
-      color-mix(in oklab, var(--sky-6) 55%, var(--blume-background)) 70%,
-      color-mix(in oklab, var(--sky-6) 22%, var(--blume-background)) 80%,
-      var(--blume-background) 88%
-    );
-  }
-
-  :global([data-theme="dark"]) .hero-gradient {
-    --sky-1: rgb(3 8 22);
-    --sky-2: rgb(5 12 30);
-    --sky-3: rgb(8 17 40);
-    --sky-4: rgb(11 24 52);
-    --sky-5: rgb(16 33 68);
-    --sky-6: rgb(22 44 84);
+  /* Pale petal at the top, gathering into cornflower at the bottom-center,
+     behind the foot of the preview. The panel's edge is drawn on top (the
+     `after:` ring) so it still closes the preview off where the window runs
+     off the bottom. */
+  .hero-bloom {
+    background-color: color-mix(in oklab, var(--bloom-7) 30%, var(--blume-background));
+    background-image:
+      radial-gradient(
+        70% 60% at 50% 100%,
+        color-mix(in oklab, var(--bloom-4) 85%, transparent),
+        transparent 75%
+      ),
+      radial-gradient(
+        120% 90% at 50% 100%,
+        color-mix(in oklab, var(--bloom-6) 80%, transparent),
+        transparent 80%
+      );
   }
 </style>

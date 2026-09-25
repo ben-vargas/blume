@@ -1,11 +1,11 @@
 ---
 // A faithful, static mock of a docs site built with Blume — the fictional
-// "Acme" brand (see `sampleBrand` in shared.ts) — framed by a thin frosted
-// white strip so it reads as a window floating over the hero gradient (the
-// strip wraps the top and sides; the bottom is clipped by the height cap). The
-// code block is the
-// real shipped <CodeBlock>, so it gets genuine Shiki highlighting, a language
-// icon, and the filename header exactly as a Markdown fence would.
+// "Acme" brand (see `sampleBrand` in shared.ts) — a bare window with a
+// hairline edge, standing in the hero's bloom panel under a soft cornflower
+// shadow and running off the panel's lower edge at the height cap.
+// The code block is the real shipped <CodeBlock>, so it gets genuine Shiki
+// highlighting, a language icon, and the filename header exactly as a
+// Markdown fence would.
 import CodeBlock from "blume/components/content/CodeBlock.astro";
 import Callout from "blume/components/content/Callout.astro";
 import { GITHUB_MARK } from "blume/components/github-mark.ts";
@@ -88,11 +88,9 @@ const webhookCode = `app.post("/webhooks/acme", (req, res) => {
        accessibility tree, which get the figcaption instead. -->
   <div
     inert
-    class="h-[660px] overflow-hidden rounded-t-[28px] bg-white/25 p-2 shadow-[0_100px_68px_0_rgba(28,40,64,0.18)] backdrop-blur-[24px]"
+    class="preview-window h-[660px] overflow-hidden rounded-t-2xl bg-background"
   >
-    <div
-      class="overflow-hidden rounded-t-[20px] border border-border border-b-0 bg-background"
-    >
+    <div class="overflow-hidden">
       <!-- App header -->
       <div
         class="flex items-center justify-between px-5 py-3"
@@ -348,46 +346,18 @@ const webhookCode = `app.post("/webhooks/acme", (req, res) => {
       </div>
     </div>
   </div>
-  <!-- Progressive blur + fade over the bottom edge so the clipped window
-       dissolves into the page instead of ending on a hard line: two stacked
-       backdrop-blur layers, each masked so the blur ramps up toward the
-       bottom, under a veil that fades to the page background. It reaches past
-       the figure's sides so the frame's drop shadow fades with it rather than
-       getting clipped flat by the section edge, and one pixel below the
-       figure so a fractional section height can't leave a blended hairline. -->
-  <div
-    aria-hidden="true"
-    class="preview-fade -inset-x-24 -bottom-px pointer-events-none absolute h-72"
-  >
-    <div class="preview-blur preview-blur-soft"></div>
-    <div class="preview-blur preview-blur-hard"></div>
-    <div class="preview-veil"></div>
-  </div>
 </figure>
 
 <style>
-  .preview-blur,
-  .preview-veil {
-    position: absolute;
-    inset: 0;
+  /* A hairline edge over a soft cornflower shadow. Dark mode keeps only the
+     edge. */
+  .preview-window {
+    box-shadow:
+      0 0 0 1px color-mix(in oklab, var(--blume-foreground) 6%, transparent),
+      0 32px 80px -24px color-mix(in oklab, var(--bloom-1) 35%, transparent);
   }
 
-  .preview-blur-soft {
-    backdrop-filter: blur(6px);
-    mask-image: linear-gradient(to bottom, transparent 0%, black 55%);
-  }
-
-  .preview-blur-hard {
-    backdrop-filter: blur(18px);
-    mask-image: linear-gradient(to bottom, transparent 35%, black 90%);
-  }
-
-  .preview-veil {
-    background: linear-gradient(
-      to bottom,
-      transparent 0%,
-      color-mix(in oklab, var(--blume-background) 60%, transparent) 50%,
-      var(--blume-background) 85%
-    );
+  :global([data-theme="dark"]) .preview-window {
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.1);
   }
 </style>

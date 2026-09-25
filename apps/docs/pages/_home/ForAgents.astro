@@ -104,7 +104,7 @@ const block = "-mx-3 rounded-lg px-3 py-2";
   <div class="flex flex-col gap-8">
     <Tray
       innerClass="flex justify-center px-4 pt-10 pb-12 sm:px-10 sm:pt-14 sm:pb-16"
-      tone="sky"
+      tone="bloom"
     >
       <div
         aria-hidden="true"
@@ -194,10 +194,10 @@ const block = "-mx-3 rounded-lg px-3 py-2";
       </div>
     </Tray>
 
-    <dl class="grid gap-x-10 sm:grid-cols-2 lg:grid-cols-4">
+    <dl class="grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
       {
         features.map((feature) => (
-          <div class="border-border border-t py-5 text-base sm:text-sm">
+          <div class="text-base sm:text-sm">
             <dt class="font-medium text-foreground">{feature.title}</dt>
             <dd
               class="mt-1 text-pretty text-muted-foreground"

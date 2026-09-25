@@ -1,11 +1,12 @@
 ---
 // "And agents that help you write." — the second half of the page: the agent
-// tooling that works on the docs rather than reading them, as a bento in the
-// homepage's tray. From `lg` up the rows run 2+1 / 1+1+1: the self-updating
-// docs skill (a pull request) and `blume eval` (a graded report), then
+// tooling that works on the docs rather than reading them, as a bento of
+// cards like the homepage scorecards'. From `lg` up the rows run 2+1 /
+// 1+1+1: the self-updating docs skill (a pull request) and `blume eval` (a
+// graded report), then
 // `blume translate` (a pages-by-locales grid whose stale cells turn fresh),
 // `blume audit --codex` (findings checked off), and `blume migrate` (every
-// source it moves, into Blume). A footer strip says what they share: your own
+// source it moves, into Blume). A line beneath says what they share: your own
 // agent CLI, no keys held by Blume. The art is decorative, like the homepage
 // bento's, and a few rows follow the pointer.
 import data from "blume:data";
@@ -68,7 +69,6 @@ const window =
 const windowTitle =
   "flex items-center gap-2 border-border border-b px-3 py-2 font-mono text-muted-foreground text-xs";
 const hoverRow = "rounded-lg hover:bg-accent/10";
-const sparkles = glyph("sparkles");
 ---
 
 <section class="flex flex-col gap-12">
@@ -79,10 +79,8 @@ const sparkles = glyph("sparkles");
     <TextLink href="/cli">Explore the CLI</TextLink>
   </SectionHeading>
 
-  <div
-    class="rounded-[28px] bg-background p-2 shadow-[0_0_0_1px_var(--color-border)]"
-  >
-    <dl class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+  <div class="flex flex-col gap-6">
+    <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <!-- Self-updating docs: the pull request the skill opens -->
       <BentoCard
         body="The `blume-update-docs` skill reads recently merged pull requests, updates only the pages that went stale, checks the build, and opens a pull request. If nothing drifted, it opens nothing."
@@ -330,23 +328,9 @@ const sparkles = glyph("sparkles");
     </dl>
 
     <div
-      class="flex flex-col gap-3 px-6 pt-5 pb-3 sm:flex-row sm:items-center sm:justify-between sm:px-8"
+      class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
     >
-      <p class="flex items-center gap-2.5 text-sm">
-        <span
-          aria-hidden="true"
-          class="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent [&>svg]:size-3.5"
-        >
-          <svg
-            fill="none"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-            set:html={sparkles}
-          />
-        </span>
+      <p class="text-pretty text-base text-muted-foreground sm:text-sm">
         These run on the agent CLI you already use: Blume holds no API keys for
         them and calls no model itself.
       </p>

@@ -1,7 +1,7 @@
 ---
 // Agent readiness, head to head: one card per independent scanner, each with
-// a bar for Blume's docs and one for the other tool's, sharing the
-// scorecards' tray. The bars grow and the numbers count up as the section
+// a bar for Blume's docs and one for the other tool's, styled like the
+// homepage scorecards. The bars grow and the numbers count up as the section
 // scrolls into view (see _home/Motion.astro); the footnote dates the scans.
 import SectionHeading from "../_home/SectionHeading.astro";
 import TextLink from "../_home/TextLink.astro";
@@ -25,56 +25,52 @@ const { scores, tool } = Astro.props;
   </SectionHeading>
 
   <div class="flex flex-col gap-3">
-    <div
-      class="rounded-[28px] bg-background p-2 shadow-[0_0_0_1px_var(--color-border)]"
-    >
-      <div class="grid gap-2 md:grid-cols-2">
-        {
-          scores.map((scan, card) => (
-            <article class="flex flex-col gap-8 rounded-[20px] bg-muted p-6 sm:p-8">
-              <div class="flex items-center justify-between gap-4">
-                <p class="font-medium">{scan.name}</p>
-                <TextLink external href={scan.href}>
-                  View report
-                </TextLink>
-              </div>
-              <dl class="flex flex-col gap-6">
-                {[
-                  { label: "Blume", score: scan.blume, strong: true },
-                  { label: tool.source.name, score: scan.them, strong: false },
-                ].map((row, index) => (
-                  <div class="flex flex-col gap-2">
-                    <div class="flex items-baseline justify-between gap-4">
-                      <dt class:list={["text-sm", row.strong ? "font-medium" : "text-muted-foreground"]}>
-                        {row.label}
-                      </dt>
-                      <dd class="font-medium text-2xl tabular-nums">
-                        <span
-                          class:list={[!row.strong && "text-muted-foreground"]}
-                          data-count-delay={card * 180 + index * 120}
-                          data-count-to={row.score}
-                        >
-                          {row.score}
-                        </span>
-                        <span class="text-muted-foreground">/100</span>
-                      </dd>
-                    </div>
-                    <div class="h-2 overflow-hidden rounded-full bg-border">
-                      <div
-                        class:list={[
-                          "reveal-grow h-full w-(--score) rounded-full",
-                          row.strong ? "bg-accent" : "bg-foreground/40",
-                        ]}
-                        style={`--score: ${row.score}%; --reveal-delay: ${card * 180 + index * 120}ms`}
-                      />
-                    </div>
+    <div class="grid gap-4 md:grid-cols-2">
+      {
+        scores.map((scan, card) => (
+          <article class="flex flex-col gap-8 rounded-[28px] bg-muted p-6 inset-ring inset-ring-foreground/5 sm:p-8">
+            <div class="flex items-center justify-between gap-4">
+              <p class="font-medium">{scan.name}</p>
+              <TextLink external href={scan.href}>
+                View report
+              </TextLink>
+            </div>
+            <dl class="flex flex-col gap-6">
+              {[
+                { label: "Blume", score: scan.blume, strong: true },
+                { label: tool.source.name, score: scan.them, strong: false },
+              ].map((row, index) => (
+                <div class="flex flex-col gap-2">
+                  <div class="flex items-baseline justify-between gap-4">
+                    <dt class:list={["text-sm", row.strong ? "font-medium" : "text-muted-foreground"]}>
+                      {row.label}
+                    </dt>
+                    <dd class="font-medium text-2xl tabular-nums">
+                      <span
+                        class:list={[!row.strong && "text-muted-foreground"]}
+                        data-count-delay={card * 180 + index * 120}
+                        data-count-to={row.score}
+                      >
+                        {row.score}
+                      </span>
+                      <span class="text-muted-foreground">/100</span>
+                    </dd>
                   </div>
-                ))}
-              </dl>
-            </article>
-          ))
-        }
-      </div>
+                  <div class="h-2 overflow-hidden rounded-full bg-border">
+                    <div
+                      class:list={[
+                        "reveal-grow h-full w-(--score) rounded-full",
+                        row.strong ? "bg-accent" : "bg-foreground/40",
+                      ]}
+                      style={`--score: ${row.score}%; --reveal-delay: ${card * 180 + index * 120}ms`}
+                    />
+                  </div>
+                </div>
+              ))}
+            </dl>
+          </article>
+        ))
+      }
     </div>
     <p class="text-muted-foreground text-xs">
       Scores are as reported by {scores.map((scan) => scan.name).join(" and ")}{" "}

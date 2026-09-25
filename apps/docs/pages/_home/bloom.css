@@ -1,0 +1,30 @@
+/* The marketing pages' one color ramp: cornflower blue (Kornblume), from deep
+   ink (1) to pale petal (7), all at one hue so the hero, trays, bento cards,
+   and closing call-to-action read as one bloom. Step 4 is the docs accent
+   (`theme.accent` in blume.config.ts). The dark theme swaps in a deeper take
+   on the same ramp, so every surface built from these tokens follows the
+   theme toggle without an override of its own. `--bloom-dots` is one cell of a hex lattice
+   of dots (four corners and a center), the Blume mark's petal arrangement
+   repeated; use it as a `mask-image` over a colored layer, sized
+   `--bloom-dots-size`, so the dots take any color. */
+:root {
+  --bloom-dots: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='24.25'%3E%3Ccircle cx='0' cy='0' r='1.1'/%3E%3Ccircle cx='14' cy='0' r='1.1'/%3E%3Ccircle cx='7' cy='12.12' r='1.1'/%3E%3Ccircle cx='0' cy='24.25' r='1.1'/%3E%3Ccircle cx='14' cy='24.25' r='1.1'/%3E%3C/svg%3E");
+  --bloom-dots-size: 14px 24.25px;
+  --bloom-1: oklch(0.32 0.11 266);
+  --bloom-2: oklch(0.4 0.13 266);
+  --bloom-3: oklch(0.47 0.14 266);
+  --bloom-4: oklch(0.54 0.14 266);
+  --bloom-5: oklch(0.62 0.12 266);
+  --bloom-6: oklch(0.72 0.09 266);
+  --bloom-7: oklch(0.84 0.05 266);
+}
+
+:root[data-theme="dark"] {
+  --bloom-1: oklch(0.13 0.03 266);
+  --bloom-2: oklch(0.16 0.045 266);
+  --bloom-3: oklch(0.19 0.06 266);
+  --bloom-4: oklch(0.23 0.075 266);
+  --bloom-5: oklch(0.27 0.085 266);
+  --bloom-6: oklch(0.32 0.09 266);
+  --bloom-7: oklch(0.4 0.08 266);
+}

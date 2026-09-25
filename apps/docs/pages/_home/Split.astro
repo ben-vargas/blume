@@ -1,6 +1,7 @@
 ---
-// A split feature section: a two-tone heading and a hairline-divided list of
-// bold lead-ins on one side, a visual (the default slot) on the other. The
+// A split feature section: a two-tone heading and a two-column grid of
+// features, each title marked with a cornflower petal dot, on one side, and a
+// visual (the default slot) on the other. The
 // text always comes first on mobile; `reverse` moves the visual to the left
 // from `lg` up, so consecutive splits can alternate.
 import SectionHeading from "./SectionHeading.astro";
@@ -26,13 +27,18 @@ const { items, link, reverse = false, tagline, title } = Astro.props;
 <section class="grid items-center gap-x-16 gap-y-12 lg:grid-cols-2">
   <div>
     <SectionHeading tagline={tagline} title={title} />
-    <dl class="mt-10 divide-y divide-border border-border border-t">
+    <dl class="mt-10 grid gap-x-8 gap-y-6 text-base sm:grid-cols-2 sm:text-sm">
       {
         items.map((item) => (
-          <div class="text-pretty py-4 text-base sm:text-sm">
-            <dt class="inline font-medium text-foreground">{item.title}</dt>{" "}
+          <div class="flex flex-col gap-1">
+            <dt class="flex gap-3 font-medium text-foreground">
+              <span aria-hidden="true" class="flex h-lh shrink-0 items-center">
+                <span class="size-1.5 rounded-full bg-accent" />
+              </span>
+              {item.title}
+            </dt>
             <dd
-              class="inline text-muted-foreground"
+              class="text-pretty pl-4.5 text-muted-foreground"
               set:html={inlineCode(item.body)}
             />
           </div>
@@ -41,7 +47,7 @@ const { items, link, reverse = false, tagline, title } = Astro.props;
     </dl>
     {
       link && (
-        <div class="mt-6">
+        <div class="mt-8">
           <TextLink href={link.href}>{link.label}</TextLink>
         </div>
       )

@@ -1,5 +1,5 @@
 ---
-// "Batteries included" — the shared <FeatureTabs> list beside one sky tray
+// "Batteries included" — the shared <FeatureTabs> list beside one bloom tray
 // holding a mock <FeatureBrowser>, which crossfades to the active feature's
 // `kind` of browser.
 import FeatureBrowser from "../_FeatureBrowser.astro";
@@ -73,7 +73,7 @@ const features = [
        decorative (the list carries the content), so each panel is hidden
        from assistive tech and the figcaption names the example. -->
   <figure data-nosnippet slot="visual">
-    <Tray innerClass="relative h-[440px] overflow-hidden sm:h-[520px]" tone="sky">
+    <Tray innerClass="relative h-[440px] overflow-hidden sm:h-[520px]" tone="bloom">
       {
         features.map((feature, index) => (
           <div

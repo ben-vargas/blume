@@ -4,8 +4,9 @@
 // title is a disclosure button: the active one shows its summary and
 // checklist, and the visual's `[data-panel]` of the same index becomes active
 // (the `visual` slot must render one `[data-panel]` per feature, the first
-// carrying `data-active`). A progress rail on the active item fills while the
-// section is on screen and advances to the next feature when it completes,
+// carrying `data-active`). Each title leads with a petal — a ring around a
+// dot — and the active one's ring fills while the section is on screen,
+// advancing to the next feature when it completes,
 // until a reader picks one themselves (hover or focus pauses it; reduced
 // motion never starts it). The section is also a reveal container (see
 // Motion.astro), so a visual can animate as it arrives.
@@ -31,9 +32,9 @@ const { features, id, link, tagline, title } = Astro.props;
 
 // Delegated from `document` and bound once per session (Astro's ClientRouter
 // runs inline scripts once), so it survives router swaps: clicks pick a
-// feature and stop the auto-advance, the rail's `animationend` advances it,
+// feature and stop the auto-advance, the ring's `animationend` advances it,
 // and an IntersectionObserver — armed for every section on each
-// `astro:page-load` — only lets the rail run while its section is on screen.
+// `astro:page-load` — only lets the ring run while its section is on screen.
 const featureTabsScript = `(() => {
   if (window.__blumeFeatureTabs) { return; }
   window.__blumeFeatureTabs = true;
@@ -87,30 +88,49 @@ const featureTabsScript = `(() => {
       {
         features.map((feature, index) => (
           <div
-            class="group relative pl-5"
+            class="group"
             data-active={index === 0 ? "" : undefined}
             data-feature={index}
           >
-            <span
-              aria-hidden="true"
-              class="absolute inset-y-0 left-0 w-0.5 overflow-hidden rounded-full bg-border"
-            >
-              <span
-                class="feature-rail absolute inset-0 origin-top scale-y-0 rounded-full bg-foreground group-data-active:scale-y-100"
-                data-feature-rail
-              />
-            </span>
             <h3 class="tracking-normal">
               <button
                 aria-controls={`${id}-${index}`}
                 aria-expanded={index === 0 ? "true" : "false"}
-                class="w-full cursor-pointer py-2.5 text-left font-medium text-lg text-muted-foreground hover:text-foreground group-data-active:text-foreground sm:text-base"
+                class="flex w-full cursor-pointer items-start gap-3 py-2.5 text-left font-medium text-lg text-muted-foreground hover:text-foreground group-data-active:text-foreground sm:text-base"
                 type="button"
               >
+                <span aria-hidden="true" class="flex h-lh shrink-0 items-center">
+                  <svg class="size-4" fill="none" viewBox="0 0 16 16">
+                    <circle
+                      class="stroke-border"
+                      cx="8"
+                      cy="8"
+                      r="6.5"
+                      stroke-width="1.5"
+                    />
+                    <circle
+                      class="feature-ring stroke-accent"
+                      cx="8"
+                      cy="8"
+                      data-feature-rail
+                      pathLength="1"
+                      r="6.5"
+                      stroke-linecap="round"
+                      stroke-width="1.5"
+                      transform="rotate(-90 8 8)"
+                    />
+                    <circle
+                      class="fill-border group-data-active:fill-accent"
+                      cx="8"
+                      cy="8"
+                      r="2.5"
+                    />
+                  </svg>
+                </span>
                 {feature.title}
               </button>
             </h3>
-            <div class="pb-5 group-not-data-active:hidden" id={`${id}-${index}`}>
+            <div class="pb-5 pl-7 group-not-data-active:hidden" id={`${id}-${index}`}>
               <p
                 class="max-w-[56ch] text-pretty text-base text-muted-foreground sm:text-sm"
                 set:html={inlineCode(feature.body)}
@@ -148,29 +168,40 @@ const featureTabsScript = `(() => {
 <script is:inline set:html={featureTabsScript} />
 
 <style>
-  @keyframes feature-rail {
+  /* The ring is one dash the length of the circle (`pathLength="1"`), pulled
+     back to nothing until its feature is active, when it closes. */
+  .feature-ring {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+  }
+
+  [data-feature][data-active] .feature-ring {
+    stroke-dashoffset: 0;
+  }
+
+  @keyframes feature-ring {
     from {
-      scale: 1 0;
+      stroke-dashoffset: 1;
     }
     to {
-      scale: 1 1;
+      stroke-dashoffset: 0;
     }
   }
 
-  /* Auto-advance: the active rail fills over the dwell time, paused while
+  /* Auto-advance: the active ring fills over the dwell time, paused while
      the section is off screen or the reader is hovering or focused in it. */
-  [data-feature-tabs][data-auto] [data-feature][data-active] .feature-rail {
-    animation: feature-rail 7s linear;
+  [data-feature-tabs][data-auto] [data-feature][data-active] .feature-ring {
+    animation: feature-ring 7s linear;
   }
 
-  [data-feature-tabs]:not([data-onscreen]) .feature-rail,
-  [data-feature-tabs]:hover .feature-rail,
-  [data-feature-tabs]:focus-within .feature-rail {
+  [data-feature-tabs]:not([data-onscreen]) .feature-ring,
+  [data-feature-tabs]:hover .feature-ring,
+  [data-feature-tabs]:focus-within .feature-ring {
     animation-play-state: paused;
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .feature-rail {
+    .feature-ring {
       animation: none !important;
     }
   }

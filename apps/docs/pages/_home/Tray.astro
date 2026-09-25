@@ -1,13 +1,17 @@
 ---
-// The page's one container language, shared with the hero preview and the
-// agent-native scorecards: an outer tray (hairline ring, 8px padding) holding
-// an inner surface with a concentric radius. `tone` picks the inner surface —
-// `muted` for plain wells, `sky` for the soft gradient the feature mocks float
-// on, a quiet echo of the hero sky (navy at night in dark mode).
+// The page's one container language, shared with the agent-native
+// scorecards: a single 28px-radius surface with a hairline inset edge. `tone`
+// picks the fill — `muted` for plain wells, `bloom` for the one the feature
+// mocks float on: pale cornflower light rising from beneath the mock over a
+// faint hex grid of dots, the petals of the Blume mark repeated (see
+// bloom.css; deeper in dark mode). Cards nested in a `p-2` muted tray
+// take `rounded-[20px]` to stay concentric.
+import "./bloom.css";
+
 interface Props {
   class?: string;
   innerClass?: string;
-  tone?: "muted" | "sky";
+  tone?: "bloom" | "muted";
 }
 
 const { class: className, innerClass, tone = "muted" } = Astro.props;
@@ -15,44 +19,57 @@ const { class: className, innerClass, tone = "muted" } = Astro.props;
 
 <div
   class:list={[
-    "rounded-(--tray-radius) bg-background p-(--tray-padding) shadow-[0_0_0_1px_var(--color-border)] [--tray-padding:--spacing(2)] [--tray-radius:28px]",
+    "rounded-[28px] inset-ring inset-ring-foreground/5",
+    tone === "bloom" ? "tray-bloom relative isolate" : "bg-muted",
     className,
+    innerClass,
   ]}
 >
-  <div
-    class:list={[
-      "rounded-[calc(var(--tray-radius)-var(--tray-padding))]",
-      tone === "sky" ? "tray-sky" : "bg-muted",
-      innerClass,
-    ]}
-  >
-    <slot />
-  </div>
+  <slot />
 </div>
 
 <style>
-  /* Deepest at the bottom-left, washing out to near-white at the top-right,
-     over a faint sky tint — the hero's blue at a whisper. */
-  .tray-sky {
-    --sky: rgb(72 120 176);
-    --sky-glow: var(--blume-background);
-    background-color: color-mix(in oklab, var(--sky) 12%, var(--blume-background));
+  /* Deepest at the bottom-center, where the mock's shadow lands, fading up
+     and out to a whisper of petal over the muted surface. */
+  .tray-bloom {
+    background-color: color-mix(in oklab, var(--bloom-6) 10%, var(--blume-muted));
     background-image:
       radial-gradient(
-        100% 90% at 0% 100%,
-        color-mix(in oklab, var(--sky) 50%, transparent),
-        transparent 70%
+        70% 60% at 50% 100%,
+        color-mix(in oklab, var(--bloom-6) 55%, transparent),
+        transparent 75%
       ),
       radial-gradient(
-        80% 70% at 100% 0%,
-        color-mix(in oklab, var(--sky-glow) 80%, transparent),
-        transparent 70%
+        40% 35% at 50% 100%,
+        color-mix(in oklab, var(--bloom-4) 30%, transparent),
+        transparent 80%
       );
   }
 
-  :global([data-theme="dark"]) .tray-sky {
-    --sky: rgb(22 44 84);
-    --sky-glow: rgb(11 24 52);
-    background-color: color-mix(in oklab, var(--sky) 45%, var(--blume-background));
+  /* The dot lattice, strongest around the mock and gone by the edges. */
+  .tray-bloom::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background-color: var(--bloom-3);
+    mask-image:
+      var(--bloom-dots),
+      radial-gradient(60% 70% at 50% 45%, black, transparent);
+    mask-composite: intersect;
+    mask-size:
+      var(--bloom-dots-size),
+      100% 100%;
+    opacity: 0.35;
+  }
+
+  :global([data-theme="dark"]) .tray-bloom {
+    background-color: color-mix(in oklab, var(--bloom-4) 35%, var(--blume-background));
+  }
+
+  :global([data-theme="dark"]) .tray-bloom::before {
+    background-color: var(--bloom-7);
   }
 </style>

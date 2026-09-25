@@ -1,15 +1,16 @@
 ---
 // Agent-native: how useblume.dev scores on the two independent agent-readiness
-// scanners, laid out like a customer-proof section — a white tray holding two
-// gray cards side by side (scanner mark and name with a report link, a
-// half-circle gauge of the score, then a row of scores beside the
-// competitors'), with a footer strip that says what
-// every site ships and links to the docs. The gauge arc is an SVG path whose
+// scanners — a two-tone heading with a docs link, then one muted card per
+// scanner (mark and name with a report link, a half-circle gauge of the
+// score, then a leaderboard of useblume.dev against the competitors, each a
+// bar that grows in as the numbers count up). The gauge arc is an SVG path whose
 // dash length is the score's share of the arc's length over a track in the
 // border color; the score sits inside the arc as HTML so it uses the page's
 // type, and competitors' scores sit on the same arc as dots at their angle,
 // each with a hover/focus tooltip naming them.
+import SectionHeading from "./SectionHeading.astro";
 import { glyph } from "./shared.ts";
+import TextLink from "./TextLink.astro";
 
 const scores = [
   {
@@ -68,30 +69,24 @@ const dotPosition = (score: number): string => {
 
 const docsHref = "/docs/discoverability/agent-discovery";
 const chevronRight = glyph("chevron-right");
-const sparkles = glyph("sparkles");
 const link =
   "inline-flex items-center gap-1 font-medium text-accent text-sm transition-colors hover:text-foreground [&>svg]:size-3.5";
 ---
 
-<!-- Agent-native: title, then a tray of two scanner cards and a footer strip. -->
-<section class="mx-auto w-full max-w-5xl" data-reveal>
-  <div class="mx-auto max-w-2xl text-center">
-    <h2 class="text-balance font-medium text-3xl sm:text-4xl">
-      The agent-native documentation framework.
-    </h2>
-    <p class="mt-4 text-balance text-muted-foreground">
-      Here's how these docs score on the two independent agent-readiness
-      scanners.
-    </p>
-  </div>
-
-  <div
-    class="mt-12 rounded-[28px] bg-background p-2 shadow-[0_0_0_1px_var(--color-border)]"
+<!-- Agent-native: heading, then a card per scanner and the scan date. -->
+<section class="flex flex-col gap-12" data-reveal>
+  <SectionHeading
+    tagline="Scored by two independent scanners."
+    title="The agent-native documentation framework."
   >
-    <div class="grid gap-2 md:grid-cols-2">
+    <TextLink href={docsHref}>Read the docs</TextLink>
+  </SectionHeading>
+
+  <div class="flex flex-col gap-3">
+    <div class="grid gap-4 md:grid-cols-2">
       {
         scores.map((item, index) => (
-          <article class="flex flex-col gap-8 rounded-[20px] bg-muted p-8">
+          <article class="flex flex-col gap-8 rounded-[28px] bg-muted p-6 inset-ring inset-ring-foreground/5 sm:p-8">
             <div class="flex items-center justify-between gap-4">
               <p class="flex items-center gap-2.5">
                 <span
@@ -124,7 +119,7 @@ const link =
               </a>
             </div>
             <div class="flex flex-1 items-center justify-center py-2">
-              <div class="relative aspect-[120/68] w-56">
+              <div class="relative aspect-[120/68] w-56 lg:w-72">
                 <svg
                   aria-hidden="true"
                   class="size-full"
@@ -149,7 +144,7 @@ const link =
                 <!-- The <dl> below reads the score out; this is its picture. -->
                 <p
                   aria-hidden="true"
-                  class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center font-medium text-5xl leading-none tabular-nums"
+                  class="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center font-medium text-5xl leading-none tabular-nums lg:text-6xl"
                   data-count-delay={cardDelay(index)}
                   data-count-to={item.score}
                 >
@@ -173,79 +168,55 @@ const link =
                 ))}
               </div>
             </div>
-            <div class="border-border border-t pt-6">
-              <dl class="flex flex-wrap gap-x-3 gap-y-5">
-                <div class="flex min-w-[7rem] flex-1 flex-col-reverse gap-1">
-                  <dt class="text-muted-foreground text-sm">useblume.dev</dt>
-                  <dd class="font-medium text-2xl tabular-nums">
+            <!-- Leaderboard: a row per site, each bar at its score's width. -->
+            <dl class="flex flex-col gap-3">
+              {[
+                { name: "useblume.dev", score: item.score, strong: true },
+                ...item.others.map((other) => ({ ...other, strong: false })),
+              ].map((row, rank) => (
+                <div class="grid grid-cols-[7rem_minmax(0,1fr)_4.5rem] items-center gap-4">
+                  <dt
+                    class:list={[
+                      "truncate text-base sm:text-sm",
+                      row.strong
+                        ? "font-medium text-foreground"
+                        : "text-muted-foreground",
+                    ]}
+                  >
+                    {row.name}
+                  </dt>
+                  <dd aria-hidden="true" class="h-1.5 overflow-hidden rounded-full bg-border">
+                    <div
+                      class:list={[
+                        "reveal-grow h-full w-(--score) rounded-full",
+                        row.strong ? "bg-accent" : "bg-foreground/35",
+                      ]}
+                      style={`--score: ${row.score}%; --reveal-delay: ${cardDelay(index) + rank * 120}ms`}
+                    />
+                  </dd>
+                  <dd class="text-right text-base tabular-nums sm:text-sm">
                     <span
+                      class:list={[
+                        row.strong ? "font-medium text-foreground" : "text-muted-foreground",
+                      ]}
                       data-count-delay={cardDelay(index)}
-                      data-count-to={item.score}
+                      data-count-to={row.score}
                     >
-                      {item.score}
+                      {row.score}
                     </span><span class="text-muted-foreground">/100</span>
                   </dd>
                 </div>
-                {item.others.map((other) => (
-                  <div class="flex min-w-[7rem] flex-1 flex-col-reverse gap-1">
-                    <dt class="text-muted-foreground text-sm">{other.name}</dt>
-                    <dd class="font-medium text-2xl text-muted-foreground tabular-nums">
-                      <span
-                        data-count-delay={cardDelay(index)}
-                        data-count-to={other.score}
-                      >
-                        {other.score}
-                      </span><span class="text-muted-foreground">/100</span>
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
+              ))}
+            </dl>
           </article>
         ))
       }
     </div>
-    <div
-      class="flex flex-col gap-3 px-6 pt-5 pb-3 sm:flex-row sm:items-center sm:justify-between sm:px-8"
-    >
-      <p class="flex items-center gap-2.5 text-sm">
-        <span
-          aria-hidden="true"
-          class="inline-flex size-6 shrink-0 items-center justify-center rounded-md bg-accent/10 text-accent [&>svg]:size-3.5"
-        >
-          <svg
-            fill="none"
-            stroke="currentColor"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            viewBox="0 0 24 24"
-            set:html={sparkles}
-          />
-        </span>
-        Every Blume site ships raw Markdown, llms.txt, and a JSON API out of the
-        box, plus an opt-in MCP server and published agent skills.
-      </p>
-      <a class:list={["shrink-0", link]} href={docsHref}>
-        Read the docs
-        <svg
-          aria-hidden="true"
-          fill="none"
-          stroke="currentColor"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          viewBox="0 0 24 24"
-          set:html={chevronRight}
-        />
-      </a>
-    </div>
+    <p class="text-muted-foreground text-xs">
+      Scores are as reported by is-agentic.com and isitagentready.com on
+      September 20, 2026, and may have changed since.
+    </p>
   </div>
-
-  <p class="mx-auto mt-6 max-w-3xl text-center text-muted-foreground text-xs">
-    Scores are as reported by is-agentic.com and isitagentready.com on
-    September 20, 2026, and may have changed since.
-  </p>
 </section>
 
 <style>

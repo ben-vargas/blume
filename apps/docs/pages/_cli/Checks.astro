@@ -33,155 +33,151 @@ const doctorSummary = [
     </TextLink>
   </SectionHeading>
 
-  <div
-    class="rounded-[28px] bg-background p-2 shadow-[0_0_0_1px_var(--color-border)]"
-  >
-    <dl class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-      <!-- validate: a broken link and a missing anchor, with the files -->
-      <BentoCard
-        body="`blume validate` checks every link, anchor, and asset in your content, and `--strict` fails CI on warnings too."
-        class="sm:col-span-2"
-        title="Every link, checked."
-      >
-        <div class="w-full max-w-lg px-6">
-          <div class:list={[terminal, "w-full"]}>
-            <div class="flex gap-1.5 border-white/10 border-b px-3 py-2.5">
-              <span class="size-2 rounded-full bg-[#ff5f57]"></span>
-              <span class="size-2 rounded-full bg-[#febc2e]"></span>
-              <span class="size-2 rounded-full bg-[#28c840]"></span>
-            </div>
-            <div class="flex flex-col gap-0.5 p-4">
-              <p class="text-zinc-100">
-                <span class="text-teal-400">❯</span> blume validate
-              </p>
-              <p class="reveal-fade mt-2 [--reveal-delay:200ms]">
-                <span class="font-medium text-red-400">BLUME_BROKEN_LINK</span>{" "}
-                Broken link to /guides/setup: no page resolves to /guides/setup.
-              </p>
-              <p class="reveal-fade pl-4 text-zinc-500 [--reveal-delay:300ms]">
-                at content/docs/guides/intro.mdx:12:8
-              </p>
-              <p class="reveal-fade pl-4 text-cyan-300 [--reveal-delay:375ms]">
-                fix: Check the path, or create the target page.
-              </p>
-              <p class="reveal-fade [--reveal-delay:450ms]">
-                <span class="font-medium text-amber-300">BLUME_BROKEN_ANCHOR</span>{" "}
-                No anchor target on /overview matches #pricing.
-              </p>
-              <p class="reveal-fade pl-4 text-zinc-500 [--reveal-delay:550ms]">
-                at content/docs/faq.mdx:31:5
-              </p>
-              <p class="reveal-fade mt-2 [--reveal-delay:700ms]">
-                1 error(s), 1 warning(s)
-              </p>
-            </div>
+  <dl class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <!-- validate: a broken link and a missing anchor, with the files -->
+    <BentoCard
+      body="`blume validate` checks every link, anchor, and asset in your content, and `--strict` fails CI on warnings too."
+      class="sm:col-span-2"
+      title="Every link, checked."
+    >
+      <div class="w-full max-w-lg px-6">
+        <div class:list={[terminal, "w-full"]}>
+          <div class="flex gap-1.5 border-white/10 border-b px-3 py-2.5">
+            <span class="size-2 rounded-full bg-[#ff5f57]"></span>
+            <span class="size-2 rounded-full bg-[#febc2e]"></span>
+            <span class="size-2 rounded-full bg-[#28c840]"></span>
+          </div>
+          <div class="flex flex-col gap-0.5 p-4">
+            <p class="text-zinc-100">
+              <span class="text-teal-400">❯</span> blume validate
+            </p>
+            <p class="reveal-fade mt-2 [--reveal-delay:200ms]">
+              <span class="font-medium text-red-400">BLUME_BROKEN_LINK</span>{" "}
+              Broken link to /guides/setup: no page resolves to /guides/setup.
+            </p>
+            <p class="reveal-fade pl-4 text-zinc-500 [--reveal-delay:300ms]">
+              at content/docs/guides/intro.mdx:12:8
+            </p>
+            <p class="reveal-fade pl-4 text-cyan-300 [--reveal-delay:375ms]">
+              fix: Check the path, or create the target page.
+            </p>
+            <p class="reveal-fade [--reveal-delay:450ms]">
+              <span class="font-medium text-amber-300">BLUME_BROKEN_ANCHOR</span>{" "}
+              No anchor target on /overview matches #pricing.
+            </p>
+            <p class="reveal-fade pl-4 text-zinc-500 [--reveal-delay:550ms]">
+              at content/docs/faq.mdx:31:5
+            </p>
+            <p class="reveal-fade mt-2 [--reveal-delay:700ms]">
+              1 error(s), 1 warning(s)
+            </p>
           </div>
         </div>
-      </BentoCard>
+      </div>
+    </BentoCard>
 
-      <!-- check: astro check over every page -->
-      <BentoCard
-        body="`blume check` runs `astro check` over your pages, and `--strict` fails on content diagnostics too."
-        title="Types, checked."
-      >
-        <div class="w-full max-w-72 px-6">
-          <div class:list={[terminal, "flex w-full flex-col gap-0.5 p-4"]}>
-            <p class="text-zinc-100">
-              <span class="text-teal-400">❯</span> blume check
-            </p>
-            <p class="reveal-fade [--reveal-delay:250ms]">
-              <span class="text-sky-400">◐</span> Type-checking 24 page(s)
-            </p>
-            <p class="reveal-fade [--reveal-delay:650ms]">
-              <span class="text-emerald-400">✔</span> No type errors.
-            </p>
-          </div>
+    <!-- check: astro check over every page -->
+    <BentoCard
+      body="`blume check` runs `astro check` over your pages, and `--strict` fails on content diagnostics too."
+      title="Types, checked."
+    >
+      <div class="w-full max-w-72 px-6">
+        <div class:list={[terminal, "flex w-full flex-col gap-0.5 p-4"]}>
+          <p class="text-zinc-100">
+            <span class="text-teal-400">❯</span> blume check
+          </p>
+          <p class="reveal-fade [--reveal-delay:250ms]">
+            <span class="text-sky-400">◐</span> Type-checking 24 page(s)
+          </p>
+          <p class="reveal-fade [--reveal-delay:650ms]">
+            <span class="text-emerald-400">✔</span> No type errors.
+          </p>
         </div>
-      </BentoCard>
+      </div>
+    </BentoCard>
 
-      <!-- doctor: its summary of what the project resolved to, then a
-           server-only feature flagged on a static site -->
-      <BentoCard
-        body="`blume doctor` checks your Node version, config, pages, server features, and the packages and secrets your config needs, all without a build."
-        title="A diagnosis in one pass."
-      >
-        <div class="w-full max-w-96 px-6">
-          <div class:list={[terminal, "flex w-full flex-col gap-0.5 p-4"]}>
-            <p class="text-zinc-100">
-              <span class="text-teal-400">❯</span> blume doctor
-            </p>
-            {
-              doctorSummary.map((line, index) => (
-                <p
-                  class="reveal-fade"
-                  style={`--reveal-delay: ${150 + index * 80}ms`}
-                >
-                  <span class="text-sky-400">ℹ</span> {line}
-                </p>
-              ))
-            }
-            <p
-              class="reveal-fade mt-2 whitespace-normal"
-              style={`--reveal-delay: ${250 + doctorSummary.length * 80}ms`}
-            >
-              <span class="font-medium text-red-400">
-                BLUME_SERVER_FEATURE_REQUIRED
-              </span>{" "}
-              Assistant, MCP server require server output.
-            </p>
-            <p
-              class="reveal-fade whitespace-normal pl-4 text-cyan-300"
-              style={`--reveal-delay: ${350 + doctorSummary.length * 80}ms`}
-            >
-              fix: Set deployment to a host adapter from "blume/deploy" (e.g.
-              `deployment: vercel()`).
-            </p>
-            <p
-              class="reveal-fade mt-2 text-zinc-500"
-              style={`--reveal-delay: ${450 + doctorSummary.length * 80}ms`}
-            >
-              1 error(s)
-            </p>
-          </div>
+    <!-- doctor: its summary of what the project resolved to, then a
+         server-only feature flagged on a static site -->
+    <BentoCard
+      body="`blume doctor` checks your Node version, config, pages, server features, and the packages and secrets your config needs, all without a build."
+      title="A diagnosis in one pass."
+    >
+      <div class="w-full max-w-96 px-6">
+        <div class:list={[terminal, "flex w-full flex-col gap-0.5 p-4"]}>
+          <p class="text-zinc-100">
+            <span class="text-teal-400">❯</span> blume doctor
+          </p>
+          {
+            doctorSummary.map((line, index) => (
+              <p
+                class="reveal-fade"
+                style={`--reveal-delay: ${150 + index * 80}ms`}
+              >
+                <span class="text-sky-400">ℹ</span> {line}
+              </p>
+            ))
+          }
+          <p
+            class="reveal-fade mt-2 whitespace-normal"
+            style={`--reveal-delay: ${250 + doctorSummary.length * 80}ms`}
+          >
+            <span class="font-medium text-red-400">
+              BLUME_SERVER_FEATURE_REQUIRED
+            </span>{" "}
+            Assistant, MCP server require server output.
+          </p>
+          <p
+            class="reveal-fade whitespace-normal pl-4 text-cyan-300"
+            style={`--reveal-delay: ${350 + doctorSummary.length * 80}ms`}
+          >
+            fix: Set deployment to a host adapter from "blume/deploy" (e.g.
+            `deployment: vercel()`).
+          </p>
+          <p
+            class="reveal-fade mt-2 text-zinc-500"
+            style={`--reveal-delay: ${450 + doctorSummary.length * 80}ms`}
+          >
+            1 error(s)
+          </p>
         </div>
-      </BentoCard>
+      </div>
+    </BentoCard>
 
-      <!-- --isolated: verifying beside a running dev server -->
-      <BentoCard
-        body="`--isolated` builds and type-checks in a throwaway `.blume-verify/` runtime, leaving your dev server and `dist/` untouched."
-        class="sm:col-span-2"
-        title="Verify while dev keeps running."
-      >
-        <div class="grid w-full max-w-xl gap-3 px-6 sm:grid-cols-2">
-          <div class:list={[terminal, "flex flex-col gap-0.5 p-4"]}>
-            <p class="text-zinc-100">
-              <span class="text-teal-400">❯</span> blume dev
-            </p>
-            <p class="mt-1">
-              <span class="font-medium text-zinc-100">Local</span>{" "}
-              <span class="text-cyan-300">http://localhost:4321/</span>
-            </p>
-            <p class="reveal-fade mt-2 text-zinc-500 [--reveal-delay:300ms]">
-              watching for file changes...
-            </p>
-          </div>
-          <div class:list={[terminal, "reveal-rise flex flex-col gap-0.5 p-4 [--reveal-delay:150ms]"]}>
-            <p class="text-zinc-100">
-              <span class="text-teal-400">❯</span> blume check --isolated
-            </p>
-            <p class="reveal-fade [--reveal-delay:550ms]">
-              <span class="text-emerald-400">✔</span> No type errors.
-            </p>
-            <p class="mt-2 text-zinc-100">
-              <span class="text-teal-400">❯</span> blume build --isolated
-            </p>
-            <p class="reveal-fade [--reveal-delay:850ms]">
-              <span class="text-emerald-400">✔</span> Isolated build OK — output at
-              ~/acme/.blume-verify/dist (not published).
-            </p>
-          </div>
+    <!-- --isolated: verifying beside a running dev server -->
+    <BentoCard
+      body="`--isolated` builds and type-checks in a throwaway `.blume-verify/` runtime, leaving your dev server and `dist/` untouched."
+      class="sm:col-span-2"
+      title="Verify while dev keeps running."
+    >
+      <div class="grid w-full max-w-xl gap-3 px-6 sm:grid-cols-2">
+        <div class:list={[terminal, "flex flex-col gap-0.5 p-4"]}>
+          <p class="text-zinc-100">
+            <span class="text-teal-400">❯</span> blume dev
+          </p>
+          <p class="mt-1">
+            <span class="font-medium text-zinc-100">Local</span>{" "}
+            <span class="text-cyan-300">http://localhost:4321/</span>
+          </p>
+          <p class="reveal-fade mt-2 text-zinc-500 [--reveal-delay:300ms]">
+            watching for file changes...
+          </p>
         </div>
-      </BentoCard>
-    </dl>
-  </div>
+        <div class:list={[terminal, "reveal-rise flex flex-col gap-0.5 p-4 [--reveal-delay:150ms]"]}>
+          <p class="text-zinc-100">
+            <span class="text-teal-400">❯</span> blume check --isolated
+          </p>
+          <p class="reveal-fade [--reveal-delay:550ms]">
+            <span class="text-emerald-400">✔</span> No type errors.
+          </p>
+          <p class="mt-2 text-zinc-100">
+            <span class="text-teal-400">❯</span> blume build --isolated
+          </p>
+          <p class="reveal-fade [--reveal-delay:850ms]">
+            <span class="text-emerald-400">✔</span> Isolated build OK — output at
+            ~/acme/.blume-verify/dist (not published).
+          </p>
+        </div>
+      </div>
+    </BentoCard>
+  </dl>
 </section>

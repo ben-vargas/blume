@@ -1,9 +1,9 @@
 ---
 // "A command line for the whole lifecycle." — a teaser for the /cli landing
 // page as the page's one dark panel: the two-tone heading and link on the
-// left, and on the right the `blume audit` session as a glass terminal (the
-// other commands' sessions are saved for /cli). In dark mode the panel lifts
-// one step off the page instead of vanishing into it.
+// left, and in the wider right column the `blume audit` session as a glass
+// terminal (the other commands' sessions are saved for /cli). In dark mode the
+// panel lifts one step off the page instead of vanishing into it.
 import TerminalStack from "../_cli/TerminalStack.astro";
 import SectionHeading from "./SectionHeading.astro";
 import TextLink from "./TextLink.astro";
@@ -14,7 +14,7 @@ import TextLink from "./TextLink.astro";
   data-reveal
 >
   <div
-    class="grid items-center gap-x-16 gap-y-12 p-6 sm:p-10 lg:grid-cols-2 lg:p-16"
+    class="grid items-center gap-x-16 gap-y-12 p-6 sm:p-10 lg:grid-cols-[2fr_3fr] lg:p-16"
   >
     <div class="flex flex-col items-start gap-8">
       <SectionHeading
