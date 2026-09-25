@@ -1,6 +1,7 @@
 import { markdownTable } from "markdown-table";
 import { mdxToMdast } from "satteri";
 
+import { PARAM_LOCATIONS } from "../components/content/api-field.ts";
 import { parseYouTubeId } from "../components/content/youtube.ts";
 import type { ExampleLookup } from "../core/types.ts";
 import { MDX_FEATURES } from "../markdown/features.ts";
@@ -420,6 +421,63 @@ const textProp = (value: EvaluatedValue): string => {
   return isNumber(value) ? String(value) : "";
 };
 
+/** Whether a flag prop is on: shorthand `true`, or the string `"true"`. */
+const flagOn = (value: EvaluatedValue): boolean =>
+  value === true || value === "true";
+
+/** A prop that holds one label or several. */
+const labelList = (value: EvaluatedValue): string[] =>
+  (Array.isArray(value) ? value : [value]).map(textProp).filter(Boolean);
+
+/**
+ * One `<ParamField>` or `<ResponseField>` as a list item: its labels, name,
+ * location, type, flags, and default on the first line, joined with middle
+ * dots, and its description indented under it, nested fields included. A
+ * field with no name, or a prop that wouldn't evaluate, declines.
+ */
+const apiField = (
+  { children, lossy, props }: ComponentMarkdownContext,
+  name: string,
+  location?: string
+): string | null => {
+  if (lossy || name === "") {
+    return null;
+  }
+  const value = props.default;
+  const head = [
+    ...labelList(props.pre),
+    `**${cellCode(name)}**`,
+    ...labelList(props.post),
+    location,
+    textProp(props.type) && cellCode(props.type),
+    flagOn(props.required) ? "required" : "",
+    flagOn(props.deprecated) ? "deprecated" : "",
+    value === undefined || value === null || value === ""
+      ? ""
+      : `default ${cellCode(isString(value) ? value : JSON.stringify(value))}`,
+  ].filter(Boolean);
+  const item = `- ${head.join(" · ")}`;
+  if (!children) {
+    return item;
+  }
+  const body = children
+    .split("\n")
+    .map((line) => (line === "" ? "" : `  ${line}`))
+    .join("\n");
+  return `${item}\n\n${body}`;
+};
+
+/** `<ParamField query="limit">`: named by its location attribute, else `name`. */
+const paramFieldMarkdown: ComponentMarkdown = (context) => {
+  const location = PARAM_LOCATIONS.find((key) => isString(context.props[key]));
+  return location
+    ? apiField(context, textProp(context.props[location]), location)
+    : apiField(context, textProp(context.props.name));
+};
+
+const responseFieldMarkdown: ComponentMarkdown = (context) =>
+  apiField(context, textProp(context.props.name));
+
 /**
  * A card is a link with a blurb, so that is what it becomes: the title as the
  * link text, the body under it, and the call to action last — the order the
@@ -822,7 +880,9 @@ const SERIALIZERS = {
   Icon: icon,
   Math: math,
   Panel: panel,
+  ParamField: paramFieldMarkdown,
   Prompt: prompt,
+  ResponseField: responseFieldMarkdown,
   Steps: steps,
   Tabs: tabs,
   Tile: tile,

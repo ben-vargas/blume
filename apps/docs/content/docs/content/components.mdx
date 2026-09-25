@@ -558,6 +558,52 @@ export interface ButtonProps {
 />
 ```
 
+## API fields
+
+Rows for documenting an endpoint by hand, one field at a time, styled like the generated [OpenAPI reference](/docs/references/openapi). `ParamField` is a request parameter, named by the attribute that says where it goes: `path`, `query`, `header`, or `body`. `ResponseField` is a field of the response, named by `name`. Both take a `type`, `required`, `deprecated`, and a `default`, with the description as their content; `ResponseField` also takes `pre` and `post` labels around the name.
+
+<ParamField path="userId" type="string" required>
+  The user's ID.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={20}>
+  How many results to return, up to 100.
+</ParamField>
+
+<ResponseField name="plan" type="string" post={["beta"]}>
+  The user's plan.
+</ResponseField>
+
+```mdx lineNumbers
+<ParamField path="userId" type="string" required>
+  The user's ID.
+</ParamField>
+
+<ParamField query="limit" type="integer" default={20}>
+  How many results to return, up to 100.
+</ParamField>
+
+<ResponseField name="plan" type="string" post={["beta"]}>
+  The user's plan.
+</ResponseField>
+```
+
+Nest an object's fields inside its description with an [`Expandable`](#expandable):
+
+```mdx lineNumbers
+<ResponseField name="address" type="object">
+  Where the order ships.
+
+  <Expandable title="properties">
+    <ResponseField name="city" type="string" required>
+      City name.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+```
+
+The fields use the same names and props as Mintlify's, so pages written for it render as they are. The Markdown copy of the page lists each field with its type and flags.
+
 ## GitHub info
 
 A card linking to a GitHub repository with its star and fork counts. The counts are fetched at build time — no client JavaScript — so they show the numbers as of your last build, not live ones; the card still renders without them if the API is unreachable. Pass `owner` and `repo`, or omit them to use the repository from your `blume.config`. Set a `GITHUB_TOKEN` environment variable to lift the API rate limit; a `token` prop overrides it for one card, but the environment variable keeps the token out of your content.

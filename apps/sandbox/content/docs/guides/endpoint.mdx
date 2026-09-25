@@ -1,0 +1,58 @@
+---
+title: Create a user
+description: A hand-written endpoint page, built from API field components instead of an OpenAPI spec.
+owner: docs-team
+---
+
+Creates a user in your workspace and sends them an invite.
+
+## Path parameters
+
+<ParamField path="workspaceId" type="string" required>
+  The workspace to add the user to.
+</ParamField>
+
+## Query parameters
+
+<ParamField query="notify" type="boolean" default={true}>
+  Send the invite email. Turn it off to invite the user yourself.
+</ParamField>
+
+## Body
+
+<ParamField body="email" type="string" required placeholder="ada@example.com">
+  The user's email address. Must be unique in the workspace.
+</ParamField>
+
+<ParamField body="role" type="string" default="member">
+  One of `owner`, `admin`, or `member`.
+</ParamField>
+
+<ParamField body="profile" type="object">
+  Optional profile details.
+
+  <Expandable title="properties">
+    <ParamField body="name" type="string">
+      Display name.
+    </ParamField>
+
+    <ParamField body="timezone" type="string" default="UTC">
+      An IANA time zone, such as `Europe/Oslo`.
+    </ParamField>
+
+  </Expandable>
+</ParamField>
+
+## Response
+
+<ResponseField name="id" type="string" required>
+  The new user's ID, prefixed `usr_`.
+</ResponseField>
+
+<ResponseField name="status" type="string" post={["read-only"]}>
+  `invited` until the user accepts, then `active`.
+</ResponseField>
+
+<ResponseField name="legacyId" type="integer" deprecated>
+  The pre-2024 numeric ID. Use `id` instead.
+</ResponseField>

@@ -2155,7 +2155,9 @@ import FileTree from "blume/components/content/FileTree.astro";
 import Frame from "blume/components/content/Frame.astro";
 import GithubInfo from "blume/components/content/GithubInfo.astro";
 import Panel from "blume/components/content/Panel.astro";
+import ParamField from "blume/components/content/ParamField.astro";
 import Prompt from "blume/components/content/Prompt.astro";
+import ResponseField from "blume/components/content/ResponseField.astro";
 import Step from "blume/components/content/Step.astro";
 import Steps from "blume/components/content/Steps.astro";
 import Tab from "blume/components/content/Tab.astro";
@@ -2199,7 +2201,9 @@ ${mathImport}import { mdxComponents as userMdx, layoutOverrides } from "../gener
   Icon,
   Operation,
   Panel,
+  ParamField,
   Prompt,
+  ResponseField,
   Step,
   Steps,
   Tab,

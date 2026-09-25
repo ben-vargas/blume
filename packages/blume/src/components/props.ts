@@ -44,8 +44,14 @@ export type FrameProps = ComponentProps<
 export type PanelProps = ComponentProps<
   typeof import("./content/Panel.astro").default
 >;
+export type ParamFieldProps = ComponentProps<
+  typeof import("./content/ParamField.astro").default
+>;
 export type PromptProps = ComponentProps<
   typeof import("./content/Prompt.astro").default
+>;
+export type ResponseFieldProps = ComponentProps<
+  typeof import("./content/ResponseField.astro").default
 >;
 export type StepProps = ComponentProps<
   typeof import("./content/Step.astro").default
