@@ -214,6 +214,29 @@ The OpenAPI semantics carry over as written:
 - An empty `{}` entry means auth is **optional** for that operation, and the section says so.
 - OAuth2 scopes are listed per scheme; scheme `description`s from `components.securitySchemes` render inline.
 
+## Webhooks and callbacks
+
+Your API's outgoing requests get documented too. Each [webhook](https://spec.openapis.org/oas/v3.1.0#oas-webhooks) in the spec's top-level `webhooks` gets its own page, like an operation: filed under its first tag, or a **Webhooks** group when it has none. The page shows the payload's schema and the responses your endpoint should send back. In place of the Try it panel and code samples, the rail shows an example payload, since your API sends this request rather than serving it.
+
+```yaml openapi.yaml lineNumbers
+webhooks:
+  newPet:
+    post:
+      summary: New pet added
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Pet"
+      responses:
+        "200":
+          description: Return a 200 to acknowledge the event.
+```
+
+An operation's [`callbacks`](https://spec.openapis.org/oas/v3.1.0#callback-object), the requests your API makes back to a URL the caller supplied, render in a **Callbacks** section on that operation's page. Each shows the URL expression (`{$request.body#/callbackUrl}`), its method, its request body, and its expected responses. Callbacks declared under `components.callbacks` and referenced with `$ref` work the same way.
+
+Webhook pages are real pages: they're in search, `llms.txt`, and the MCP server, and their Markdown tells agents it's a request the API sends, so an agent won't try to call it.
+
 ## Embedding Scalar instead
 
 `openapi()` always renders Blume's own pages. To embed [Scalar](https://scalar.com)'s self-contained API reference UI on a single route instead — its own sidebar, search, theme, and request client — list a `scalar()` adapter from `blume/reference` in place of (or beside) this one. The [Scalar](/docs/references/scalar) page covers what the embed does and doesn't do, and how to pass Scalar's own options through.

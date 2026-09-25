@@ -1,6 +1,6 @@
 ---
 import specs from "blume:openapi";
-import { operationOf, specOf } from "../../openapi/model.ts";
+import { HTTP_METHODS, operationOf, specOf } from "../../openapi/model.ts";
 import {
   mergeParameters,
   type ParameterLike,
@@ -27,6 +27,7 @@ import { sampleLanguages } from "./snippets.ts";
 import AsyncApiOperation from "./AsyncApiOperation.astro";
 import GraphqlOperation from "./GraphqlOperation.astro";
 import Authorization from "./Authorization.astro";
+import Description from "./Description.astro";
 import MethodBadge from "./MethodBadge.astro";
 import ParametersTable from "./ParametersTable.astro";
 import Playground from "./Playground.astro";
@@ -59,7 +60,18 @@ interface ResponseLike {
   content?: Record<string, MediaTypeLike>;
 }
 
+/**
+ * One callback: a map of runtime URL expressions
+ * (`{$request.body#/callbackUrl}`) to the path item the API will call there,
+ * or a `$ref` to one under `components.callbacks`.
+ */
+type CallbackLike = { $ref?: string } & Record<
+  string,
+  Record<string, unknown> | string | undefined
+>;
+
 interface FullOperation extends CodeSamplesCarrier {
+  callbacks?: Record<string, CallbackLike>;
   summary?: string;
   description?: string;
   deprecated?: boolean;
@@ -79,15 +91,17 @@ const ref = spec ? operationOf(spec, id) : undefined;
 const isAsyncApi = spec?.kind === "asyncapi";
 const isGraphql = spec?.kind === "graphql";
 
+type PathItemLike = Record<string, unknown> & {
+  parameters?: ParameterLike[];
+  servers?: ServerLike[];
+};
+
 const doc = (spec?.document ?? {}) as {
-  paths?: Record<
-    string,
-    Record<string, unknown> & {
-      parameters?: ParameterLike[];
-      servers?: ServerLike[];
-    }
-  >;
+  paths?: Record<string, PathItemLike>;
+  // OpenAPI 3.1 webhooks: requests the API sends, keyed by name.
+  webhooks?: Record<string, PathItemLike>;
   components?: {
+    callbacks?: Record<string, CallbackLike>;
     schemas?: Record<string, SchemaLike>;
     parameters?: Record<string, ParameterLike>;
     requestBodies?: Record<string, RequestBodyLike>;
@@ -97,7 +111,12 @@ const doc = (spec?.document ?? {}) as {
   security?: SecurityRequirementLike[];
   servers?: ServerLike[];
 };
-const pathItem = ref ? doc.paths?.[ref.path] : undefined;
+const isWebhook = ref?.webhook === true;
+const pathItem = ref
+  ? isWebhook
+    ? doc.webhooks?.[ref.path]
+    : doc.paths?.[ref.path]
+  : undefined;
 const operation = (
   pathItem && ref ? pathItem[ref.method] : undefined
 ) as FullOperation | undefined;
@@ -125,9 +144,11 @@ const security = resolveSecurity(
 );
 
 // One derived model feeds the static default sample, the playground form,
-// and (client-side) the live samples + fetch — they can never drift apart.
+// and (client-side) the live samples + fetch — they can never drift apart. A
+// webhook has none: the API sends it, so there is nothing for a reader to
+// call, and its rail shows the payload instead.
 const model =
-  ref && operation
+  ref && operation && !isWebhook
     ? operationModel({
         components,
         method: ref.method,
@@ -149,6 +170,57 @@ const sample = model ? buildRequest(model, defaultValues(model)) : null;
 const languages = sampleLanguages(spec?.codeSamples ?? []);
 // The spec's own `x-codeSamples`, shown ahead of the generated ones.
 const customSamples = operation ? customCodeSamples(operation) : [];
+
+/** One request the API makes back to the reader, flattened for rendering. */
+interface CallbackEntry {
+  expression: string;
+  key: string;
+  method: string;
+  name: string;
+  operation: FullOperation;
+}
+
+// Callbacks: for each named callback (resolved through
+// `components.callbacks`), each URL expression, each method it declares.
+const callbacks: CallbackEntry[] = Object.entries(
+  operation?.callbacks ?? {}
+).flatMap(([name, raw]) => {
+  const callback = resolveComponentRef(raw, components, "callbacks");
+  return Object.entries(callback).flatMap(([expression, item]) => {
+    if (expression === "$ref" || typeof item !== "object" || item === null) {
+      return [];
+    }
+    return HTTP_METHODS.flatMap((method) => {
+      const entry = item[method];
+      return typeof entry === "object" && entry !== null
+        ? [
+            {
+              expression,
+              key: `${name}-${expression}-${method}`,
+              method,
+              name,
+              // SAFETY: a path item's method entry is an operation object; the
+              // object check above guards a spec that put a scalar there.
+              operation: entry as FullOperation,
+            },
+          ]
+        : [];
+    });
+  });
+});
+
+/** A callback's request body and responses, `$ref`s resolved. */
+const callbackParts = (entry: CallbackEntry) => ({
+  requestBody: entry.operation.requestBody
+    ? resolveComponentRef(entry.operation.requestBody, components, "requestBodies")
+    : undefined,
+  responses: Object.fromEntries(
+    Object.entries(entry.operation.responses ?? {}).map(([status, response]) => [
+      status,
+      resolveComponentRef(response, components, "responses"),
+    ])
+  ),
+});
 ---
 {
   isAsyncApi ? (
@@ -164,6 +236,11 @@ const customSamples = operation ? customCodeSamples(operation) : [];
         <code class="break-all font-mono text-foreground text-sm">
           {ref.path}
         </code>
+        {isWebhook && (
+          <span class="rounded-md border border-border px-1.5 py-0.5 font-medium text-[0.625rem] text-muted-foreground uppercase tracking-wide">
+            Webhook
+          </span>
+        )}
         {operation.deprecated && (
           <span class={DEPRECATED_LABEL_CLASS}>
             deprecated
@@ -188,7 +265,73 @@ const customSamples = operation ? customCodeSamples(operation) : [];
               schemas={schemas}
             />
           )}
+          {callbacks.length > 0 && (
+            <section class="mt-10">
+              <div
+                aria-level="2"
+                class="mb-3 font-semibold text-foreground text-lg"
+                role="heading"
+              >
+                Callbacks
+              </div>
+              <div class="flex flex-col gap-6">
+                {callbacks.map((entry) => {
+                  const parts = callbackParts(entry);
+                  return (
+                    <div class="rounded-blume border border-border p-4">
+                      <div
+                        aria-level="3"
+                        class="font-semibold text-foreground"
+                        role="heading"
+                      >
+                        {entry.operation.summary || entry.name}
+                      </div>
+                      <div class="mt-2 flex flex-wrap items-center gap-2">
+                        <MethodBadge method={entry.method} />
+                        <code class="break-all font-mono text-muted-foreground text-xs">
+                          {entry.expression}
+                        </code>
+                      </div>
+                      {entry.operation.description && (
+                        <Description
+                          class="mt-2 text-muted-foreground text-sm"
+                          text={entry.operation.description}
+                        />
+                      )}
+                      {parts.requestBody && (
+                        <RequestBody
+                          expandAll={spec.expandSchemas}
+                          level={4}
+                          requestBody={parts.requestBody}
+                          schemas={schemas}
+                        />
+                      )}
+                      {entry.operation.responses && (
+                        <Responses
+                          expandAll={spec.expandSchemas}
+                          level={4}
+                          responses={parts.responses}
+                          schemas={schemas}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
+        {isWebhook && (requestBody?.content || operation.responses) && (
+          <OperationPanel>
+            <RequestPanel
+              components={components}
+              customSamples={customSamples}
+              payload={requestBody?.content}
+              responses={responses}
+              schemas={schemas}
+            />
+          </OperationPanel>
+        )}
         {sample && model && (
           <OperationPanel>
             {spec.playground.enabled && (

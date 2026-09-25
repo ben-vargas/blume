@@ -46,6 +46,9 @@ export type HttpMethod = (typeof HTTP_METHODS)[number];
 /** Group used for operations that declare no tag. */
 const UNTAGGED = "Operations";
 
+/** Group used for webhooks that declare no tag. */
+const UNTAGGED_WEBHOOKS = "Webhooks";
+
 /** A lower-case letter or digit followed by a capital: `addPet`, `v2List`. */
 const CASE_BOUNDARY = /(?<before>[\p{Ll}\p{N}])(?<capital>\p{Lu})/gu;
 /** The last capital of an acronym before a capitalized word: `HTTPResponse`. */
@@ -101,6 +104,12 @@ export interface ApiOperationRef {
   deprecated: boolean;
   /** The channel the operation acts on (AsyncAPI only). */
   channelId?: string;
+  /**
+   * An OpenAPI 3.1 webhook: a request the API sends to the reader's endpoint
+   * rather than one it serves. `path` then holds the webhook's name, the key
+   * it has under the document's `webhooks`.
+   */
+  webhook?: true;
 }
 
 /**
@@ -301,6 +310,11 @@ export const tagSlugger = (): ((name: string) => string) => {
   };
 };
 
+/** One entry of a document's `paths` or `webhooks` map. */
+type PathItemEntry =
+  | NonNullable<ApiDocument["paths"]>[string]
+  | NonNullable<ApiDocument["webhooks"]>[string];
+
 /** An operation before the collector assigns its unique key and route. */
 type CollectedOperation = Omit<ApiOperationRef, "route" | "tagSlug">;
 
@@ -386,10 +400,10 @@ export const operationCollector = (
 
 /**
  * Flatten a 3.1 document into a route-mapped operation list and its ordered
- * tags. Operations inherit the first tag they declare; keys are de-duplicated so
- * a repeated `operationId` still yields distinct routes. `warnings` reports
- * anything skipped (a `$ref` path item, webhooks), so missing operations
- * aren't silent.
+ * tags, webhooks included. Operations inherit the first tag they declare; keys
+ * are de-duplicated so a repeated `operationId` still yields distinct routes.
+ * `warnings` reports anything skipped (a `$ref` path item), so missing
+ * operations aren't silent.
  */
 export const extractOperations = (
   document: ApiDocument,
@@ -404,16 +418,24 @@ export const extractOperations = (
   );
   const collector = operationCollector(baseRoute, tagMeta);
 
-  for (const [path, item] of Object.entries(document.paths ?? {})) {
+  // A path item's operations, filed under `name`: a path for `paths`, the
+  // webhook's key for `webhooks`.
+  const addPathItem = (
+    name: string,
+    item: PathItemEntry,
+    webhook: boolean
+  ): void => {
     // A parsed spec can carry a null path item despite the type; skip it.
     if (!item) {
-      continue;
+      return;
     }
     if ("$ref" in item) {
       warnings.push(
-        `Path "${path}" is a $ref to a shared path item; referenced path items are not resolved, so its operations are missing from the reference. Inline the path item under "paths" to render it.`
+        webhook
+          ? `Webhook "${name}" is a $ref to a shared path item; referenced path items are not resolved, so it is missing from the reference. Inline the path item under "webhooks" to render it.`
+          : `Path "${name}" is a $ref to a shared path item; referenced path items are not resolved, so its operations are missing from the reference. Inline the path item under "paths" to render it.`
       );
-      continue;
+      return;
     }
     for (const method of HTTP_METHODS) {
       const operation = item[method];
@@ -421,26 +443,35 @@ export const extractOperations = (
         continue;
       }
       const operationId = specText(operation.operationId);
-      collector.add({
+      const entry: CollectedOperation = {
         deprecated: operation.deprecated ?? false,
         description: specText(operation.description) ?? "",
-        key: operationKey(method, path, operationId),
+        // A webhook without an operationId is keyed by its name, which is
+        // already an identifier (`newPet` -> `new-pet`).
+        key: operationKey(
+          method,
+          name,
+          operationId ?? (webhook ? name : undefined)
+        ),
         method,
         operationId,
-        path,
+        path: name,
         summary: specText(operation.summary) ?? "",
-        tag: specText(operation.tags?.[0]) ?? UNTAGGED,
-      });
+        tag:
+          specText(operation.tags?.[0]) ??
+          (webhook ? UNTAGGED_WEBHOOKS : UNTAGGED),
+      };
+      collector.add(webhook ? { ...entry, webhook: true } : entry);
     }
-  }
+  };
 
-  // OpenAPI 3.1 webhooks (requests the API sends, not ones it serves) have no
-  // page renderer; say so rather than dropping them silently.
-  const webhooks = Object.keys(document.webhooks ?? {});
-  if (webhooks.length > 0) {
-    warnings.push(
-      `The spec declares ${webhooks.length === 1 ? "a webhook" : `${webhooks.length} webhooks`} under "webhooks" (${webhooks.join(", ")}); webhooks aren't rendered, so they are missing from the reference.`
-    );
+  for (const [path, item] of Object.entries(document.paths ?? {})) {
+    addPathItem(path, item, false);
+  }
+  // OpenAPI 3.1 webhooks: requests the API sends rather than serves. They
+  // follow the paths, so an untagged webhook group sits after the endpoints.
+  for (const [name, item] of Object.entries(document.webhooks ?? {})) {
+    addPathItem(name, item, true);
   }
 
   return { ...collector.finish(), warnings };
@@ -458,7 +489,9 @@ export const operationObject = (
   // (AsyncAPI documents go to `asyncApiOperationObject`), so the spec's
   // document is the OpenAPI shape.
   const document = spec.document as ApiDocument;
-  const item = document.paths?.[ref.path];
+  const item = ref.webhook
+    ? document.webhooks?.[ref.path]
+    : document.paths?.[ref.path];
   const operation = method === undefined ? undefined : item?.[method];
   return isOperation(operation) ? operation : undefined;
 };

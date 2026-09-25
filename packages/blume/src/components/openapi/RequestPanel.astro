@@ -30,8 +30,13 @@ interface Props {
   components?: ComponentsLike;
   /** The spec's hand-written `x-codeSamples`, shown first and never re-rendered live. */
   customSamples?: CustomCodeSample[];
-  sample: RequestSample;
-  languages: SampleLanguage[];
+  /**
+   * A webhook's body: the rail shows it as a "Payload" example per media
+   * type in place of client code, since the API sends the request.
+   */
+  payload?: Record<string, MediaTypeLike>;
+  sample?: RequestSample;
+  languages?: SampleLanguage[];
   responses: Record<string, ResponseLike>;
   schemas: Record<string, SchemaLike>;
 }
@@ -39,11 +44,26 @@ interface Props {
 const {
   components,
   customSamples = [],
+  payload,
   sample,
-  languages,
+  languages = [],
   responses,
   schemas,
 } = Astro.props;
+
+/** A media type's example, highlighted, or null when it has none. */
+const highlightExample = async (media: MediaTypeLike, type: string) => {
+  const example = responseExample(media, schemas, components);
+  if (example === undefined || example === null) {
+    return null;
+  }
+  const json = type.includes("json");
+  return highlightCode(
+    json || typeof example !== "string" ? toJson(example) : example,
+    json ? "json" : "text",
+    { icons: false, themes: data.config.codeThemes }
+  );
+};
 
 // Hand-written samples carry no `lang` key, so the playground leaves them
 // as written when it re-renders the generated ones from the form.
@@ -57,9 +77,19 @@ const customPanels = await Promise.all(
     label: custom.label,
   }))
 );
+const payloadPanels = await Promise.all(
+  Object.entries(payload ?? {}).map(async ([type, media]) => ({
+    html: await highlightExample(media, type),
+    key: type,
+    label: type,
+    text: "No example payload.",
+  }))
+);
 const requestPanels = [
   ...customPanels,
-  ...(await languageSamplePanels(languages, sample, data.config.codeThemes)),
+  ...(sample
+    ? await languageSamplePanels(languages, sample, data.config.codeThemes)
+    : []),
 ];
 
 const responsePanels = await Promise.all(
@@ -87,6 +117,7 @@ const responsePanels = await Promise.all(
 ---
 
 <div class="not-prose flex flex-col gap-6">
+  <PanelTabs copy heading="Payload" mono panels={payloadPanels} />
   <PanelTabs copy heading="Request" panels={requestPanels} />
   <PanelTabs heading="Response" mono panels={responsePanels} />
 </div>

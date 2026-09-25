@@ -74,6 +74,28 @@ describe("openapi component serializers", () => {
     ).toBe("`POST /v1/pets`\n\n**Deprecated.**\n");
   });
 
+  it("tells an agent a webhook is sent to it, not served", () => {
+    const data = {
+      reference: spec([
+        operation({
+          deprecated: true,
+          key: "new-pet",
+          method: "post",
+          path: "newPet",
+          webhook: true,
+        }),
+      ]),
+    };
+    expect(
+      downlevelComponents(
+        '<Operation source="reference" id="new-pet" />\n',
+        serializers(data)
+      )
+    ).toBe(
+      "`POST newPet`\n\n**Webhook.** The API sends this request to your endpoint.\n\n**Deprecated.**\n"
+    );
+  });
+
   it("names an AsyncAPI operation by its action and channel, as the page does", () => {
     const data = {
       events: spec(

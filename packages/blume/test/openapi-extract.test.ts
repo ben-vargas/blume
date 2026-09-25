@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 
-import { extractOperations } from "../src/openapi/model.ts";
+import { extractOperations, operationObject } from "../src/openapi/model.ts";
 import type {
   ApiDocument,
   ApiOperationRef,
@@ -45,20 +45,99 @@ const spec = (
 });
 
 describe("webhooks", () => {
-  it("warns that declared webhooks aren't rendered", () => {
-    const one = extractOperations(
+  it("files each webhook as a page, under its tag or a Webhooks group", () => {
+    const { operations, tags, warnings } = extractOperations(
+      document(
+        { "/pets": { get: { operationId: "listPets", tags: ["Pets"] } } },
+        {
+          webhooks: {
+            // A null entry and a `$ref` path item are skipped; the ref warns.
+            // SAFETY: a parsed YAML spec can hold null where the type expects a
+            // path item; the extractor must skip it, so the test feeds one.
+            broken: null as never,
+            newPet: { post: { summary: "New pet" } },
+            petDied: {
+              post: { operationId: "petDiedEvent", tags: ["Events"] },
+            },
+            shared: { $ref: "#/components/pathItems/Shared" },
+          },
+        }
+      ),
+      "/api"
+    );
+    expect(
+      operations.map(({ key, path, route, tag, webhook }) => ({
+        key,
+        path,
+        route,
+        tag,
+        webhook,
+      }))
+    ).toStrictEqual([
+      {
+        key: "list-pets",
+        path: "/pets",
+        route: "/api/pets/list-pets",
+        tag: "Pets",
+        webhook: undefined,
+      },
+      {
+        key: "new-pet",
+        path: "newPet",
+        route: "/api/webhooks/new-pet",
+        tag: "Webhooks",
+        webhook: true,
+      },
+      {
+        key: "pet-died-event",
+        path: "petDied",
+        route: "/api/events/pet-died-event",
+        tag: "Events",
+        webhook: true,
+      },
+    ]);
+    expect(tags.map((tag) => tag.name)).toStrictEqual([
+      "Pets",
+      "Webhooks",
+      "Events",
+    ]);
+    expect(warnings).toStrictEqual([
+      'Webhook "shared" is a $ref to a shared path item; referenced path items are not resolved, so it is missing from the reference. Inline the path item under "webhooks" to render it.',
+    ]);
+  });
+
+  it("resolves a webhook's operation from the webhooks map", () => {
+    const doc = document(
+      { newPet: { get: { summary: "a path, not the webhook" } } },
+      { webhooks: { newPet: { post: { summary: "the webhook" } } } }
+    );
+    const { operations } = extractOperations(doc, "/api");
+    const webhook = operations.find((operation) => operation.webhook);
+    if (!webhook) {
+      throw new Error("expected a webhook operation");
+    }
+    expect(
+      operationObject(spec(operations, { document: doc }), webhook)?.summary
+    ).toBe("the webhook");
+  });
+
+  it("describes a webhook as one, for search and for agents", () => {
+    const [webhook] = extractOperations(
       document({}, { webhooks: { newPet: { post: {} } } }),
       "/api"
+    ).operations;
+    if (!webhook) {
+      throw new Error("expected a webhook operation");
+    }
+    const page = operationMdx(spec([webhook]), webhook);
+    expect(page.data.seo?.description).toBe(
+      "Reference for the POST newPet webhook in the API."
     );
-    expect(one.warnings).toStrictEqual([
-      'The spec declares a webhook under "webhooks" (newPet); webhooks aren\'t rendered, so they are missing from the reference.',
+    expect(page.data.search?.tags).toStrictEqual([
+      "Webhooks",
+      "POST",
+      "Webhook",
     ]);
-    const two = extractOperations(
-      document({}, { webhooks: { a: { post: {} }, b: { post: {} } } }),
-      "/api"
-    );
-    expect(two.warnings[0]).toContain("declares 2 webhooks");
-    expect(extractOperations(document({}), "/api").warnings).toStrictEqual([]);
   });
 });
 

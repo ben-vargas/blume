@@ -134,9 +134,15 @@ export const openapiComponentSerializers = (
         return null;
       }
       const signature = inlineCode(operationSignature(data, operation));
-      return operation.deprecated
-        ? `${signature}\n\n**Deprecated.**`
-        : signature;
+      const notes = [
+        // An agent reading the page must not take a webhook for an endpoint
+        // it can call.
+        operation.webhook
+          ? "**Webhook.** The API sends this request to your endpoint."
+          : "",
+        operation.deprecated ? "**Deprecated.**" : "",
+      ].filter(Boolean);
+      return [signature, ...notes].join("\n\n");
     },
   } satisfies Record<string, ComponentMarkdown>;
 };

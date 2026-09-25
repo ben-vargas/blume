@@ -17,9 +17,11 @@ interface Props {
   requestBody: RequestBodyLike;
   schemas: Record<string, SchemaLike>;
   expandAll?: boolean;
+  /** The heading's level: 2 on an operation, deeper inside a callback. */
+  level?: number;
 }
 
-const { requestBody, schemas, expandAll = false } = Astro.props;
+const { requestBody, schemas, expandAll = false, level = 2 } = Astro.props;
 
 const entries = Object.entries(requestBody.content ?? {});
 const chosen = entries.find(([type]) => type.includes("json")) ?? entries[0];
@@ -27,11 +29,11 @@ const contentType = chosen?.[0] ?? "application/json";
 const schema = chosen?.[1]?.schema ?? {};
 ---
 
-<section class="mt-8">
+<section class:list={[level > 2 ? "mt-5" : "mt-8"]}>
   <div class="mb-2 flex flex-wrap items-center gap-2">
     <div
-      aria-level="2"
-      class="font-semibold text-foreground text-lg"
+      aria-level={level}
+      class:list={["font-semibold text-foreground", level > 2 ? "text-sm" : "text-lg"]}
       role="heading"
     >
       Request body

@@ -270,7 +270,8 @@ const operationDescription = (
     // method (see `extractGraphqlOperations`).
     subject = `${operation.path} ${GRAPHQL_MEMBER_PHRASES[operation.method as GraphqlMember]}`;
   } else {
-    subject = `${operation.method.toUpperCase()} ${operation.path} endpoint`;
+    // A webhook is a request the API sends, named rather than pathed.
+    subject = `${operation.method.toUpperCase()} ${operation.path} ${operation.webhook ? "webhook" : "endpoint"}`;
   }
   const suffix = `Reference for the ${subject} in the ${apiPhrase(spec)}.`;
   // Room for the joining space and the period `asSentence` may add, so a
@@ -348,6 +349,9 @@ export const operationMdx = (
     sidebar.badge = method;
   }
   const tags = graphql ? [operation.tag] : [operation.tag, method];
+  if (operation.webhook) {
+    tags.push("Webhook");
+  }
   return {
     body: withDescription(
       description,
