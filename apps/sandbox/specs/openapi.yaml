@@ -12,6 +12,8 @@ tags:
     description: Create and inspect orders
   - name: Customers
     description: Customer records
+  - name: Webhooks
+    description: Events Acme sends to your endpoints
 paths:
   /orders:
     get:
@@ -51,12 +53,38 @@ paths:
       tags:
         - Orders
       summary: Create an order
+      x-codeSamples:
+        - lang: typescript
+          label: Acme SDK
+          source: |
+            import { Acme } from "@acme/sdk";
+
+            const acme = new Acme({ token: process.env.ACME_TOKEN });
+            const order = await acme.orders.create({
+              customerId: "cus_123",
+              items: [{ sku: "tee-black-m", quantity: 2 }],
+            });
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/NewOrder"
+      callbacks:
+        orderShipped:
+          "{$request.body#/callbackUrl}":
+            post:
+              summary: Order shipped
+              description: Sent to the order's `callbackUrl` once it leaves the warehouse.
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      $ref: "#/components/schemas/Order"
+              responses:
+                "200":
+                  description: Acknowledged.
       responses:
         "201":
           description: The created order.
@@ -128,6 +156,23 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Customer"
+webhooks:
+  orderPaid:
+    post:
+      operationId: orderPaid
+      tags:
+        - Webhooks
+      summary: Order paid
+      description: Sent when a customer's payment for an order succeeds.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Order"
+      responses:
+        "200":
+          description: Return a 2xx to acknowledge the event.
 components:
   securitySchemes:
     bearerAuth:
@@ -166,6 +211,10 @@ components:
       properties:
         customerId:
           type: string
+        callbackUrl:
+          type: string
+          format: uri
+          description: Where to send the `orderShipped` callback.
         items:
           type: array
           items:

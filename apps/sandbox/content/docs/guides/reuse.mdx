@@ -1,0 +1,30 @@
+---
+title: Reusing content
+description: Content variables and include props, for values and snippets written once and read everywhere.
+owner: docs-team
+---
+
+Values that change between releases live once in `blume.config.ts`, under `variables`, and every page reads them with `{{name}}`. These docs cover v{{version}}, and the API lives at {{api-url}}.
+
+A variable works in code blocks and links too, so an example never drifts from the real endpoint:
+
+```bash
+curl {{api-url}}/orders \
+  -H "Authorization: Bearer $ACME_TOKEN"
+```
+
+See the [API base URL]({{api-url}}) or the [pinned version notes](/docs/whats-new). Inside inline code, an undefined name like `{{name}}` stays as written.
+
+## Include props
+
+An `<include>` passes its attributes to the partial, which reads each with `{{name}}`. The same snippet renders a different plan on each use:
+
+<include>./_plan-note.mdx</include>
+
+<include plan="Enterprise">./_plan-note.mdx</include>
+
+The first reads the site-wide `plan` variable; the second's `plan` prop takes precedence over it.
+
+## Pattern redirects
+
+`/guides/:slug*` redirects to `/docs/guides/:slug*`, so [/guides/reuse](/guides/reuse) lands back on this page and [/guides/writing](/guides/writing) on the writing guide.

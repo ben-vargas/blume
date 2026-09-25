@@ -7,7 +7,8 @@ import { z } from "zod";
 /**
  * Kitchen-sink sandbox: every Blume feature enabled in one project, for
  * exercising the framework end to end — including the native OpenAPI and
- * AsyncAPI renderers, search, the assistant, MCP, i18n, export, and OG images.
+ * AsyncAPI renderers, search, the assistant, MCP, i18n, export, OG images,
+ * narration, content variables, pattern redirects, and the site footer.
  */
 export default defineConfig({
   agents: {
@@ -47,6 +48,38 @@ export default defineConfig({
   description: "Every Blume feature, enabled in one place.",
   export: true,
   feedback: true,
+  footer: {
+    links: [
+      {
+        items: [
+          { href: "/docs", label: "Getting started" },
+          { href: "/docs/components", label: "Components" },
+          { href: "/changelog", label: "Changelog" },
+        ],
+        label: "Docs",
+      },
+      {
+        items: [
+          { href: "/api", label: "REST API" },
+          { href: "/graphql", label: "GraphQL" },
+          { href: "/events", label: "Events" },
+        ],
+        label: "References",
+      },
+      {
+        items: [
+          { href: "https://github.com/haydenbleasel/blume", label: "GitHub" },
+          { href: "https://useblume.dev", label: "useblume.dev" },
+        ],
+        label: "Project",
+      },
+    ],
+    socials: {
+      github: "https://github.com/haydenbleasel/blume",
+      website: "https://useblume.dev",
+      x: "https://x.com/haydenbleasel",
+    },
+  },
   frontmatter: {
     extend: {
       owner: z.string().optional(),
@@ -70,6 +103,7 @@ export default defineConfig({
   markdown: {
     code: { icons: true, wrap: true },
   },
+  narration: true,
   navigation: {
     featured: [
       {
@@ -87,7 +121,10 @@ export default defineConfig({
       { label: "Changelog", path: "/changelog" },
     ],
   },
-  redirects: [{ from: "/start", to: "/docs" }],
+  redirects: [
+    { from: "/start", to: "/docs" },
+    { from: "/guides/:slug*", to: "/docs/guides/:slug*" },
+  ],
   reference: [
     openapi({
       expandSchemas: true,
@@ -117,6 +154,11 @@ export default defineConfig({
     radius: "lg",
   },
   title: "Blume Sandbox",
+  variables: {
+    "api-url": "https://api.acme.dev/v1",
+    plan: "Team",
+    version: "2.0",
+  },
   versions: {
     archived: [{ id: "v1.0" }],
     current: { badge: "Latest", label: "v2.0" },
