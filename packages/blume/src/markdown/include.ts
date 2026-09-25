@@ -108,6 +108,10 @@ const statementFromJsx = (
     if (attr.name === "meta" && attr.value) {
       attributes.meta = attr.value;
     }
+    // Every other string attribute is a prop, as in the string-level parser.
+    if (attr.name && attr.name !== "lang" && attr.name !== "meta") {
+      attributes.props = { ...attributes.props, [attr.name]: attr.value };
+    }
   }
   return { attributes, target: ctx.textContent(node).trim() };
 };

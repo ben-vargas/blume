@@ -7,6 +7,7 @@ import type { FenceState } from "./code-fences.ts";
 import matter from "./frontmatter.ts";
 import { INLINE_CODE, MD_IMAGE, targetOffsetIn } from "./sources/normalize.ts";
 import type { Diagnostic } from "./types.ts";
+import { substituteVariables } from "./variables.ts";
 
 /**
  * Content includes: `<include>./relative.mdx</include>` on a line of its own
@@ -98,6 +99,12 @@ export interface IncludeAttributes {
   lang?: string;
   /** Fence meta string in code-block mode (e.g. `title="lib.ts"`). */
   meta?: string;
+  /**
+   * Every other attribute with a value: the snippet's own variables.
+   * `<include plan="Pro">` makes `{{plan}}` in the included file read `Pro`,
+   * ahead of any site-wide variable of the same name.
+   */
+  props?: Record<string, string>;
 }
 
 /** A parsed include statement. */
@@ -108,8 +115,8 @@ export interface IncludeStatement {
 
 /**
  * Parse one trimmed line as an include statement, or `null` when it isn't
- * one. Only `lang` and `meta` are meaningful; unknown attributes parse and
- * are ignored so a future attribute degrades gracefully on older versions.
+ * one. `lang` and `meta` shape a code include; every other attribute with a
+ * value becomes a prop, a variable scoped to the included file.
  */
 export const parseIncludeStatement = (
   line: string
@@ -127,6 +134,9 @@ export const parseIncludeStatement = (
     }
     if (name === "meta" && value) {
       attributes.meta = value;
+    }
+    if (name && name !== "lang" && name !== "meta" && value !== undefined) {
+      attributes.props = { ...attributes.props, [name]: value };
     }
   }
   return { attributes, target: match.groups.target ?? "" };
@@ -519,8 +529,15 @@ const expandStatement = async (
     lines.shift();
     origins.shift();
   }
+  // Props replace their `{{name}}` references line by line, so every line
+  // keeps its origin; they reach the file's own nested includes too.
+  const { props } = statement.attributes;
   return {
-    lines: rebaseImages(lines, dirname(path), dirname(filePath)),
+    lines: rebaseImages(
+      props ? lines.map((text) => substituteVariables(text, props)) : lines,
+      dirname(path),
+      dirname(filePath)
+    ),
     origins,
   };
 };

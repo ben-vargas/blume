@@ -128,7 +128,7 @@ Rewrite each page's MDX:
 - **These pass through — Blume ships them natively:** `<Columns>`/`<Column>`, `<Expandable>`, `<Tooltip>`, `<Frame>`, `<Panel>`, `<Card>`/`<CardGroup>`, `<Tab>`, `<Steps>`/`<Step>`. Keep them as-is.
 - **API fields → `TypeTable`.** Blume does **not** ship `<ParamField>`/`<ResponseField>`/`<RequestField>`. Convert a cluster of fields into one `<TypeTable>` (rows keyed by field name, each `{ type, required?, default?, description }`). For a fully spec'd API, prefer deleting the hand-written fields and using the [OpenAPI reference](#openapi) instead.
 - **`<Update>`** (a Mintlify changelog entry) has no component form → convert to a `type: changelog` page, or use the `githubReleases()` source.
-- **Snippets are inlined, not imported.** Blume has no `/snippets` import mechanism. For each `import X from "/snippets/x.mdx"` + `<X prop="v" />`, inline the snippet's body (substituting `{prop}` placeholders), then delete the import and the `/snippets` file. Named string imports (`import { foo } from "/snippets/vars.mdx"`) → inline the value at each `{foo}`.
+- **Snippets become includes.** Blume has no `/snippets` import mechanism; its reuse is `<include>`. Move each snippet into the content folder as a `_`-prefixed partial (`_snippets/x.mdx`, which never renders as a page), and replace `import X from "/snippets/x.mdx"` + `<X prop="v" />` with `<include prop="v">./_snippets/x.mdx</include>` on its own line. In the partial, rewrite each `{prop}` placeholder to `{{prop}}`: include attributes are props read with the variables syntax. Named string imports (`import { foo } from "/snippets/vars.mdx"`) → a site-wide `variables` entry read as `{{foo}}`, or inline the value.
 
 ## Frontmatter
 

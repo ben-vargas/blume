@@ -41,6 +41,22 @@ Relative image references inside a partial keep working: they're rebased onto th
 
 Editing a partial while `blume dev` is running reloads every page that includes it.
 
+## Props
+
+Pass values into a partial as attributes, and read them in the partial with `{{name}}`, the same syntax as [variables](/docs/content/variables). One partial then serves every page that needs a variation of it:
+
+```mdx docs/_snippets/upgrade.mdx
+Upgrade to the **{{plan}}** plan to use {{feature}}.
+```
+
+```mdx docs/sso.mdx
+<include plan="Enterprise" feature="SSO">
+  ./_snippets/upgrade.mdx
+</include>
+```
+
+A prop applies to the included file and to anything it includes in turn, and takes precedence over a site-wide variable with the same name. Every attribute except `lang` and `meta` is a prop; attribute values are plain text.
+
 ## Including code files
 
 A target that isn't `.md`/`.mdx` is embedded as a fenced code block, with the language inferred from the extension. Use `lang` to override the language (or to show a Markdown file as source rather than splicing it), and `meta` to pass a fence meta string such as a title:
