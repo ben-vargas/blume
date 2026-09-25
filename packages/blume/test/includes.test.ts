@@ -1056,6 +1056,7 @@ const fakeServer = (modulesByFile: Record<string, unknown[]>) => {
     invalidated,
     sent,
     server: {
+      config: { root: "/" },
       moduleGraph: {
         getModulesByFile: (file: string) =>
           modulesByFile[file] ? new Set(modulesByFile[file]) : undefined,

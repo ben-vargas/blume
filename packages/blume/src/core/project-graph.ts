@@ -10,6 +10,7 @@ import {
   gitLastModifiedTimes,
   gitRepositoryRoot,
   lastModifiedShallowWarning,
+  realPath,
   resolveLastModifiedConfig,
 } from "./last-modified.ts";
 import { buildManifest } from "./manifest.ts";
@@ -202,6 +203,26 @@ const normalizeLoadedEntries = (
 };
 
 /**
+ * The local sources' on-disk roots a `git log` pathspec can cover: those
+ * inside the repository at `gitRoot`. A root outside it would fail the log
+ * outright and can never yield dates. Compared by real path, since git spells
+ * its toplevel with every symlink resolved (`/private/tmp/site` for a project
+ * opened as `/tmp/site`); the roots themselves keep the project's spelling.
+ */
+const gitContentRoots = (
+  sources: readonly ContentSource[],
+  gitRoot: string | null
+): string[] => {
+  if (gitRoot === null) {
+    return [];
+  }
+  const top = realPath(gitRoot);
+  return sources
+    .flatMap((source) => (source.contentRoot ? [source.contentRoot] : []))
+    .filter((dir) => isWithin(top, realPath(dir)));
+};
+
+/**
  * Run the full core pipeline for a project root: load config, resolve paths,
  * discover content and folder meta, build the graph, and assemble the manifest.
  * Collects all diagnostics without throwing on content-level problems so
@@ -362,12 +383,9 @@ export const scanProject = async (
     // The git pathspecs must cover where the pages actually live: each local
     // source's own on-disk root — a filesystem source's `root`, or a staged
     // local source's tree (an Obsidian vault) — which diverges from the global
-    // `content.root`. A root outside the repository would fail the log outright
-    // and can never yield dates, so those are dropped up front.
+    // `content.root`.
     const gitRoot = gitRepositoryRoot(context.root);
-    const contentRoots = sources
-      .flatMap((source) => (source.contentRoot ? [source.contentRoot] : []))
-      .filter((dir) => gitRoot !== null && isWithin(gitRoot, dir));
+    const contentRoots = gitContentRoots(sources, gitRoot);
     const gitTimes = gitLastModifiedTimes(
       context.root,
       contentRoots,
