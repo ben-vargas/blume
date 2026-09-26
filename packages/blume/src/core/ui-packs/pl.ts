@@ -38,6 +38,8 @@ export const pl: UIStringsOverride = {
     rateLimited: "Zadano wiele pytań. Spróbuj ponownie za kilka minut.",
     removeCode: "Usuń kod",
     send: "Wyślij",
+    support: "Skontaktuj się z pomocą",
+    supportSubject: "Pytanie z dokumentacji",
     tip: "Wskazówka: czat możesz otwierać i zamykać za pomocą",
     title: "Asystent",
     verifyFailed:

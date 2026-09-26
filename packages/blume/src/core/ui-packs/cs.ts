@@ -37,6 +37,8 @@ export const cs: UIStringsOverride = {
     rateLimited: "Položili jste hodně otázek. Zkuste to znovu za pár minut.",
     removeCode: "Odebrat kód",
     send: "Odeslat",
+    support: "Kontaktovat podporu",
+    supportSubject: "Dotaz z dokumentace",
     tip: "Tip: Chat můžete otevřít a zavřít pomocí",
     title: "Asistent",
     verifyFailed: "Nepodařilo se ověřit, že jste člověk. Zkuste to znovu.",

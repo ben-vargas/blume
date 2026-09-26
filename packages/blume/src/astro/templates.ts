@@ -1491,6 +1491,7 @@ const { strings } = Astro.props;
   endpoint={data.config.assistant?.endpoint ?? undefined}
   strings={strings ?? data.ui.assistant}
   suggestions={data.config.assistant?.suggestions ?? []}
+  support={data.config.assistant?.support ?? undefined}
 />
 `
     : `---

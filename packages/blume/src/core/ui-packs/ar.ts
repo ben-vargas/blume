@@ -37,6 +37,8 @@ export const ar: UIStringsOverride = {
     rateLimited: "لقد طرحت الكثير من الأسئلة. حاول مرة أخرى بعد بضع دقائق.",
     removeCode: "إزالة الشيفرة",
     send: "إرسال",
+    support: "تواصل مع الدعم",
+    supportSubject: "سؤال من التوثيق",
     tip: "نصيحة: يمكنك فتح المحادثة وإغلاقها باستخدام",
     title: "المساعد",
     verifyFailed: "تعذّر التحقق من أنك إنسان. حاول مرة أخرى.",

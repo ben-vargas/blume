@@ -38,6 +38,8 @@ export const ja: UIStringsOverride = {
     rateLimited: "質問の回数が多すぎます。数分後にもう一度お試しください。",
     removeCode: "コードを削除",
     send: "送信",
+    support: "サポートに問い合わせる",
+    supportSubject: "ドキュメントからの質問",
     tip: "ヒント: 次のキーでチャットを開閉できます",
     title: "アシスタント",
     verifyFailed:

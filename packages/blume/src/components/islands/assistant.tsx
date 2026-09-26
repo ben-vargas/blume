@@ -11,6 +11,7 @@ import { joinBase, mountBase } from "./base-path.ts";
 import { splitCode, withCode } from "./code-question.ts";
 import type { CodeAttachment } from "./code-question.ts";
 import { useAssistant } from "./hooks.ts";
+import { supportHref } from "./support-link.ts";
 
 /** A resolved empty-state prompt; `icon` is ready-to-inline SVG (or null). */
 interface Suggestion {
@@ -56,6 +57,8 @@ const DEFAULT_ASK: UIStrings["assistant"] = {
   rateLimited: "You've asked a lot of questions. Try again in a few minutes.",
   removeCode: "Remove code",
   send: "Send",
+  support: "Contact support",
+  supportSubject: "Question from the docs",
   tip: "Tip: You can open and close chat with",
   title: "Assistant",
   verifyFailed: "We couldn't check that you're human. Try again.",
@@ -181,12 +184,14 @@ const Assistant = ({
   icons = EMPTY_ICONS,
   strings,
   suggestions = EMPTY_SUGGESTIONS,
+  support,
 }: {
   captcha?: CaptchaSettings;
   endpoint?: string;
   icons?: AssistantIcons;
   strings?: UIStrings["assistant"];
   suggestions?: Suggestion[];
+  support?: string;
 }) => {
   // Merge per key (not `strings ?? …`) so a dictionary from a stale snapshot
   // that predates newer keys still resolves every label to its English default.
@@ -203,6 +208,7 @@ const Assistant = ({
     loading: busy,
     messages,
     reset,
+    thread,
   } = useAssistant({
     captcha,
     endpoint,
@@ -539,6 +545,23 @@ const Assistant = ({
                   )}
                 </div>
               )
+            )}
+            {support && !busy && (
+              <a
+                className="text-muted-foreground hover:text-foreground self-start text-xs underline underline-offset-2 transition-colors"
+                href={supportHref(support, {
+                  ai: t.ai,
+                  messages,
+                  subject: t.supportSubject,
+                  thread,
+                  you: t.you,
+                })}
+                {...(support.startsWith("mailto:") || support.startsWith("/")
+                  ? {}
+                  : { rel: "noopener noreferrer", target: "_blank" })}
+              >
+                {t.support}
+              </a>
             )}
           </div>
         ) : (

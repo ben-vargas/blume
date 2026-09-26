@@ -39,6 +39,8 @@ export const ptBR: UIStringsOverride = {
       "Você fez muitas perguntas. Tente novamente em alguns minutos.",
     removeCode: "Remover código",
     send: "Enviar",
+    support: "Falar com o suporte",
+    supportSubject: "Pergunta da documentação",
     tip: "Dica: você pode abrir e fechar o chat com",
     title: "Assistente",
     verifyFailed:

@@ -32,6 +32,7 @@ export default defineConfig({
         { icon: "radio", label: "What events does the API publish?" },
         { icon: "blocks", label: "Which components can I use?" },
       ],
+      support: "mailto:support@example.com",
     },
   },
   analytics: [

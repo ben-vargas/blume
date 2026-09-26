@@ -63,6 +63,10 @@ const uiStringsObject = z.object({
       // The attached code block's dismiss button.
       removeCode: z.string().default("Remove code"),
       send: z.string().default("Send"),
+      // The link to your support channel (`ai.assistant.support`), and the
+      // subject of an email it starts.
+      support: z.string().default("Contact support"),
+      supportSubject: z.string().default("Question from the docs"),
       tip: z.string().default("Tip: You can open and close chat with"),
       title: z.string().default("Assistant"),
       // The answer when the bot check (`ai.assistant.captcha`) fails.

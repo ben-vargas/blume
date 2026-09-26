@@ -130,6 +130,8 @@ export interface BlumeDataConfig {
     captcha: CaptchaSettings | null;
     endpoint: string | null;
     suggestions: NonNullable<ResolvedConfig["ai"]["assistant"]>["suggestions"];
+    /** The Contact support link (`ai.assistant.support`), or `null`. */
+    support: string | null;
   } | null;
   /**
    * Defaults for hand-written endpoint pages (`api` frontmatter): the server a

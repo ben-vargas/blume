@@ -39,6 +39,8 @@ export const de: UIStringsOverride = {
       "Du hast viele Fragen gestellt. Versuch es in ein paar Minuten noch einmal.",
     removeCode: "Code entfernen",
     send: "Senden",
+    support: "Support kontaktieren",
+    supportSubject: "Frage aus der Dokumentation",
     tip: "Tipp: Du kannst den Chat öffnen und schließen mit",
     title: "Assistent",
     verifyFailed:

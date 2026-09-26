@@ -38,6 +38,8 @@ export const ko: UIStringsOverride = {
     rateLimited: "질문을 너무 많이 하셨습니다. 몇 분 후에 다시 시도해 주세요.",
     removeCode: "코드 제거",
     send: "보내기",
+    support: "지원팀에 문의",
+    supportSubject: "문서에서 보낸 질문",
     tip: "팁: 다음 키로 채팅을 열고 닫을 수 있습니다",
     title: "어시스턴트",
     verifyFailed: "사람인지 확인하지 못했습니다. 다시 시도해 주세요.",

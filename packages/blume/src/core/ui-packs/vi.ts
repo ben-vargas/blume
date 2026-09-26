@@ -37,6 +37,8 @@ export const vi: UIStringsOverride = {
     rateLimited: "Bạn đã hỏi rất nhiều câu hỏi. Hãy thử lại sau vài phút.",
     removeCode: "Xóa mã",
     send: "Gửi",
+    support: "Liên hệ hỗ trợ",
+    supportSubject: "Câu hỏi từ tài liệu",
     tip: "Mẹo: Bạn có thể mở và đóng trò chuyện bằng",
     title: "Trợ lý",
     verifyFailed:

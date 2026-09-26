@@ -38,6 +38,8 @@ export const hu: UIStringsOverride = {
     rateLimited: "Sok kérdést tett fel. Próbálja újra néhány perc múlva.",
     removeCode: "Kód eltávolítása",
     send: "Küldés",
+    support: "Kapcsolatfelvétel az ügyfélszolgálattal",
+    supportSubject: "Kérdés a dokumentációból",
     tip: "Tipp: A csevegést ezzel nyithatod meg és zárhatod be:",
     title: "Asszisztens",
     verifyFailed: "Nem sikerült ellenőrizni, hogy Ön ember. Próbálja újra.",

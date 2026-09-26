@@ -6,6 +6,7 @@ import type { BlumeClientData } from "../../core/data.ts";
 import { track } from "../layout/analytics-client.ts";
 import type { SearchFn, SearchResult } from "../layout/search/types.ts";
 import { joinBase, stripBase } from "./base-path.ts";
+import { newThreadId } from "./support-link.ts";
 
 /**
  * React hooks for Blume islands.
@@ -161,6 +162,11 @@ export interface UseAssistant {
   loading: boolean;
   messages: AskMessage[];
   reset: () => void;
+  /**
+   * The conversation's id, new after every `reset()`. The `ask` analytics
+   * events carry it as `thread`, and the support link passes it along.
+   */
+  thread: string;
 }
 
 const DEFAULT_ASK_ENDPOINT = joinBase(import.meta.env.BASE_URL, "api/ask");
@@ -272,6 +278,7 @@ export const useAssistant = (
   const { captcha } = options;
   const [messages, setMessages] = useState<AskMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [thread, setThread] = useState(newThreadId);
   // The stream writes into the conversation via state updates, so `reset()`
   // mid-answer must revoke the in-flight request's right to write — otherwise
   // its next chunk re-appends the assistant bubble onto the emptied list, and
@@ -313,7 +320,7 @@ export const useAssistant = (
       ) =>
         track(
           event,
-          { ...props, path: pathname, questionChars: trimmed.length },
+          { ...props, path: pathname, questionChars: trimmed.length, thread },
           { question: trimmed }
         );
       report("ask", {});
@@ -432,6 +439,7 @@ export const useAssistant = (
       loading,
       messages,
       rateLimitMessage,
+      thread,
       verifyMessage,
     ]
   );
@@ -444,9 +452,10 @@ export const useAssistant = (
     abortRef.current?.abort();
     abortRef.current = null;
     setMessages([]);
+    setThread(newThreadId());
     // The in-flight `ask`'s finally is now stale and won't clear this.
     setLoading(false);
   }, []);
 
-  return { ask, loading, messages, reset };
+  return { ask, loading, messages, reset, thread };
 };

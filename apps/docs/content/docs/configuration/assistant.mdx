@@ -40,6 +40,21 @@ With the assistant on, every code block gets an **Ask** button beside its copy b
 
 A custom chat UI built on `useAssistant` can do the same: listen for `blume:open-assistant` on `window`, whose `detail.code` holds the block's `language`, `source`, and `title`.
 
+## Contact support
+
+When the docs can't answer, hand the reader to a person. Set `support`, and once there's a conversation the panel shows a **Contact support** link under it:
+
+```ts blume.config.ts lineNumbers
+ai: {
+  assistant: {
+    enabled: true,
+    support: "mailto:help@example.com", // or "https://example.com/support", or "/support"
+  },
+},
+```
+
+A `mailto:` address starts an email with the conversation as its body, so the reader doesn't have to explain again (a long conversation keeps its latest turns). A URL or a page on your site gets the conversation's id as a `thread` query parameter. The assistant's `ask`, `ask_answer`, and `ask_error` [analytics events](#analytics) carry the same `thread`, so your support team can find the conversation in your analytics.
+
 ## Custom instructions
 
 Add your own system-prompt text with `instructions` — identity, language, tone, or anything else the assistant should keep in mind:
@@ -366,11 +381,11 @@ With an [analytics provider](/docs/configuration/analytics) configured, the assi
 
 | Event | When | Properties |
 | --- | --- | --- |
-| `ask` | A question is sent | `path`, `questionChars` |
-| `ask_answer` | The answer finishes streaming | `path`, `questionChars`, `ms`, `chars` |
-| `ask_error` | The request fails, breaks, or comes back empty | `path`, `questionChars`, `ms`, `status` |
+| `ask` | A question is sent | `path`, `questionChars`, `thread` |
+| `ask_answer` | The answer finishes streaming | `path`, `questionChars`, `thread`, `ms`, `chars` |
+| `ask_error` | The request fails, breaks, or comes back empty | `path`, `questionChars`, `thread`, `ms`, `status` |
 
-`path` is the page the reader asked from (the served pathname, so it matches the feedback widget and your pageviews under a `base`), `questionChars` the question's length, `ms` the time from sending the question to the last chunk, and `chars` the answer's length. `status` is the HTTP status: `0` when no response arrived at all (offline, DNS, CORS), and `200` when the response was fine but its stream broke mid-answer — how a provider or credential error surfaces, since the backend has already sent its headers — or delivered nothing. Clearing the conversation mid-answer reports neither outcome.
+`path` is the page the reader asked from (the served pathname, so it matches the feedback widget and your pageviews under a `base`), `questionChars` the question's length, `thread` the conversation's id (new when the reader clears it), `ms` the time from sending the question to the last chunk, and `chars` the answer's length. `status` is the HTTP status: `0` when no response arrived at all (offline, DNS, CORS), and `200` when the response was fine but its stream broke mid-answer — how a provider or credential error surfaces, since the backend has already sent its headers — or delivered nothing. Clearing the conversation mid-answer reports neither outcome.
 
 The question's text never reaches a provider: it is free-form reader input (pasted keys, error logs, names) that would breach most providers' terms and per-value size limits. It travels only on the `blume:track` DOM event, as `question` in `detail.props`, so a listener you write can forward it wherever you decide it belongs. A custom chat UI built on `useAssistant` from `blume/hooks` reports the same events. With no provider configured the built-in provider calls are no-ops, but the `blume:track` event still fires, so a custom integration listening for it receives them.
 

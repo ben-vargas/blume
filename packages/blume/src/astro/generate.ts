@@ -1092,6 +1092,7 @@ const resolveAssistant = (
     captcha: assistant.captcha ? captchaSettings(assistant.captcha) : null,
     endpoint: assistant.endpoint ?? null,
     suggestions: assistant.suggestions,
+    support: assistant.support ?? null,
   };
 };
 

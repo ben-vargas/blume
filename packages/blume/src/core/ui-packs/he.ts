@@ -37,6 +37,8 @@ export const he: UIStringsOverride = {
     rateLimited: "שאלתם הרבה שאלות. נסו שוב בעוד כמה דקות.",
     removeCode: "הסרת הקוד",
     send: "שלח",
+    support: "פנייה לתמיכה",
+    supportSubject: "שאלה מהתיעוד",
     tip: "טיפ: אפשר לפתוח ולסגור את הצ'אט באמצעות",
     title: "עוזר",
     verifyFailed: "לא הצלחנו לוודא שאתם בני אדם. נסו שוב.",

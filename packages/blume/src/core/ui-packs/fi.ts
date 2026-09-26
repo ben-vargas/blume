@@ -38,6 +38,8 @@ export const fi: UIStringsOverride = {
       "Olet esittänyt paljon kysymyksiä. Yritä uudelleen muutaman minuutin kuluttua.",
     removeCode: "Poista koodi",
     send: "Lähetä",
+    support: "Ota yhteyttä tukeen",
+    supportSubject: "Kysymys dokumentaatiosta",
     tip: "Vinkki: Voit avata ja sulkea keskustelun näppäimillä",
     title: "Avustaja",
     verifyFailed: "Emme voineet varmistaa, että olet ihminen. Yritä uudelleen.",

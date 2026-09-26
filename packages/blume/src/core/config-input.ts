@@ -622,6 +622,13 @@ export interface AssistantConfig {
    * backend — at the cost of recall. Defaults keep the built-in behavior.
    */
   retrieval?: AssistantRetrievalConfig;
+  /**
+   * A Contact support link in the panel once there's a conversation: a
+   * `mailto:` address starts an email with the conversation as its body; a
+   * URL or root-relative path gets the conversation's `thread` id, which the
+   * assistant's analytics events carry too.
+   */
+  support?: string;
   /** Starter prompts shown before the first question. */
   suggestions?: AssistantSuggestion[];
   /**

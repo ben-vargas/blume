@@ -29,6 +29,10 @@ const isUpdater = <T>(
   next: T | ((current: T) => T)
 ): next is (current: T) => T => typeof next === "function";
 
+/** A lazy initial state: `useState(() => value)`. */
+const isLazyInitial = <T>(initial: T | (() => T)): initial is () => T =>
+  typeof initial === "function";
+
 mock.module("react", () => ({
   // Not used by assistant.tsx, but module mocks leak across test files and the
   // "react" namespace keeps the export names of whichever mock instantiates
@@ -47,11 +51,12 @@ mock.module("react", () => ({
     }
     return cells[index];
   },
-  useState: <T>(initial: T) => {
+  // Like React, a function initial state is called once, for the first value.
+  useState: <T>(initial: T | (() => T)) => {
     const index = cursor;
     cursor += 1;
     if (!(index in cells)) {
-      cells[index] = initial;
+      cells[index] = isLazyInitial(initial) ? initial() : initial;
     }
     const set = (nextState: T | ((current: T) => T)) => {
       // SAFETY: this cell was seeded by this same useState slot, so it holds
@@ -86,11 +91,13 @@ interface StubProps {
   className?: string;
   dangerouslySetInnerHTML?: { __html: string };
   disabled: boolean;
+  href?: string;
   inert: boolean;
   onChange: (event: { target: { value: string } }) => void;
   onClick: () => void;
   onKeyDown: (event: ComposerKeyEvent) => void;
   onSubmit: (event: { preventDefault: () => void }) => void;
+  target?: string;
   value: string;
 }
 
@@ -574,6 +581,8 @@ describe("Assistant empty state", () => {
         rateLimited: "Slow down.",
         removeCode: "Drop code",
         send: "Fire",
+        support: "Help!",
+        supportSubject: "Docs",
         tip: "Toggle with",
         title: "Robot",
         verifyFailed: "Beep?",
@@ -940,6 +949,46 @@ describe("Assistant conversation", () => {
     expect(
       findAll(bubble ?? tree, (el) => el.type === "pre")[0]?.props.children
     ).toBe("x = 1");
+  });
+
+  it("links to support with the conversation once there is one", async () => {
+    setFetch(() => Promise.resolve(streamResponse(["Try again."])));
+    let tree = fresh({ support: "mailto:help@example.com" });
+    expect(
+      findAll(tree, (el) => el.props.children === "Contact support")
+    ).toHaveLength(0);
+    setComposer(tree, "It broke");
+    tree = render();
+    submit(tree);
+    await settle();
+    tree = render();
+    const [link] = findAll(
+      tree,
+      (el) => el.props.children === "Contact support"
+    );
+    const href = String(link?.props.href);
+    expect(href).toStartWith(
+      "mailto:help@example.com?subject=Question%20from%20the%20docs&body="
+    );
+    expect(decodeURIComponent(href)).toContain(
+      "You: It broke\n\nAI: Try again."
+    );
+    expect(link?.props.target).toBeUndefined();
+
+    tree = fresh({ support: "https://example.com/support" });
+    setComposer(tree, "It broke");
+    tree = render();
+    submit(tree);
+    await settle();
+    tree = render();
+    const [web] = findAll(
+      tree,
+      (el) => el.props.children === "Contact support"
+    );
+    expect(String(web?.props.href)).toMatch(
+      /^https:\/\/example\.com\/support\?thread=[\da-f]{16}$/u
+    );
+    expect(web?.props.target).toBe("_blank");
   });
 
   it("submits on Enter but not Shift+Enter, mid-composition, or when empty", async () => {

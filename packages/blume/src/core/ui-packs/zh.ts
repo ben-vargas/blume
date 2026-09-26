@@ -37,6 +37,8 @@ export const zh: UIStringsOverride = {
     rateLimited: "你提的问题太多了，请几分钟后再试。",
     removeCode: "移除代码",
     send: "发送",
+    support: "联系支持团队",
+    supportSubject: "来自文档的问题",
     tip: "提示：可通过以下快捷键打开和关闭聊天",
     title: "助手",
     verifyFailed: "无法确认你是真人，请重试。",

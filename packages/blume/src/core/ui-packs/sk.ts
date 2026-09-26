@@ -37,6 +37,8 @@ export const sk: UIStringsOverride = {
     rateLimited: "Položili ste veľa otázok. Skúste to znova o pár minút.",
     removeCode: "Odstrániť kód",
     send: "Odoslať",
+    support: "Kontaktovať podporu",
+    supportSubject: "Otázka z dokumentácie",
     tip: "Tip: Chat môžete otvoriť a zavrieť pomocou",
     title: "Asistent",
     verifyFailed: "Nepodarilo sa overiť, že ste človek. Skúste to znova.",

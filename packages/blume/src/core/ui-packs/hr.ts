@@ -39,6 +39,8 @@ export const hr: UIStringsOverride = {
       "Postavili ste mnogo pitanja. Pokušajte ponovno za nekoliko minuta.",
     removeCode: "Ukloni kod",
     send: "Pošalji",
+    support: "Kontaktiraj podršku",
+    supportSubject: "Pitanje iz dokumentacije",
     tip: "Savjet: Chat možete otvoriti i zatvoriti pomoću",
     title: "Asistent",
     verifyFailed: "Nismo mogli potvrditi da ste čovjek. Pokušajte ponovno.",

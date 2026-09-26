@@ -37,6 +37,8 @@ export const fa: UIStringsOverride = {
     rateLimited: "سؤال‌های زیادی پرسیده‌اید. چند دقیقه دیگر دوباره امتحان کنید.",
     removeCode: "حذف کد",
     send: "ارسال",
+    support: "تماس با پشتیبانی",
+    supportSubject: "پرسشی از مستندات",
     tip: "نکته: باز و بسته کردن گفتگو با",
     title: "دستیار",
     verifyFailed:

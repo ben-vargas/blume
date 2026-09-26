@@ -39,6 +39,8 @@ export const ca: UIStringsOverride = {
       "Has fet moltes preguntes. Torna-ho a provar d'aquí a uns minuts.",
     removeCode: "Treu el codi",
     send: "Envia",
+    support: "Contacta amb el suport",
+    supportSubject: "Pregunta des de la documentació",
     tip: "Consell: pots obrir i tancar el xat amb",
     title: "Assistent",
     verifyFailed:

@@ -38,6 +38,8 @@ export const da: UIStringsOverride = {
       "Du har stillet mange spørgsmål. Prøv igen om et par minutter.",
     removeCode: "Fjern kode",
     send: "Send",
+    support: "Kontakt support",
+    supportSubject: "Spørgsmål fra dokumentationen",
     tip: "Tip: Du kan åbne og lukke chatten med",
     title: "Assistent",
     verifyFailed: "Vi kunne ikke bekræfte, at du er et menneske. Prøv igen.",

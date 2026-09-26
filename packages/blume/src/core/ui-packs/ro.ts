@@ -39,6 +39,8 @@ export const ro: UIStringsOverride = {
       "Ai pus multe întrebări. Încearcă din nou peste câteva minute.",
     removeCode: "Elimină codul",
     send: "Trimite",
+    support: "Contactează asistența",
+    supportSubject: "Întrebare din documentație",
     tip: "Sfat: Poți deschide și închide chatul cu",
     title: "Asistent",
     verifyFailed: "Nu am putut verifica faptul că ești om. Încearcă din nou.",

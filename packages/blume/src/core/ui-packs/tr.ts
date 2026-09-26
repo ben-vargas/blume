@@ -39,6 +39,8 @@ export const tr: UIStringsOverride = {
       "Çok sayıda soru sordunuz. Birkaç dakika sonra yeniden deneyin.",
     removeCode: "Kodu kaldır",
     send: "Gönder",
+    support: "Destekle iletişime geç",
+    supportSubject: "Belgelerden soru",
     tip: "İpucu: Sohbeti şu tuşla açıp kapatabilirsiniz:",
     title: "Asistan",
     verifyFailed: "İnsan olduğunuzu doğrulayamadık. Yeniden deneyin.",

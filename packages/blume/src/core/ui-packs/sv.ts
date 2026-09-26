@@ -38,6 +38,8 @@ export const sv: UIStringsOverride = {
     rateLimited: "Du har ställt många frågor. Försök igen om några minuter.",
     removeCode: "Ta bort koden",
     send: "Skicka",
+    support: "Kontakta support",
+    supportSubject: "Fråga från dokumentationen",
     tip: "Tips: Du kan öppna och stänga chatten med",
     title: "Assistent",
     verifyFailed: "Vi kunde inte bekräfta att du är en människa. Försök igen.",

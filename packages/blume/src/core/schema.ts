@@ -1009,6 +1009,22 @@ const aiConfigFields = {
             })
           )
           .default([]),
+        // Where the panel's Contact support link goes: an email address
+        // (`mailto:`, which starts an email with the conversation), a URL,
+        // or a root-relative page (which get the conversation's `thread` id).
+        support: z
+          .string()
+          .refine(
+            (link) =>
+              link.startsWith("mailto:") ||
+              link.startsWith("/") ||
+              isExternalUrl(link),
+            {
+              message:
+                'ai.assistant.support is a mailto: address, a URL, or a root-relative path, like "mailto:help@example.com".',
+            }
+          )
+          .optional(),
         // Search and read-page tools the model can call over several steps.
         // No default here: unset follows the adapter (`toolsByDefault` in
         // `ai/ask.ts`), on for the hosted catalogs and off for an

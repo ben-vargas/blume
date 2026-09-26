@@ -15,9 +15,12 @@ interface Props {
   endpoint?: string;
   strings?: UIStrings["assistant"];
   suggestions?: Suggestion[];
+  /** The Contact support link (`ai.assistant.support`). */
+  support?: string;
 }
 
-const { captcha, endpoint, strings, suggestions = [] } = Astro.props;
+const { captcha, endpoint, strings, suggestions = [], support } =
+  Astro.props;
 
 // Icons resolve to inline SVG here (server-only module), so the client island
 // gets ready-to-render markup rather than a name it can't resolve. Bare Lucide
@@ -60,6 +63,7 @@ const icons = {
   icons={icons}
   strings={strings}
   suggestions={items}
+  support={support}
   transition:persist="blume-assistant"
 />
 

@@ -36,17 +36,22 @@ const isStateUpdater = <T>(
   value: T | ((current: T) => T)
 ): value is (current: T) => T => typeof value === "function";
 
+/** A lazy initial state: `useState(() => value)`. */
+const isLazyInitial = <T>(initial: T | (() => T)): initial is () => T =>
+  typeof initial === "function";
+
 mock.module("react", () => ({
   useCallback: <T>(fn: T) => fn,
   useEffect: (effect: Effect, deps?: unknown[]) => {
     effects.push({ effect, once: deps?.length === 0 });
   },
   useRef: <T>(value: T) => ({ current: value }),
-  useState: <T>(initial: T) => {
+  // Like React, a function initial state is called once, for the first value.
+  useState: <T>(initial: T | (() => T)) => {
     const index = cursor;
     cursor += 1;
     if (!(index in cells)) {
-      cells[index] = initial;
+      cells[index] = isLazyInitial(initial) ? initial() : initial;
     }
     const set = (update: T | ((current: T) => T)) => {
       // SAFETY: cell `index` is owned by this useState call, so it always
@@ -435,8 +440,11 @@ describe("useAssistant", () => {
     // The question and its outcome reach analytics, like page feedback.
     // Providers get the question's length; only the `blume:track` event
     // carries its text.
+    // Every event carries the conversation's id, the same across its turns.
+    const thread = String(tracked[0]?.props.thread);
+    expect(thread).toMatch(/^[\da-f]{16}$/u);
     expect(tracked).toStrictEqual([
-      { event: "ask", props: { path: "/guide", questionChars: 14 } },
+      { event: "ask", props: { path: "/guide", questionChars: 14, thread } },
       {
         event: "ask_answer",
         props: {
@@ -444,12 +452,18 @@ describe("useAssistant", () => {
           ms: expect.any(Number),
           path: "/guide",
           questionChars: 14,
+          thread,
         },
       },
     ]);
     expect(dispatched[0]).toStrictEqual({
       event: "ask",
-      props: { path: "/guide", question: "What is Blume?", questionChars: 14 },
+      props: {
+        path: "/guide",
+        question: "What is Blume?",
+        questionChars: 14,
+        thread,
+      },
     });
     expect(dispatched[1]?.props.question).toBe("What is Blume?");
     // Latency comes from a monotonic clock, rounded to whole milliseconds.
@@ -685,10 +699,13 @@ describe("useAssistant", () => {
     setFetch(() => Promise.resolve(streamResponse(["ok"])));
     const { ask } = freshRender(useAssistant);
     await ask("hi");
-    const { messages, reset } = render(useAssistant);
+    const { messages, reset, thread } = render(useAssistant);
     expect(messages).toHaveLength(2);
     reset();
-    expect(render(useAssistant).messages).toStrictEqual([]);
+    const after = render(useAssistant);
+    expect(after.messages).toStrictEqual([]);
+    // A new conversation gets a new id.
+    expect(after.thread).not.toBe(thread);
   });
 
   it("discards stream chunks that land after a mid-answer reset", async () => {

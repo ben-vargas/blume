@@ -39,6 +39,8 @@ export const nl: UIStringsOverride = {
       "Je hebt veel vragen gesteld. Probeer het over een paar minuten opnieuw.",
     removeCode: "Code verwijderen",
     send: "Verzenden",
+    support: "Contact met support",
+    supportSubject: "Vraag vanuit de documentatie",
     tip: "Tip: Je kunt de chat openen en sluiten met",
     title: "Assistent",
     verifyFailed:

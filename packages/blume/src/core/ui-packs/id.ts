@@ -39,6 +39,8 @@ export const id: UIStringsOverride = {
       "Anda sudah mengajukan banyak pertanyaan. Coba lagi dalam beberapa menit.",
     removeCode: "Hapus kode",
     send: "Kirim",
+    support: "Hubungi dukungan",
+    supportSubject: "Pertanyaan dari dokumentasi",
     tip: "Tips: Anda dapat membuka dan menutup obrolan dengan",
     title: "Asisten",
     verifyFailed: "Kami tidak dapat memastikan bahwa Anda manusia. Coba lagi.",
