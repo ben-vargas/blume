@@ -129,6 +129,7 @@ export const sv: UIStringsOverride = {
     next: "Nästa",
     pagination: "Paginering",
     previous: "Föregående",
+    related: "Relaterade sidor",
     skipToContent: "Hoppa till innehåll",
   },
   search: {

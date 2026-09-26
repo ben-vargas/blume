@@ -130,6 +130,7 @@ export const el: UIStringsOverride = {
     next: "Επόμενο",
     pagination: "Σελιδοποίηση",
     previous: "Προηγούμενο",
+    related: "Σχετικές σελίδες",
     skipToContent: "Μετάβαση στο περιεχόμενο",
   },
   search: {

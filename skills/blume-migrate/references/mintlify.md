@@ -153,6 +153,7 @@ Mintlify page frontmatter → Blume's strict schema. **`scripts/mintlify-codemod
 | `hidden: true` | valid top-level in Blume — **kept as-is**; add `noindex: true` yourself if the page must also leave the search index | left (do by hand) |
 | `openapi`/`asyncapi` | usually an endpoint stub → **delete the page** (Blume generates operation pages); else drop the key and keep it as a normal page | **flags** for review — never auto-deletes a page |
 | `api`, `authMethod`, `playground` | kept as written (a hand-written endpoint page, see above) | left |
+| `related` (a list) | kept as written: root-relative paths, URLs, and `{ Title: link }` entries render as Related pages cards | left; `related: true` has no equivalent (Blume has no automatic related pages), so drop it (report) |
 | `mode` | `mode`, as written | `default`, `wide`, `center`, `custom`, and `frame` carry over; `assistant` has no equivalent → drop (report) |
 | `hideFooterPagination: true` | `pagination: false` | renames (`false` drops, since the links show by default) |
 | `public`, `rss`, `groups`, `keywords`, `hideApiMarker`, `iconType` | **drop** (report) | drops |

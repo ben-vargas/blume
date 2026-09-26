@@ -127,6 +127,7 @@ export const th: UIStringsOverride = {
     next: "ถัดไป",
     pagination: "การแบ่งหน้า",
     previous: "ก่อนหน้า",
+    related: "หน้าที่เกี่ยวข้อง",
     skipToContent: "ข้ามไปยังเนื้อหา",
   },
   search: {

@@ -130,6 +130,7 @@ export const id: UIStringsOverride = {
     next: "Berikutnya",
     pagination: "Penomoran halaman",
     previous: "Sebelumnya",
+    related: "Halaman terkait",
     skipToContent: "Lewati ke konten",
   },
   search: {

@@ -129,6 +129,7 @@ export const ko: UIStringsOverride = {
     next: "다음",
     pagination: "페이지네이션",
     previous: "이전",
+    related: "관련 페이지",
     skipToContent: "본문으로 건너뛰기",
   },
   search: {

@@ -129,6 +129,7 @@ export const fa: UIStringsOverride = {
     next: "بعدی",
     pagination: "صفحه‌بندی",
     previous: "قبلی",
+    related: "صفحه‌های مرتبط",
     skipToContent: "پرش به محتوا",
   },
   search: {

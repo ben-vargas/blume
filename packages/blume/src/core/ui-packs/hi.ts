@@ -128,6 +128,7 @@ export const hi: UIStringsOverride = {
     next: "अगला",
     pagination: "पृष्ठांकन",
     previous: "पिछला",
+    related: "संबंधित पृष्ठ",
     skipToContent: "सामग्री पर जाएँ",
   },
   search: {

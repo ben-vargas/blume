@@ -131,6 +131,7 @@ export const ptBR: UIStringsOverride = {
     next: "Próximo",
     pagination: "Paginação",
     previous: "Anterior",
+    related: "Páginas relacionadas",
     skipToContent: "Pular para o conteúdo",
   },
   search: {

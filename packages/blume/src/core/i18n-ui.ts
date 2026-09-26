@@ -224,6 +224,8 @@ const uiStringsObject = z.object({
       next: z.string().default("Next"),
       pagination: z.string().default("Pagination"),
       previous: z.string().default("Previous"),
+      // The heading over a page's `related` links.
+      related: z.string().default("Related pages"),
       skipToContent: z.string().default("Skip to content"),
     })
     .prefault({}),

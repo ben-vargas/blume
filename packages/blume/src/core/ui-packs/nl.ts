@@ -131,6 +131,7 @@ export const nl: UIStringsOverride = {
     next: "Volgende",
     pagination: "Paginering",
     previous: "Vorige",
+    related: "Gerelateerde pagina's",
     skipToContent: "Naar inhoud springen",
   },
   search: {

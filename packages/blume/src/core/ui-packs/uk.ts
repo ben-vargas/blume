@@ -130,6 +130,7 @@ export const uk: UIStringsOverride = {
     next: "Далі",
     pagination: "Пагінація",
     previous: "Назад",
+    related: "Пов'язані сторінки",
     skipToContent: "Перейти до вмісту",
   },
   search: {

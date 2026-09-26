@@ -127,6 +127,7 @@ export const ar: UIStringsOverride = {
     next: "التالي",
     pagination: "ترقيم الصفحات",
     previous: "السابق",
+    related: "صفحات ذات صلة",
     skipToContent: "الانتقال إلى المحتوى",
   },
   search: {

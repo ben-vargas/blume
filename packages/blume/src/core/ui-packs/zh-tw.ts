@@ -127,6 +127,7 @@ export const zhTW: UIStringsOverride = {
     next: "下一頁",
     pagination: "分頁",
     previous: "上一頁",
+    related: "相關頁面",
     skipToContent: "跳至內容",
   },
   search: {

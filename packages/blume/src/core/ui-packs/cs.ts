@@ -128,6 +128,7 @@ export const cs: UIStringsOverride = {
     next: "Další",
     pagination: "Stránkování",
     previous: "Předchozí",
+    related: "Související stránky",
     skipToContent: "Přejít k obsahu",
   },
   search: {

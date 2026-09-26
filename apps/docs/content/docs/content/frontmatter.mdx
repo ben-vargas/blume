@@ -55,6 +55,11 @@ Every page accepts the following frontmatter. All fields are optional.
       description:
         "Set to false to leave this page without the Listen to this page player when narration is on.",
     },
+    related: {
+      type: "(string | { [title]: string })[] | false",
+      description:
+        "Pages to suggest at the foot of this one, up to ten: root-relative paths, absolute URLs, or { Title: link } to name a link. See Related pages below.",
+    },
     pagination: {
       type: "boolean",
       default: "true",
@@ -115,6 +120,19 @@ mode: custom
 ```
 
 The values match Mintlify's; its `assistant` mode, a full-page chat, has no equivalent.
+
+## Related pages
+
+`related` lists pages to suggest at the foot of this one, as cards under a **Related pages** heading:
+
+```yaml lineNumbers
+related:
+  - /guides/deployment
+  - Search setup: /configuration/search
+  - https://astro.build
+```
+
+A root-relative path names another page, which the card shows with that page's title and description; on a translated page it links to the translation when there is one. A `Title: link` entry sets the card's title itself, and an absolute URL links off the site under its host name. Paths are checked like any link on the page, so [`blume validate`](/docs/cli/validate) reports one that matches no page. The key matches Mintlify's, so migrated pages keep it as written.
 
 ## Sidebar
 

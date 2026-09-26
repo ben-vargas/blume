@@ -130,6 +130,7 @@ export const bg: UIStringsOverride = {
     next: "Напред",
     pagination: "Пагинация",
     previous: "Назад",
+    related: "Свързани страници",
     skipToContent: "Към съдържанието",
   },
   search: {

@@ -129,6 +129,7 @@ export const hu: UIStringsOverride = {
     next: "Következő",
     pagination: "Lapozás",
     previous: "Előző",
+    related: "Kapcsolódó oldalak",
     skipToContent: "Ugrás a tartalomra",
   },
   search: {

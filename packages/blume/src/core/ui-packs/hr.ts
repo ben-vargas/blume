@@ -130,6 +130,7 @@ export const hr: UIStringsOverride = {
     next: "Sljedeće",
     pagination: "Straničenje",
     previous: "Prethodno",
+    related: "Povezane stranice",
     skipToContent: "Prijeđi na sadržaj",
   },
   search: {

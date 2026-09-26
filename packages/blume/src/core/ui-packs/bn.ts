@@ -127,6 +127,7 @@ export const bn: UIStringsOverride = {
     next: "পরবর্তী",
     pagination: "পেজিনেশন",
     previous: "পূর্ববর্তী",
+    related: "সম্পর্কিত পৃষ্ঠা",
     skipToContent: "বিষয়বস্তুতে যান",
   },
   search: {

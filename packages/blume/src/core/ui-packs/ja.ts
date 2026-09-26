@@ -130,6 +130,7 @@ export const ja: UIStringsOverride = {
     next: "次へ",
     pagination: "ページネーション",
     previous: "前へ",
+    related: "関連ページ",
     skipToContent: "コンテンツにスキップ",
   },
   search: {

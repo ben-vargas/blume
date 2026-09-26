@@ -2,6 +2,8 @@
 import IconSprite from "./IconSprite.astro";
 import { createIconSprite } from "../icon-sprite.ts";
 import data from "blume:data";
+import { relatedLinks } from "../../core/related.ts";
+import type { RelatedEntry } from "../../core/related.ts";
 import { EN_UI } from "../../core/i18n-ui.ts";
 import type { UIStrings } from "../../core/i18n-ui.ts";
 import { resolveDateFormatOptions } from "../../core/date-format.ts";
@@ -50,6 +52,7 @@ import Banner from "./Banner.astro";
 import Breadcrumbs from "./Breadcrumbs.astro";
 import Empty from "./Empty.astro";
 import Directory from "./Directory.astro";
+import RelatedPages from "./RelatedPages.astro";
 import DiscoveryLinks from "./DiscoveryLinks.astro";
 import DrawerSwitchers from "./DrawerSwitchers.astro";
 import Favicon from "./Favicon.astro";
@@ -141,6 +144,8 @@ interface Props {
   feedbackComments?: boolean;
   /** Show the previous/next links at the foot of the page. */
   pagination?: boolean;
+  /** The page's `related` frontmatter: pages to suggest at its foot. */
+  related?: RelatedEntry[] | false;
   exportPdf?: boolean;
   exportEpub?: boolean;
   /**
@@ -274,6 +279,7 @@ const {
   feedback = false,
   feedbackComments = false,
   pagination = true,
+  related,
   exportPdf,
   exportEpub,
   openInChat,
@@ -484,6 +490,13 @@ const crumbs = findBreadcrumbs(sidebar, page.route);
 // group asks for a directory. Looked up in the full tree: a tab's own page
 // is not in its scoped sidebar.
 const directoryGroup = directoryGroupForRoute(navigation.sidebar, page.route);
+// The page's `related` links, resolved to served routes in this locale.
+const relatedItems = relatedLinks(related, {
+  basePath: data.config.basePath,
+  i18n: data.config.i18n,
+  locale,
+  routes: data.routes,
+});
 const { prev, next } = getPagination(flattenPages(sidebar), page.route);
 
 // Structured data is skipped when disabled or for pages we ask crawlers not to
@@ -848,6 +861,7 @@ createIconSprite(Astro.locals);
               ]}
             >
               {directoryGroup && <Directory group={directoryGroup} />}
+              <RelatedPages links={relatedItems} title={strings.page.related} />
               <PageFooterSlot
                 headings={tocHeadings}
                 page={page}

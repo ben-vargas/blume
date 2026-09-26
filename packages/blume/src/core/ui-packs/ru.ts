@@ -130,6 +130,7 @@ export const ru: UIStringsOverride = {
     next: "Далее",
     pagination: "Пагинация",
     previous: "Назад",
+    related: "Связанные страницы",
     skipToContent: "Перейти к содержимому",
   },
   search: {

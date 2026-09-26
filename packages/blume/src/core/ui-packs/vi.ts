@@ -129,6 +129,7 @@ export const vi: UIStringsOverride = {
     next: "Tiếp theo",
     pagination: "Phân trang",
     previous: "Trước",
+    related: "Trang liên quan",
     skipToContent: "Chuyển đến nội dung",
   },
   search: {

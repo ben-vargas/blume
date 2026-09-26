@@ -130,6 +130,7 @@ export const ro: UIStringsOverride = {
     next: "Următorul",
     pagination: "Paginare",
     previous: "Anteriorul",
+    related: "Pagini conexe",
     skipToContent: "Sari la conținut",
   },
   search: {

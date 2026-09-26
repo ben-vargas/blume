@@ -14,6 +14,7 @@ import { occupySlug, parseHeadingMarkers } from "../heading-markers.ts";
 import { localePlacement, localizeRoute } from "../i18n.ts";
 import { titleWord } from "../navigation.ts";
 import { stripOrderingPrefix } from "../ordering-prefix.ts";
+import { relatedPageLinks } from "../related.ts";
 import { pageMetaSchema } from "../schema.ts";
 import type {
   FrontmatterExtend,
@@ -1554,7 +1555,7 @@ export const normalizeEntry = (
     id: `${ctx.source.name}:${entry.ref}`,
     includes: entryIncludes(entry),
     lastModified: meta.lastModified ?? entry.lastModified,
-    links: entryLinks(entry),
+    links: [...entryLinks(entry), ...relatedPageLinks(meta.related)],
     meta,
     monolingual: ctx.source.monolingual,
     navPath,

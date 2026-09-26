@@ -127,6 +127,7 @@ export const he: UIStringsOverride = {
     next: "הבא",
     pagination: "עימוד",
     previous: "הקודם",
+    related: "דפים קשורים",
     skipToContent: "דלג לתוכן",
   },
   search: {

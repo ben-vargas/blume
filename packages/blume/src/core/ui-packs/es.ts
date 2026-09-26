@@ -131,6 +131,7 @@ export const es: UIStringsOverride = {
     next: "Siguiente",
     pagination: "Paginación",
     previous: "Anterior",
+    related: "Páginas relacionadas",
     skipToContent: "Saltar al contenido",
   },
   search: {

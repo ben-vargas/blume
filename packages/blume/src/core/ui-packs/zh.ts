@@ -127,6 +127,7 @@ export const zh: UIStringsOverride = {
     next: "下一页",
     pagination: "分页",
     previous: "上一页",
+    related: "相关页面",
     skipToContent: "跳到内容",
   },
   search: {

@@ -129,6 +129,7 @@ export const sr: UIStringsOverride = {
     next: "Следеће",
     pagination: "Пагинација",
     previous: "Претходно",
+    related: "Сродне странице",
     skipToContent: "Пређи на садржај",
   },
   search: {

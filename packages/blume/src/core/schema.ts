@@ -38,13 +38,14 @@ import {
   resolvedSourceAdapterSchema,
 } from "../sources/registry.ts";
 import { FONT_SLUGS, isFontSlug } from "../theme/fonts.ts";
-import { normalizeBasePath } from "./base-path.ts";
+import { isExternalUrl, normalizeBasePath } from "./base-path.ts";
 import { FOOTER_SOCIALS, MAX_FOOTER_COLUMNS } from "./footer.ts";
 import { PUBLIC_HOST_URL } from "./github.ts";
 import { uiLocaleOverridesSchema } from "./i18n-ui.ts";
 import { openInChatProviders } from "./open-in-chat.ts";
 import { PAGE_MODES } from "./page-modes.ts";
 import { redirectPatternError } from "./redirect-patterns.ts";
+import { MAX_RELATED } from "./related.ts";
 import { isStandardSchema } from "./standard-schema.ts";
 import type { StandardSchema } from "./standard-schema.ts";
 import { trimEnd } from "./trim.ts";
@@ -224,6 +225,14 @@ const authorSchema = z.union([
 // `.default({})` on an object with inner defaults (or a transform) would
 // resolve to a bare `{}` instead of the fully-defaulted shape.
 
+/** A `related` link: a root-relative page path or an absolute URL. */
+const relatedLinkSchema = z
+  .string()
+  .refine((link) => link.startsWith("/") || isExternalUrl(link), {
+    message:
+      'A related link is a root-relative path ("/guides/setup") or an absolute URL.',
+  });
+
 /** Frontmatter accepted on any content page. */
 const pageMetaBaseSchema = z.strictObject({
   ai: aiMetaSchema.prefault({}),
@@ -262,6 +271,28 @@ const pageMetaBaseSchema = z.strictObject({
   pagination: z.boolean().default(true),
   /** What an `api` page's playground shows: `interactive`, `simple` (samples only), or `none`. */
   playground: z.enum(PLAYGROUND_MODES).optional(),
+  /**
+   * Pages to suggest at the foot of this one: root-relative paths, absolute
+   * URLs, or `{ Title: link }` to name a link. `false` lists none.
+   */
+  related: z
+    .union([
+      z.literal(false),
+      z
+        .array(
+          z.union([
+            relatedLinkSchema,
+            z
+              .record(z.string().min(1), relatedLinkSchema)
+              .refine((entry) => Object.keys(entry).length === 1, {
+                message:
+                  'A titled related entry has one title and one link: { "Title": "/path" }.',
+              }),
+          ])
+        )
+        .max(MAX_RELATED),
+    ])
+    .optional(),
   search: searchMetaSchema.prefault({}),
   seo: seoMetaSchema.prefault({}),
   sidebar: sidebarMetaSchema.prefault({}),

@@ -129,6 +129,7 @@ export const fi: UIStringsOverride = {
     next: "Seuraava",
     pagination: "Sivutus",
     previous: "Edellinen",
+    related: "Aiheeseen liittyvät sivut",
     skipToContent: "Siirry sisältöön",
   },
   search: {

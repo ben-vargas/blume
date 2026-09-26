@@ -130,6 +130,7 @@ export const tr: UIStringsOverride = {
     next: "Sonraki",
     pagination: "Sayfalama",
     previous: "Önceki",
+    related: "İlgili sayfalar",
     skipToContent: "İçeriğe geç",
   },
   search: {
