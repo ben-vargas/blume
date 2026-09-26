@@ -8,6 +8,7 @@ import {
 } from "../ai/ask.ts";
 import type { ComponentMarkdown } from "../ai/component-markdown.ts";
 import { analyticsConfigSchema } from "../analytics/schema.ts";
+import { captchaAdapterSchema } from "../captcha/schema.ts";
 import {
   API_ENDPOINT,
   AUTH_METHODS,
@@ -926,6 +927,9 @@ const aiConfigFields = {
         // origin. Each URL is reduced to its origin so a trailing slash or path
         // can't defeat the exact match the route performs. Read by the
         // generated route only; an external `endpoint` owns its own CORS.
+        // A bot check from `blume/captcha`: the panel sends a token with each
+        // question and the generated route verifies it before the model runs.
+        captcha: captchaAdapterSchema.optional(),
         cors: z
           .array(
             z.union([

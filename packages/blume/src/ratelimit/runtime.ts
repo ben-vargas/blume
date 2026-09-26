@@ -11,6 +11,8 @@
  * the shared store fails to count (logged, not blocked). A shared store
  * without its secrets or binding falls back to counting in memory.
  */
+import { clientAddressOf } from "../core/client-address.ts";
+import type { ClientContext } from "../core/client-address.ts";
 import { RATE_LIMIT_BINDING } from "./cloudflare.ts";
 import { DEFAULT_REQUESTS, DEFAULT_WINDOW } from "./memory.ts";
 import type { RateLimitAdapter } from "./schema.ts";
@@ -187,20 +189,7 @@ export const createLimiter = (
 };
 
 /** The slice of Astro's `APIContext` the check reads. */
-export interface RateLimitContext {
-  /** The reader's address; Astro's getter throws where the host can't tell. */
-  readonly clientAddress?: string;
-  readonly request: Request;
-}
-
-/** The reader's address, or `undefined` where the host can't tell. */
-const addressOf = (context: RateLimitContext): string | undefined => {
-  try {
-    return context.clientAddress || undefined;
-  } catch {
-    return undefined;
-  }
-};
+export type RateLimitContext = ClientContext;
 
 /**
  * Count this request against the reader's budget for `scope` (the route).
@@ -211,7 +200,7 @@ export const rateLimited = async (
   context: RateLimitContext,
   scope: string
 ): Promise<Response | null> => {
-  const address = limiter ? addressOf(context) : undefined;
+  const address = limiter ? clientAddressOf(context) : undefined;
   if (!(limiter && address)) {
     return null;
   }

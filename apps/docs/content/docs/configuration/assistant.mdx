@@ -372,4 +372,33 @@ The question's text never reaches a provider: it is free-form reader input (past
 
 The `POST /api/ask` endpoint is **unauthenticated** — it has to be, so the in-page assistant can call it. Blume validates each request — rejecting malformed bodies, capping it to 1–40 messages, and accepting only `user`/`assistant` roles so a caller can't inject their own system prompt and repurpose the route as a general LLM proxy — to bound how much a single call can spend against your model. [Rate limiting](/docs/configuration/rate-limiting), on by default, then caps how many questions one reader can ask: past it, the panel tells them to try again in a few minutes.
 
+## Bot protection
+
+Rate limiting counts by IP address, so a script that spreads its questions across many addresses slips past it. To stop scripts, add a bot check from `blume/captcha`: before each question, the panel gets a token from the check, and the route verifies it with the provider before the model runs. Most readers never see a challenge; the check only asks for a click when it's unsure.
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { turnstile } from "blume/captcha";
+
+export default defineConfig({
+  ai: {
+    assistant: {
+      enabled: true,
+      captcha: turnstile({ siteKey: "0x4AAAAAAA…" }),
+    },
+  },
+});
+```
+
+| Adapter | Provider | Secret key env var |
+| --- | --- | --- |
+| `turnstile()` | [Cloudflare Turnstile](https://developers.cloudflare.com/turnstile/) | `TURNSTILE_SECRET_KEY` |
+| `hcaptcha()` | [hCaptcha](https://www.hcaptcha.com), run invisibly | `HCAPTCHA_SECRET_KEY` |
+
+The site key goes to the browser and is safe to commit; the secret key stays on the server. For Turnstile, create a widget in the Cloudflare dashboard and choose **Managed** or **Invisible** mode. Until the secret is set, the assistant answers that it isn't configured, and `blume build` warns. The provider's script loads with a reader's first question, not with the page.
+
+A failed check shows the reader a translated "we couldn't check that you're human" notice, and the route answers `403`. Both providers publish test keys that always pass, for trying the check locally: Turnstile's `1x00000000000000000000BB` with the secret `1x0000000000000000000000000000000AA`, and hCaptcha's `10000000-ffff-ffff-ffff-000000000001` with `0x0000000000000000000000000000000000000000`.
+
+With an [external endpoint](#external-endpoint), the panel still sends the token, as `captcha` in the request body, for your backend to verify.
+
 The endpoint is advertised in the [agent readability manifest](/docs/discoverability/agent-discovery#agent-readability) alongside the rest of the site's machine-readable surface.

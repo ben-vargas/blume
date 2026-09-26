@@ -54,6 +54,11 @@
       "types": "./dist/types/analytics/index.d.ts",
       "default": "./src/analytics/index.ts"
     },
+    "./captcha": {
+      "types": "./dist/types/captcha/index.d.ts",
+      "default": "./src/captcha/index.ts"
+    },
+    "./captcha/*": "./src/captcha/*",
     "./consent": {
       "types": "./dist/types/consent/index.d.ts",
       "default": "./src/consent/index.ts"

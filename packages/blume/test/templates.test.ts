@@ -54,6 +54,7 @@ import {
   stagedContentDir,
   staticJsonEndpointTemplate,
 } from "../src/astro/templates.ts";
+import { hcaptcha, turnstile } from "../src/captcha/index.ts";
 import { mountBasePath, stripBasePath } from "../src/core/base-path.ts";
 import type { BlumeConfig } from "../src/core/config-input.ts";
 import { TOC_HIDDEN_KEY } from "../src/core/heading-markers.ts";
@@ -2670,5 +2671,38 @@ describe(rateLimitTemplate, () => {
     expect(search).toContain(
       'const limited = await rateLimited(limiter, context, "search");'
     );
+  });
+});
+
+describe("askEndpointTemplate bot check", () => {
+  it("verifies the question's token after the key check, before the model", () => {
+    const out = askEndpointTemplate(resolveAskBackend(), {
+      captcha: turnstile({ siteKey: "0x4" }),
+    });
+    expect(out).toContain(
+      'import { verifyCaptcha } from "blume/captcha/verify.ts";'
+    );
+    expect(out).toContain(
+      `const CAPTCHA = ${JSON.stringify(turnstile({ siteKey: "0x4" }))};`
+    );
+    expect(out).toContain(
+      '"The assistant is not configured: set TURNSTILE_SECRET_KEY."'
+    );
+    expect(out).toContain("status: 403");
+    const keyCheck = out.indexOf('getSecret("AI_GATEWAY_API_KEY") ||');
+    const check = out.indexOf("await verifyCaptcha(CAPTCHA, captchaToken");
+    const model = out.indexOf("streamText({");
+    expect(keyCheck).toBeGreaterThan(-1);
+    expect(check).toBeGreaterThan(keyCheck);
+    expect(model).toBeGreaterThan(check);
+  });
+
+  it("reads hCaptcha's own secret, and adds nothing without a check", () => {
+    expect(
+      askEndpointTemplate(resolveAskBackend(), {
+        captcha: hcaptcha({ siteKey: "10000000" }),
+      })
+    ).toContain('getSecret("HCAPTCHA_SECRET_KEY")');
+    expect(askEndpointTemplate(resolveAskBackend())).not.toContain("captcha");
   });
 });

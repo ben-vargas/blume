@@ -6,6 +6,7 @@ import { dirname, isAbsolute, join, relative } from "pathe";
 import type { AskRetrievalOptions } from "../ai/ask-context.ts";
 import type { AskBackend } from "../ai/ask.ts";
 import { buildHomeLinkHeader } from "../ai/link-headers.ts";
+import type { CaptchaAdapter } from "../captcha/schema.ts";
 import { normalizeBasePath } from "../core/base-path.ts";
 import { TOC_HIDDEN_KEY } from "../core/heading-markers.ts";
 import { compileRedirects, isPatternPath } from "../core/redirect-patterns.ts";
@@ -1123,6 +1124,8 @@ const ASK_FALLBACK_PROMPT =
 
 /** The `ai.assistant` values the generated endpoint has to carry with it. */
 export interface AskEndpointOptions {
+  /** `ai.assistant.captcha` — the bot check the route verifies first. */
+  captcha?: CaptchaAdapter;
   /** `ai.assistant.cors` — origins allowed to call the route from another site. */
   cors?: string[];
   /** `rateLimit` — the limiter the route checks before any work. */
@@ -1228,6 +1231,38 @@ export const rateLimitTemplate = (
 };
 
 /**
+ * `ai.assistant.captcha` for the ask route: verify the question's token with
+ * the provider before the model runs (see `captcha/verify.ts`). A missing
+ * secret answers with the same "not configured" notice as a missing
+ * provider key, which the panel shows as is; a failed check answers `403`.
+ */
+const askCaptchaTemplate = (adapter?: CaptchaAdapter): RateLimitTemplate => {
+  if (!adapter) {
+    return { check: "", imports: [], setup: "" };
+  }
+  const [secret = ""] = adapter.requiredSecrets;
+  return {
+    check: `  const captchaSecret = getSecret(${JSON.stringify(secret)});
+  if (!captchaSecret) {
+    return new Response(
+      ${JSON.stringify(`The assistant is not configured: set ${secret}.`)},
+      { status: 503 }
+    );
+  }
+  const captchaToken =
+    typeof body.captcha === "string" ? body.captcha : undefined;
+  if (!(await verifyCaptcha(CAPTCHA, captchaToken, context, { secret: captchaSecret }))) {
+    return new Response("Verification failed: the bot check didn't pass.", {
+      status: 403,
+    });
+  }
+`,
+    imports: ['import { verifyCaptcha } from "blume/captcha/verify.ts";'],
+    setup: `\nconst CAPTCHA = ${JSON.stringify(adapter)};\n`,
+  };
+};
+
+/**
  * Largest request body the assistant route reads: 64 KB, well above the
  * 24,000-character message budget it validates next, so a real conversation
  * never meets it.
@@ -1311,6 +1346,9 @@ export const askEndpointTemplate = (
     }
   }
   setup += limit.setup;
+  const captcha = askCaptchaTemplate(options?.captcha);
+  imports.push(...captcha.imports);
+  setup += captcha.setup;
   // Validate the client-supplied body and cap its size. The endpoint is
   // unauthenticated, so bounding message count/length limits how much a caller
   // can spend against the model per request, and restricting roles to
@@ -1404,7 +1442,7 @@ ${call}`
   const handler = `export const POST: APIRoute = ${cors.open}
 ${validate}
 ${keyCheck}
-  try {
+${captcha.check}  try {
 ${stream}
     return createTextStreamResponse({
       stream: toTextStream({ stream: result.stream }),
@@ -1449,6 +1487,7 @@ const { strings } = Astro.props;
 ---
 
 <Assistant
+  captcha={data.config.assistant?.captcha ?? undefined}
   endpoint={data.config.assistant?.endpoint ?? undefined}
   strings={strings ?? data.ui.assistant}
   suggestions={data.config.assistant?.suggestions ?? []}

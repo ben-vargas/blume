@@ -1,3 +1,4 @@
+import type { CaptchaSettings } from "../captcha/schema.ts";
 import type { EndpointAuth } from "../components/content/api-page.ts";
 import type { SearchAdapterKind } from "../search/adapters/registry.ts";
 import type { StructuredDataIdentity } from "../seo/jsonld.ts";
@@ -125,6 +126,8 @@ export interface BlumeDataConfig {
   appleIcon: BlumeFavicon | null;
   /** The assistant's empty-state suggestions, or `null` when the assistant is off. */
   assistant: {
+    /** The bot check's public settings, or `null` without one. */
+    captcha: CaptchaSettings | null;
     endpoint: string | null;
     suggestions: NonNullable<ResolvedConfig["ai"]["assistant"]>["suggestions"];
   } | null;

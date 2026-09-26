@@ -161,6 +161,16 @@ afterAll(() => {
   delete (globalThis as { document?: unknown }).document;
 });
 
+// The bot check's token getter: the real client module, with the page's
+// singleton swapped for one a test controls (the rest stays real for the
+// suites that test it).
+const captchaClient = await import("../src/captcha/client.ts");
+let captchaImpl = (): Promise<string> => Promise.resolve("token-1");
+mock.module("../src/captcha/client.ts", () => ({
+  ...captchaClient,
+  captchaToken: () => captchaImpl(),
+}));
+
 const hooks = await import("../src/components/islands/hooks.ts");
 const { useAssistant, useBlume, usePage, useSearch } = hooks;
 
@@ -395,6 +405,12 @@ describe("useSearch", () => {
   });
 });
 
+/** The assistant hook on a site with a Turnstile check. */
+const useCheckedAssistant = () =>
+  useAssistant({
+    captcha: { kind: "turnstile", siteKey: "1x00000000000000000000AA" },
+  });
+
 /** The assistant hook with a localized rate limit message. */
 const useLocalizedAssistant = () =>
   useAssistant({ rateLimitMessage: "Langsamer." });
@@ -472,6 +488,51 @@ describe("useAssistant", () => {
       questionChars: 7,
       status: 500,
     });
+  });
+
+  it("sends a fresh bot-check token with each question", async () => {
+    const bodies: string[] = [];
+    setFetch((_url, init) => {
+      bodies.push(String(init?.body));
+      return Promise.resolve(streamResponse(["Hi."]));
+    });
+    let issued = 0;
+    captchaImpl = () => {
+      issued += 1;
+      return Promise.resolve(`token-${issued}`);
+    };
+    const { ask } = freshRender(useCheckedAssistant);
+    await ask("first?");
+    await render(useCheckedAssistant).ask("second?");
+    expect(bodies.map((body) => JSON.parse(body).captcha)).toStrictEqual([
+      "token-1",
+      "token-2",
+    ]);
+  });
+
+  it("says the bot check failed, in the browser or at the route", async () => {
+    let fetched = 0;
+    setFetch(() => {
+      fetched += 1;
+      return Promise.resolve(
+        new Response("Verification failed.", { status: 403 })
+      );
+    });
+    captchaImpl = () => Promise.reject(new Error("challenge closed"));
+    const { ask } = freshRender(useCheckedAssistant);
+    await ask("robot?");
+    expect(fetched).toBe(0);
+    expect(render(useCheckedAssistant).messages.at(-1)?.content).toBe(
+      "We couldn't check that you're human. Try again."
+    );
+    expect(render(useCheckedAssistant).loading).toBe(false);
+
+    captchaImpl = () => Promise.resolve("token-1");
+    await render(useCheckedAssistant).ask("human?");
+    expect(fetched).toBe(1);
+    expect(render(useCheckedAssistant).messages.at(-1)?.content).toBe(
+      "We couldn't check that you're human. Try again."
+    );
   });
 
   it("says the rate limit turned the question away on a 429", async () => {

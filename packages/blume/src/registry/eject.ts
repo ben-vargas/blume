@@ -162,6 +162,7 @@ const askFiles = async (
   const files = [
     {
       content: askEndpointTemplate(backend, {
+        captcha: assistant.captcha,
         cors: assistant.cors,
         instructions: assistant.instructions,
         rateLimit: project.config.rateLimit,

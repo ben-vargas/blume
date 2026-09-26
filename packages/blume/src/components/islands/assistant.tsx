@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 
+import type { CaptchaSettings } from "../../captcha/schema.ts";
 import type { UIStrings } from "../../core/i18n-ui.ts";
 import { copyText } from "../copy-feedback.ts";
 import { joinBase, mountBase } from "./base-path.ts";
@@ -143,11 +144,13 @@ const ANSWER_CLASS =
   "prose prose-sm max-w-none text-foreground [&_a]:inline-flex [&_a]:items-center [&_a]:gap-1 [&_a]:rounded-full [&_a]:bg-muted [&_a]:px-2 [&_a]:py-1 [&_a]:align-middle [&_a]:font-medium [&_a]:text-[0.7rem] [&_a]:leading-none [&_a]:text-muted-foreground! [&_a]:no-underline! [&_a:hover]:text-foreground!";
 
 const Assistant = ({
+  captcha,
   endpoint = DEFAULT_ASK_ENDPOINT,
   icons = EMPTY_ICONS,
   strings,
   suggestions = EMPTY_SUGGESTIONS,
 }: {
+  captcha?: CaptchaSettings;
   endpoint?: string;
   icons?: AssistantIcons;
   strings?: UIStrings["assistant"];
@@ -167,9 +170,11 @@ const Assistant = ({
     messages,
     reset,
   } = useAssistant({
+    captcha,
     endpoint,
     errorMessage: t.error,
     rateLimitMessage: t.rateLimited,
+    verifyMessage: t.verifyFailed,
   });
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);

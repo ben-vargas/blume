@@ -5,6 +5,7 @@ import type { AskRetrievalOptions } from "../ai/ask-context.ts";
 import type { AssistantAdapter, AssistantGatewayAdapter } from "../ai/ask.ts";
 import type { ComponentMarkdown } from "../ai/component-markdown.ts";
 import type { AnalyticsAdapter } from "../analytics/schema.ts";
+import type { CaptchaAdapter } from "../captcha/schema.ts";
 import type { ConsentAdapter } from "../consent/schema.ts";
 import type { DeploymentInput } from "../deploy/adapters/registry.ts";
 import type { CodeTheme } from "../markdown/themes.ts";
@@ -572,6 +573,13 @@ export interface AssistantRetrievalConfig {
 
 /** The chat assistant. */
 export interface AssistantConfig {
+  /**
+   * A bot check from `blume/captcha` — `turnstile({ siteKey })` or
+   * `hcaptcha({ siteKey })`. The panel sends a token with each question and
+   * the generated route verifies it (with `TURNSTILE_SECRET_KEY` or
+   * `HCAPTCHA_SECRET_KEY`) before the model runs.
+   */
+  captcha?: CaptchaAdapter;
   /**
    * Origins allowed to call the generated endpoint from another site — a
    * marketing page that embeds an ask box, for example — or `"*"` to allow

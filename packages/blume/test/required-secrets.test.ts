@@ -160,6 +160,28 @@ describe("checkRequiredSecrets", () => {
     expect(checkRequiredSecrets(config)).toEqual([]);
   });
 
+  it("warns about the assistant's bot check secret", () => {
+    Reflect.deleteProperty(process.env, "TURNSTILE_SECRET_KEY");
+    process.env.AI_GATEWAY_API_KEY = "set";
+    const config = blumeConfigSchema.parse({
+      ai: {
+        assistant: {
+          captcha: {
+            kind: "turnstile",
+            options: { siteKey: "0x4" },
+            requiredSecrets: ["TURNSTILE_SECRET_KEY"],
+            runtimeDeps: [],
+          },
+          enabled: true,
+        },
+      },
+    });
+    expect(checkRequiredSecrets(config).map((d) => d.message)).toStrictEqual([
+      "Assistant bot check (turnstile) is enabled but TURNSTILE_SECRET_KEY is not set.",
+    ]);
+    Reflect.deleteProperty(process.env, "AI_GATEWAY_API_KEY");
+  });
+
   it("reads the consent adapter's requiredSecrets from its descriptor", () => {
     Reflect.deleteProperty(process.env, "PROBE_CONSENT_KEY");
     const config = blumeConfigSchema.parse({

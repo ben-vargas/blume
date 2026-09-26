@@ -27,6 +27,7 @@ import type { RawMarkdownEntry } from "../ai/markdown.ts";
 import { buildMcpData } from "../ai/mcp/data.ts";
 import type { McpData } from "../ai/mcp/data.ts";
 import { buildMcpDiscovery, buildMcpServerCard } from "../ai/mcp/discovery.ts";
+import { captchaSettings } from "../captcha/schema.ts";
 import { parseApiEndpoint } from "../components/content/api-page.ts";
 import {
   hasDeferrableGroups,
@@ -1079,6 +1080,21 @@ const resolveGithubData = (
       }
     : null;
 
+/** The assistant's snapshot: what the panel needs, never a secret. */
+const resolveAssistant = (
+  config: ResolvedConfig
+): BlumeDataConfig["assistant"] => {
+  const { assistant } = config.ai;
+  if (!assistant?.enabled) {
+    return null;
+  }
+  return {
+    captcha: assistant.captcha ? captchaSettings(assistant.captcha) : null,
+    endpoint: assistant.endpoint ?? null,
+    suggestions: assistant.suggestions,
+  };
+};
+
 /** Serialize the content graph into the data module the runtime consumes. */
 export const buildRuntimeData = (project: BlumeProject): string => {
   const { config, context, graph, manifest } = project;
@@ -1162,12 +1178,7 @@ export const buildRuntimeData = (project: BlumeProject): string => {
       analytics: config.analytics,
       api: resolveApiPages(config),
       appleIcon: resolveAppleIcon(project),
-      assistant: config.ai.assistant?.enabled
-        ? {
-            endpoint: config.ai.assistant.endpoint ?? null,
-            suggestions: config.ai.assistant.suggestions,
-          }
-        : null,
+      assistant: resolveAssistant(config),
       banner: resolveBanner(config),
       basePath: config.basePath,
       codeThemes: config.markdown.code.theme,
@@ -1731,6 +1742,7 @@ const writeAskFiles = async (
   await write(
     join(srcDir, "pages", "api", "ask.ts"),
     askEndpointTemplate(backend, {
+      captcha: assistant.captcha,
       cors: assistant.cors,
       instructions: assistant.instructions,
       rateLimit: project.config.rateLimit,

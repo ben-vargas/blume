@@ -1,5 +1,6 @@
 import { defineConfig } from "blume";
 import { script } from "blume/analytics";
+import { turnstile } from "blume/captcha";
 import { native } from "blume/consent";
 import { node } from "blume/deploy";
 import { memory } from "blume/ratelimit";
@@ -22,6 +23,9 @@ export default defineConfig({
   },
   ai: {
     assistant: {
+      // Cloudflare's always-passing invisible test key; its test secret is
+      // 1x0000000000000000000000000000000AA (TURNSTILE_SECRET_KEY).
+      captcha: turnstile({ siteKey: "1x00000000000000000000BB" }),
       enabled: true,
       suggestions: [
         { icon: "rocket", label: "How do I get started?" },

@@ -80,10 +80,14 @@ export const checkRequiredSecrets = (config: ResolvedConfig): Diagnostic[] => {
 
   if (config.ai.assistant?.enabled && !config.ai.assistant.endpoint) {
     // The adapter descriptor names the env vars its route reads.
-    const { provider } = config.ai.assistant;
+    const { captcha, provider } = config.ai.assistant;
     const backend = resolveAskBackend(provider);
     for (const env of provider.requiredSecrets) {
       requireSecret(`Assistant (${backend.label})`, env, backend.secretNote);
+    }
+    // The bot check's secret key, which the route verifies tokens with.
+    for (const env of captcha?.requiredSecrets ?? []) {
+      requireSecret(`Assistant bot check (${captcha?.kind})`, env);
     }
   }
 

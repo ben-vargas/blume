@@ -1,4 +1,5 @@
 ---
+import type { CaptchaSettings } from "../../captcha/schema.ts";
 import type { UIStrings } from "../../core/i18n-ui.ts";
 import { resolveIcon } from "../../theme/icons.ts";
 import Assistant from "./assistant.tsx";
@@ -9,12 +10,14 @@ interface Suggestion {
 }
 
 interface Props {
+  /** The bot check's public settings (`ai.assistant.captcha`). */
+  captcha?: CaptchaSettings;
   endpoint?: string;
   strings?: UIStrings["assistant"];
   suggestions?: Suggestion[];
 }
 
-const { endpoint, strings, suggestions = [] } = Astro.props;
+const { captcha, endpoint, strings, suggestions = [] } = Astro.props;
 
 // Icons resolve to inline SVG here (server-only module), so the client island
 // gets ready-to-render markup rather than a name it can't resolve. Bare Lucide
@@ -50,6 +53,7 @@ const icons = {
     panel and re-stamps the body push attribute itself on astro:after-swap
     (see assistant.tsx), since the swap replaces <body> wholesale. */}
 <Assistant
+  captcha={captcha}
   client:load
   endpoint={endpoint}
   icons={icons}

@@ -65,3 +65,5 @@ The binding's namespace comes from the Worker's name, so two sites on one accoun
 ## Turning it off
 
 Set `rateLimit: false` to let every request through, when your host's firewall already limits these routes, say. A request whose address the host can't tell is always let through, and so is one a shared store fails to count: the failure is logged, and readers never get locked out by a store outage.
+
+For the assistant, pair rate limiting with a [bot check](/docs/configuration/assistant#bot-protection) to stop scripts that spread their requests across many addresses.
