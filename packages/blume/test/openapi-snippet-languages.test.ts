@@ -388,6 +388,13 @@ describe("Dart (package:http)", () => {
   });
 });
 
+/**
+ * The toolchain checks spawn a compiler once per sample. `swiftc` starts in
+ * well under a second on macOS but takes over a second per run on the
+ * Ubuntu runner, so five samples overran Bun's 5-second default there.
+ */
+const TOOLCHAIN_TIMEOUT_MS = 60_000;
+
 describe("syntax, where the toolchain is installed", () => {
   const dirs: string[] = [];
 
@@ -399,27 +406,35 @@ describe("syntax, where the toolchain is installed", () => {
 
   const samples = [POST, GET, HEAD, QUERY, FORM];
 
-  it.skipIf(!Bun.which("ruby"))("parses every Ruby sample", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "blume-snippet-ruby-"));
-    dirs.push(dir);
-    for (const [index, sample] of samples.entries()) {
-      const file = join(dir, `${index}.rb`);
-      // oxlint-disable-next-line no-await-in-loop -- one file per sample
-      await writeFile(file, build("ruby", sample));
-      const result = spawnSync("ruby", ["-c", file]);
-      expect(result.status, result.stderr.toString()).toBe(0);
-    }
-  });
+  it.skipIf(!Bun.which("ruby"))(
+    "parses every Ruby sample",
+    async () => {
+      const dir = await mkdtemp(join(tmpdir(), "blume-snippet-ruby-"));
+      dirs.push(dir);
+      for (const [index, sample] of samples.entries()) {
+        const file = join(dir, `${index}.rb`);
+        // oxlint-disable-next-line no-await-in-loop -- one file per sample
+        await writeFile(file, build("ruby", sample));
+        const result = spawnSync("ruby", ["-c", file]);
+        expect(result.status, result.stderr.toString()).toBe(0);
+      }
+    },
+    TOOLCHAIN_TIMEOUT_MS
+  );
 
-  it.skipIf(!Bun.which("swiftc"))("parses every Swift sample", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "blume-snippet-swift-"));
-    dirs.push(dir);
-    for (const [index, sample] of samples.entries()) {
-      const file = join(dir, `s${index}.swift`);
-      // oxlint-disable-next-line no-await-in-loop -- one file per sample
-      await writeFile(file, build("swift", sample));
-      const result = spawnSync("swiftc", ["-parse", file]);
-      expect(result.status, result.stderr.toString()).toBe(0);
-    }
-  });
+  it.skipIf(!Bun.which("swiftc"))(
+    "parses every Swift sample",
+    async () => {
+      const dir = await mkdtemp(join(tmpdir(), "blume-snippet-swift-"));
+      dirs.push(dir);
+      for (const [index, sample] of samples.entries()) {
+        const file = join(dir, `s${index}.swift`);
+        // oxlint-disable-next-line no-await-in-loop -- one file per sample
+        await writeFile(file, build("swift", sample));
+        const result = spawnSync("swiftc", ["-parse", file]);
+        expect(result.status, result.stderr.toString()).toBe(0);
+      }
+    },
+    TOOLCHAIN_TIMEOUT_MS
+  );
 });
