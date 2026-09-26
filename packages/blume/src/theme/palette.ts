@@ -1,21 +1,90 @@
 import type { ResolvedConfig } from "../core/schema.ts";
+import { composite, contrastRatio, parseColor } from "./color.ts";
+import type { Rgba } from "./color.ts";
 
-const FALLBACK_ACCENT = "oklch(0.62 0.16 250)";
+/** Per-mode CSS colors. */
+export interface AccentColors {
+  dark: string;
+  light: string;
+}
+
+/** A color mode. */
+export type ColorMode = keyof AccentColors;
 
 /**
- * Named accent presets mapped to OKLCH values. The single source of truth for
- * preset colors: the theme CSS and the OG card (og/card.ts) both resolve from
- * this table, so a site and its social cards can't disagree about "blue".
+ * Named accent presets mapped to OKLCH values, per mode. The single source of
+ * truth for preset colors: the theme CSS and the OG card (og/card.ts) both
+ * resolve from this table, so a site and its social cards can't disagree
+ * about "blue". Each clears WCAG AA (4.5:1) as text on its mode's page and
+ * under its button label ({@link readableOn}), with room to spare on the
+ * tinted surfaces accent text also sits on: the light shades are dark enough
+ * for white labels, the dark shades light enough to read on the dark page.
  */
 export const ACCENTS = {
-  blue: FALLBACK_ACCENT,
-  green: "oklch(0.6 0.16 150)",
-  orange: "oklch(0.68 0.17 50)",
-  pink: "oklch(0.65 0.2 350)",
-  purple: "oklch(0.58 0.2 290)",
-  red: "oklch(0.58 0.22 25)",
-  teal: "oklch(0.6 0.12 195)",
-} satisfies Record<string, string>;
+  blue: { dark: "oklch(0.62 0.16 250)", light: "oklch(0.55 0.16 250)" },
+  green: { dark: "oklch(0.6 0.16 150)", light: "oklch(0.53 0.16 150)" },
+  orange: { dark: "oklch(0.68 0.17 50)", light: "oklch(0.56 0.17 50)" },
+  pink: { dark: "oklch(0.65 0.2 350)", light: "oklch(0.58 0.2 350)" },
+  purple: { dark: "oklch(0.6 0.2 290)", light: "oklch(0.57 0.2 290)" },
+  red: { dark: "oklch(0.61 0.22 25)", light: "oklch(0.58 0.22 25)" },
+  teal: { dark: "oklch(0.6 0.12 195)", light: "oklch(0.53 0.12 195)" },
+} satisfies Record<string, AccentColors>;
+
+/** The contrast WCAG AA asks of body-size text. */
+export const MIN_TEXT_CONTRAST = 4.5;
+
+/**
+ * The theme's own colors a configured accent is drawn against: each mode's
+ * page background and text, and the dark ink a filled accent can carry.
+ * Mirrors the defaults in `entry.ts`.
+ */
+export const THEME_INKS = {
+  dark: {
+    background: "oklch(0.085 0 0)",
+    foreground: "oklch(0.96 0 0)",
+    ink: "oklch(0.085 0 0)",
+    mutedForeground: "oklch(0.68 0 0)",
+  },
+  light: {
+    background: "oklch(1 0 0)",
+    foreground: "oklch(0.145 0 0)",
+    ink: "oklch(0.145 0 0)",
+    mutedForeground: "oklch(0.53 0 0)",
+  },
+} satisfies Record<ColorMode, Record<string, string>>;
+
+const WHITE = "oklch(1 0 0)";
+
+/** A color this module writes itself, parsed (they all parse). */
+const own = (value: string): Rgba =>
+  parseColor(value) ?? { alpha: 1, blue: 0, green: 0, red: 0 };
+
+/** {@link THEME_INKS}, parsed, for contrast math. */
+export const themeInk = (
+  mode: ColorMode,
+  name: keyof (typeof THEME_INKS)[ColorMode]
+): Rgba => own(THEME_INKS[mode][name]);
+
+/**
+ * The label color for text on a filled `fill` (a button, a step number): white
+ * while it reaches AA, else the mode's dark ink when that reads better, so a
+ * light accent (every dark-mode preset) gets dark text instead of white text
+ * nobody can read.
+ */
+export const labelOn = (fill: Rgba, mode: ColorMode): string => {
+  const opaque = composite(fill, themeInk(mode, "background"));
+  const onWhite = contrastRatio(own(WHITE), opaque);
+  return onWhite >= MIN_TEXT_CONTRAST ||
+    onWhite >= contrastRatio(themeInk(mode, "ink"), opaque)
+    ? WHITE
+    : THEME_INKS[mode].ink;
+};
+
+/** {@link labelOn} for a CSS color; one this module can't parse keeps white. */
+export const readableOn = (fill: string, mode: ColorMode): string => {
+  const color = parseColor(fill);
+  return color ? labelOn(color, mode) : WHITE;
+};
 
 /**
  * Whether a raw config value names an accent preset. `hasOwn` keeps a value
@@ -35,9 +104,11 @@ const CSS_COLOR = /^[\w\s#%.,()/+-]+$/u;
 const safeColor = (value: string, fallback: string): string =>
   CSS_COLOR.test(value.trim()) ? value.trim() : fallback;
 
-/** Resolve a named preset or fall back to {@link safeColor}. */
-const presetOrColor = (value: string): string =>
-  isAccentPreset(value) ? ACCENTS[value] : safeColor(value, FALLBACK_ACCENT);
+/** Resolve a named preset in `mode`, or fall back to {@link safeColor}. */
+const presetOrColor = (value: string, mode: ColorMode): string =>
+  isAccentPreset(value)
+    ? ACCENTS[value][mode]
+    : safeColor(value, ACCENTS.blue[mode]);
 
 /** Like {@link safeColor} but drops an unsafe/absent value to `null`. */
 const safeColorOrNull = (value: string | undefined): string | null =>
@@ -58,20 +129,23 @@ const backgroundImageCss = (image: string): string =>
 const cssToken = (name: string, value?: string | null): string[] =>
   value ? [`  ${name}: ${value};`] : [];
 
+/** One mode's resolved accent and action fills. */
+interface ModeFills {
+  accent: string;
+  action: string | null;
+}
+
 const themeRootCss = (
   theme: ResolvedConfig["theme"],
-  options: {
-    accent: string;
-    action: string | null;
-    radius: string;
-  }
+  options: ModeFills & { radius: string }
 ): string =>
   [
     `  --blume-accent: ${options.accent};`,
+    `  --blume-accent-foreground: ${readableOn(options.accent, "light")};`,
     ...cssToken("--blume-action", options.action),
     ...cssToken(
       "--blume-action-foreground",
-      options.action ? "oklch(1 0 0)" : null
+      options.action ? readableOn(options.action, "light") : null
     ),
     ...cssToken("--blume-background", safeColorOrNull(theme.background?.light)),
     ...cssToken(
@@ -87,10 +161,7 @@ const themeRootCss = (
 
 const themeDarkCss = (
   theme: ResolvedConfig["theme"],
-  options: {
-    accent: string;
-    action: string | null;
-  }
+  options: ModeFills
 ): string => {
   // Mode-shared tokens (accent, action) must be re-declared here: the base
   // stylesheet's own `:root[data-theme="dark"]` block outranks the `:root`
@@ -98,11 +169,11 @@ const themeDarkCss = (
   // silently keep its neutral defaults and ignore the config.
   const tokens = [
     `  --blume-accent: ${options.accent};`,
-    "  --blume-accent-foreground: oklch(1 0 0);",
+    `  --blume-accent-foreground: ${readableOn(options.accent, "dark")};`,
     ...cssToken("--blume-action", options.action),
     ...cssToken(
       "--blume-action-foreground",
-      options.action ? "oklch(1 0 0)" : null
+      options.action ? readableOn(options.action, "dark") : null
     ),
     ...cssToken("--blume-background", safeColorOrNull(theme.background?.dark)),
     ...cssToken(
@@ -118,25 +189,30 @@ ${tokens.join("\n")}
 `;
 };
 
-/** Per-mode accent CSS colors. */
-export interface AccentColors {
-  dark: string;
-  light: string;
-}
-
 /**
  * Resolve the configured accent to per-mode CSS colors. A named accent
- * resolves to its preset; any other value is treated as a raw CSS color so
- * users can pass arbitrary colors without a config change. A string accent
- * has already been normalized by the config schema to the same color for
- * both modes.
+ * resolves to its preset's shade for each mode; any other value is treated as
+ * a raw CSS color so users can pass arbitrary colors without a config change.
+ * A string accent has already been normalized by the config schema to the
+ * same value for both modes.
  */
 export const resolveAccent = (
   theme: ResolvedConfig["theme"]
 ): AccentColors => ({
-  dark: presetOrColor(theme.accent.dark),
-  light: presetOrColor(theme.accent.light),
+  dark: presetOrColor(theme.accent.dark, "dark"),
+  light: presetOrColor(theme.accent.light, "light"),
 });
+
+/** Resolve the configured `action` fill per mode, or `null` when unset. */
+export const resolveAction = (
+  theme: ResolvedConfig["theme"]
+): AccentColors | null =>
+  theme.action
+    ? {
+        dark: presetOrColor(theme.action, "dark"),
+        light: presetOrColor(theme.action, "light"),
+      }
+    : null;
 
 /** Resolve the configured radius preset to a CSS length. */
 export const resolveRadius = (theme: ResolvedConfig["theme"]): string =>
@@ -145,20 +221,20 @@ export const resolveRadius = (theme: ResolvedConfig["theme"]): string =>
 /**
  * Compile theme config into CSS custom properties. A named accent resolves to
  * its preset; any other value is treated as a raw CSS color so users can pass
- * arbitrary colors without a config change.
+ * arbitrary colors without a config change. Labels on accent and action fills
+ * take whichever of white or dark ink reads ({@link readableOn}).
  */
 export const buildThemeCss = (theme: ResolvedConfig["theme"]): string => {
   const accent = resolveAccent(theme);
-  const action = theme.action ? presetOrColor(theme.action) : null;
-  const radius = RADII[theme.radius];
+  const action = resolveAction(theme);
   const root = themeRootCss(theme, {
     accent: accent.light,
-    action,
-    radius,
+    action: action?.light ?? null,
+    radius: RADII[theme.radius],
   });
   const dark = themeDarkCss(theme, {
     accent: accent.dark,
-    action,
+    action: action?.dark ?? null,
   });
 
   return `/* Generated by Blume from theme config. */

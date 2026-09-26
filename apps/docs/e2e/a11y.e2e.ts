@@ -42,9 +42,9 @@ test("the skip link is the first focusable element", async ({ page }) => {
 
 /**
  * Contrast on real article content and the sidebar must meet AA in both
- * themes. Left out, as design decisions this gate can't blanket-AA: syntax
- * tokens (`pre` and `<blume-diff>` blocks) and brand-accent text and fills
- * (`text-accent`, `bg-accent`).
+ * themes, accent text and fills included (the theme picks accent shades and
+ * fill labels for it). Left out, as design decisions this gate can't
+ * blanket-AA: syntax tokens (`pre` and `<blume-diff>` blocks).
  */
 const contentContrast = (page: Page) =>
   new AxeBuilder({ page })
@@ -52,8 +52,6 @@ const contentContrast = (page: Page) =>
     .include("[data-blume-nav-drawer]")
     .exclude("pre")
     .exclude("blume-diff")
-    .exclude(".text-accent")
-    .exclude(".bg-accent")
     .withRules(["color-contrast"])
     .analyze();
 

@@ -498,6 +498,25 @@ export const CHECKS = [
     title: "Hreflang group has a language conflict",
   },
 
+  // Accessibility. Theme colors are one per site, not per page: these run
+  // on the config, the way the build resolves it.
+  {
+    category: "accessibility",
+    fix: "Pick a darker shade for light mode or a lighter one for dark mode, per mode with `theme.accent: { light, dark }`.",
+    id: "BLUME_AUDIT_THEME_CONTRAST_LOW",
+    severity: "warning",
+    tier: "static",
+    title: "Theme colors miss WCAG AA contrast",
+  },
+  {
+    category: "accessibility",
+    fix: "Write the color as hex, `rgb()`, `hsl()`, `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()`, or a named color so its contrast can be checked.",
+    id: "BLUME_AUDIT_THEME_COLOR_UNCHECKED",
+    severity: "info",
+    tier: "static",
+    title: "Theme color can't be checked for contrast",
+  },
+
   // Assets
   {
     category: "assets",

@@ -63,15 +63,16 @@ export interface OgFontFamilies {
   title?: string;
 }
 
-// Named presets resolve from the theme's own OKLCH table — Takumi parses the
-// full CSS color grammar, so the card renders exactly the accent the site
-// shows (a separate hand-synced hex palette used to drift: the card's "blue"
-// was Tailwind's, not Blume's). Anything else is handed to Takumi as-is, and
-// a genuinely malformed value fails the build with a parse error naming it.
+// Named presets resolve from the theme's own OKLCH table, in their light
+// shade since the card is light — Takumi parses the full CSS color grammar,
+// so the card renders exactly the accent the site shows (a separate
+// hand-synced hex palette used to drift: the card's "blue" was Tailwind's,
+// not Blume's). Anything else is handed to Takumi as-is, and a genuinely
+// malformed value fails the build with a parse error naming it.
 // `isAccentPreset` keeps a preset name like "constructor" from resolving up
 // the prototype chain.
 const resolveAccent = (accent: string): string =>
-  isAccentPreset(accent) ? ACCENTS[accent] : accent;
+  isAccentPreset(accent) ? ACCENTS[accent].light : accent;
 
 export interface OgCardPalette {
   accent?: string;

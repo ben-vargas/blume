@@ -32,9 +32,11 @@ theme: {
 }
 ```
 
-Named presets: `blue` (default), `green`, `orange`, `pink`, `purple`, `red`, and `teal`.
+Named presets: `blue` (default), `green`, `orange`, `pink`, `purple`, `red`, and `teal`. Each preset has a darker light-mode shade and a lighter dark-mode shade, so accent text and button labels meet WCAG AA contrast (4.5:1) in both modes.
 
 A string applies to both color modes; pass an object for [a different accent per mode](#dark-mode-colors).
+
+Text on an accent or action fill, like a button label or a step number, is white while white meets AA on that color, and dark otherwise. A light accent gets dark labels without any extra config. [`blume audit`](/docs/cli/audit#theme-contrast-low) checks a custom accent, action, or background against the same bar.
 
 ### Radius
 

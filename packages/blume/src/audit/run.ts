@@ -12,6 +12,7 @@ import { CHECKS } from "./catalog.ts";
 import type { CheckId } from "./catalog.ts";
 import { assetChecks } from "./checks/assets.ts";
 import { contentChecks } from "./checks/content.ts";
+import { contrastChecks } from "./checks/contrast.ts";
 import { dnsAidChecks } from "./checks/dns-aid.ts";
 import { duplicateChecks } from "./checks/duplicates.ts";
 import { i18nChecks } from "./checks/i18n.ts";
@@ -51,6 +52,7 @@ const MODULES: CheckModule[] = [
   ogImageChecks,
   i18nChecks,
   assetChecks,
+  contrastChecks,
   sitemapChecks,
   robotsChecks,
   llmsChecks,

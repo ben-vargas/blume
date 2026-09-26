@@ -69,9 +69,10 @@ This writes the complete JSON report — every affected page, not the terminal's
 
 The check set is deliberately narrower than a general-purpose SEO crawler's. Much of what such a crawler reports cannot happen to a Blume site — it never emits `rel=nofollow`, and Vite's content-hashed bundles are never missing or redirecting — and reporting those as permanent zeroes would just teach you to ignore the report.
 
-Two limits worth stating plainly:
+Limits worth stating plainly:
 
 - **Structured data** is validated for well-formedness (valid JSON, a `@context`, a `@type` on every node). Blume does not validate against the full schema.org vocabulary or Google's rich-results rules.
+- **Contrast** is checked for the colors your theme config sets, not element by element. The audit doesn't render pages, so a color you write by hand in MDX or `theme.css` isn't measured.
 - **Core Web Vitals** are not checked. They need a real browser, and a flag that quietly measured nothing would be worse than not having one — so `blume audit` reports the layout-shift causes it _can_ see offline (images with no `width`/`height`, oversized assets) and leaves the rest alone for now.
 
 Anything the audit did not run is reported as skipped rather than silently passing:
@@ -87,6 +88,7 @@ Every check `blume audit` can report, grouped by category, with its default seve
 
 | Category             | Key               |
 | -------------------- | ----------------- |
+| Accessibility        | `accessibility`   |
 | Content              | `content`         |
 | Duplicates           | `duplicates`      |
 | Indexability         | `indexability`    |
@@ -444,6 +446,24 @@ Fix: Point the hreflang alternate at a page that exists and is canonical.
 `BLUME_AUDIT_HREFLANG_CONFLICT` · error · from the built HTML
 
 Fix: Each language in an hreflang group must name exactly one page.
+
+### Accessibility
+
+These run on your theme config, not on each page: a theme color is one choice for the whole site. The check resolves colors the way the build does (a preset's shade for each mode, and white or dark labels on fills) and measures every text color the theme draws against the WCAG AA ratio for body text, 4.5:1, in light and dark mode.
+
+#### Theme colors miss WCAG AA contrast [#theme-contrast-low]
+
+`BLUME_AUDIT_THEME_CONTRAST_LOW` · warning · from the theme config
+
+Fix: Pick a darker shade for light mode or a lighter one for dark mode, per mode with `theme.accent: { light, dark }`.
+
+It checks accent text on the page, labels on accent and `action` fills, and body and secondary text on a custom `background`. Each finding names the pair, the mode, and its ratio.
+
+#### Theme color can't be checked for contrast [#theme-color-unchecked]
+
+`BLUME_AUDIT_THEME_COLOR_UNCHECKED` · info · from the theme config
+
+Fix: Write the color as hex, `rgb()`, `hsl()`, `hwb()`, `lab()`, `lch()`, `oklab()`, `oklch()`, or a named color so its contrast can be checked.
 
 ### Assets
 

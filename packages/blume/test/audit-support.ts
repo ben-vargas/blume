@@ -10,6 +10,8 @@ import type {
 } from "../src/audit/types.ts";
 import { isServed, siteOrigin } from "../src/audit/url.ts";
 import type { BlumeProject } from "../src/core/project-graph.ts";
+import { blumeConfigSchema } from "../src/core/schema.ts";
+import type { ResolvedConfig } from "../src/core/schema.ts";
 import type { RouteManifestEntry } from "../src/core/types.ts";
 
 /** A complete manifest route; tests override only the fields under test. */
@@ -88,6 +90,8 @@ interface ContextOptions {
   sources?: Map<string, string>;
   seo?: { robots?: boolean; sitemap?: boolean };
   configFile?: string;
+  /** `theme` config, for the contrast checks; the default theme when unset. */
+  theme?: ResolvedConfig["theme"];
   /** `i18n` config, for the checks that read the configured locale codes. */
   i18n?: { locales: { code: string }[] };
   /** Docs-versioning config, for the archived-canonical checks. */
@@ -129,6 +133,7 @@ export const context = (options: ContextOptions = {}): AuditContext => {
         robots: options.seo?.robots ?? true,
         sitemap: options.seo?.sitemap ?? true,
       },
+      theme: options.theme ?? blumeConfigSchema.parse({}).theme,
       versions: options.versions,
     },
     context: { configFile: options.configFile ?? null },

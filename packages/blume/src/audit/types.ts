@@ -13,6 +13,7 @@ import type {
 export type AuditTier = "static" | "network" | "external";
 
 export type AuditCategory =
+  | "accessibility"
   | "content"
   | "duplicates"
   | "indexability"

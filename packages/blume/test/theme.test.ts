@@ -25,11 +25,21 @@ import { rebaseSourceDirectives } from "../src/theme/sources.ts";
 const themeOf = (over: BlumeConfigInput["theme"]) =>
   blumeConfigSchema.parse({ theme: over }).theme;
 
+/** The label color the theme CSS gives an accent fill in `mode`. */
+const labelOf = (accent: string, mode: "light" | "dark"): string => {
+  const css = buildThemeCss(themeOf({ accent }));
+  const at = css.indexOf(':root[data-theme="dark"]');
+  const block = mode === "dark" ? css.slice(at) : css.slice(0, at);
+  return (
+    /--blume-accent-foreground: (?<ink>[^;]+);/u.exec(block)?.groups?.ink ?? ""
+  );
+};
+
 describe("resolveAccent", () => {
-  it("maps a named accent preset to its OKLCH value for both modes", () => {
+  it("maps a named accent preset to its OKLCH shade for each mode", () => {
     expect(resolveAccent(themeOf({ accent: "purple" }))).toStrictEqual({
-      dark: "oklch(0.58 0.2 290)",
-      light: "oklch(0.58 0.2 290)",
+      dark: "oklch(0.6 0.2 290)",
+      light: "oklch(0.57 0.2 290)",
     });
   });
 
@@ -38,7 +48,7 @@ describe("resolveAccent", () => {
       resolveAccent(themeOf({ accent: { dark: "teal", light: "purple" } }))
     ).toStrictEqual({
       dark: "oklch(0.6 0.12 195)",
-      light: "oklch(0.58 0.2 290)",
+      light: "oklch(0.57 0.2 290)",
     });
   });
 
@@ -50,7 +60,7 @@ describe("resolveAccent", () => {
     // A `;}` would end the rule and inject new ones; fall back to the default.
     expect(
       resolveAccent(themeOf({ accent: "red;}body{display:none}" })).light
-    ).toBe("oklch(0.62 0.16 250)");
+    ).toBe("oklch(0.55 0.16 250)");
   });
 });
 
@@ -67,7 +77,7 @@ describe("buildThemeCss", () => {
   it("emits accent and radius custom properties on :root", () => {
     const css = buildThemeCss(themeOf({ accent: "teal", radius: "lg" }));
     expect(css).toContain(":root {");
-    expect(css).toContain("--blume-accent: oklch(0.6 0.12 195);");
+    expect(css).toContain("--blume-accent: oklch(0.53 0.12 195);");
     expect(css).toContain("--blume-radius: 0.75rem;");
   });
 });
@@ -82,7 +92,7 @@ describe("buildThemeCss — backgrounds and dark mode", () => {
       })
     );
     expect(css).toContain('--blume-background-image: url("/bg.png");');
-    expect(css).toContain("--blume-action: oklch(0.6 0.16 150);");
+    expect(css).toContain("--blume-action: oklch(0.53 0.16 150);");
     expect(css).toContain("--blume-action-foreground: oklch(1 0 0);");
     expect(css).toContain("--blume-background: oklch(0.99 0 0);");
   });
@@ -96,7 +106,7 @@ describe("buildThemeCss — backgrounds and dark mode", () => {
       })
     );
     expect(css).toContain(':root[data-theme="dark"] {');
-    expect(css).toContain("--blume-accent: oklch(0.58 0.2 290);");
+    expect(css).toContain("--blume-accent: oklch(0.6 0.2 290);");
     expect(css).toContain("--blume-background: oklch(0.2 0 0);");
     expect(css).toContain('--blume-background-image: url("/dark.png");');
     // A dark-only override must not leak into the light-mode :root block.
@@ -126,14 +136,29 @@ describe("buildThemeCss — backgrounds and dark mode", () => {
     const css = buildThemeCss(themeOf({ accent: "teal" }));
     const dark = css.slice(css.indexOf(':root[data-theme="dark"]'));
     expect(dark).toContain("--blume-accent: oklch(0.6 0.12 195);");
-    expect(dark).toContain("--blume-accent-foreground: oklch(1 0 0);");
+    // White misses AA on the lighter dark shade; dark ink reads.
+    expect(dark).toContain("--blume-accent-foreground: oklch(0.085 0 0);");
   });
 
   it("re-declares action for dark mode", () => {
     const css = buildThemeCss(themeOf({ action: "green" }));
     const dark = css.slice(css.indexOf(':root[data-theme="dark"]'));
     expect(dark).toContain("--blume-action: oklch(0.6 0.16 150);");
-    expect(dark).toContain("--blume-action-foreground: oklch(1 0 0);");
+    expect(dark).toContain("--blume-action-foreground: oklch(0.085 0 0);");
+  });
+
+  it("labels a fill in white while white reads, else in dark ink", () => {
+    expect(labelOf("#1d4ed8", "light")).toBe("oklch(1 0 0)");
+    expect(labelOf("#fde047", "light")).toBe("oklch(0.145 0 0)");
+    expect(labelOf("#fde047", "dark")).toBe("oklch(0.085 0 0)");
+    // White keeps a fill it clears AA on, even where dark ink scores higher.
+    expect(labelOf("#767676", "dark")).toBe("oklch(1 0 0)");
+    // Neither clears AA on #777 in light mode; white stays, as it's no worse.
+    expect(labelOf("#777777", "light")).toBe("oklch(1 0 0)");
+    // A color this module can't read keeps white.
+    expect(labelOf("color-mix(in oklab, red, blue)", "light")).toBe(
+      "oklch(1 0 0)"
+    );
   });
 });
 
