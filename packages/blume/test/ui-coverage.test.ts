@@ -654,8 +654,8 @@ describe("layout chrome sources", () => {
     // Modal surfaces hold independent root attributes so one surface cannot
     // release another's scroll lock (for example, nav closing on resize while
     // search remains open).
-    expect(source).toContain(
-      'this.dialog.addEventListener("close", () => this.unlockPageScroll());'
+    expect(source).toMatch(
+      /this\.dialog\.addEventListener\("close", \(\) => \{\s*this\.unlockPageScroll\(\);/u
     );
     expect(source).toContain(
       'document.documentElement.setAttribute("data-blume-search-dialog-open", "");'
