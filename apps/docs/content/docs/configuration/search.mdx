@@ -90,6 +90,12 @@ search:
   tags: [api, reference]
 ```
 
+## Search analytics
+
+With an [analytics adapter](/docs/configuration/analytics) configured, search reports what readers look for. A query is recorded once it settles, after a second without typing or when the reader picks a result or closes the dialog, as a `search` event with the `query`, the number of `results`, and the `path` it was searched from. A query with no results shows up with `results: 0`, so filtering on it lists what your docs don't cover yet. Picking a result sends a `search_select` event with the `query`, the result's 1-based `position`, and its `url`, for click-through.
+
+Queries are sent as typed, up to 100 characters. Your analytics sees them the way it sees any page's search terms, so treat them as reader input. With [cookie consent](/docs/configuration/consent) on, only readers who allowed analytics are counted.
+
 ## Adapters
 
 The client-side adapters are keyless and need no options — their clients are configured from `i18n` (or, for Pagefind, from the built HTML), so an unknown key is rejected by config validation rather than ignored. The hosted ones take **public** credentials (safe to ship to the browser) and read their **secret** admin key from an environment variable at build time — the secret never lands in the config or the client bundle. Every option you pass to a hosted adapter is kept verbatim and handed to its search client in the browser (or, for Mixedbread, to the search endpoint), so an option Blume doesn't name still reaches the SDK — Algolia's `liteClient`, the Typesense `Client`, or `OramaClient`. Those options must be JSON values — the descriptor is inlined into the generated project as a literal, so a function, `undefined`, or a bigint fails config validation with a path instead of vanishing on the way.

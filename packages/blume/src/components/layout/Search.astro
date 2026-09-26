@@ -242,6 +242,8 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
     import { mountBase } from "../islands/base-path.ts";
     import { escape as escapeHtml } from "html-escaper";
 
+    import { track } from "./analytics-client.ts";
+    import { createSearchTracker } from "./search/analytics.ts";
     import { highlight, matchSnippet } from "./search/types.ts";
     import type { SearchFn, SearchHit } from "./search/types.ts";
 
@@ -326,6 +328,8 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
       message!: HTMLElement;
       preview!: HTMLElement;
       searchFn: SearchFn | null = null;
+      /** Records settled queries and picked results (search/analytics.ts). */
+      tracker = createSearchTracker(track);
       loaded = false;
       loadFailed = false;
       /** First-open client/index load still in flight. */
@@ -494,7 +498,10 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
         this.dialog.addEventListener("keydown", (event) =>
           this.onKeydown(event)
         );
-        this.dialog.addEventListener("close", () => this.unlockPageScroll());
+        this.dialog.addEventListener("close", () => {
+          this.unlockPageScroll();
+          this.tracker.closed();
+        });
         this.dialog.addEventListener("click", (event) => {
           if (event.target === this.dialog) {
             this.dialog.close();
@@ -678,6 +685,7 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
           this.setMessage(this.noResultsMsg);
         }
 
+        this.tracker.settled(query, result.hits.length);
         this.finishRender();
       }
 
@@ -901,6 +909,14 @@ const kbd = "rounded border border-border bg-muted px-1 py-0.5 font-mono";
             new CustomEvent("blume:open-assistant", { detail: { query } })
           );
         } else if (item.url) {
+          if (item.hit) {
+            const hits = this.selectables.filter((row) => row.hit);
+            this.tracker.selected(
+              this.input.value.trim(),
+              hits.indexOf(item) + 1,
+              item.url
+            );
+          }
           // Close first so the dialog isn't left open over the transition;
           // navigate() rides the client router (and falls back to a normal
           // full load on pages without it).
