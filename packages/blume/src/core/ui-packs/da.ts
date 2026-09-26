@@ -42,6 +42,15 @@ export const da: UIStringsOverride = {
     description: "Produktopdateringer og udgivelsesnoter.",
     title: "Ændringslog",
   },
+  consent: {
+    accept: "Accepter",
+    decline: "Afvis",
+    label: "Cookiesamtykke",
+    message:
+      "Vi vil gerne bruge cookies til at forstå, hvordan denne dokumentation bruges.",
+    policy: "Privatlivspolitik",
+    settings: "Cookieindstillinger",
+  },
   content: {
     code: "Kode",
     copyColor: "Kopiér farven {name} {value}",

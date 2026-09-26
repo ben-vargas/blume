@@ -13,6 +13,7 @@ import {
   AUTH_METHODS,
   PLAYGROUND_MODES,
 } from "../components/content/api-page.ts";
+import { consentConfigSchema } from "../consent/schema.ts";
 import { resolvedDeploymentSchema } from "../deploy/adapters/registry.ts";
 import type { CodeTheme } from "../markdown/themes.ts";
 import { narrationProviderSchema } from "../narration/provider.ts";
@@ -1995,6 +1996,8 @@ export const blumeConfigSchema = z
         })
         .optional()
         .transform((value) => normalizeBasePath(value)),
+      // An adapter from `blume/consent`; analytics waits for the reader.
+      consent: consentConfigSchema,
       content: contentConfigSchema.prefault({}),
       /**
        * Date presentation for the "last updated" stamp and the changelog timeline.

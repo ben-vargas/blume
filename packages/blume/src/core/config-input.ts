@@ -5,6 +5,7 @@ import type { AskRetrievalOptions } from "../ai/ask-context.ts";
 import type { AssistantAdapter, AssistantGatewayAdapter } from "../ai/ask.ts";
 import type { ComponentMarkdown } from "../ai/component-markdown.ts";
 import type { AnalyticsAdapter } from "../analytics/schema.ts";
+import type { ConsentAdapter } from "../consent/schema.ts";
 import type { DeploymentInput } from "../deploy/adapters/registry.ts";
 import type { CodeTheme } from "../markdown/themes.ts";
 import type { PlaygroundOptions } from "../reference/options.ts";
@@ -1440,6 +1441,14 @@ export interface BlumeConfig {
    * compose: with both set, a page lands at `{deployment.base}/{basePath}/page`.
    */
   basePath?: string;
+  /**
+   * Ask readers before analytics runs, with an adapter from `blume/consent`:
+   * `native()` for Blume's own banner, or a hosted consent manager
+   * (`osano({ customerId, configId })`, `ethyca({ privacyCenter })`). Every
+   * `analytics` adapter waits until the reader allows analytics. Unset runs
+   * analytics as it loads.
+   */
+  consent?: ConsentAdapter;
   /** Where content lives and how it's discovered. */
   content?: ContentConfig;
   /**

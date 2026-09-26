@@ -14,6 +14,8 @@ import { NEW_TAB_HINT_ID } from "../../core/new-tab.ts";
 import type { FontHead } from "../../theme/fonts.ts";
 import type { Navigation } from "../../core/types.ts";
 import Analytics from "./Analytics.astro";
+import ConsentBanner from "./ConsentBanner.astro";
+import ConsentHead from "./ConsentHead.astro";
 import WebMcp from "./WebMcp.astro";
 import Banner from "./Banner.astro";
 import DiscoveryLinks from "./DiscoveryLinks.astro";
@@ -110,6 +112,8 @@ const locale = pageLocale(data.config.i18n, localeProp, Astro.currentLocale);
 const dir = dirProp ?? pageDirection(data.config.i18n, locale);
 
 const strings = ui ?? EN_UI;
+// The consent adapter (`consent`), site-wide: analytics waits for the reader.
+const consent = data.config.consent;
 const navStrings = { ...EN_UI.nav, ...strings.nav };
 // Scope search to the reference page's language on a multi-locale site.
 const searchLocale = searchLocaleFor(data.config.i18n, locale);
@@ -137,6 +141,7 @@ createIconSprite(Astro.locals);
       )
     }
     <script data-mode={themeMode} is:inline set:html={THEME_INIT_SCRIPT} />
+    {consent && <ConsentHead consent={consent} />}
     <Analytics analytics={analytics} />
   </head>
   <body class="bg-background font-sans text-foreground antialiased">
@@ -170,6 +175,14 @@ createIconSprite(Astro.locals);
       <script is:inline set:html={SCALAR_THEME_INIT_SCRIPT} />
     </div>
     <WebMcp />
+    {
+      consent?.kind === "native" && (
+        <ConsentBanner
+          policy={consent.options.policy}
+          strings={strings.consent}
+        />
+      )
+    }
   <IconSprite />
   </body>
 </html>

@@ -60,6 +60,13 @@ export const checkRequiredSecrets = (config: ResolvedConfig): Diagnostic[] => {
     }
   }
 
+  // The consent adapter names its own secrets; the built-in ones load public
+  // scripts and declare none.
+  const { consent } = config;
+  for (const env of consent?.requiredSecrets ?? []) {
+    requireSecret(`Consent (${consent?.kind})`, env);
+  }
+
   // Each content source adapter declares the env vars its fetch reads.
   for (const source of config.content.sources) {
     for (const env of source.requiredSecrets) {

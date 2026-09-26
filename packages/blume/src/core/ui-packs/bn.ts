@@ -42,6 +42,14 @@ export const bn: UIStringsOverride = {
     description: "পণ্য আপডেট এবং রিলিজ নোট।",
     title: "পরিবর্তন লগ",
   },
+  consent: {
+    accept: "গ্রহণ করুন",
+    decline: "প্রত্যাখ্যান করুন",
+    label: "কুকি সম্মতি",
+    message: "এই ডকুমেন্টেশন কীভাবে ব্যবহার হয় তা বুঝতে আমরা কুকি ব্যবহার করতে চাই।",
+    policy: "গোপনীয়তা নীতি",
+    settings: "কুকি সেটিংস",
+  },
   content: {
     code: "কোড",
     copyColor: "{name} রং {value} অনুলিপি করুন",

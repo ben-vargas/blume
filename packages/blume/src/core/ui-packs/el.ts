@@ -43,6 +43,15 @@ export const el: UIStringsOverride = {
     description: "Ενημερώσεις προϊόντος και σημειώσεις έκδοσης.",
     title: "Ιστορικό αλλαγών",
   },
+  consent: {
+    accept: "Αποδοχή",
+    decline: "Απόρριψη",
+    label: "Συναίνεση για cookies",
+    message:
+      "Θα θέλαμε να χρησιμοποιούμε cookies για να κατανοήσουμε πώς χρησιμοποιείται αυτή η τεκμηρίωση.",
+    policy: "Πολιτική απορρήτου",
+    settings: "Ρυθμίσεις cookies",
+  },
   content: {
     code: "Κώδικας",
     copyColor: "Αντιγραφή χρώματος {name} {value}",

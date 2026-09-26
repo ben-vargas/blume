@@ -1,4 +1,6 @@
 import { defineConfig } from "blume";
+import { script } from "blume/analytics";
+import { native } from "blume/consent";
 import { node } from "blume/deploy";
 import { asyncapi, graphql, openapi } from "blume/reference";
 import { filesystem, githubReleases } from "blume/sources";
@@ -8,7 +10,9 @@ import { z } from "zod";
  * Kitchen-sink sandbox: every Blume feature enabled in one project, for
  * exercising the framework end to end — including the native OpenAPI and
  * AsyncAPI renderers, search, the assistant, MCP, i18n, export, OG images,
- * narration, content variables, pattern redirects, and the site footer.
+ * narration, content variables, pattern redirects, the site footer, and
+ * cookie consent (the `script()` analytics logs to the console only once a
+ * reader accepts).
  */
 export default defineConfig({
   agents: {
@@ -25,6 +29,11 @@ export default defineConfig({
       ],
     },
   },
+  analytics: [
+    script({
+      content: 'console.info("[sandbox] analytics ran after consent")',
+    }),
+  ],
   api: {
     auth: { method: "bearer" },
     playground: { proxy: true },
@@ -36,6 +45,7 @@ export default defineConfig({
     id: "sandbox",
     link: { href: "/events", text: "Try the AsyncAPI reference" },
   },
+  consent: native({ policy: "/docs/privacy" }),
   content: {
     sources: [
       filesystem({ root: "content" }),

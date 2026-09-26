@@ -43,6 +43,15 @@ export const de: UIStringsOverride = {
     description: "Produkt-Updates und Versionshinweise.",
     title: "Änderungsprotokoll",
   },
+  consent: {
+    accept: "Akzeptieren",
+    decline: "Ablehnen",
+    label: "Cookie-Einwilligung",
+    message:
+      "Wir würden gern Cookies verwenden, um zu verstehen, wie diese Dokumentation genutzt wird.",
+    policy: "Datenschutzerklärung",
+    settings: "Cookie-Einstellungen",
+  },
   content: {
     code: "Code",
     copyColor: "Farbe {name} {value} kopieren",

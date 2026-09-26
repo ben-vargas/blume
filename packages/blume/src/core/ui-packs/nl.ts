@@ -43,6 +43,15 @@ export const nl: UIStringsOverride = {
     description: "Productupdates en releaseopmerkingen.",
     title: "Wijzigingslogboek",
   },
+  consent: {
+    accept: "Accepteren",
+    decline: "Weigeren",
+    label: "Cookietoestemming",
+    message:
+      "We willen graag cookies gebruiken om te begrijpen hoe deze documentatie wordt gebruikt.",
+    policy: "Privacybeleid",
+    settings: "Cookie-instellingen",
+  },
   content: {
     code: "Code",
     copyColor: "Kleur {name} {value} kopiëren",

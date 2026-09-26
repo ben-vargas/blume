@@ -43,6 +43,15 @@ export const ro: UIStringsOverride = {
     description: "Actualizări ale produsului și note de lansare.",
     title: "Jurnal de modificări",
   },
+  consent: {
+    accept: "Accept",
+    decline: "Refuz",
+    label: "Consimțământ pentru cookie-uri",
+    message:
+      "Am dori să folosim cookie-uri pentru a înțelege cum este folosită această documentație.",
+    policy: "Politica de confidențialitate",
+    settings: "Setări cookie-uri",
+  },
   content: {
     code: "Cod",
     copyColor: "Copiază culoarea {name} {value}",

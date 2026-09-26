@@ -14,6 +14,7 @@ import {
 import { BlumeError } from "../../core/diagnostics.ts";
 import { packageRoot } from "../../core/package-root.ts";
 import { scanProject } from "../../core/project-graph.ts";
+import type { ResolvedConfig } from "../../core/schema.ts";
 import { serverFeatures } from "../../core/server-features.ts";
 import type { Diagnostic } from "../../core/types.ts";
 import { unregisteredSnapshotDiagnostics } from "../../core/version-cut.ts";
@@ -69,6 +70,24 @@ const supportedNodeRange = (): string => {
   } catch {
     return FALLBACK_NODE_RANGE;
   }
+};
+
+/** The adapters a project runs, one line per kind, for the doctor summary. */
+const integrationSummary = (config: ResolvedConfig): string[] => {
+  const { assistant } = config.ai;
+  let assistantSummary = "off";
+  if (assistant?.enabled) {
+    assistantSummary = assistant.endpoint
+      ? "external endpoint"
+      : assistant.provider.kind;
+  }
+  return [
+    `References: ${config.reference.map((adapter) => adapter.kind).join(", ") || "none"}`,
+    `Analytics: ${config.analytics.map((adapter) => adapter.kind).join(", ") || "none"}`,
+    `Consent: ${config.consent?.kind ?? "none"}`,
+    `Sources: ${config.content.sources.map((source) => source.kind).join(", ")}`,
+    `Assistant: ${assistantSummary}`,
+  ];
 };
 
 export const doctorCommand = defineCommand({
@@ -144,23 +163,9 @@ export const doctorCommand = defineCommand({
         logger.info(`Output: ${config.deployment.options.output}`);
         logger.info(`Adapter: ${config.deployment.kind}`);
         logger.info(`Search: ${config.search.provider.kind}`);
-        logger.info(
-          `References: ${config.reference.map((adapter) => adapter.kind).join(", ") || "none"}`
-        );
-        logger.info(
-          `Analytics: ${config.analytics.map((adapter) => adapter.kind).join(", ") || "none"}`
-        );
-        logger.info(
-          `Sources: ${config.content.sources.map((source) => source.kind).join(", ")}`
-        );
-        const { assistant } = config.ai;
-        let assistantSummary = "off";
-        if (assistant?.enabled) {
-          assistantSummary = assistant.endpoint
-            ? "external endpoint"
-            : assistant.provider.kind;
+        for (const line of integrationSummary(config)) {
+          logger.info(line);
         }
-        logger.info(`Assistant: ${assistantSummary}`);
       }
     } catch (error) {
       if (error instanceof BlumeError) {

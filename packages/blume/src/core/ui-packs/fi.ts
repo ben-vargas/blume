@@ -42,6 +42,15 @@ export const fi: UIStringsOverride = {
     description: "Tuotepäivitykset ja julkaisutiedot.",
     title: "Muutosloki",
   },
+  consent: {
+    accept: "Hyväksy",
+    decline: "Hylkää",
+    label: "Evästeiden hyväksyntä",
+    message:
+      "Haluaisimme käyttää evästeitä ymmärtääksemme, miten tätä dokumentaatiota käytetään.",
+    policy: "Tietosuojakäytäntö",
+    settings: "Evästeasetukset",
+  },
   content: {
     code: "Koodi",
     copyColor: "Kopioi väri {name} {value}",

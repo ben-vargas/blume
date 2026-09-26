@@ -43,6 +43,15 @@ export const ja: UIStringsOverride = {
     description: "製品のアップデートとリリースノート。",
     title: "変更履歴",
   },
+  consent: {
+    accept: "同意する",
+    decline: "拒否する",
+    label: "Cookie の同意",
+    message:
+      "このドキュメントの利用状況を把握するために Cookie を使用したいと考えています。",
+    policy: "プライバシーポリシー",
+    settings: "Cookie 設定",
+  },
   content: {
     code: "コード",
     copyColor: "カラー {name}（{value}）をコピー",

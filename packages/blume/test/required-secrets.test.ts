@@ -160,6 +160,24 @@ describe("checkRequiredSecrets", () => {
     expect(checkRequiredSecrets(config)).toEqual([]);
   });
 
+  it("reads the consent adapter's requiredSecrets from its descriptor", () => {
+    Reflect.deleteProperty(process.env, "PROBE_CONSENT_KEY");
+    const config = blumeConfigSchema.parse({
+      consent: {
+        kind: "native",
+        options: {},
+        requiredSecrets: ["PROBE_CONSENT_KEY"],
+        runtimeDeps: [],
+      },
+    });
+    expect(checkRequiredSecrets(config)[0]?.message).toBe(
+      "Consent (native) is enabled but PROBE_CONSENT_KEY is not set."
+    );
+    process.env.PROBE_CONSENT_KEY = "set";
+    expect(checkRequiredSecrets(config)).toEqual([]);
+    Reflect.deleteProperty(process.env, "PROBE_CONSENT_KEY");
+  });
+
   it("requires nothing for the built-in analytics adapters", () => {
     const config = blumeConfigSchema.parse({
       analytics: [

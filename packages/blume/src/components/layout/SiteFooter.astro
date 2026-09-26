@@ -1,8 +1,14 @@
 ---
 // The site footer `footer` in blume.config.ts configures: social profile
-// icons and up to four link columns, below the content on every page. Renders
-// nothing when `footer` is unset; a `components.ts` `Footer` replaces it.
+// icons and up to four link columns, below the content on every page. With
+// `consent` configured it also holds the Cookie settings link, which reopens
+// the reader's consent choices. Renders nothing when neither is set; a
+// `components.ts` `Footer` replaces it.
+import data from "blume:data";
+
 import type { BlumeDataConfig } from "../../core/data.ts";
+import { EN_UI } from "../../core/i18n-ui.ts";
+import type { UIStrings } from "../../core/i18n-ui.ts";
 import { newTabAttrs } from "../../core/new-tab.ts";
 import Icon from "../Icon.astro";
 import { withBase } from "../islands/base-path.ts";
@@ -10,11 +16,16 @@ import { footerSocialLinks } from "./footer-socials.ts";
 
 interface Props {
   footer?: BlumeDataConfig["footer"];
+  /** Localized UI strings; the Cookie settings label comes from `consent`. */
+  ui?: UIStrings;
 }
 
-const { footer } = Astro.props;
+const { footer, ui } = Astro.props;
 const socials = footer ? footerSocialLinks(footer.socials) : [];
 const columns = footer?.links ?? [];
+const consentSettings = data.config.consent
+  ? { ...EN_UI.consent, ...ui?.consent }.settings
+  : null;
 // Literal classes, so Tailwind's scan sees every one.
 const COLUMN_CLASSES = [
   "sm:grid-cols-1",
@@ -27,11 +38,15 @@ const linkClass =
 ---
 
 {
-  (socials.length > 0 || columns.length > 0) && (
+  (socials.length > 0 || columns.length > 0 || consentSettings) && (
     <footer
-      class="border-border border-t px-4 py-10 md:px-6"
+      class:list={[
+        "border-border border-t px-4 md:px-6",
+        socials.length > 0 || columns.length > 0 ? "py-10" : "py-6",
+      ]}
       data-blume-footer
     >
+      {(socials.length > 0 || columns.length > 0) && (
       <div class="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
         {socials.length > 0 && (
           <ul class="flex flex-wrap items-center gap-4">
@@ -102,6 +117,20 @@ const linkClass =
           </div>
         )}
       </div>
+      )}
+      {consentSettings && (
+        <button
+          class:list={[
+            linkClass,
+            "text-sm",
+            (socials.length > 0 || columns.length > 0) && "mt-10",
+          ]}
+          data-blume-consent-open
+          type="button"
+        >
+          {consentSettings}
+        </button>
+      )}
     </footer>
   )
 }

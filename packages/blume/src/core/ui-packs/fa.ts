@@ -42,6 +42,15 @@ export const fa: UIStringsOverride = {
     description: "به‌روزرسانی‌های محصول و یادداشت‌های انتشار.",
     title: "گزارش تغییرات",
   },
+  consent: {
+    accept: "پذیرفتن",
+    decline: "رد کردن",
+    label: "رضایت کوکی",
+    message:
+      "مایلیم از کوکی‌ها استفاده کنیم تا بفهمیم این مستندات چگونه استفاده می‌شود.",
+    policy: "سیاست حریم خصوصی",
+    settings: "تنظیمات کوکی",
+  },
   content: {
     code: "کد",
     copyColor: "کپی رنگ {name} {value}",

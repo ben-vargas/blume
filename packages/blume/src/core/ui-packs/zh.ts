@@ -42,6 +42,14 @@ export const zh: UIStringsOverride = {
     description: "产品更新与版本说明。",
     title: "更新日志",
   },
+  consent: {
+    accept: "接受",
+    decline: "拒绝",
+    label: "Cookie 同意",
+    message: "我们希望使用 Cookie 来了解本文档的使用情况。",
+    policy: "隐私政策",
+    settings: "Cookie 设置",
+  },
   content: {
     code: "代码",
     copyColor: "复制颜色 {name} {value}",

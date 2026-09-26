@@ -43,6 +43,15 @@ export const hu: UIStringsOverride = {
     description: "Termékfrissítések és kiadási megjegyzések.",
     title: "Változásnapló",
   },
+  consent: {
+    accept: "Elfogadom",
+    decline: "Elutasítom",
+    label: "Sütik elfogadása",
+    message:
+      "Sütiket szeretnénk használni, hogy megértsük, hogyan használják ezt a dokumentációt.",
+    policy: "Adatvédelmi irányelvek",
+    settings: "Sütibeállítások",
+  },
   content: {
     code: "Kód",
     copyColor: "{name} szín másolása: {value}",

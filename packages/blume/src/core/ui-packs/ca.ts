@@ -43,6 +43,15 @@ export const ca: UIStringsOverride = {
     description: "Actualitzacions del producte i notes de la versió.",
     title: "Registre de canvis",
   },
+  consent: {
+    accept: "Accepta",
+    decline: "Rebutja",
+    label: "Consentiment de galetes",
+    message:
+      "Ens agradaria utilitzar galetes per entendre com s'utilitza aquesta documentació.",
+    policy: "Política de privadesa",
+    settings: "Configuració de galetes",
+  },
   content: {
     code: "Codi",
     copyColor: "Copia el color {name} {value}",

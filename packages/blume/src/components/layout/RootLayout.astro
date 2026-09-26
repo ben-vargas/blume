@@ -43,6 +43,8 @@ import { withBase, withMountedBase } from "../islands/base-path.ts";
 import { isExternalUrl } from "../../core/base-path.ts";
 import { NEW_TAB_HINT_ID, newTabAttrs } from "../../core/new-tab.ts";
 import Analytics from "./Analytics.astro";
+import ConsentBanner from "./ConsentBanner.astro";
+import ConsentHead from "./ConsentHead.astro";
 import WebMcp from "./WebMcp.astro";
 import Banner from "./Banner.astro";
 import Breadcrumbs from "./Breadcrumbs.astro";
@@ -334,6 +336,8 @@ const PageFooterSlot = resolveSlot(layout.PageFooter, Empty);
 const FeedbackSlot = resolveSlot(layout.Feedback, PageFeedback);
 
 const strings = ui ?? EN_UI;
+// The consent adapter (`consent`), site-wide: analytics waits for the reader.
+const consent = data.config.consent;
 // Merge the groups this layout reads directly over the English defaults so a
 // key missing from a translation (or from a not-yet-regenerated snapshot)
 // still renders instead of coming out blank — the PageActions pattern.
@@ -602,6 +606,7 @@ createIconSprite(Astro.locals);
       )
     }
     <script data-mode={themeMode} is:inline set:html={THEME_INIT_SCRIPT} />
+    {consent && <ConsentHead consent={consent} />}
     <Analytics analytics={analytics} />
   </head>
   <body
@@ -1238,6 +1243,14 @@ createIconSprite(Astro.locals);
       }
     </style>
     <WebMcp />
+    {
+      consent?.kind === "native" && (
+        <ConsentBanner
+          policy={consent.options.policy}
+          strings={strings.consent}
+        />
+      )
+    }
   <IconSprite />
   </body>
 </html>

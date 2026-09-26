@@ -42,6 +42,15 @@ export const sk: UIStringsOverride = {
     description: "Novinky produktu a poznámky k vydaniu.",
     title: "Zoznam zmien",
   },
+  consent: {
+    accept: "Prijať",
+    decline: "Odmietnuť",
+    label: "Súhlas so súbormi cookie",
+    message:
+      "Radi by sme používali súbory cookie, aby sme pochopili, ako sa táto dokumentácia používa.",
+    policy: "Zásady ochrany osobných údajov",
+    settings: "Nastavenia súborov cookie",
+  },
   content: {
     code: "Kód",
     copyColor: "Kopírovať farbu {name} {value}",

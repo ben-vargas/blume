@@ -45,6 +45,8 @@ import { searchLocaleFor } from "./search-locale.ts";
 import "blume:theme";
 import { ClientRouter } from "astro:transitions";
 import Analytics from "./Analytics.astro";
+import ConsentBanner from "./ConsentBanner.astro";
+import ConsentHead from "./ConsentHead.astro";
 import Banner from "./Banner.astro";
 import DiscoveryLinks from "./DiscoveryLinks.astro";
 import Favicon from "./Favicon.astro";
@@ -197,6 +199,8 @@ const clientDataJson = clientData
   : null;
 
 const strings = ui ?? EN_UI;
+// The consent adapter (`consent`), site-wide: analytics waits for the reader.
+const consent = data.config.consent;
 // Merge over the English defaults so a label missing from a translation (or
 // from a not-yet-regenerated snapshot) still renders instead of coming out
 // blank — the PageActions pattern.
@@ -383,6 +387,7 @@ createIconSprite(Astro.locals);
       )
     }
     <script data-mode={themeMode} is:inline set:html={THEME_INIT_SCRIPT} />
+    {consent && <ConsentHead consent={consent} />}
     <Analytics analytics={analytics} />
   </head>
   <body class="bg-background font-sans text-foreground antialiased">
@@ -415,10 +420,18 @@ createIconSprite(Astro.locals);
       Astro.slots.has("footer") ? (
         <slot name="footer" />
       ) : (
-        <SiteFooter footer={data.config.footer} />
+        <SiteFooter footer={data.config.footer} ui={strings} />
       )
     }
     <WebMcp />
+    {
+      consent?.kind === "native" && (
+        <ConsentBanner
+          policy={consent.options.policy}
+          strings={strings.consent}
+        />
+      )
+    }
     {
       // Mobile nav for chrome-only pages: the header's inline tab bar is hidden
       // below `lg` and there's no sidebar drawer, so surface the tabs in a

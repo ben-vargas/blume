@@ -42,6 +42,14 @@ export const he: UIStringsOverride = {
     description: "עדכוני מוצר והערות גרסה.",
     title: "יומן שינויים",
   },
+  consent: {
+    accept: "אישור",
+    decline: "דחייה",
+    label: "הסכמה לעוגיות",
+    message: "נשמח להשתמש בעוגיות כדי להבין כיצד נעשה שימוש בתיעוד הזה.",
+    policy: "מדיניות פרטיות",
+    settings: "הגדרות עוגיות",
+  },
   content: {
     code: "קוד",
     copyColor: "העתק את הצבע {name} {value}",

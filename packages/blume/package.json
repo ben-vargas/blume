@@ -54,6 +54,10 @@
       "types": "./dist/types/analytics/index.d.ts",
       "default": "./src/analytics/index.ts"
     },
+    "./consent": {
+      "types": "./dist/types/consent/index.d.ts",
+      "default": "./src/consent/index.ts"
+    },
     "./deploy": {
       "types": "./dist/types/deploy/adapters/index.d.ts",
       "default": "./src/deploy/adapters/index.ts"

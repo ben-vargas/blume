@@ -70,6 +70,23 @@ const uiStringsObject = z.object({
       title: z.string().default("Changelog"),
     })
     .prefault({}),
+  // The built-in cookie consent banner (`consent: native()`) and the footer
+  // link that reopens a consent manager's preferences.
+  consent: z
+    .object({
+      accept: z.string().default("Accept"),
+      decline: z.string().default("Decline"),
+      // The banner's accessible name.
+      label: z.string().default("Cookie consent"),
+      message: z
+        .string()
+        .default(
+          "We'd like to use cookies to understand how these docs are used."
+        ),
+      policy: z.string().default("Privacy policy"),
+      settings: z.string().default("Cookie settings"),
+    })
+    .prefault({}),
   content: z
     .object({
       // `<Component>`'s source tab.

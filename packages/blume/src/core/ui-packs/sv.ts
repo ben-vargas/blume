@@ -43,6 +43,15 @@ export const sv: UIStringsOverride = {
     description: "Produktuppdateringar och versionsinformation.",
     title: "Ändringslogg",
   },
+  consent: {
+    accept: "Godkänn",
+    decline: "Avvisa",
+    label: "Samtycke till cookies",
+    message:
+      "Vi vill gärna använda cookies för att förstå hur den här dokumentationen används.",
+    policy: "Integritetspolicy",
+    settings: "Cookieinställningar",
+  },
   content: {
     code: "Kod",
     copyColor: "Kopiera färgen {name} {value}",

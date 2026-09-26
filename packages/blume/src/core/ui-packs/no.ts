@@ -43,6 +43,15 @@ export const no: UIStringsOverride = {
     description: "Produktoppdateringer og utgivelsesnotater.",
     title: "Endringslogg",
   },
+  consent: {
+    accept: "Godta",
+    decline: "Avslå",
+    label: "Samtykke til informasjonskapsler",
+    message:
+      "Vi vil gjerne bruke informasjonskapsler for å forstå hvordan denne dokumentasjonen brukes.",
+    policy: "Personvernerklæring",
+    settings: "Innstillinger for informasjonskapsler",
+  },
   content: {
     code: "Kode",
     copyColor: "Kopier fargen {name} {value}",

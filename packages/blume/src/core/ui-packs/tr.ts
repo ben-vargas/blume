@@ -43,6 +43,15 @@ export const tr: UIStringsOverride = {
     description: "Ürün güncellemeleri ve sürüm notları.",
     title: "Değişiklik günlüğü",
   },
+  consent: {
+    accept: "Kabul et",
+    decline: "Reddet",
+    label: "Çerez onayı",
+    message:
+      "Bu belgelerin nasıl kullanıldığını anlamak için çerez kullanmak istiyoruz.",
+    policy: "Gizlilik politikası",
+    settings: "Çerez ayarları",
+  },
   content: {
     code: "Kod",
     copyColor: "Rengi kopyala: {name} {value}",

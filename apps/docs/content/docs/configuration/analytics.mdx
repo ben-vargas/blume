@@ -27,6 +27,8 @@ Analytics loads in **production builds only**. The scripts are emitted by `blume
 Analytics is opt-in. With no `analytics` list (or an empty one), Blume injects nothing.
 :::
 
+To ask readers first, set [`consent`](/docs/configuration/consent): every adapter here then waits until the reader allows analytics.
+
 Every identifier below — a project key, a measurement ID, a site token — is the public, browser-side one from the provider's own install snippet. Each adapter renders that snippet, so it's safe to commit to your docs repository; Blume never asks for a secret.
 
 ## Adapters

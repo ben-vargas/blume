@@ -192,7 +192,8 @@ export const runtimeDependencies = (options: {
   deps.push(
     ...new Set(config.reference.flatMap((adapter) => adapter.runtimeDeps)),
     ...config.search.provider.runtimeDeps,
-    ...config.analytics.flatMap((adapter) => adapter.runtimeDeps)
+    ...config.analytics.flatMap((adapter) => adapter.runtimeDeps),
+    ...(config.consent?.runtimeDeps ?? [])
   );
   // Each content source adapter declares the SDK its fetch imports (Notion,
   // Sanity); the descriptor is the one place that knows.

@@ -42,6 +42,15 @@ export const hi: UIStringsOverride = {
     description: "उत्पाद अपडेट और रिलीज़ नोट्स।",
     title: "परिवर्तन लॉग",
   },
+  consent: {
+    accept: "स्वीकार करें",
+    decline: "अस्वीकार करें",
+    label: "कुकी सहमति",
+    message:
+      "हम यह समझने के लिए कुकीज़ का उपयोग करना चाहेंगे कि यह दस्तावेज़ कैसे उपयोग किया जाता है।",
+    policy: "गोपनीयता नीति",
+    settings: "कुकी सेटिंग्स",
+  },
   content: {
     code: "कोड",
     copyColor: "{name} रंग {value} कॉपी करें",

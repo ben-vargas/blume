@@ -43,6 +43,15 @@ export const uk: UIStringsOverride = {
     description: "Оновлення продукту та примітки до випусків.",
     title: "Журнал змін",
   },
+  consent: {
+    accept: "Прийняти",
+    decline: "Відхилити",
+    label: "Згода на cookie",
+    message:
+      "Ми хотіли б використовувати файли cookie, щоб розуміти, як використовується ця документація.",
+    policy: "Політика конфіденційності",
+    settings: "Налаштування cookie",
+  },
   content: {
     code: "Код",
     copyColor: "Скопіювати колір {name} {value}",

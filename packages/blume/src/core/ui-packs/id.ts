@@ -43,6 +43,15 @@ export const id: UIStringsOverride = {
     description: "Pembaruan produk dan catatan rilis.",
     title: "Log perubahan",
   },
+  consent: {
+    accept: "Terima",
+    decline: "Tolak",
+    label: "Persetujuan cookie",
+    message:
+      "Kami ingin menggunakan cookie untuk memahami cara dokumentasi ini digunakan.",
+    policy: "Kebijakan privasi",
+    settings: "Pengaturan cookie",
+  },
   content: {
     code: "Kode",
     copyColor: "Salin warna {name} {value}",

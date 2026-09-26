@@ -43,6 +43,15 @@ export const hr: UIStringsOverride = {
     description: "Ažuriranja proizvoda i napomene o izdanjima.",
     title: "Popis promjena",
   },
+  consent: {
+    accept: "Prihvati",
+    decline: "Odbij",
+    label: "Pristanak na kolačiće",
+    message:
+      "Željeli bismo koristiti kolačiće kako bismo razumjeli kako se ova dokumentacija koristi.",
+    policy: "Pravila privatnosti",
+    settings: "Postavke kolačića",
+  },
   content: {
     code: "Kôd",
     copyColor: "Kopiraj boju {name} {value}",

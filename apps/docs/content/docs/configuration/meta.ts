@@ -9,6 +9,7 @@ export default defineMeta({
     "assistant",
     "narration",
     "analytics",
+    "consent",
     "export",
   ],
   title: "Configuration",

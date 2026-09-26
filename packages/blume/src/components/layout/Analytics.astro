@@ -1,5 +1,6 @@
 ---
 import VercelAnalytics from "@vercel/analytics/astro";
+import data from "blume:data";
 
 import { analyticsHead } from "../../analytics/head.ts";
 import type { BlumeDataConfig } from "../../core/data.ts";
@@ -10,12 +11,20 @@ import type { BlumeDataConfig } from "../../core/data.ts";
 // component for `vercel()`, one <script> for every other adapter. Loads ONLY
 // in production builds so `blume dev` stays clean and local traffic never
 // reaches your analytics.
+//
+// With `consent` configured, every tag is held as inert `text/plain` until
+// the reader allows analytics, when the consent runtime runs it
+// (`consent/client.ts`); Vercel's component sends nothing until then instead
+// (`consent/init.ts`).
 interface Props {
   analytics?: BlumeDataConfig["analytics"] | null;
 }
 
 const { analytics } = Astro.props;
 const nodes = analyticsHead(import.meta.env.PROD ? (analytics ?? []) : []);
+const held = data.config.consent
+  ? { "data-blume-consent": "analytics", type: "text/plain" }
+  : {};
 ---
 
 {
@@ -24,9 +33,9 @@ const nodes = analyticsHead(import.meta.env.PROD ? (analytics ?? []) : []);
       return <VercelAnalytics {...node.props} />;
     }
     return node.content === null ? (
-      <script is:inline {...node.attributes} />
+      <script is:inline {...node.attributes} {...held} />
     ) : (
-      <script is:inline set:html={node.content} {...node.attributes} />
+      <script is:inline set:html={node.content} {...node.attributes} {...held} />
     );
   })
 }

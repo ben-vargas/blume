@@ -42,6 +42,15 @@ export const it: UIStringsOverride = {
     description: "Aggiornamenti del prodotto e note di rilascio.",
     title: "Registro delle modifiche",
   },
+  consent: {
+    accept: "Accetta",
+    decline: "Rifiuta",
+    label: "Consenso ai cookie",
+    message:
+      "Vorremmo usare i cookie per capire come viene usata questa documentazione.",
+    policy: "Informativa sulla privacy",
+    settings: "Impostazioni dei cookie",
+  },
   content: {
     code: "Codice",
     copyColor: "Copia il colore {name} {value}",

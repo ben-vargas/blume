@@ -42,6 +42,14 @@ export const ar: UIStringsOverride = {
     description: "تحديثات المنتج وملاحظات الإصدارات.",
     title: "سجل التغييرات",
   },
+  consent: {
+    accept: "قبول",
+    decline: "رفض",
+    label: "الموافقة على ملفات تعريف الارتباط",
+    message: "نودّ استخدام ملفات تعريف الارتباط لفهم كيفية استخدام هذا التوثيق.",
+    policy: "سياسة الخصوصية",
+    settings: "إعدادات ملفات تعريف الارتباط",
+  },
   content: {
     code: "الكود",
     copyColor: "نسخ اللون {name} {value}",

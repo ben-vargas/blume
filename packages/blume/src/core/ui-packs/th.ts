@@ -42,6 +42,14 @@ export const th: UIStringsOverride = {
     description: "อัปเดตผลิตภัณฑ์และบันทึกประจำรุ่น",
     title: "บันทึกการเปลี่ยนแปลง",
   },
+  consent: {
+    accept: "ยอมรับ",
+    decline: "ปฏิเสธ",
+    label: "ความยินยอมคุกกี้",
+    message: "เราต้องการใช้คุกกี้เพื่อทำความเข้าใจว่าเอกสารนี้ถูกใช้งานอย่างไร",
+    policy: "นโยบายความเป็นส่วนตัว",
+    settings: "การตั้งค่าคุกกี้",
+  },
   content: {
     code: "โค้ด",
     copyColor: "คัดลอกสี {name} {value}",

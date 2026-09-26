@@ -42,6 +42,15 @@ export const vi: UIStringsOverride = {
     description: "Cập nhật sản phẩm và ghi chú phát hành.",
     title: "Nhật ký thay đổi",
   },
+  consent: {
+    accept: "Chấp nhận",
+    decline: "Từ chối",
+    label: "Đồng ý cookie",
+    message:
+      "Chúng tôi muốn sử dụng cookie để hiểu cách tài liệu này được sử dụng.",
+    policy: "Chính sách quyền riêng tư",
+    settings: "Cài đặt cookie",
+  },
   content: {
     code: "Mã",
     copyColor: "Sao chép màu {name} {value}",

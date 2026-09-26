@@ -145,6 +145,11 @@ export interface BlumeDataConfig {
   codeThemes: ResolvedConfig["markdown"]["code"]["theme"];
   /** `markdown.code.wrap`: wrap long code lines instead of scrolling. */
   codeWrap: boolean;
+  /**
+   * The consent adapter's descriptor, or `null` without one. When set, the
+   * layouts hold analytics until the reader allows it.
+   */
+  consent: ResolvedConfig["consent"];
   /** `dateFormat`: `Intl.DateTimeFormat` options for the date stamps. */
   dateFormat: ResolvedConfig["dateFormat"];
   description: string | undefined;

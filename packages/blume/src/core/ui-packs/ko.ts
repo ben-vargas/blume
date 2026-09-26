@@ -43,6 +43,15 @@ export const ko: UIStringsOverride = {
     description: "제품 업데이트 및 릴리스 노트.",
     title: "변경 로그",
   },
+  consent: {
+    accept: "수락",
+    decline: "거부",
+    label: "쿠키 동의",
+    message:
+      "이 문서가 어떻게 사용되는지 파악하기 위해 쿠키를 사용하고자 합니다.",
+    policy: "개인정보 처리방침",
+    settings: "쿠키 설정",
+  },
   content: {
     code: "코드",
     copyColor: "{name} 색상 {value} 복사",

@@ -1172,6 +1172,7 @@ export const buildRuntimeData = (project: BlumeProject): string => {
       basePath: config.basePath,
       codeThemes: config.markdown.code.theme,
       codeWrap: config.markdown.code.wrap,
+      consent: config.consent,
       dateFormat: config.dateFormat,
       description: config.description,
       discovery: {
