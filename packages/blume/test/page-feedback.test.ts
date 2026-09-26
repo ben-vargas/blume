@@ -4,6 +4,7 @@ import type { TrackProps } from "../src/components/layout/analytics-client.ts";
 import {
   COMMENT_MAX_LENGTH,
   initFeedback,
+  syncFeedbackVisibility,
 } from "../src/components/layout/page-feedback.ts";
 
 // A hand-rolled DOM for the rating (see fake-dom.ts for why not happy-dom):
@@ -132,13 +133,17 @@ interface FakeWindow {
 
 let fakeWindow: FakeWindow = { dispatchEvent: () => true };
 
-/** Rate a page under a consent layer; whether the comment box opened. */
-const boxAfterRatingUnder = (analytics: boolean | null): boolean => {
-  const { form, yes } = widget(true);
+/** Wire a page under a consent layer; whether its rating shows. */
+const ratingShowsUnder = (analytics: boolean | null): boolean => {
+  widget(true);
+  const root = page.querySelector("[data-blume-page-feedback]");
+  if (root) {
+    // How `PageFeedback.astro` renders it under a consent layer.
+    root.hidden = true;
+  }
   fakeWindow.blumeConsent = { analytics };
   initFeedback();
-  yes.fire("click");
-  return !form.hidden;
+  return root?.hidden === false;
 };
 
 beforeEach(() => {
@@ -214,13 +219,32 @@ describe(initFeedback, () => {
     expect(thanks.focused).toBe(true);
   });
 
-  it("offers the box under consent only once the reader allows analytics", () => {
-    // Declined, or not answered yet: a comment would go nowhere.
-    expect(boxAfterRatingUnder(false)).toBe(false);
-    expect(boxAfterRatingUnder(null)).toBe(false);
-    expect(boxAfterRatingUnder(true)).toBe(true);
-    // The rating itself is still sent (and dropped by the providers' absence).
-    expect(sent.filter((entry) => entry.event === "feedback")).toHaveLength(3);
+  it("shows the rating under consent only once the reader allows analytics", () => {
+    // Declined, or not answered yet: an answer would go nowhere.
+    expect(ratingShowsUnder(false)).toBe(false);
+    expect(ratingShowsUnder(null)).toBe(false);
+    expect(ratingShowsUnder(true)).toBe(true);
+  });
+
+  it("follows a change of answer", () => {
+    const { yes } = widget(true);
+    const root = page.querySelector("[data-blume-page-feedback]");
+    fakeWindow.blumeConsent = { analytics: null };
+    initFeedback();
+    expect(root?.hidden).toBe(true);
+    fakeWindow.blumeConsent = { analytics: true };
+    syncFeedbackVisibility();
+    expect(root?.hidden).toBe(false);
+    yes.fire("click");
+    expect(sent.map((entry) => entry.event)).toStrictEqual(["feedback"]);
+    fakeWindow.blumeConsent = { analytics: false };
+    syncFeedbackVisibility();
+    expect(root?.hidden).toBe(true);
+  });
+
+  it("leaves a page without the rating alone on a change", () => {
+    syncFeedbackVisibility();
+    expect(page.children).toHaveLength(0);
   });
 
   it("sends nothing for an empty comment, and caps a long one", () => {

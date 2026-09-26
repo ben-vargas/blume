@@ -3,9 +3,11 @@
  * sent as a `feedback` analytics event, the buttons give way to a thank-you,
  * and, with `feedback.comments` on, a box below asks the reader to say more.
  * A comment they send goes out as a `feedback_comment` event with the same
- * rating, path, and title, so the two line up in a dashboard. Under a
- * consent layer (`consent`), the box only opens once the reader allows
- * analytics: from anyone else, a comment would go nowhere.
+ * rating, path, and title, so the two line up in a dashboard.
+ *
+ * Both go through analytics, so under a consent layer (`consent`) the widget
+ * renders hidden and only shows once the reader allows analytics: from
+ * anyone else, an answer would go nowhere.
  *
  * Runs on the initial load and again after every client-router swap, which
  * rebuilds the widget from server-rendered markup, so the handlers always
@@ -18,15 +20,28 @@ import { track } from "./analytics-client.ts";
 export const COMMENT_MAX_LENGTH = 1000;
 
 /**
- * Whether a comment would reach analytics: the site has no consent layer, or
- * the reader has allowed analytics. Read when the reader rates, so one who
- * accepted the banner a moment earlier gets the box.
+ * Whether an answer would reach analytics: the site has no consent layer, or
+ * the reader has allowed analytics.
  */
-const commentsReachAnalytics = (): boolean => {
+const answersReachAnalytics = (): boolean => {
   // SAFETY: the consent init script (`consent/init.ts`) is the only writer of
   // `window.blumeConsent`; without a consent layer it's absent.
   const { blumeConsent } = window as Window & { blumeConsent?: BlumeConsent };
   return blumeConsent === undefined || blumeConsent.analytics === true;
+};
+
+/**
+ * Show the page's rating only while its answers would reach analytics. Runs
+ * when the widget is wired and again on every `blume:consent` change, so a
+ * reader who accepts the banner gets the rating right away.
+ */
+export const syncFeedbackVisibility = (): void => {
+  const root = document.querySelector<HTMLElement>(
+    "[data-blume-page-feedback]"
+  );
+  if (root) {
+    root.hidden = !answersReachAnalytics();
+  }
 };
 
 /** Wire the page's rating, when it has one. */
@@ -35,6 +50,7 @@ export const initFeedback = (): void => {
   if (!root) {
     return;
   }
+  syncFeedbackVisibility();
   const actions = root.querySelector("[data-feedback-actions]");
   const thanks = root.querySelector<HTMLElement>("[data-feedback-thanks]");
   const form = root.querySelector<HTMLFormElement>("[data-feedback-form]");
@@ -48,7 +64,7 @@ export const initFeedback = (): void => {
     });
     actions?.classList.add("hidden");
     thanks?.classList.remove("hidden");
-    if (form && commentsReachAnalytics()) {
+    if (form) {
       form.hidden = false;
     }
     // The clicked button just disappeared under focus; hand focus to the
