@@ -178,7 +178,10 @@ browserGlobals.HTMLElement = FakeElement;
 /** The window/media event shapes the island's listeners read. */
 interface FakeEventInit {
   ctrlKey?: boolean;
-  detail?: { query?: string };
+  detail?: {
+    code?: { language: string; source: string; title?: string };
+    query?: string;
+  };
   key?: string;
   metaKey?: boolean;
   /** The incoming page an `astro:before-swap` carries. */
@@ -565,9 +568,11 @@ describe("Assistant empty state", () => {
         copy: "Yank",
         empty: "Nothing yet.",
         error: "Broke.",
+        explainCode: "Explain.",
         label: "Type here",
         placeholder: "Go on…",
         rateLimited: "Slow down.",
+        removeCode: "Drop code",
         send: "Fire",
         tip: "Toggle with",
         title: "Robot",
@@ -889,6 +894,52 @@ describe("Assistant conversation", () => {
     expect(answer).toBeDefined();
     expect(answerHtml(answer)).toContain('href="/guide"');
     expect(answerHtml(answer)).toContain("for more.");
+  });
+
+  it("asks about an attached code block, and shows the code apart", async () => {
+    const bodies: string[] = [];
+    setFetch((_url, init) => {
+      bodies.push(String(init?.body));
+      return Promise.resolve(streamResponse(["It starts a server."]));
+    });
+    let tree = fresh();
+    dispatch("blume:open-assistant", {
+      detail: {
+        code: { language: "ts", source: "listen(3000);", title: "server.ts" },
+      },
+    });
+    tree = render();
+    expect(aside(tree).props.inert).toBe(false);
+    // The chip names the block, and removing it clears the attachment.
+    expect(
+      findAll(tree, (el) => el.props.children === "server.ts")
+    ).toHaveLength(1);
+    byLabel(tree, "Remove code").props.onClick();
+    tree = render();
+    expect(
+      findAll(tree, (el) => el.props.children === "server.ts")
+    ).toHaveLength(0);
+
+    dispatch("blume:open-assistant", {
+      detail: { code: { language: "", source: "x = 1" } },
+    });
+    tree = render();
+    // With no title or language, the chip falls back to the default question.
+    expect(
+      findAll(tree, (el) => el.props.children === "Explain this code.")
+    ).toHaveLength(1);
+    // An empty question is enough when code is attached.
+    submit(tree);
+    await settle();
+    const [body] = bodies;
+    expect(JSON.parse(body ?? "{}").messages[0].content).toBe(
+      "Explain this code.\n\n```\nx = 1\n```"
+    );
+    tree = render();
+    const [bubble] = userBubbles(tree);
+    expect(
+      findAll(bubble ?? tree, (el) => el.type === "pre")[0]?.props.children
+    ).toBe("x = 1");
   });
 
   it("submits on Enter but not Shift+Enter, mid-composition, or when empty", async () => {

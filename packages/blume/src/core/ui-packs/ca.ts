@@ -5,6 +5,7 @@ export const ca: UIStringsOverride = {
   actions: {
     addToCursor: "Afegeix a Cursor",
     addToVscode: "Afegeix a VS Code",
+    askAboutCode: "Pregunta sobre aquest codi",
     connectMcp: "Connecta a MCP",
     copied: "Copiat!",
     copyClaudeCode: "Copia l'ordre de Claude Code",
@@ -31,10 +32,12 @@ export const ca: UIStringsOverride = {
     copy: "Copia la conversa",
     empty: "Fes una pregunta sobre la documentació.",
     error: "Ho sentim, alguna cosa ha anat malament.",
+    explainCode: "Explica aquest codi.",
     label: "Fes una pregunta",
     placeholder: "Fes una pregunta…",
     rateLimited:
       "Has fet moltes preguntes. Torna-ho a provar d'aquí a uns minuts.",
+    removeCode: "Treu el codi",
     send: "Envia",
     tip: "Consell: pots obrir i tancar el xat amb",
     title: "Assistent",

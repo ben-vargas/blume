@@ -15,6 +15,8 @@ const uiStringsObject = z.object({
     .object({
       addToCursor: z.string().default("Add to Cursor"),
       addToVscode: z.string().default("Add to VS Code"),
+      // A code block's button that opens the assistant with the code attached.
+      askAboutCode: z.string().default("Ask about this code"),
       connectMcp: z.string().default("Connect to MCP"),
       copied: z.string().default("Copied!"),
       copyClaudeCode: z.string().default("Copy Claude Code command"),
@@ -47,6 +49,9 @@ const uiStringsObject = z.object({
       copy: z.string().default("Copy conversation"),
       empty: z.string().default("Ask a question about the docs."),
       error: z.string().default("Sorry, something went wrong."),
+      // The question sent about an attached code block when the reader
+      // writes none.
+      explainCode: z.string().default("Explain this code."),
       label: z.string().default("Ask a question"),
       placeholder: z.string().default("Ask a question…"),
       // The answer when the rate limit (`rateLimit`) turns a question away.
@@ -55,6 +60,8 @@ const uiStringsObject = z.object({
         .default(
           "You've asked a lot of questions. Try again in a few minutes."
         ),
+      // The attached code block's dismiss button.
+      removeCode: z.string().default("Remove code"),
       send: z.string().default("Send"),
       tip: z.string().default("Tip: You can open and close chat with"),
       title: z.string().default("Assistant"),

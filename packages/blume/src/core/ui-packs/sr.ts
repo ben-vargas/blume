@@ -5,6 +5,7 @@ export const sr: UIStringsOverride = {
   actions: {
     addToCursor: "Додај у Cursor",
     addToVscode: "Додај у VS Code",
+    askAboutCode: "Питај о овом коду",
     connectMcp: "Повежи се са MCP-ом",
     copied: "Копирано!",
     copyClaudeCode: "Копирај Claude Code команду",
@@ -30,10 +31,12 @@ export const sr: UIStringsOverride = {
     copy: "Копирај разговор",
     empty: "Поставите питање о документацији.",
     error: "Жао нам је, нешто је пошло наопако.",
+    explainCode: "Објасни овај код.",
     label: "Постави питање",
     placeholder: "Поставите питање…",
     rateLimited:
       "Поставили сте много питања. Покушајте поново за неколико минута.",
+    removeCode: "Уклони код",
     send: "Пошаљи",
     tip: "Савет: Ћаскање можете отворити и затворити помоћу",
     title: "Асистент",

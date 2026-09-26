@@ -767,6 +767,12 @@ blume-tabs pre[data-language],
   padding-inline-end: 3.5rem;
 }
 
+/* With the assistant on, an Ask button sits beside the copy button, so the
+   line's tail clears both. */
+.prose :is(blume-tabs pre, .not-prose pre, pre:not([data-language])):not(.twoslash, .twoslash pre, blume-panel-tabs *):has(> [data-blume-ask]) > code {
+  padding-inline-end: 5.75rem;
+}
+
 blume-tabs pre[data-language]::before,
 .not-prose pre[data-language]::before {
   content: none;

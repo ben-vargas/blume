@@ -5,6 +5,7 @@ export const da: UIStringsOverride = {
   actions: {
     addToCursor: "Føj til Cursor",
     addToVscode: "Føj til VS Code",
+    askAboutCode: "Spørg om denne kode",
     connectMcp: "Opret forbindelse til MCP",
     copied: "Kopieret!",
     copyClaudeCode: "Kopiér Claude Code-kommando",
@@ -30,10 +31,12 @@ export const da: UIStringsOverride = {
     copy: "Kopiér samtalen",
     empty: "Stil et spørgsmål om dokumentationen.",
     error: "Beklager, noget gik galt.",
+    explainCode: "Forklar denne kode.",
     label: "Stil et spørgsmål",
     placeholder: "Stil et spørgsmål…",
     rateLimited:
       "Du har stillet mange spørgsmål. Prøv igen om et par minutter.",
+    removeCode: "Fjern kode",
     send: "Send",
     tip: "Tip: Du kan åbne og lukke chatten med",
     title: "Assistent",

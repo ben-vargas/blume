@@ -5,6 +5,7 @@ export const id: UIStringsOverride = {
   actions: {
     addToCursor: "Tambahkan ke Cursor",
     addToVscode: "Tambahkan ke VS Code",
+    askAboutCode: "Tanyakan tentang kode ini",
     connectMcp: "Hubungkan ke MCP",
     copied: "Disalin!",
     copyClaudeCode: "Salin perintah Claude Code",
@@ -31,10 +32,12 @@ export const id: UIStringsOverride = {
     copy: "Salin percakapan",
     empty: "Ajukan pertanyaan tentang dokumentasi.",
     error: "Maaf, terjadi kesalahan.",
+    explainCode: "Jelaskan kode ini.",
     label: "Ajukan pertanyaan",
     placeholder: "Ajukan pertanyaan…",
     rateLimited:
       "Anda sudah mengajukan banyak pertanyaan. Coba lagi dalam beberapa menit.",
+    removeCode: "Hapus kode",
     send: "Kirim",
     tip: "Tips: Anda dapat membuka dan menutup obrolan dengan",
     title: "Asisten",

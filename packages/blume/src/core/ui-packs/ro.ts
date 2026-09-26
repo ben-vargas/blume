@@ -5,6 +5,7 @@ export const ro: UIStringsOverride = {
   actions: {
     addToCursor: "Adaugă în Cursor",
     addToVscode: "Adaugă în VS Code",
+    askAboutCode: "Întreabă despre acest cod",
     connectMcp: "Conectează-te la MCP",
     copied: "Copiat!",
     copyClaudeCode: "Copiază comanda Claude Code",
@@ -31,10 +32,12 @@ export const ro: UIStringsOverride = {
     copy: "Copiază conversația",
     empty: "Pune o întrebare despre documentație.",
     error: "Ne pare rău, ceva nu a mers bine.",
+    explainCode: "Explică acest cod.",
     label: "Pune o întrebare",
     placeholder: "Pune o întrebare…",
     rateLimited:
       "Ai pus multe întrebări. Încearcă din nou peste câteva minute.",
+    removeCode: "Elimină codul",
     send: "Trimite",
     tip: "Sfat: Poți deschide și închide chatul cu",
     title: "Asistent",

@@ -5,6 +5,7 @@ export const hr: UIStringsOverride = {
   actions: {
     addToCursor: "Dodaj u Cursor",
     addToVscode: "Dodaj u VS Code",
+    askAboutCode: "Pitaj o ovom kodu",
     connectMcp: "Poveži se s MCP-om",
     copied: "Kopirano!",
     copyClaudeCode: "Kopiraj naredbu Claude Code",
@@ -31,10 +32,12 @@ export const hr: UIStringsOverride = {
     copy: "Kopiraj razgovor",
     empty: "Postavite pitanje o dokumentaciji.",
     error: "Žao nam je, nešto je pošlo po zlu.",
+    explainCode: "Objasni ovaj kod.",
     label: "Postavi pitanje",
     placeholder: "Postavite pitanje…",
     rateLimited:
       "Postavili ste mnogo pitanja. Pokušajte ponovno za nekoliko minuta.",
+    removeCode: "Ukloni kod",
     send: "Pošalji",
     tip: "Savjet: Chat možete otvoriti i zatvoriti pomoću",
     title: "Asistent",

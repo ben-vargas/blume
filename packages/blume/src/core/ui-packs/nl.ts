@@ -5,6 +5,7 @@ export const nl: UIStringsOverride = {
   actions: {
     addToCursor: "Toevoegen aan Cursor",
     addToVscode: "Toevoegen aan VS Code",
+    askAboutCode: "Vraag over deze code",
     connectMcp: "Verbinden met MCP",
     copied: "Gekopieerd!",
     copyClaudeCode: "Claude Code-opdracht kopiëren",
@@ -31,10 +32,12 @@ export const nl: UIStringsOverride = {
     copy: "Gesprek kopiëren",
     empty: "Stel een vraag over de documentatie.",
     error: "Sorry, er is iets misgegaan.",
+    explainCode: "Leg deze code uit.",
     label: "Stel een vraag",
     placeholder: "Stel een vraag…",
     rateLimited:
       "Je hebt veel vragen gesteld. Probeer het over een paar minuten opnieuw.",
+    removeCode: "Code verwijderen",
     send: "Verzenden",
     tip: "Tip: Je kunt de chat openen en sluiten met",
     title: "Assistent",

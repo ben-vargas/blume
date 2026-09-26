@@ -5,6 +5,7 @@ export const bg: UIStringsOverride = {
   actions: {
     addToCursor: "Добави в Cursor",
     addToVscode: "Добави във VS Code",
+    askAboutCode: "Попитай за този код",
     connectMcp: "Свържи се с MCP",
     copied: "Копирано!",
     copyClaudeCode: "Копирай командата на Claude Code",
@@ -31,10 +32,12 @@ export const bg: UIStringsOverride = {
     copy: "Копирай разговора",
     empty: "Задайте въпрос за документацията.",
     error: "Съжаляваме, нещо се обърка.",
+    explainCode: "Обясни този код.",
     label: "Задайте въпрос",
     placeholder: "Задайте въпрос…",
     rateLimited:
       "Зададохте много въпроси. Опитайте отново след няколко минути.",
+    removeCode: "Премахни кода",
     send: "Изпрати",
     tip: "Съвет: Можете да отваряте и затваряте чата с",
     title: "Асистент",

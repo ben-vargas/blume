@@ -34,6 +34,12 @@ ai: {
 
 `label` is the question that gets asked; `icon` is optional. Leave `suggestions` unset (or empty) and the panel opens to a plain input.
 
+## Asking about code
+
+With the assistant on, every code block gets an **Ask** button beside its copy button. It opens the assistant with the block attached, shown as a chip above the input, so the reader can ask what it does, why it fails, or how to adapt it. Sent without a question, it asks the assistant to explain the code. The code goes to the model as a fenced block after the question, up to 6,000 characters.
+
+A custom chat UI built on `useAssistant` can do the same: listen for `blume:open-assistant` on `window`, whose `detail.code` holds the block's `language`, `source`, and `title`.
+
 ## Custom instructions
 
 Add your own system-prompt text with `instructions` — identity, language, tone, or anything else the assistant should keep in mind:

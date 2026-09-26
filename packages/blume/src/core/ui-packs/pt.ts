@@ -5,6 +5,7 @@ export const pt: UIStringsOverride = {
   actions: {
     addToCursor: "Adicionar ao Cursor",
     addToVscode: "Adicionar ao VS Code",
+    askAboutCode: "Perguntar sobre este código",
     connectMcp: "Ligar ao MCP",
     copied: "Copiado!",
     copyClaudeCode: "Copiar comando do Claude Code",
@@ -31,10 +32,12 @@ export const pt: UIStringsOverride = {
     copy: "Copiar a conversa",
     empty: "Faça uma pergunta sobre a documentação.",
     error: "Lamentamos, algo correu mal.",
+    explainCode: "Explique este código.",
     label: "Faça uma pergunta",
     placeholder: "Faça uma pergunta…",
     rateLimited:
       "Fez muitas perguntas. Tente novamente dentro de alguns minutos.",
+    removeCode: "Remover código",
     send: "Enviar",
     tip: "Dica: pode abrir e fechar o chat com",
     title: "Assistente",

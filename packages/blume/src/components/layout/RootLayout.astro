@@ -341,6 +341,9 @@ const FeedbackSlot = resolveSlot(layout.Feedback, PageFeedback);
 const strings = ui ?? EN_UI;
 // The consent adapter (`consent`), site-wide: analytics waits for the reader.
 const consent = data.config.consent;
+// Code blocks get an Ask button when the assistant is on (same default as the
+// header's trigger).
+const assistantOn = assistantEnabled ?? Boolean(data.config.assistant);
 // Merge the groups this layout reads directly over the English defaults so a
 // key missing from a translation (or from a not-yet-regenerated snapshot)
 // still renders instead of coming out blank — the PageActions pattern.
@@ -614,9 +617,11 @@ createIconSprite(Astro.locals);
   </head>
   <body
     class="bg-background font-sans text-foreground antialiased"
+    data-blume-code-ask={assistantOn ? "" : undefined}
     data-blume-code-copy=""
     data-blume-code-wrap={codeWrap ? "" : undefined}
     data-blume-image-zoom={imageZoom ? "" : undefined}
+    data-i18n-ask-code={assistantOn ? actionStrings.askAboutCode : undefined}
     data-i18n-copied={actionStrings.copied}
     data-i18n-copy-code={actionStrings.copyCode}
     data-i18n-diagram-error={contentStrings.diagramError}
@@ -1041,6 +1046,24 @@ createIconSprite(Astro.locals);
         const copiedLabel =
           document.body.getAttribute("data-i18n-copied") || "Copied!";
 
+        // A block's code as the reader sees it. Twoslash nests each hover
+        // popup's type signature and docs inside the <code>; its textContent
+        // verbatim would interleave them with the source, so the popups are
+        // stripped from a clone first.
+        const codeText = (pre: Element | null): string => {
+          const code = pre?.querySelector("code");
+          if (!code?.querySelector(".twoslash-popup-container")) {
+            return code?.textContent ?? "";
+          }
+          const clone = code.cloneNode(true) as HTMLElement;
+          for (const popup of clone.querySelectorAll(
+            ".twoslash-popup-container"
+          )) {
+            popup.remove();
+          }
+          return clone.textContent ?? "";
+        };
+
         // `placement` is the extra class set for an overlay button (empty for
         // one hosted by a tab strip); `readPre` resolves the block to copy at
         // click time, since a strip button follows the active panel.
@@ -1076,23 +1099,46 @@ createIconSprite(Astro.locals);
           };
           const flash = createCopyFlash(setChecked, copiedLabel);
           button.addEventListener("click", async () => {
-            const code = readPre()?.querySelector("code");
-            let text = code?.textContent ?? "";
-            // Twoslash nests each hover popup's type signature and docs inside
-            // the <code>; copying textContent verbatim would interleave them
-            // with the source. Strip the popups from a clone first.
-            if (code?.querySelector(".twoslash-popup-container")) {
-              const clone = code.cloneNode(true) as HTMLElement;
-              for (const popup of clone.querySelectorAll(
-                ".twoslash-popup-container"
-              )) {
-                popup.remove();
-              }
-              text = clone.textContent ?? "";
-            }
-            if (await copyText(text)) {
+            if (await copyText(codeText(readPre()))) {
               flash();
             }
+          });
+          return button;
+        };
+
+        // A code block's Ask button, when the assistant is on: it opens the
+        // panel with the block attached (see islands/code-question.ts).
+        const askEnabled = document.body.hasAttribute("data-blume-code-ask");
+        const askLabel =
+          document.body.getAttribute("data-i18n-ask-code") ||
+          "Ask about this code";
+        const createAskButton = (
+          placement: string,
+          readPre: () => Element | null
+        ) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = `${buttonClass} ${idleClasses.join(" ")} ${placement}`;
+          button.setAttribute("data-blume-ask", "");
+          button.setAttribute("aria-label", askLabel);
+          button.title = askLabel;
+          button.innerHTML = svg("sparkles");
+          button.addEventListener("click", () => {
+            const pre = readPre();
+            if (!(pre instanceof HTMLElement)) {
+              return;
+            }
+            window.dispatchEvent(
+              new CustomEvent("blume:open-assistant", {
+                detail: {
+                  code: {
+                    language: pre.dataset.blumeLanguage ?? "",
+                    source: codeText(pre),
+                    title: pre.dataset.title,
+                  },
+                },
+              })
+            );
           });
           return button;
         };
@@ -1149,6 +1195,11 @@ createIconSprite(Astro.locals);
           }
           const language = pre.getAttribute("data-language");
           if (language) {
+            // The fence's own language id, for a question about the code; the
+            // attribute itself becomes the header's display label.
+            if (pre instanceof HTMLElement) {
+              pre.dataset.blumeLanguage = language;
+            }
             pre.setAttribute(
               "data-language",
               languageLabels[language.toLowerCase()] ?? language
@@ -1170,9 +1221,11 @@ createIconSprite(Astro.locals);
             // One button per code switcher, reading whichever panel shows.
             if (!actions.querySelector("[data-blume-copy]")) {
               const tabs = actions.closest("blume-tabs");
-              actions.appendChild(
-                createCopyButton("", () => (tabs ? activeCodePre(tabs) : null))
-              );
+              const readActive = () => (tabs ? activeCodePre(tabs) : null);
+              if (askEnabled) {
+                actions.appendChild(createAskButton("", readActive));
+              }
+              actions.appendChild(createCopyButton("", readActive));
             }
             continue;
           }
@@ -1181,6 +1234,13 @@ createIconSprite(Astro.locals);
           const topClass = pre.closest("blume-tabs, .not-prose")
             ? "top-2.5"
             : "top-2";
+          if (askEnabled) {
+            // Beside the copy button: its 0.75rem inset, its 1.875rem width,
+            // and a quarter-rem gap.
+            pre.appendChild(
+              createAskButton(`absolute right-[2.875rem] z-[2] ${topClass}`, () => pre)
+            );
+          }
           pre.appendChild(
             createCopyButton(`${overlayClass} ${topClass}`, () => pre)
           );

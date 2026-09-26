@@ -5,6 +5,7 @@ export const fi: UIStringsOverride = {
   actions: {
     addToCursor: "Lisää Cursoriin",
     addToVscode: "Lisää VS Codeen",
+    askAboutCode: "Kysy tästä koodista",
     connectMcp: "Yhdistä MCP:hen",
     copied: "Kopioitu!",
     copyClaudeCode: "Kopioi Claude Code -komento",
@@ -30,10 +31,12 @@ export const fi: UIStringsOverride = {
     copy: "Kopioi keskustelu",
     empty: "Kysy kysymys dokumentaatiosta.",
     error: "Pahoittelut, jokin meni pieleen.",
+    explainCode: "Selitä tämä koodi.",
     label: "Kysy kysymys",
     placeholder: "Kysy kysymys…",
     rateLimited:
       "Olet esittänyt paljon kysymyksiä. Yritä uudelleen muutaman minuutin kuluttua.",
+    removeCode: "Poista koodi",
     send: "Lähetä",
     tip: "Vinkki: Voit avata ja sulkea keskustelun näppäimillä",
     title: "Avustaja",

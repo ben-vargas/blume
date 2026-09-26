@@ -5,6 +5,7 @@ export const tr: UIStringsOverride = {
   actions: {
     addToCursor: "Cursor'a ekle",
     addToVscode: "VS Code'a ekle",
+    askAboutCode: "Bu kod hakkında sor",
     connectMcp: "MCP'ye bağlan",
     copied: "Kopyalandı!",
     copyClaudeCode: "Claude Code komutunu kopyala",
@@ -31,10 +32,12 @@ export const tr: UIStringsOverride = {
     copy: "Konuşmayı kopyala",
     empty: "Belgeler hakkında bir soru sorun.",
     error: "Üzgünüz, bir şeyler ters gitti.",
+    explainCode: "Bu kodu açıkla.",
     label: "Bir soru sorun",
     placeholder: "Bir soru sorun…",
     rateLimited:
       "Çok sayıda soru sordunuz. Birkaç dakika sonra yeniden deneyin.",
+    removeCode: "Kodu kaldır",
     send: "Gönder",
     tip: "İpucu: Sohbeti şu tuşla açıp kapatabilirsiniz:",
     title: "Asistan",

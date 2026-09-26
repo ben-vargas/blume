@@ -5,6 +5,7 @@ export const uk: UIStringsOverride = {
   actions: {
     addToCursor: "Додати до Cursor",
     addToVscode: "Додати до VS Code",
+    askAboutCode: "Запитати про цей код",
     connectMcp: "Підключитися до MCP",
     copied: "Скопійовано!",
     copyClaudeCode: "Скопіювати команду Claude Code",
@@ -31,10 +32,12 @@ export const uk: UIStringsOverride = {
     copy: "Скопіювати бесіду",
     empty: "Поставте запитання щодо документації.",
     error: "Вибачте, щось пішло не так.",
+    explainCode: "Поясни цей код.",
     label: "Поставити запитання",
     placeholder: "Поставте запитання…",
     rateLimited:
       "Ви поставили багато запитань. Спробуйте знову за кілька хвилин.",
+    removeCode: "Прибрати код",
     send: "Надіслати",
     tip: "Порада: чат можна відкрити й закрити за допомогою",
     title: "Асистент",

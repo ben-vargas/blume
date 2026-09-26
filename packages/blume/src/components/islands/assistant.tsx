@@ -8,6 +8,8 @@ import type { CaptchaSettings } from "../../captcha/schema.ts";
 import type { UIStrings } from "../../core/i18n-ui.ts";
 import { copyText } from "../copy-feedback.ts";
 import { joinBase, mountBase } from "./base-path.ts";
+import { splitCode, withCode } from "./code-question.ts";
+import type { CodeAttachment } from "./code-question.ts";
 import { useAssistant } from "./hooks.ts";
 
 /** A resolved empty-state prompt; `icon` is ready-to-inline SVG (or null). */
@@ -26,6 +28,8 @@ interface AssistantIcons {
   clear: string;
   close: string;
   copy: string;
+  /** The attached code chip's dismiss glyph. */
+  remove?: string;
 }
 
 // Empty bodies so the island still renders (iconless) if instantiated without
@@ -46,9 +50,11 @@ const DEFAULT_ASK: UIStrings["assistant"] = {
   copy: "Copy conversation",
   empty: "Ask a question about the docs.",
   error: "Sorry, something went wrong.",
+  explainCode: "Explain this code.",
   label: "Ask a question",
   placeholder: "Ask a question…",
   rateLimited: "You've asked a lot of questions. Try again in a few minutes.",
+  removeCode: "Remove code",
   send: "Send",
   tip: "Tip: You can open and close chat with",
   title: "Assistant",
@@ -143,6 +149,32 @@ const ICON_BUTTON_CLASS =
 const ANSWER_CLASS =
   "prose prose-sm max-w-none text-foreground [&_a]:inline-flex [&_a]:items-center [&_a]:gap-1 [&_a]:rounded-full [&_a]:bg-muted [&_a]:px-2 [&_a]:py-1 [&_a]:align-middle [&_a]:font-medium [&_a]:text-[0.7rem] [&_a]:leading-none [&_a]:text-muted-foreground! [&_a]:no-underline! [&_a:hover]:text-foreground!";
 
+/** A reader's message bubble. */
+const USER_MESSAGE_CLASS =
+  "rounded-blume bg-muted text-foreground max-w-[85%] self-end px-3 py-2 text-sm whitespace-pre-wrap";
+
+/** What `blume:open-assistant` may carry. */
+interface OpenAssistantDetail {
+  code?: CodeAttachment;
+  query?: string;
+}
+
+/** A reader's message, with any code they asked about shown as a block. */
+const UserMessage = ({ content }: { content: string }) => {
+  const { code, text } = splitCode(content);
+  if (!code) {
+    return <div className={USER_MESSAGE_CLASS}>{text}</div>;
+  }
+  return (
+    <div className={USER_MESSAGE_CLASS}>
+      {text}
+      <pre className="bg-background mt-2 max-h-40 overflow-auto rounded-md p-2 font-mono text-xs whitespace-pre">
+        {code.source}
+      </pre>
+    </div>
+  );
+};
+
 const Assistant = ({
   captcha,
   endpoint = DEFAULT_ASK_ENDPOINT,
@@ -161,6 +193,8 @@ const Assistant = ({
   const t = { ...DEFAULT_ASK, ...strings };
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
+  // A code block the reader is asking about, sent with the next question.
+  const [code, setCode] = useState<CodeAttachment | null>(null);
   // The streaming client — request shaping, optimistic assistant bubble,
   // stale-stream/abort guards, error-body handling — is the public useAssistant
   // hook, so the built-in panel and custom UIs share one implementation.
@@ -204,14 +238,18 @@ const Assistant = ({
     return () => document.removeEventListener("astro:after-swap", onSwap);
   }, []);
 
-  // The search modal forwards its query so "Assistant: <query>" carries straight in.
+  // The search modal forwards its query so "Assistant: <query>" carries
+  // straight in, and a code block's Ask button attaches its code.
   useEffect(() => {
     const handler = (event: Event) => {
       // SAFETY: `blume:open-assistant` is only ever dispatched as a CustomEvent
-      // whose optional detail carries the search query.
-      const query = (event as CustomEvent<{ query?: string }>).detail?.query;
-      if (query) {
-        setInput(query);
+      // whose optional detail carries the search query or a code block.
+      const { detail } = event as CustomEvent<OpenAssistantDetail | null>;
+      if (detail?.query) {
+        setInput(detail.query);
+      }
+      if (detail?.code) {
+        setCode(detail.code);
       }
       setOpen(true);
     };
@@ -377,12 +415,14 @@ const Assistant = ({
   }, [messages, portalTarget]);
 
   const runQuestion = (raw: string) => {
-    const question = raw.trim();
+    // A question about attached code may leave the words to us.
+    const question = raw.trim() || (code ? t.explainCode : "");
     if (!question || busy) {
       return;
     }
-    void ask(question);
+    void ask(code ? withCode(question, code) : question);
     setInput("");
+    setCode(null);
   };
 
   const clearConversation = () => {
@@ -475,13 +515,11 @@ const Assistant = ({
                 last entry while streaming, or clears wholesale on reset. */}
             {messages.map((message, index) =>
               message.role === "user" ? (
-                <div
-                  className="rounded-blume bg-muted text-foreground max-w-[85%] self-end px-3 py-2 text-sm whitespace-pre-wrap"
+                <UserMessage
+                  content={message.content}
                   // oxlint-disable-next-line react/no-array-index-key -- append-only list, see above
                   key={index}
-                >
-                  {message.content}
-                </div>
+                />
               ) : (
                 // oxlint-disable-next-line react/no-array-index-key -- append-only list, see above
                 <div className={ANSWER_CLASS} key={index}>
@@ -542,6 +580,21 @@ const Assistant = ({
         className="border-border relative shrink-0 border-t"
         onSubmit={onSubmit}
       >
+        {code && (
+          <div className="flex items-center gap-1.5 px-4 pt-3">
+            <span className="rounded-blume bg-muted text-muted-foreground max-w-full truncate px-2 py-1 font-mono text-xs">
+              {code.title || code.language || t.explainCode}
+            </span>
+            <button
+              aria-label={t.removeCode}
+              className={ICON_BUTTON_CLASS}
+              onClick={() => setCode(null)}
+              type="button"
+            >
+              <Glyph path={icons.remove ?? ""} size={14} />
+            </button>
+          </div>
+        )}
         <textarea
           aria-label={t.label}
           className="text-foreground placeholder:text-muted-foreground max-h-48 min-h-[5rem] w-full resize-none bg-transparent px-4 py-3.5 pe-14 text-sm outline-none pointer-coarse:text-base"
@@ -555,7 +608,7 @@ const Assistant = ({
         <button
           aria-label={t.send}
           className="rounded-blume bg-foreground text-background absolute end-3 bottom-3 inline-flex h-8 w-8 cursor-pointer items-center justify-center transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
-          disabled={busy || input.trim().length === 0}
+          disabled={busy || (input.trim().length === 0 && !code)}
           type="submit"
         >
           <Glyph path={icons.arrowUp} />
