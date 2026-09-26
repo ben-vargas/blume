@@ -97,18 +97,21 @@ export type LogoConfig =
 export type BannerConfig =
   | string
   | {
-      /** The banner message. */
-      content: string;
+      /** The banner message, or a map of locale code to message. */
+      content: LocalizableLabel;
       /** Show a dismiss button; the choice is remembered per visitor. */
       dismissible?: boolean;
-      /** Stable key for remembering dismissal; defaults to the content. */
+      /**
+       * Stable key for remembering dismissal; defaults to the content (the
+       * default locale's, for a per-locale map).
+       */
       id?: string;
       /** An optional call-to-action link. */
       link?: {
         /** Link target (internal route or external URL). */
         href: string;
-        /** Link text. */
-        text: string;
+        /** Link text, or a map of locale code to text. */
+        text: LocalizableLabel;
       };
     };
 
@@ -134,16 +137,16 @@ export interface ApiConfig {
 export interface FooterLink {
   /** Link target (internal route or external URL). An external href opens in a new tab. */
   href: string;
-  /** Link text. */
-  label: string;
+  /** Link text, or a map of locale code to text. */
+  label: LocalizableLabel;
 }
 
 /** A footer link column. */
 export interface FooterColumn {
   /** Links in the column, top to bottom. */
   items: FooterLink[];
-  /** Column heading. */
-  label?: string;
+  /** Column heading, or a map of locale code to heading. */
+  label?: LocalizableLabel;
 }
 
 /**
@@ -256,7 +259,8 @@ export interface ContentTypeConfig {
 // ---------------------------------------------------------------------------
 
 /**
- * A header label, optionally per locale: a plain string, or a map of locale
+ * A label, optionally per locale (header tabs and links, the banner, the
+ * footer): a plain string, or a map of locale
  * code to label (`{ en: "Docs", ja: "ドキュメント" }`). The active locale's
  * entry wins, then the default locale's, then the map's first entry.
  */
@@ -339,8 +343,8 @@ export interface FeaturedLink {
   href: string;
   /** Lucide icon name shown beside the label. */
   icon?: string;
-  /** Link label. */
-  label: string;
+  /** Link label, or a map of locale code to label. */
+  label: LocalizableLabel;
 }
 
 /**
@@ -365,8 +369,8 @@ export type SidebarConfig =
 export interface HeaderAction {
   /** Link target. An external href opens in a new tab. */
   href: string;
-  /** Link label. */
-  label: string;
+  /** Link label, or a map of locale code to label. */
+  label: LocalizableLabel;
 }
 
 /** Header, sidebar, tabs, and switcher configuration. */

@@ -4,7 +4,7 @@ import type { SearchAdapterKind } from "../search/adapters/registry.ts";
 import type { StructuredDataIdentity } from "../seo/jsonld.ts";
 import type { FontHead } from "../theme/fonts.ts";
 import type { UIStrings } from "./i18n-ui.ts";
-import type { ResolvedConfig } from "./schema.ts";
+import type { LocalizableLabel, ResolvedConfig } from "./schema.ts";
 import type { Navigation, RouteAlternate, VersionAlternate } from "./types.ts";
 
 /**
@@ -44,10 +44,14 @@ export interface BlumeFavicon {
   dark?: { href: string; type?: string };
 }
 
-/** Announcement banner, normalized from its config (string shorthand or object). */
+/**
+ * Announcement banner, normalized from its config (string shorthand or
+ * object). `content` and the link's `text` may be per-locale maps, resolved
+ * when the banner renders (see `core/localizable.ts`).
+ */
 export interface BlumeBanner {
-  content: string;
-  link?: { href: string; text: string };
+  content: LocalizableLabel;
+  link?: { href: string; text: LocalizableLabel };
   dismissible: boolean;
   /** Dismissal key: the configured id, else the content itself. */
   key: string;

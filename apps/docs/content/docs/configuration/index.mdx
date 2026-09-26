@@ -186,6 +186,20 @@ banner: {
 
 When `dismissible` is on, the bar shows a close button and stays hidden for that visitor afterward. The dismissal key defaults to the content text, so editing the message brings the banner back; set a stable `id` to keep it dismissed across edits.
 
+On a [multilingual](/docs/content/i18n) site, `content` and the link's `text` also take a map of locale code to text. Each page shows its own locale's entry, falling back to the default locale's, and the link moves into the reader's locale whenever that locale serves the page:
+
+```ts blume.config.ts lineNumbers
+banner: {
+  content: { en: "Version 2.0 is here!", fr: "La version 2.0 est là !" },
+  link: {
+    text: { en: "Read the release notes", fr: "Lire les notes de version" },
+    href: "/changelog",
+  },
+},
+```
+
+A translated banner keys dismissal on the default locale's text, so one dismissal hides it in every language.
+
 ### Footer
 
 Add a footer below the content on every page, with social profile icons and up to four columns of links:
@@ -213,7 +227,7 @@ footer: {
 },
 ```
 
-`socials` maps a platform to its profile URL, and the icons appear in the order you write them. The platforms are `bluesky`, `discord`, `facebook`, `github`, `hacker-news`, `instagram`, `linkedin`, `medium`, `podcast`, `reddit`, `slack`, `telegram`, `threads`, `website`, `x`, and `youtube`. Each column in `links` takes an optional `label` heading over its `items`. Write internal links as if mounted at root; an external link opens in a new tab.
+`socials` maps a platform to its profile URL, and the icons appear in the order you write them. The platforms are `bluesky`, `discord`, `facebook`, `github`, `hacker-news`, `instagram`, `linkedin`, `medium`, `podcast`, `reddit`, `slack`, `telegram`, `threads`, `website`, `x`, and `youtube`. Each column in `links` takes an optional `label` heading over its `items`. Write internal links as if mounted at root; an external link opens in a new tab. On a [multilingual](/docs/content/i18n#per-locale-navigation) site, any `label` can be a map of locale code to text, and an internal link moves into the reader's locale whenever that locale serves the page.
 
 Leave `footer` unset for no footer. Custom pages built on `PageLayout` show it too, unless they fill the layout's own `footer` slot. To replace it entirely, override the [`Footer` layout slot](/docs/configuration/customization#layout-slots).
 

@@ -10,6 +10,7 @@ import { resolveDateFormatOptions } from "../../core/date-format.ts";
 import type { ResolvedDateFormat } from "../../core/schema.ts";
 import type { OpenInChatProvider } from "../../core/open-in-chat.ts";
 import type {
+  BlumeBanner,
   BlumeClientData,
   BlumeDataConfig,
   BlumeFavicon,
@@ -100,12 +101,7 @@ interface Props {
   } | null;
   favicon?: BlumeFavicon | null;
   appleIcon?: BlumeFavicon | null;
-  banner?: {
-    content: string;
-    link?: { text: string; href: string };
-    dismissible: boolean;
-    key: string;
-  } | null;
+  banner?: BlumeBanner | null;
   analytics?: BlumeDataConfig["analytics"] | null;
   navigation: Navigation;
   mcp?: { name: string; route: string } | null;
@@ -918,6 +914,7 @@ createIconSprite(Astro.locals);
       showChrome && (
         <FooterSlot
           footer={data.config.footer}
+          locale={locale}
           navigation={navigation}
           site={site}
           ui={strings}

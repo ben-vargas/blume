@@ -1107,6 +1107,34 @@ describe("buildRuntimeData", () => {
     );
   });
 
+  it("keys a per-locale banner by its default locale's content", async () => {
+    const project = await scanProject(
+      await writeProject({
+        "blume.config.ts": `export default {
+  banner: {
+    content: { de: "Neu", en: "New" },
+    dismissible: true,
+    link: { href: "/x", text: { de: "Mehr", en: "More" } },
+  },
+  i18n: {
+    defaultLocale: "en",
+    locales: [{ code: "de", label: "Deutsch" }, { code: "en", label: "English" }],
+  },
+};
+`,
+        "docs/de/index.md": "# Start\n",
+        "docs/index.md": "# Home\n",
+      })
+    );
+    const data = JSON.parse(buildRuntimeData(project));
+    expect(data.config.banner).toEqual({
+      content: { de: "Neu", en: "New" },
+      dismissible: true,
+      key: "New",
+      link: { href: "/x", text: { de: "Mehr", en: "More" } },
+    });
+  });
+
   it("references a public favicon by url", async () => {
     const project = await scanProject(
       await writeProject({

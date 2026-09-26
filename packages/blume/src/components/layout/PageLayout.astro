@@ -420,7 +420,7 @@ createIconSprite(Astro.locals);
       Astro.slots.has("footer") ? (
         <slot name="footer" />
       ) : (
-        <SiteFooter footer={data.config.footer} ui={strings} />
+        <SiteFooter footer={data.config.footer} locale={locale} ui={strings} />
       )
     }
     <WebMcp />

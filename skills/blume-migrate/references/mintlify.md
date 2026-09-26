@@ -177,8 +177,9 @@ Mintlify serves every top-level dir (e.g. `/images`) at the site root. Blume ser
 
 `navigation.languages` (≥2) → `i18n: { defaultLocale, locales: [{ code, label }] }`. The `default: true` language → `defaultLocale`. Translated content already lives in ISO-code directories, which match Blume's `dir` parser — no file moves. Remove any language selector; language switching is handled by i18n.
 
+Per-language `banner`, `navbar`, and `footer` (on `navigation.languages[]`) merge into the one site-wide config, with each label as a map of language code to that language's text: `banner: { content: { en: "…", fr: "…" } }` (and `link.text`), `navigation.actions`/`cta` labels, and `footer` column and link labels. Hrefs stay single — Blume moves an internal link into the reader's language itself. A language without an entry shows the default language's text. Report what doesn't merge: a banner, link, or footer column set for only some languages, or one whose href differs per language.
+
 ## Dropped — report these
 
 - **Authentication** (password or SSO, set in the Mintlify dashboard) → Blume has none of its own; point the user at host-level protection (Vercel Deployment Protection, Netlify password protection, Cloudflare Access), per the deployment docs' **Private docs** section. It covers the whole site, so a mix of public and private pages needs two sites.
-- **Per-language banners** (`navigation.languages[].banner`) → no equivalent.
 - **`<Update>`** changelog components, `iconType`, `background.decoration`, `search.prompt`, `seo.metatags`.

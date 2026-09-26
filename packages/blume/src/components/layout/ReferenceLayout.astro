@@ -4,6 +4,7 @@ import { createIconSprite } from "../icon-sprite.ts";
 import "blume:theme";
 import data from "blume:data";
 import type {
+  BlumeBanner,
   BlumeDataConfig,
   BlumeFavicon,
   DiscoveryHeadLinks,
@@ -52,12 +53,7 @@ interface Props {
   } | null;
   favicon?: BlumeFavicon | null;
   appleIcon?: BlumeFavicon | null;
-  banner?: {
-    content: string;
-    link?: { text: string; href: string };
-    dismissible: boolean;
-    key: string;
-  } | null;
+  banner?: BlumeBanner | null;
   analytics?: BlumeDataConfig["analytics"] | null;
   navigation: Navigation;
   route: string;

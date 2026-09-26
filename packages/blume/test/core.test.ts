@@ -248,6 +248,20 @@ describe("config schema", () => {
       blumeConfigSchema.safeParse({ banner: { dismissible: true } }).success
     ).toBeFalsy();
   });
+
+  it("accepts a banner's content and link text per locale", () => {
+    const banner = {
+      content: { de: "Neu", en: "New" },
+      link: { href: "/new", text: { de: "Mehr", en: "More" } },
+    };
+    expect(blumeConfigSchema.parse({ banner }).banner).toStrictEqual({
+      ...banner,
+      dismissible: false,
+    });
+    expect(
+      blumeConfigSchema.safeParse({ banner: { content: {} } }).success
+    ).toBeFalsy();
+  });
 });
 
 /** A minimal local `theme.fonts` value for template emission tests. */

@@ -1035,7 +1035,7 @@ describe("layout chrome sources", () => {
 
   it("keeps the header's bidi-neutral text and dropdown panels readable", async () => {
     expect(await layoutSource("Banner.astro")).toContain(
-      '<span dir="auto">{banner.content}</span>'
+      '<span dir="auto">{content}</span>'
     );
     const search = await layoutSource("Search.astro");
     expect(search.match(/dir="ltr">⌘[JK]<\/kbd/gu)).toHaveLength(2);

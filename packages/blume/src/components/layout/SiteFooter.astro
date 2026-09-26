@@ -9,20 +9,32 @@ import data from "blume:data";
 import type { BlumeDataConfig } from "../../core/data.ts";
 import { EN_UI } from "../../core/i18n-ui.ts";
 import type { UIStrings } from "../../core/i18n-ui.ts";
+import { routeSetFor } from "../../core/locale-links.ts";
 import { newTabAttrs } from "../../core/new-tab.ts";
 import Icon from "../Icon.astro";
 import { withBase } from "../islands/base-path.ts";
+import { footerColumns } from "./footer-links.ts";
 import { footerSocialLinks } from "./footer-socials.ts";
 
 interface Props {
   footer?: BlumeDataConfig["footer"];
+  /**
+   * Active locale of the page: labels written as per-locale maps show its
+   * entry, and internal links move into it (see `footer-links.ts`).
+   */
+  locale?: string;
   /** Localized UI strings; the Cookie settings label comes from `consent`. */
   ui?: UIStrings;
 }
 
-const { footer, ui } = Astro.props;
+const { footer, locale, ui } = Astro.props;
 const socials = footer ? footerSocialLinks(footer.socials) : [];
-const columns = footer?.links ?? [];
+const columns = footerColumns(footer?.links ?? [], {
+  basePath: data.config.basePath,
+  i18n: data.config.i18n,
+  locale,
+  routes: routeSetFor(data.routes),
+});
 const consentSettings = data.config.consent
   ? { ...EN_UI.consent, ...ui?.consent }.settings
   : null;

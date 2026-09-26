@@ -411,16 +411,43 @@ const logoConfigSchema = z.union([
   }),
 ]);
 
-/** Site-wide announcement banner: a string, or text with an optional link. */
+/**
+ * A label that may localize (header tabs and links, the banner, the footer):
+ * a plain string, or a map of locale code to label (`{ en: "Docs", ja: "ドキュメント" }`).
+ * Resolved per locale by `core/localizable.ts` — the active locale's entry
+ * wins, then the default locale's, then the map's first entry — so a
+ * single-locale site can keep plain strings and an i18n site can translate
+ * its labels without forking the config.
+ */
+const localizableLabelSchema = z.union([
+  z.string(),
+  z
+    .record(z.string(), z.string())
+    .refine((value) => Object.keys(value).length > 0, {
+      message: "Provide at least one locale's label.",
+    }),
+]);
+
+export type LocalizableLabel = z.infer<typeof localizableLabelSchema>;
+
+/**
+ * Site-wide announcement banner: a string, or text with an optional link. The
+ * object form's `content` and link `text` may be per-locale maps.
+ */
 const bannerConfigSchema = z.union([
   z.string(),
   z.strictObject({
-    content: z.string(),
+    content: localizableLabelSchema,
     /** Show a dismiss button; the choice is remembered per visitor. */
     dismissible: z.boolean().default(false),
-    /** Stable key for remembering dismissal; defaults to the content. */
+    /**
+     * Stable key for remembering dismissal; defaults to the content (the
+     * default locale's, for a per-locale map).
+     */
     id: z.string().optional(),
-    link: z.strictObject({ href: z.string(), text: z.string() }).optional(),
+    link: z
+      .strictObject({ href: z.string(), text: localizableLabelSchema })
+      .optional(),
   }),
 ]);
 
@@ -452,9 +479,11 @@ const footerConfigSchema = z.strictObject({
     .array(
       z.strictObject({
         items: z
-          .array(z.strictObject({ href: z.string(), label: z.string() }))
+          .array(
+            z.strictObject({ href: z.string(), label: localizableLabelSchema })
+          )
           .min(1),
-        label: z.string().optional(),
+        label: localizableLabelSchema.optional(),
       })
     )
     .max(MAX_FOOTER_COLUMNS, {
@@ -544,25 +573,6 @@ const contentConfigSchema = z
       resolvedSourceAdapterSchema.parse(filesystem({ exclude, include, root })),
     ],
   }));
-
-/**
- * A header label that may localize: a plain string, or a map of locale code to
- * label (`{ en: "Docs", ja: "ドキュメント" }`). Resolved when each locale's
- * navigation is built — the active locale's entry wins, then the default
- * locale's, then the map's first entry — so a single-locale site can keep
- * plain strings and an i18n site can translate its header without forking the
- * config.
- */
-const localizableLabelSchema = z.union([
-  z.string(),
-  z
-    .record(z.string(), z.string())
-    .refine((value) => Object.keys(value).length > 0, {
-      message: "Provide at least one locale's label.",
-    }),
-]);
-
-export type LocalizableLabel = z.infer<typeof localizableLabelSchema>;
 
 const navTabSchema = z.strictObject({
   // Rejected empty rather than accepted: an empty `href` would render a link to
@@ -1086,7 +1096,7 @@ const aiConfigSchema = z.strictObject(
 const featuredLinkSchema = z.strictObject({
   href: z.string(),
   icon: iconName.optional(),
-  label: z.string(),
+  label: localizableLabelSchema,
 });
 
 /**
@@ -1096,7 +1106,7 @@ const featuredLinkSchema = z.strictObject({
  */
 const headerActionSchema = z.strictObject({
   href: z.string(),
-  label: z.string(),
+  label: localizableLabelSchema,
 });
 
 const navigationConfigSchema = z.strictObject({

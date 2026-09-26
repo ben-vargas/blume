@@ -4,6 +4,7 @@ import {
   localizeRoute,
   resolveFallbackLocale,
 } from "./i18n.ts";
+import { resolveLocalizable } from "./localizable.ts";
 import {
   validateNavIcons,
   validateNavStructure,
@@ -98,31 +99,6 @@ const localePagesFor = (
 };
 
 /**
- * Resolve a possibly-per-locale header label to the string a locale renders:
- * the active locale's entry, else the default locale's, else the map's first
- * entry (which is also what a single-locale site gets).
- */
-/** A label is either one string for every locale or a per-locale map. */
-const isSingleLabel = (label: LocalizableLabel): label is string =>
-  typeof label === "string";
-
-const resolveLabel = (
-  label: LocalizableLabel,
-  locale: string,
-  defaultLocale?: string
-): string => {
-  if (isSingleLabel(label)) {
-    return label;
-  }
-  return (
-    label[locale] ??
-    (defaultLocale === undefined ? undefined : label[defaultLocale]) ??
-    Object.values(label)[0] ??
-    ""
-  );
-};
-
-/**
  * An explicit sidebar with every item's `href` passed through `localize` (page
  * refs and `root`s resolve against each locale's own pages already).
  */
@@ -154,10 +130,35 @@ const resolveTabLabels = (
     ...tab,
     items: tab.items?.map((item) => ({
       ...item,
-      label: resolveLabel(item.label, locale, defaultLocale),
+      label: resolveLocalizable(item.label, locale, defaultLocale),
     })),
-    label: resolveLabel(tab.label, locale, defaultLocale),
+    label: resolveLocalizable(tab.label, locale, defaultLocale),
   }));
+
+/** A configured header or footer link with its label resolved for a locale. */
+const withLabel = <T extends { label: LocalizableLabel }>(
+  link: T,
+  locale: string,
+  defaultLocale?: string
+): Omit<T, "label"> & { label: string } => ({
+  ...link,
+  label: resolveLocalizable(link.label, locale, defaultLocale),
+});
+
+/** The configured header links (plain, call to action, featured) in `locale`. */
+const resolveHeaderLinks = (
+  navigation: BuildContentGraphOptions["navigation"],
+  locale: string,
+  defaultLocale?: string
+) => ({
+  actions: navigation.actions.map((link) =>
+    withLabel(link, locale, defaultLocale)
+  ),
+  cta: navigation.cta ? withLabel(navigation.cta, locale, defaultLocale) : null,
+  featured: navigation.featured.map((link) =>
+    withLabel(link, locale, defaultLocale)
+  ),
+});
 
 /**
  * Mount a configured link authored as if the site were served at root (the
@@ -274,18 +275,22 @@ const buildLocaleNavigation = (
     ...item,
     href: localizeServed(item.href, false),
   });
-  const { actions, cta, featured } = options.navigation;
+  const { actions, cta, featured } = resolveHeaderLinks(
+    options.navigation,
+    code,
+    i18n.defaultLocale
+  );
   const sidebarItems = options.navigation.sidebar.items;
 
   const navigation = buildNavigation(localePages, {
-    actions: actions?.map(localizeHref),
+    actions: actions.map(localizeHref),
     basePath,
     cta: cta ? localizeHref(cta) : null,
     diagnostics,
     display: options.navigation.sidebar.display,
     extraRoutes: options.extraRoutes,
     fallbackMetaPrefix,
-    featured: featured?.map(localizeHref),
+    featured: featured.map(localizeHref),
     folderMeta: options.folderMeta,
     // The localized tree root ("/" for the hidden default, "/fr" otherwise;
     // "/fr/v1.0" inside a snapshot): the tab pointing here spans the whole
@@ -415,13 +420,11 @@ const buildVersionNavigation = (
   }
   return {
     "": buildNavigation(versionPages, {
-      actions: options.navigation.actions,
+      ...resolveHeaderLinks(options.navigation, ""),
       basePath: options.basePath ?? "",
-      cta: options.navigation.cta,
       diagnostics,
       display: options.navigation.sidebar.display,
       extraRoutes: options.extraRoutes,
-      featured: options.navigation.featured,
       folderMeta: options.folderMeta,
       localizedRoot: versionizeRoute("/", id),
       metaPrefix: id,
@@ -465,13 +468,13 @@ export const buildContentGraph = (
     ));
   } else {
     navigation = buildNavigation(currentPages, {
-      actions: options.navigation.actions,
+      // No locale to prefer: a per-locale label map resolves to its first
+      // entry on a single-locale site.
+      ...resolveHeaderLinks(options.navigation, ""),
       basePath: options.basePath ?? "",
-      cta: options.navigation.cta,
       diagnostics,
       display: options.navigation.sidebar.display,
       extraRoutes: options.extraRoutes,
-      featured: options.navigation.featured,
       folderMeta: options.folderMeta,
       selectors: options.navigation.selectors,
       sharedFolderMeta: options.sharedFolderMeta,

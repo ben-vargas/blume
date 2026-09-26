@@ -30,7 +30,12 @@ import type {
   ResolvedI18nConfig,
 } from "../src/core/schema.ts";
 import { resolveDocsCollection } from "../src/core/sources/collection.ts";
-import type { NavNode, PageRecord, ProjectContext } from "../src/core/types.ts";
+import type {
+  Navigation,
+  NavNode,
+  PageRecord,
+  ProjectContext,
+} from "../src/core/types.ts";
 import { UI_PACKS } from "../src/core/ui-packs/index.ts";
 
 type I18nInput = Partial<NonNullable<BlumeConfigInput["i18n"]>>;
@@ -71,6 +76,13 @@ const FILES = {
   "docs/guides/quickstart.mdx": "---\ntitle: Quickstart\n---\n# Quickstart\n",
   "docs/index.mdx": "---\ntitle: Home\n---\n# Home\n",
 };
+
+/** A navigation's first header action, call to action, and featured labels. */
+const headerLabels = (nav?: Navigation): (string | undefined)[] => [
+  nav?.actions?.[0]?.label,
+  nav?.cta?.label,
+  nav?.featured[0]?.label,
+];
 
 const buildProject = async (
   resolved: ResolvedConfig,
@@ -438,6 +450,46 @@ describe("per-locale navigation", () => {
     });
     const { graph } = await buildProject(resolved);
     expect(graph.navigation.tabs.map((tab) => tab.label)).toEqual(["Doku"]);
+  });
+
+  it("resolves per-locale header link labels, and first entries without i18n", async () => {
+    const navigation = {
+      actions: [{ href: "/status", label: { en: "Status", fr: "État" } }],
+      cta: {
+        href: "https://x.dev",
+        label: { en: "Sign up", fr: "S'inscrire" },
+      },
+      featured: [{ href: "/blog", label: { en: "Blog", fr: "Journal" } }],
+    };
+    const { graph } = await buildProject(
+      blumeConfigSchema.parse({
+        i18n: {
+          defaultLocale: "en",
+          locales: [
+            { code: "en", label: "English" },
+            { code: "fr", label: "Français" },
+            { code: "de", label: "Deutsch" },
+          ],
+        },
+        navigation,
+      })
+    );
+    expect(headerLabels(graph.navigationByLocale.fr)).toEqual([
+      "État",
+      "S'inscrire",
+      "Journal",
+    ]);
+    expect(headerLabels(graph.navigationByLocale.de)).toEqual([
+      "Status",
+      "Sign up",
+      "Blog",
+    ]);
+    const single = await buildProject(blumeConfigSchema.parse({ navigation }));
+    expect(headerLabels(single.graph.navigation)).toEqual([
+      "Status",
+      "Sign up",
+      "Blog",
+    ]);
   });
 
   it("localizes internal featured link hrefs per locale", async () => {

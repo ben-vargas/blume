@@ -85,7 +85,26 @@ i18n: {
 
 Each language gets its own sidebar, built from that locale's files — so translations can diverge in structure, ordering, or labels. Folder [`meta.ts`](/docs/content/meta) files resolve per locale, too: under the default `dir` parser, put a `meta.ts` under `fr/guides/` to order the French group independently. Until a locale has one (or a shared `meta.$.ts`), its group mirrors the [fallback](#fallbacks) locale's — that folder's `meta.ts` and the `sidebar.display` its index page sets — so pages that fall back keep the same titles, order, and collapsible groups. Under the `dot` parser translations sit next to the originals, so a folder's `meta.ts` applies to every locale. Everything else about [navigation](/docs/content/navigation) works the same, per language.
 
-Header tabs are configured, not derived from content, so their labels localize in `blume.config.ts`: a tab `label` accepts a per-locale map (`{ en: "Docs", fr: "Documentation" }`) alongside the plain-string form, falling back to the default locale's entry for locales you haven't filled in. See [Tabs](/docs/content/navigation#tabs). Tab paths, header links, and the header logo's link move into the reader's locale too, whenever that locale serves the route, so the header stays inside one language. A route only the default locale serves — a [custom page](/docs/advanced/custom-pages) or the generated [changelog](/docs/advanced/changelog) index — keeps its own path instead of pointing at a localized URL that would 404.
+Header tabs, header links, and the footer are configured, not derived from content, so their labels localize in `blume.config.ts`. Every configured label accepts a per-locale map (`{ en: "Docs", fr: "Documentation" }`) alongside the plain-string form, falling back to the default locale's entry for locales you haven't filled in: tab and dropdown labels ([Tabs](/docs/content/navigation#tabs)), [featured links](/docs/content/navigation#featured-links), [header actions](/docs/content/navigation#header-actions) and the call to action, [footer](/docs/configuration#footer) column headings and links, and the [banner](/docs/configuration#banner)'s text and link text.
+
+```ts blume.config.ts lineNumbers
+navigation: {
+  cta: {
+    href: "https://acme.dev/signup",
+    label: { en: "Start free", fr: "Essai gratuit" },
+  },
+},
+footer: {
+  links: [
+    {
+      label: { en: "Company", fr: "Entreprise" },
+      items: [{ label: "Blog", href: "https://acme.dev/blog" }],
+    },
+  ],
+},
+```
+
+Tab paths, header and footer links, and the header logo's link move into the reader's locale too, whenever that locale serves the route, so the chrome stays inside one language. A route only the default locale serves — a [custom page](/docs/advanced/custom-pages) or the generated [changelog](/docs/advanced/changelog) index — keeps its own path instead of pointing at a localized URL that would 404.
 
 ## Fallbacks
 

@@ -61,6 +61,7 @@ import {
 import { EN_UI, resolveUIStrings } from "../core/i18n-ui.ts";
 import { resolveFallbackLocale } from "../core/i18n.ts";
 import { buildIncludeGraph } from "../core/includes.ts";
+import { resolveLocalizable } from "../core/localizable.ts";
 import {
   validateNavTargets,
   validateSearchPopularIcons,
@@ -965,7 +966,9 @@ const resolveBanner = (config: ResolvedConfig): BlumeBanner | null => {
   return {
     content: banner.content,
     dismissible: banner.dismissible,
-    key: banner.id ?? banner.content,
+    key:
+      banner.id ??
+      resolveLocalizable(banner.content, undefined, config.i18n?.defaultLocale),
     link: banner.link,
   };
 };

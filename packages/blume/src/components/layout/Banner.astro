@@ -1,7 +1,9 @@
 ---
 import data from "blume:data";
+import type { BlumeBanner } from "../../core/data.ts";
 import { EN_UI } from "../../core/i18n-ui.ts";
 import type { UIStrings } from "../../core/i18n-ui.ts";
+import { resolveLocalizable } from "../../core/localizable.ts";
 import { withBase } from "../islands/base-path.ts";
 import Icon from "../Icon.astro";
 
@@ -9,14 +11,11 @@ import Icon from "../Icon.astro";
 // every shell shows the same bar. The pre-paint hide for a dismissed banner and
 // the dismiss click handler live in the layout/Header, not here.
 interface Props {
-  banner:
-    | {
-        content: string;
-        link?: { text: string; href: string };
-        dismissible: boolean;
-        key: string;
-      }
-    | null;
+  /**
+   * The banner. Its `content` and link `text` may be per-locale maps, shown
+   * in `locale` (else the default locale, else the map's first entry).
+   */
+  banner: BlumeBanner | null;
   /** Localized banner labels. */
   strings?: UIStrings["banner"];
   /**
@@ -40,6 +39,11 @@ const b = { ...EN_UI.banner, ...strings };
 const navigation =
   (locale === undefined ? undefined : data.navigationByLocale[locale]) ??
   data.navigation;
+const defaultLocale = data.config.i18n?.defaultLocale;
+const content =
+  banner && resolveLocalizable(banner.content, locale, defaultLocale);
+const linkText =
+  banner?.link && resolveLocalizable(banner.link.text, locale, defaultLocale);
 const linkHref =
   banner?.link && banner.link.href === data.config.banner?.link?.href
     ? (navigation.bannerHref ?? banner.link.href)
@@ -55,13 +59,13 @@ const linkHref =
     >
       {/* The message is authored in one language, whatever the page's
           direction: `dir="auto"` keeps its punctuation where it was typed. */}
-      <span dir="auto">{banner.content}</span>
+      <span dir="auto">{content}</span>
       {banner.link && linkHref && (
         <a
           class="inline-flex items-center gap-1 font-medium underline underline-offset-2"
           href={withBase(linkHref)}
         >
-          {banner.link.text}
+          {linkText}
           <Icon class="rtl:-scale-x-100" name="arrow-right" size={14} />
         </a>
       )}

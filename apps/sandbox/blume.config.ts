@@ -47,10 +47,19 @@ export default defineConfig({
     server: "https://api.acme.dev/v1",
   },
   banner: {
-    content: "This is the Blume kitchen-sink sandbox.",
+    content: {
+      de: "Das ist die Blume-Sandbox mit allem Drum und Dran.",
+      en: "This is the Blume kitchen-sink sandbox.",
+    },
     dismissible: true,
     id: "sandbox",
-    link: { href: "/events", text: "Try the AsyncAPI reference" },
+    link: {
+      href: "/events",
+      text: {
+        de: "Probier die AsyncAPI-Referenz aus",
+        en: "Try the AsyncAPI reference",
+      },
+    },
   },
   consent: native({ policy: "/docs/privacy" }),
   content: {
@@ -74,11 +83,17 @@ export default defineConfig({
     links: [
       {
         items: [
-          { href: "/docs", label: "Getting started" },
-          { href: "/docs/components", label: "Components" },
+          {
+            href: "/docs",
+            label: { de: "Erste Schritte", en: "Getting started" },
+          },
+          {
+            href: "/docs/components",
+            label: { de: "Komponenten", en: "Components" },
+          },
           { href: "/changelog", label: "Changelog" },
         ],
-        label: "Docs",
+        label: { de: "Doku", en: "Docs" },
       },
       {
         items: [
