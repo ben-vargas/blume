@@ -134,7 +134,7 @@ describe("catchAllPageTemplate", () => {
       'import NarrationPlayer from "blume/components/layout/NarrationPlayer.astro";'
     );
     expect(out).toContain(
-      "const narration = frontmatter.narration ? data.config.narration : null;"
+      "const narration = pageChrome && frontmatter.narration ? data.config.narration : null;"
     );
     // The clips' and manifest's URLs are only set when the build generates them.
     expect(out).toContain(
@@ -143,11 +143,20 @@ describe("catchAllPageTemplate", () => {
     expect(out).toContain(
       "manifest={narration.generated ? withMountedBase(encodeURI(`/blume-narration/"
     );
-    const description = out.indexOf("{frontmatter.description &&");
+    const description = out.indexOf("frontmatter.description &&");
     expect(out.indexOf("<NarrationPlayer")).toBeGreaterThan(description);
     expect(out.indexOf("<NarrationPlayer")).toBeLessThan(
       out.indexOf("<Content ")
     );
+  });
+
+  it("leaves the title, description, and player to the page in a chrome-less mode", () => {
+    const out = catchAllPageTemplate({ ...exportOpts, mathEnabled: false });
+    expect(out).toContain(
+      "const pageChrome = pageModeLayout(frontmatter.mode).chrome;"
+    );
+    expect(out).toContain("{pageChrome && <h1>{title}</h1>}");
+    expect(out).toContain("pageMode={frontmatter.mode}");
   });
 
   it("imports layout overrides and passes them to RootLayout", () => {

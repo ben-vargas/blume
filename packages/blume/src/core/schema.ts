@@ -40,6 +40,7 @@ import { FOOTER_SOCIALS, MAX_FOOTER_COLUMNS } from "./footer.ts";
 import { PUBLIC_HOST_URL } from "./github.ts";
 import { uiLocaleOverridesSchema } from "./i18n-ui.ts";
 import { openInChatProviders } from "./open-in-chat.ts";
+import { PAGE_MODES } from "./page-modes.ts";
 import { redirectPatternError } from "./redirect-patterns.ts";
 import { isStandardSchema } from "./standard-schema.ts";
 import type { StandardSchema } from "./standard-schema.ts";
@@ -240,6 +241,8 @@ const pageMetaBaseSchema = z.strictObject({
   icon: iconName.optional(),
   /** Overrides the git-derived last-modified date when `lastModified` is on. */
   lastModified: dateSchema.optional(),
+  /** What the page shows around its content (see `core/page-modes.ts`). */
+  mode: z.enum(PAGE_MODES).optional(),
   /** `false` keeps the "Listen to this page" player off this page. */
   narration: z.boolean().default(true),
   noindex: z.boolean().default(false),

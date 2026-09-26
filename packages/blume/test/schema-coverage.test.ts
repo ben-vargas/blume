@@ -208,7 +208,6 @@ describe("pruned Mintlify-compat frontmatter keys", () => {
     for (const key of [
       "sidebarTitle",
       "tag",
-      "mode",
       "public",
       "rss",
       "hideApiMarker",

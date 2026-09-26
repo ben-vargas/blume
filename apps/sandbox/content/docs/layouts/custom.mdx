@@ -1,0 +1,51 @@
+---
+title: Custom
+description: "`mode: custom` keeps only the header, for a landing page written in MDX."
+mode: custom
+---
+
+<div className="not-prose flex flex-col items-center gap-6 px-6 py-24 text-center">
+  <span className="rounded-full border border-border px-3 py-1 text-muted-foreground text-sm">
+    mode: custom
+  </span>
+  <h1 className="max-w-3xl font-semibold text-5xl text-foreground tracking-tight">
+    Build a landing page in MDX
+  </h1>
+  <p className="max-w-xl text-lg text-muted-foreground">
+    A custom page keeps the header and gives you the rest of the screen: no
+    sidebar, title, table of contents, page-end links, or footer.
+  </p>
+  <div className="flex gap-3">
+    <a
+      className="rounded-full bg-accent px-4 py-2 font-medium text-accent-foreground text-sm"
+      href="/docs"
+    >
+      Read the docs
+    </a>
+    <a
+      className="rounded-full border border-border px-4 py-2 font-medium text-foreground text-sm"
+      href="/docs/layouts/wide"
+    >
+      See the other modes
+    </a>
+  </div>
+</div>
+
+<div className="not-prose mx-auto grid max-w-5xl gap-4 px-6 pb-24 sm:grid-cols-3">
+  <div className="rounded-blume border border-border p-6">
+    <p className="font-medium text-foreground">Wide</p>
+    <p className="mt-1 text-muted-foreground text-sm">No table of contents.</p>
+  </div>
+  <div className="rounded-blume border border-border p-6">
+    <p className="font-medium text-foreground">Center</p>
+    <p className="mt-1 text-muted-foreground text-sm">
+      No sidebar, a centered column.
+    </p>
+  </div>
+  <div className="rounded-blume border border-border p-6">
+    <p className="font-medium text-foreground">Frame</p>
+    <p className="mt-1 text-muted-foreground text-sm">
+      The sidebar, and nothing else.
+    </p>
+  </div>
+</div>

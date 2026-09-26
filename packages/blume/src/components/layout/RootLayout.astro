@@ -70,6 +70,8 @@ import {
 import NavTabMenu from "./NavTabMenu.astro";
 import NavTree from "./NavTree.astro";
 import { resolveSlot } from "./overrides.ts";
+import { pageModeLayout } from "../../core/page-modes.ts";
+import type { PageMode } from "../../core/page-modes.ts";
 import { pageDirection, pageLocale } from "./page-locale.ts";
 import { searchLocaleFor } from "./search-locale.ts";
 import PageActions from "./PageActions.astro";
@@ -157,6 +159,8 @@ interface Props {
    * no table of contents, and the article makes room for the column.
    */
   apiRail?: boolean;
+  /** The page's `mode` frontmatter: what it shows around its content (see `core/page-modes.ts`). */
+  pageMode?: PageMode;
   published?: string | Date | null;
   lastModified?: string | null;
   noindex?: boolean;
@@ -268,6 +272,7 @@ const {
   siteUrl,
   pageType,
   apiRail = false,
+  pageMode,
   published,
   lastModified,
   noindex,
@@ -345,8 +350,13 @@ const isApiLayout = isApiOperation || apiRail;
 // A "bare" page (the changelog index) is a standalone landing: no sidebar, no
 // TOC, just a wider centered column of content.
 const isBare = contentLayout === "bare";
-const showSidebar = !isBare;
-const showToc = !(isApiLayout || isBare);
+// The page's `mode`: which of the sidebar, TOC, and its own chrome it keeps.
+const modeLayout = pageModeLayout(pageMode);
+const showSidebar = !isBare && modeLayout.sidebar;
+const showToc = !(isApiLayout || isBare) && modeLayout.toc;
+// Breadcrumbs, page-end links, and the site footer; `custom` and `frame`
+// pages bring their own.
+const showChrome = modeLayout.chrome;
 const tocHeadings =
   toc.enabled && showToc
     ? headings.filter((h) => h.depth >= toc.minLevel && h.depth <= toc.maxLevel)
@@ -356,13 +366,13 @@ const tocHeadings =
 const hasToc = tocHeadings.length > 0;
 let gridClass =
   "lg:grid-cols-[17.5rem_minmax(0,1fr)] xl:grid-cols-[17.5rem_minmax(0,1fr)_17.5rem]";
-if (isBare) {
+if (!showSidebar) {
   gridClass = "";
-} else if (isApiLayout) {
+} else if (!showToc) {
   gridClass = "lg:grid-cols-[17.5rem_minmax(0,1fr)]";
 }
 let articleClass = "prose mx-auto max-w-content";
-if (isBare) {
+if (isBare || modeLayout.width === "center") {
   articleClass = "prose mx-auto max-w-[54rem]";
 } else if (apiRail) {
   // Room at `xl` for the example column (28rem plus the 2.5rem gap an
@@ -370,7 +380,7 @@ if (isBare) {
   // viewport's height so the column's capped panel never overhangs the page.
   articleClass =
     "prose max-w-none xl:relative xl:min-h-[calc(100dvh-7.25rem)] xl:pe-[30.5rem]";
-} else if (isApiOperation) {
+} else if (isApiOperation || modeLayout.width === "full") {
   articleClass = "prose max-w-none";
 }
 // A page titled like the site (a home page often is) takes the bare site title
@@ -767,11 +777,16 @@ createIconSprite(Astro.locals);
       </aside>
       <script is:inline set:html={SIDEBAR_SCROLL_INIT_SCRIPT} />
       <main class="px-6 pt-6 pb-10 lg:px-8 xl:px-10" id="blume-content">
-        <BreadcrumbsSlot
-          crumbs={crumbs}
-          strings={navStrings}
-          wide={isApiLayout}
-        />
+        {
+          showChrome && (
+            <BreadcrumbsSlot
+              crumbs={crumbs}
+              strings={navStrings}
+              centered={modeLayout.width === "center"}
+              wide={isApiLayout || modeLayout.width === "full"}
+            />
+          )
+        }
         {
           hasToc && (
             <TableOfContentsSlot
@@ -797,12 +812,15 @@ createIconSprite(Astro.locals);
           <slot />
         </article>
         {
-          !isApiOperation && (
+          !isApiOperation && showChrome && (
             <div
               class:list={[
-                // Aligned with a rail page's content column, not centered
-                // under the prose measure.
-                apiRail && "xl:pe-[30.5rem] [&>*]:max-w-none",
+                // Aligned with the content column, not centered under the
+                // prose measure: a rail page's, a wide page's, or a center
+                // page's wider one.
+                apiRail && "xl:pe-[30.5rem]",
+                (apiRail || modeLayout.width === "full") && "[&>*]:max-w-none",
+                modeLayout.width === "center" && "[&>*]:max-w-[54rem]",
               ]}
             >
               <PageFooterSlot
@@ -850,12 +868,16 @@ createIconSprite(Astro.locals);
         )
       }
     </div>
-    <FooterSlot
-      footer={data.config.footer}
-      navigation={navigation}
-      site={site}
-      ui={strings}
-    />
+    {
+      showChrome && (
+        <FooterSlot
+          footer={data.config.footer}
+          navigation={navigation}
+          site={site}
+          ui={strings}
+        />
+      )
+    }
     {
       clientDataJson && (
         <script

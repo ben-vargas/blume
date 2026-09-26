@@ -65,6 +65,11 @@ Every page accepts the following frontmatter. All fields are optional.
       description:
         'Pin the page\'s "last updated" date (ISO or YAML date); overrides the git-derived date.',
     },
+    mode: {
+      type: '"default" | "wide" | "center" | "custom" | "frame"',
+      default: '"default"',
+      description: "What the page shows around its content. See Layout below.",
+    },
     api: {
       type: "string",
       description:
@@ -83,6 +88,27 @@ Every page accepts the following frontmatter. All fields are optional.
     },
   }}
 />
+
+## Layout
+
+`mode` sets what a page shows around its content:
+
+| Mode | Sidebar | Title and table of contents | Page-end links and footer | Content width |
+| --- | --- | --- | --- | --- |
+| `default` | Yes | Yes | Yes | The prose measure |
+| `wide` | Yes | Title only | Yes | The whole column |
+| `center` | No | Title only | Yes | A wider column, centered |
+| `frame` | Yes | No | No | The whole column |
+| `custom` | No | No | No | The whole page |
+
+`wide` suits a page of wide tables or diagrams, and `center` release notes or an announcement read top to bottom. `custom` keeps only the header, for a landing page written in MDX, and `frame` keeps the sidebar too, for a tool or dashboard that sits in the docs' navigation. Neither renders the page's title or description, so write your own heading. Every mode stays in search and keeps its Markdown copy.
+
+```yaml lineNumbers
+title: Welcome
+mode: custom
+```
+
+The values match Mintlify's; its `assistant` mode, a full-page chat, has no equivalent.
 
 ## Sidebar
 

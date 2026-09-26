@@ -149,7 +149,8 @@ Mintlify page frontmatter → Blume's strict schema. **`scripts/mintlify-codemod
 | `og:image` | `seo.image` | renames |
 | `hidden: true` | valid top-level in Blume — **kept as-is**; add `noindex: true` yourself if the page must also leave the search index | left (do by hand) |
 | `openapi`/`asyncapi`/`api` | usually an endpoint stub → **delete the page** (Blume generates operation pages); else drop the key and keep it as a normal page (there's no built-in `api` page type) | **flags** for review — never auto-deletes a page |
-| `mode`, `public`, `rss`, `groups`, `keywords`, `hideApiMarker`, `hideFooterPagination`, `iconType` | **drop** (report) | drops |
+| `mode` | `mode`, as written | `default`, `wide`, `center`, `custom`, and `frame` carry over; `assistant` has no equivalent → drop (report) |
+| `public`, `rss`, `groups`, `keywords`, `hideApiMarker`, `hideFooterPagination`, `iconType` | **drop** (report) | drops |
 
 The codemod leaves the source key in place and reports a conflict rather than clobbering data when a rename target already exists (e.g. a page already has `sidebar.label`) or the value is too structured to move safely — resolve those by hand. Remove any duplicate H1 in the body — `title` renders the H1. (The codemod only edits frontmatter; it never touches the body.)
 
