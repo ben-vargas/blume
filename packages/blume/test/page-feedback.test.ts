@@ -124,21 +124,39 @@ const widget = (comments: boolean) => {
   return { actions, form, no, textarea, thanks, yes };
 };
 
+/** The fake `window`: where `track` dispatches, and the consent state. */
+interface FakeWindow {
+  blumeConsent?: { analytics: boolean | null };
+  dispatchEvent: (event: CustomEvent<Sent>) => boolean;
+}
+
+let fakeWindow: FakeWindow = { dispatchEvent: () => true };
+
+/** Rate a page under a consent layer; whether the comment box opened. */
+const boxAfterRatingUnder = (analytics: boolean | null): boolean => {
+  const { form, yes } = widget(true);
+  fakeWindow.blumeConsent = { analytics };
+  initFeedback();
+  yes.fire("click");
+  return !form.hidden;
+};
+
 beforeEach(() => {
   sent = [];
   page = new FakeEl();
+  fakeWindow = {
+    dispatchEvent: (event) => {
+      sent.push(event.detail);
+      return true;
+    },
+  };
   Object.assign(globalThis, {
     document: {
       querySelector: (selector: string) => page.querySelector(selector),
       title: "Install - Docs",
     },
     location: { pathname: "/docs/install" },
-    window: {
-      dispatchEvent: (event: CustomEvent<Sent>) => {
-        sent.push(event.detail);
-        return true;
-      },
-    },
+    window: fakeWindow,
   });
 });
 
@@ -194,6 +212,15 @@ describe(initFeedback, () => {
     });
     expect(form.hidden).toBe(true);
     expect(thanks.focused).toBe(true);
+  });
+
+  it("offers the box under consent only once the reader allows analytics", () => {
+    // Declined, or not answered yet: a comment would go nowhere.
+    expect(boxAfterRatingUnder(false)).toBe(false);
+    expect(boxAfterRatingUnder(null)).toBe(false);
+    expect(boxAfterRatingUnder(true)).toBe(true);
+    // The rating itself is still sent (and dropped by the providers' absence).
+    expect(sent.filter((entry) => entry.event === "feedback")).toHaveLength(3);
   });
 
   it("sends nothing for an empty comment, and caps a long one", () => {

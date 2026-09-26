@@ -3,16 +3,31 @@
  * sent as a `feedback` analytics event, the buttons give way to a thank-you,
  * and, with `feedback.comments` on, a box below asks the reader to say more.
  * A comment they send goes out as a `feedback_comment` event with the same
- * rating, path, and title, so the two line up in a dashboard.
+ * rating, path, and title, so the two line up in a dashboard. Under a
+ * consent layer (`consent`), the box only opens once the reader allows
+ * analytics: from anyone else, a comment would go nowhere.
  *
  * Runs on the initial load and again after every client-router swap, which
  * rebuilds the widget from server-rendered markup, so the handlers always
  * bind to the freshly swapped-in elements.
  */
+import type { BlumeConsent } from "../../consent/client.ts";
 import { track } from "./analytics-client.ts";
 
 /** The longest comment the box takes. */
 export const COMMENT_MAX_LENGTH = 1000;
+
+/**
+ * Whether a comment would reach analytics: the site has no consent layer, or
+ * the reader has allowed analytics. Read when the reader rates, so one who
+ * accepted the banner a moment earlier gets the box.
+ */
+const commentsReachAnalytics = (): boolean => {
+  // SAFETY: the consent init script (`consent/init.ts`) is the only writer of
+  // `window.blumeConsent`; without a consent layer it's absent.
+  const { blumeConsent } = window as Window & { blumeConsent?: BlumeConsent };
+  return blumeConsent === undefined || blumeConsent.analytics === true;
+};
 
 /** Wire the page's rating, when it has one. */
 export const initFeedback = (): void => {
@@ -33,7 +48,7 @@ export const initFeedback = (): void => {
     });
     actions?.classList.add("hidden");
     thanks?.classList.remove("hidden");
-    if (form) {
+    if (form && commentsReachAnalytics()) {
       form.hidden = false;
     }
     // The clicked button just disappeared under focus; hand focus to the

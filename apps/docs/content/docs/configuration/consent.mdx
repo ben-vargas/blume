@@ -19,7 +19,7 @@ export default defineConfig({
 });
 ```
 
-With `consent` set, every analytics adapter waits. Its tags are in the page but don't run until the reader allows analytics, and then they run in the order you listed them. A reader who declines never loads them. Vercel Web Analytics loads either way, since its component isn't a tag Blume can hold, but it sends nothing until the reader allows analytics.
+With `consent` set, every analytics adapter waits. Its tags are in the page but don't run until the reader allows analytics, and then they run in the order you listed them. A reader who declines never loads them, and doesn't get the [written feedback](/docs/configuration#written-feedback) box either, since their comment would have nowhere to go. Vercel Web Analytics loads either way, since its component isn't a tag Blume can hold, but it sends nothing until the reader allows analytics.
 
 :::note
 Consent is opt-in. Without `consent`, analytics runs as the page loads, as it always has.
