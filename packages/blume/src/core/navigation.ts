@@ -3,6 +3,7 @@ import { extname } from "pathe";
 import { stripBasePath, withBasePath } from "./base-path.ts";
 import { orderingPrefix, stripOrderingPrefix } from "./ordering-prefix.ts";
 import type {
+  DirectoryMode,
   FolderMeta,
   SidebarDisplay,
   SidebarItemConfig,
@@ -202,6 +203,7 @@ interface MutableGroup {
   label: string;
   icon?: string;
   collapsed?: boolean;
+  directory?: DirectoryMode;
   display?: SidebarDisplay;
   order: number;
   /** Whether `order` is the node's position in its folder meta `pages` list. */
@@ -305,9 +307,19 @@ interface FallbackFolderMeta {
   meta: (path: string) => FolderMeta | undefined;
 }
 
+/** A folder meta's own fields onto its group, over what the folder implied. */
+const applyMetaFields = (group: MutableGroup, meta: FolderMeta): void => {
+  group.label = meta.title ?? group.label;
+  group.icon = meta.icon ?? group.icon;
+  group.order = meta.order ?? group.order;
+  group.collapsed = meta.collapsed ?? group.collapsed;
+  group.directory = meta.directory ?? group.directory;
+};
+
 /**
- * Apply folder meta (title/order/icon/collapsed/display and explicit page
- * order), plus the index-frontmatter display sugar collected per folder path.
+ * Apply folder meta (title/order/icon/collapsed/display/directory and
+ * explicit page order), plus the index-frontmatter display sugar collected
+ * per folder path.
  */
 const applyFolderMeta = (
   group: MutableGroup,
@@ -346,10 +358,7 @@ const applyFolderMeta = (
     (mirrored ? fallback.indexDisplay.get(group.path) : undefined) ??
     meta?.display;
   if (meta) {
-    group.label = meta.title ?? group.label;
-    group.icon = meta.icon ?? group.icon;
-    group.order = meta.order ?? group.order;
-    group.collapsed = meta.collapsed ?? group.collapsed;
+    applyMetaFields(group, meta);
   }
 
   for (const child of group.children) {
@@ -630,7 +639,15 @@ const hoistTabSections = (
   }
 };
 
-const toNavNode = (node: MutableNode, display: SidebarDisplay): NavNode => {
+/**
+ * A group's directory mode: its own, else the nearest one set above it (see
+ * `directory` in `schema.ts`).
+ */
+const toNavNode = (
+  node: MutableNode,
+  display: SidebarDisplay,
+  inheritedDirectory?: DirectoryMode
+): NavNode => {
   if (node.kind === "page") {
     return {
       badge: node.badge,
@@ -643,9 +660,13 @@ const toNavNode = (node: MutableNode, display: SidebarDisplay): NavNode => {
       route: node.route,
     };
   }
+  const directory = node.directory ?? inheritedDirectory;
   return {
-    children: node.children.map((child) => toNavNode(child, display)),
+    children: node.children.map((child) =>
+      toNavNode(child, display, directory)
+    ),
     collapsed: node.collapsed,
+    directory,
     display: node.display ?? display,
     icon: node.icon,
     kind: "group",
@@ -805,7 +826,9 @@ const buildFileSystemSidebar = (
   sortNodes(root.children, diagnostics);
   hoistPages(root.children, display, true);
   hoistTabSections(root.children, tabPaths, display);
-  return root.children.map((child) => toNavNode(child, display));
+  return root.children.map((child) =>
+    toNavNode(child, display, root.directory)
+  );
 };
 
 /**
@@ -932,16 +955,24 @@ const buildConfigSidebar = (
   items: SidebarItemConfig[],
   byRoute: Map<string, PageRecord>,
   display: SidebarDisplay,
-  basePath: string
+  basePath: string,
+  inheritedDirectory?: DirectoryMode
 ): NavNode[] => {
   const nodes: NavNode[] = [];
   for (const item of items) {
     if (!isPageRef(item) && item.items) {
+      const directory = item.directory ?? inheritedDirectory;
       nodes.push({
         badge: item.badge,
-        children: buildConfigSidebar(item.items, byRoute, display, basePath),
+        children: buildConfigSidebar(
+          item.items,
+          byRoute,
+          display,
+          basePath,
+          directory
+        ),
         collapsed: item.collapsed,
-        directory: item.directory,
+        directory,
         display: item.display ?? display,
         icon: item.icon,
         kind: "group",

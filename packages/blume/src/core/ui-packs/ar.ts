@@ -52,6 +52,7 @@ export const ar: UIStringsOverride = {
     preview: "معاينة",
     prop: "الخاصية",
     selectTab: "اختيار علامة تبويب",
+    showLess: "عرض أقل",
     showMore: "عرض المزيد",
     stars: "النجوم",
     tab: "علامة التبويب {n}",

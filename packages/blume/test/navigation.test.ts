@@ -381,6 +381,44 @@ describe("buildNavigation — filesystem sidebar", () => {
     expect(labels(group.children)).toStrictEqual(["Beta", "Alpha"]);
   });
 
+  it("inherits a folder's directory mode down to its subfolders", () => {
+    const folderMeta = new Map<string, FolderMeta>([
+      ["", { directory: "card" }],
+      ["guide", { directory: "accordion" }],
+      ["guide/advanced/deep", { directory: "none" }],
+    ]);
+    const nav = buildNavigation(
+      [
+        page("guide/index.md", "/guide", "Guide"),
+        page("guide/advanced/index.md", "/guide/advanced", "Advanced"),
+        page("guide/advanced/deep/x.md", "/guide/advanced/deep/x", "X"),
+        page("api/index.md", "/api", "API"),
+      ],
+      { folderMeta }
+    );
+    const guide = asGroup(nav.sidebar.find((node) => node.label === "Guide"));
+    const advanced = asGroup(
+      guide.children.find((node) => node.label === "Advanced")
+    );
+    const deep = asGroup(
+      advanced.children.find((node) => node.kind === "group")
+    );
+    expect(guide.directory).toBe("accordion");
+    expect(advanced.directory).toBe("accordion");
+    expect(deep.directory).toBe("none");
+    // The content root's own meta sets the default for every top-level group.
+    expect(
+      asGroup(nav.sidebar.find((node) => node.label === "API")).directory
+    ).toBe("card");
+  });
+
+  it("leaves directory unset when no folder asks for one", () => {
+    const nav = buildNavigation([page("guide/index.md", "/guide", "Guide")], {
+      folderMeta: new Map<string, FolderMeta>(),
+    });
+    expect(asGroup(nav.sidebar[0]).directory).toBeUndefined();
+  });
+
   it("spells acronyms in a folder's inferred label", () => {
     const nav = buildNavigation(
       [
@@ -781,6 +819,27 @@ describe("buildNavigation — explicit config sidebar", () => {
     const group = asGroup(nav.sidebar[0]);
     // routeForRef maps the ref through byRoute to the page's route.
     expect(group.route).toBe("/foo");
+  });
+
+  it("inherits a config group's directory mode into nested groups", () => {
+    const sidebar: SidebarItemConfig[] = [
+      {
+        directory: "card",
+        items: [
+          { items: ["/bar"], label: "Inner" },
+          { directory: "none", items: ["/bar"], label: "Off" },
+        ],
+        label: "Outer",
+        root: "/foo",
+      },
+      { items: ["/bar"], label: "Plain" },
+    ];
+    const nav = buildNavigation(pages, { folderMeta: empty, sidebar });
+    const outer = asGroup(nav.sidebar[0]);
+    expect(outer.directory).toBe("card");
+    expect(asGroup(outer.children[0]).directory).toBe("card");
+    expect(asGroup(outer.children[1]).directory).toBe("none");
+    expect(asGroup(nav.sidebar[1]).directory).toBeUndefined();
   });
 
   it("stamps the global display on config groups unless overridden", () => {

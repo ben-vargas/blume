@@ -159,13 +159,20 @@ const ICONS = {
 const DROP = new Set([
   "groups",
   "hideApiMarker",
-  "hideFooterPagination",
   "iconType",
   "keywords",
-  "mode",
   "public",
   "rss",
 ]);
+
+// Keys whose fate depends on their value: the source value (and its line) →
+// the line that replaces it, the line itself to keep it, or `null` to drop it
+// (a value Blume has no counterpart for, or one that restates its default).
+const REPLACE = {
+  hideFooterPagination: (value) =>
+    value === "true" ? "pagination: false" : null,
+  mode: (value, line) => (value === "assistant" ? null : line),
+};
 
 // Mintlify-only keys → Blume nested target. `[parent, child]`.
 const RENAME = {
@@ -179,7 +186,8 @@ const RENAME = {
 // Keys we deliberately do NOT auto-transform — they usually mean the page is an
 // OpenAPI endpoint stub that should be deleted (Blume generates operation pages),
 // or else a normal page that just loses the key. Flag for the human; never guess.
-const FLAG = new Set(["api", "asyncapi", "openapi"]);
+// (`api` is not one: a hand-written endpoint page keeps it as written.)
+const FLAG = new Set(["asyncapi", "openapi"]);
 
 // Which change kinds actually edit the file. Report-only kinds (flags,
 // unknowns, conflicts, manual-rename notices) leave the bytes untouched.
@@ -332,6 +340,36 @@ const rewriteFields = (fm) => {
     }
     if (FLAG.has(tk.key)) {
       changes.push({ detail: tk.key, kind: "flag" });
+      continue;
+    }
+    if (Object.hasOwn(REPLACE, tk.key)) {
+      const [start, end] = blockRange(fm, i);
+      const value = tk.value.replace(
+        /^(?<q>["'])(?<inner>.*)\k<q>$/u,
+        "$<inner>"
+      );
+      const line =
+        end - start === 1 ? REPLACE[tk.key](value, fm[start]) : undefined;
+      if (line === undefined) {
+        changes.push({ detail: tk.key, kind: "rename-manual" });
+      } else if (line === null) {
+        fm.splice(start, 1);
+        changes.push({ detail: `${tk.key}: ${value}`, kind: "drop" });
+      } else if (line !== fm[start]) {
+        const [key] = line.split(":");
+        if (fm.some((other, j) => j !== start && topKey(other)?.key === key)) {
+          changes.push({
+            detail: `${tk.key} → ${key} (child-exists)`,
+            kind: "rename-conflict",
+          });
+        } else {
+          fm[start] = line;
+          changes.push({
+            detail: `${tk.key}: ${value} → ${line}`,
+            kind: "rename",
+          });
+        }
+      }
       continue;
     }
     const target = RENAME[tk.key];

@@ -130,6 +130,15 @@ const dateSchema = z
 const sidebarDisplaySchema = z.enum(["flat", "group", "page"]);
 export type SidebarDisplay = z.infer<typeof sidebarDisplaySchema>;
 
+/**
+ * How a group's own page lists the group's other pages below its content:
+ * `card` a grid of cards, `accordion` a list with each subgroup collapsible,
+ * `none` no listing (the default). A group without its own page has nowhere
+ * to show one. Nested groups inherit the nearest setting above them.
+ */
+const directoryModeSchema = z.enum(["accordion", "card", "none"]);
+export type DirectoryMode = z.infer<typeof directoryModeSchema>;
+
 // ---------------------------------------------------------------------------
 // Page frontmatter
 // ---------------------------------------------------------------------------
@@ -246,6 +255,8 @@ const pageMetaBaseSchema = z.strictObject({
   /** `false` keeps the "Listen to this page" player off this page. */
   narration: z.boolean().default(true),
   noindex: z.boolean().default(false),
+  /** `false` drops the previous/next links at the foot of this page. */
+  pagination: z.boolean().default(true),
   /** What an `api` page's playground shows: `interactive`, `simple` (samples only), or `none`. */
   playground: z.enum(PLAYGROUND_MODES).optional(),
   search: searchMetaSchema.prefault({}),
@@ -323,6 +334,8 @@ const customKeySchemaRecord = (where: string) =>
 
 export const folderMetaSchema = z.strictObject({
   collapsed: z.boolean().optional(),
+  /** List the group's pages on its index page; inherited by nested folders. */
+  directory: directoryModeSchema.optional(),
   /** Render mode for this group; overrides `navigation.sidebar.display`. */
   display: sidebarDisplaySchema.optional(),
   icon: iconName.optional(),
@@ -555,9 +568,6 @@ const navSelectorSchema = z.strictObject({
   kind: z.enum(["dropdown", "language", "product", "version"]),
   label: z.string(),
 });
-
-const directoryModeSchema = z.enum(["accordion", "card", "none"]);
-export type DirectoryMode = z.infer<typeof directoryModeSchema>;
 
 /** A node in an explicit sidebar config: a page reference or a group/link. */
 export type SidebarItemConfig =

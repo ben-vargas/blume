@@ -70,4 +70,69 @@ describe("mintlify-codemod", () => {
     // Idempotent: nothing left to drop on a second pass.
     expect(runCodemod(file)).toContain("0 file(s) with findings");
   });
+
+  it("maps hideFooterPagination and mode by value, and keeps api pages", async () => {
+    const file = join(root, "values.mdx");
+    await writeFile(
+      file,
+      [
+        "---",
+        "title: Endpoint",
+        "api: POST /v1/users",
+        "mode: wide",
+        "hideFooterPagination: true",
+        "---",
+        "",
+      ].join("\n")
+    );
+    const report = runCodemod("--write", file);
+    expect(report).toContain("hideFooterPagination: true → pagination: false");
+    expect(report).not.toContain("FLAG");
+    expect(matter(await readFile(file, "utf-8")).data).toEqual({
+      api: "POST /v1/users",
+      mode: "wide",
+      pagination: false,
+      title: "Endpoint",
+    });
+    expect(runCodemod(file)).toContain("0 file(s) with findings");
+
+    const other = join(root, "assistant.mdx");
+    await writeFile(
+      other,
+      [
+        "---",
+        "title: Chat",
+        'mode: "assistant"',
+        "hideFooterPagination: false",
+        "---",
+        "",
+      ].join("\n")
+    );
+    const dropped = runCodemod("--write", other);
+    expect(dropped).toContain("dropped: mode: assistant");
+    expect(dropped).toContain("dropped: hideFooterPagination: false");
+    expect(matter(await readFile(other, "utf-8")).data).toEqual({
+      title: "Chat",
+    });
+  });
+
+  it("leaves an existing pagination key and a structured value for review", async () => {
+    const file = join(root, "conflict.mdx");
+    const source = [
+      "---",
+      "pagination: true",
+      "hideFooterPagination: true",
+      "mode:",
+      "  nested: x",
+      "---",
+      "",
+    ].join("\n");
+    await writeFile(file, source);
+    const report = runCodemod("--write", file);
+    expect(report).toContain(
+      "hideFooterPagination → pagination (child-exists)"
+    );
+    expect(report).toContain("rename needs manual edit: mode");
+    expect(await readFile(file, "utf-8")).toBe(source);
+  });
 });

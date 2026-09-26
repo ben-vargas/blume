@@ -34,6 +34,7 @@ Blume only reads `meta.ts` files from folders your content covers: one under a f
 | `order` | `number` | Position among sibling groups and pages. Lower numbers sort first. |
 | `collapsed` | `boolean` | Under the [`group` display mode](/docs/content/navigation#display-modes), whether the group starts collapsed. |
 | `display` | `"flat" \| "group" \| "page"` | Render mode for this group; overrides the global [`navigation.sidebar.display`](/docs/content/navigation#display-modes). |
+| `directory` | `"card" \| "accordion" \| "none"` | List the group's pages below its `index` page's content. Nested folders inherit it. See [directory listings](/docs/content/navigation#directory-listings). |
 | `pages` | `string[]` | Explicit order for the group's children, by slug. |
 
 The `pages` array lists children by slug — the folder or file name with its numeric prefix and any parentheses stripped (so `01-quickstart.mdx` is `"quickstart"`). Each listed child takes its position in the array as its order (`0`, `1`, `2`, …). Children you leave out still appear, sorted by their own order: an `index` page stays first, a child with a `sidebar.order`, a numeric prefix, or its own `meta.ts` `order` sorts by that number among the listed ones, and a child with none of these goes after them. List every child when the array should be the whole order.

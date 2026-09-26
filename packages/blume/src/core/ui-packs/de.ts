@@ -53,6 +53,7 @@ export const de: UIStringsOverride = {
     preview: "Vorschau",
     prop: "Eigenschaft",
     selectTab: "Tab auswählen",
+    showLess: "Weniger anzeigen",
     showMore: "Mehr anzeigen",
     stars: "Sterne",
     tab: "Tab {n}",

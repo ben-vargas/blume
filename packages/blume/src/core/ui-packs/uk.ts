@@ -53,6 +53,7 @@ export const uk: UIStringsOverride = {
     preview: "Попередній перегляд",
     prop: "Властивість",
     selectTab: "Вибрати вкладку",
+    showLess: "Показати менше",
     showMore: "Показати більше",
     stars: "Зірки",
     tab: "Вкладка {n}",

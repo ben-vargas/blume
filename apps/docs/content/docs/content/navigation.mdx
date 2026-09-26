@@ -106,6 +106,24 @@ A group's `display` applies to that group only — nested subgroups resolve thei
 
 A group in an [explicit sidebar](#explicit-sidebar) overrides the global mode with its own `display`, exactly as before.
 
+## Directory listings
+
+A group's own page can list the group's other pages below its content, so a section's landing page doubles as its table of contents. Set `directory` in the folder's [`meta.ts`](/docs/content/meta):
+
+```ts guides/meta.ts lineNumbers
+import { defineMeta } from "blume";
+
+export default defineMeta({
+  directory: "card",
+});
+```
+
+- **`card`** shows each page and subgroup as a card with its icon and description.
+- **`accordion`** lists the pages as rows, and each subgroup as a section that opens to its pages.
+- **`none`** lists nothing. This is the default.
+
+Only a group with its own page has somewhere to show the listing: a folder's `index` page, or an explicit group's `root`. The setting carries down to nested folders, so one `directory` on the content root's `meta.ts` gives every section a listing, and a folder can set its own value (`none` included) to override what it inherits. An [explicit sidebar](#explicit-sidebar) sets `directory` on its groups the same way.
+
 ## Ordering
 
 When the sidebar is generated, order is resolved highest priority first:
@@ -269,7 +287,7 @@ navigation: {
 }
 ```
 
-Each item is a page route (a string), a group (`label` + `items`), or a link (`label` + `href`). Groups can nest, override the global [`display` mode](#display-modes), and start `collapsed`.
+Each item is a page route (a string), a group (`label` + `items`), or a link (`label` + `href`). Groups can nest, override the global [`display` mode](#display-modes), start `collapsed`, and link a `root` page, which can list the group's pages with a [`directory`](#directory-listings).
 
 Blume warns about an item it can't render as written: a route that matches no page (the item is left out), a `root` that matches no page (its link would 404), or an item with no route, `href`, `root`, or `items` (left out).
 
@@ -315,7 +333,7 @@ That's for a project whose docs repo is private. `github` drives the per-page ed
 These come for free from the sidebar tree — no configuration:
 
 - **Breadcrumbs** show the current page's parent group above the title.
-- **Previous and next** links at the foot of each page follow sidebar order, skipping hidden pages.
+- **Previous and next** links at the foot of each page follow sidebar order, skipping hidden pages. Set [`pagination: false`](/docs/content/frontmatter) in a page's frontmatter to leave them off that page.
 
 ## On this page
 

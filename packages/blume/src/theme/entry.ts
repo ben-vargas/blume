@@ -1,3 +1,4 @@
+import { EXPANDABLE_VISIBLE_LINES } from "../markdown/code-title.ts";
 import { CODE_PADDING_BLOCK_REM } from "./code-block-padding.ts";
 
 /**
@@ -601,12 +602,58 @@ ${options.languageIcons ?? ""}
     transparent;
 }
 
-/* Word wrap (markdown.code.wrap): long lines wrap instead of scrolling. The
-   attribute is set on <body> from config; default code keeps \`white-space: pre\`. */
+/* Word wrap: long lines wrap instead of scrolling, on every block
+   (markdown.code.wrap, an attribute on <body>) or on one (\`\`\`ts wrap, which
+   Shiki's fence-meta reader sets as data-wrap). Default code keeps
+   \`white-space: pre\`. */
 [data-blume-code-wrap] pre,
-[data-blume-code-wrap] pre code {
+[data-blume-code-wrap] pre code,
+pre[data-wrap],
+pre[data-wrap] code {
   overflow-wrap: break-word;
   white-space: pre-wrap;
+}
+
+/* An expandable block (\`\`\`ts expandable) starts collapsed to its first lines,
+   faded out toward the cut, with a toggle under it (added by the layout
+   script). Opened, it shows in full: no height cap and no inner scroll. The
+   collapse needs that script to undo it, so a page without scripting shows
+   the block the ordinary way. */
+@media (scripting: enabled) {
+  .prose pre[data-expandable]:not([data-expanded]) > code {
+    max-height: calc(${EXPANDABLE_VISIBLE_LINES}lh + ${CODE_SCROLL_INSET_REM}rem);
+    mask-image: linear-gradient(to bottom, #000 calc(100% - 3lh), transparent);
+    overflow-y: hidden;
+  }
+}
+
+.prose pre[data-expandable][data-expanded] > code {
+  max-height: none;
+}
+
+[data-blume-code-expand] {
+  align-items: center;
+  color: var(--blume-muted-foreground);
+  display: flex;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  gap: 0.25rem;
+  justify-content: center;
+  padding-top: 0.5rem;
+  width: 100%;
+}
+
+[data-blume-code-expand]:hover {
+  color: var(--blume-foreground);
+}
+
+[data-blume-code-expand] svg {
+  transition: transform 150ms;
+}
+
+[data-blume-code-expand][aria-expanded="true"] svg {
+  transform: rotate(180deg);
 }
 
 .prose :where(table) {

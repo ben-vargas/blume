@@ -52,6 +52,7 @@ export const bn: UIStringsOverride = {
     preview: "প্রিভিউ",
     prop: "প্রপ",
     selectTab: "ট্যাব নির্বাচন করুন",
+    showLess: "কম দেখান",
     showMore: "আরও দেখান",
     stars: "স্টার",
     tab: "ট্যাব {n}",

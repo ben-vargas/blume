@@ -52,6 +52,7 @@ export const sr: UIStringsOverride = {
     preview: "Преглед",
     prop: "Својство",
     selectTab: "Изабери картицу",
+    showLess: "Прикажи мање",
     showMore: "Прикажи више",
     stars: "Звездице",
     tab: "Картица {n}",

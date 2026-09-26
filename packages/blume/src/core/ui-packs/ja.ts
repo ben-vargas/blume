@@ -53,6 +53,7 @@ export const ja: UIStringsOverride = {
     preview: "プレビュー",
     prop: "プロパティ",
     selectTab: "タブを選択",
+    showLess: "表示を減らす",
     showMore: "もっと見る",
     stars: "スター",
     tab: "タブ {n}",

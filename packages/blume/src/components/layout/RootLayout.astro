@@ -47,6 +47,7 @@ import WebMcp from "./WebMcp.astro";
 import Banner from "./Banner.astro";
 import Breadcrumbs from "./Breadcrumbs.astro";
 import Empty from "./Empty.astro";
+import Directory from "./Directory.astro";
 import DiscoveryLinks from "./DiscoveryLinks.astro";
 import DrawerSwitchers from "./DrawerSwitchers.astro";
 import Favicon from "./Favicon.astro";
@@ -63,6 +64,7 @@ import {
   currentTabForRoute,
   findBreadcrumbs,
   flattenPages,
+  directoryGroupForRoute,
   getPagination,
   navGroupIds,
   sidebarForRoute,
@@ -133,6 +135,8 @@ interface Props {
   assistantEnabled?: boolean;
   /** Show the "Was this page helpful?" rating below the content. */
   feedback?: boolean;
+  /** Show the previous/next links at the foot of the page. */
+  pagination?: boolean;
   exportPdf?: boolean;
   exportEpub?: boolean;
   /**
@@ -264,6 +268,7 @@ const {
   editUrl,
   assistantEnabled,
   feedback = false,
+  pagination = true,
   exportPdf,
   exportEpub,
   openInChat,
@@ -465,6 +470,10 @@ const activeTab = currentTabForRoute(
   navigation.root
 );
 const crumbs = findBreadcrumbs(sidebar, page.route);
+// A group's own page lists the group's pages below its content when the
+// group asks for a directory. Looked up in the full tree: a tab's own page
+// is not in its scoped sidebar.
+const directoryGroup = directoryGroupForRoute(navigation.sidebar, page.route);
 const { prev, next } = getPagination(flattenPages(sidebar), page.route);
 
 // Structured data is skipped when disabled or for pages we ask crawlers not to
@@ -603,6 +612,8 @@ createIconSprite(Astro.locals);
     data-i18n-copied={actionStrings.copied}
     data-i18n-copy-code={actionStrings.copyCode}
     data-i18n-diagram-error={contentStrings.diagramError}
+    data-i18n-show-less={contentStrings.showLess}
+    data-i18n-show-more={contentStrings.showMore}
   >
     <a
       class="absolute start-[-999px] top-0 z-[100] bg-accent px-4 py-2 text-accent-foreground focus:start-0"
@@ -823,6 +834,7 @@ createIconSprite(Astro.locals);
                 modeLayout.width === "center" && "[&>*]:max-w-[54rem]",
               ]}
             >
+              {directoryGroup && <Directory group={directoryGroup} />}
               <PageFooterSlot
                 headings={tocHeadings}
                 page={page}
@@ -834,7 +846,9 @@ createIconSprite(Astro.locals);
                 </p>
               )}
               {feedback && <FeedbackSlot strings={strings.feedback} />}
-              <PaginationSlot next={next} prev={prev} strings={strings.page} />
+              {pagination && (
+                <PaginationSlot next={next} prev={prev} strings={strings.page} />
+              )}
             </div>
           )
         }
@@ -1069,6 +1083,47 @@ createIconSprite(Astro.locals);
           });
           return button;
         };
+
+        // An `expandable` block (```ts expandable) opens and closes from a
+        // toggle under its code. The theme only collapses the block where
+        // scripting runs, so the toggle is added on the same terms.
+        const showMoreLabel =
+          document.body.getAttribute("data-i18n-show-more") || "Show more";
+        const showLessLabel =
+          document.body.getAttribute("data-i18n-show-less") || "Show less";
+        const expandToggle = (pre: HTMLElement) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.setAttribute("data-blume-code-expand", "");
+          button.innerHTML = svg("chevron-down");
+          const label = document.createElement("span");
+          button.prepend(label);
+          const setExpanded = (expanded: boolean) => {
+            pre.toggleAttribute("data-expanded", expanded);
+            button.setAttribute("aria-expanded", String(expanded));
+            label.textContent = expanded ? showLessLabel : showMoreLabel;
+          };
+          setExpanded(false);
+          button.addEventListener("click", () => {
+            const expanded = !pre.hasAttribute("data-expanded");
+            setExpanded(expanded);
+            // Collapsing a long block can leave the reader below it; bring
+            // its top back into view.
+            if (!expanded && pre.getBoundingClientRect().top < 0) {
+              pre.scrollIntoView({ block: "start" });
+            }
+          });
+          return button;
+        };
+        if (matchMedia("(scripting: enabled)").matches) {
+          for (const pre of document.querySelectorAll<HTMLElement>(
+            ".prose pre[data-expandable]"
+          )) {
+            if (!pre.querySelector(":scope > [data-blume-code-expand]")) {
+              pre.appendChild(expandToggle(pre));
+            }
+          }
+        }
 
         for (const pre of document.querySelectorAll(".prose pre")) {
           if (pre.querySelector("[data-blume-copy]")) {

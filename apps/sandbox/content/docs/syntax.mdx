@@ -24,6 +24,30 @@ const server = createServer((request, response) => {
 server.listen(3000);
 ```
 
+A long `expandable` block, collapsed to its first lines until you open it:
+
+```ts routes.ts lineNumbers expandable
+import { defineRoutes } from "./router";
+
+export default defineRoutes({
+  home: "/",
+  docs: "/docs",
+  guides: "/docs/guides",
+  layouts: "/docs/layouts",
+  components: "/docs/components",
+  islands: "/docs/islands",
+  syntax: "/docs/syntax",
+  reference: "/reference",
+  changelog: "/changelog",
+  blog: "/blog",
+  pricing: "/pricing",
+  status: "https://status.example.com",
+  support: "mailto:support@example.com",
+  privacy: "/legal/privacy",
+  terms: "/legal/terms",
+});
+```
+
 A package-install block:
 
 ```package-install

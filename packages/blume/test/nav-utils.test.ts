@@ -3,10 +3,13 @@ import { describe, expect, it } from "bun:test";
 import {
   activeTabForRoute,
   currentTabForRoute,
+  directoryEntries,
+  directoryGroupForRoute,
   isGroupRowCurrent,
   navGroupIds,
   sidebarForRoute,
 } from "../src/components/layout/nav-utils.ts";
+import type { NavGroup } from "../src/components/layout/nav-utils.ts";
 import type { NavNode, NavTab } from "../src/core/types.ts";
 
 const page = (label: string, route: string): NavNode => ({
@@ -22,6 +25,20 @@ const group = (label: string, path: string, children: NavNode[]): NavNode => ({
   kind: "group",
   label,
   path,
+});
+
+/** A page row with a description and an icon, as a directory lists it. */
+const described = (
+  label: string,
+  route: string,
+  description: string
+): NavNode => ({
+  description,
+  icon: "book",
+  kind: "page",
+  label,
+  pageId: label,
+  route,
 });
 
 // A multi-section site: one group per section, each at its own URL path.
@@ -448,5 +465,121 @@ describe("isGroupRowCurrent", () => {
         "/docs/content"
       )
     ).toBe(false);
+  });
+});
+
+describe("directory listings", () => {
+  const guides: NavGroup = {
+    children: [
+      described("Overview", "/guides", "Start here"),
+      described("Install", "/guides/install", "Get set up"),
+      {
+        kind: "page",
+        label: "GitHub",
+        pageId: "",
+        route: "https://github.com",
+      },
+      {
+        children: [
+          described("Advanced", "/guides/advanced", "Go further"),
+          page("Caching", "/guides/advanced/caching"),
+        ],
+        display: "flat",
+        icon: "rocket",
+        kind: "group",
+        label: "Advanced",
+        route: "/guides/advanced",
+      },
+      {
+        children: [page("Retries", "/guides/errors/retries")],
+        display: "flat",
+        kind: "group",
+        label: "Errors",
+        route: "/guides/errors",
+      },
+      {
+        children: [page("Batching", "/guides/jobs/batching")],
+        display: "flat",
+        kind: "group",
+        label: "Jobs",
+      },
+      { children: [], display: "flat", kind: "group", label: "Empty" },
+    ],
+    directory: "accordion",
+    display: "flat",
+    kind: "group",
+    label: "Guides",
+    route: "/guides",
+  };
+
+  it("finds the group whose own page lists its pages", () => {
+    const tree: NavNode[] = [page("Home", "/"), guides];
+    expect(directoryGroupForRoute(tree, "/guides")).toBe(guides);
+    expect(directoryGroupForRoute(tree, "/guides/install")).toBeNull();
+    expect(directoryGroupForRoute(tree, "/")).toBeNull();
+  });
+
+  it("finds a nested group, and skips one set to none or unset", () => {
+    const nested: NavNode = {
+      children: [],
+      directory: "card",
+      display: "flat",
+      kind: "group",
+      label: "Deep",
+      route: "/a/deep",
+    };
+    const tree: NavNode[] = [
+      {
+        children: [nested],
+        directory: "none",
+        display: "flat",
+        kind: "group",
+        label: "A",
+        route: "/a",
+      },
+      group("B", "/b", []),
+    ];
+    expect(directoryGroupForRoute(tree, "/a")).toBeNull();
+    expect(directoryGroupForRoute(tree, "/a/deep")).toBe(nested);
+    expect(directoryGroupForRoute(tree, "/b")).toBeNull();
+  });
+
+  it("lists the group's pages and subgroups without the page itself", () => {
+    const entries = directoryEntries(guides);
+    expect(entries).toStrictEqual([
+      {
+        description: "Get set up",
+        href: "/guides/install",
+        icon: "book",
+        label: "Install",
+      },
+      {
+        description: "Go further",
+        href: "/guides/advanced",
+        icon: "rocket",
+        label: "Advanced",
+        pages: [
+          { label: "Advanced", route: "/guides/advanced" },
+          { label: "Caching", route: "/guides/advanced/caching" },
+        ],
+      },
+      {
+        description: undefined,
+        href: "/guides/errors",
+        icon: undefined,
+        label: "Errors",
+        pages: [
+          { label: "Errors", route: "/guides/errors" },
+          { label: "Retries", route: "/guides/errors/retries" },
+        ],
+      },
+      {
+        description: undefined,
+        href: "/guides/jobs/batching",
+        icon: undefined,
+        label: "Jobs",
+        pages: [{ label: "Batching", route: "/guides/jobs/batching" }],
+      },
+    ]);
   });
 });

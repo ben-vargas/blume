@@ -248,6 +248,65 @@ createServer().listen(3000);
 ```
 ````
 
+### Long lines and long blocks
+
+Append `wrap` to wrap one block's long lines instead of scrolling them sideways:
+
+```ts client.ts wrap
+const client = createClient({
+  baseUrl: "https://api.example.com/v1",
+  retries: 3,
+  timeout: 10_000,
+  headers: { "x-client": "docs" },
+});
+```
+
+````md
+```ts client.ts wrap
+const client = createClient({
+  baseUrl: "https://api.example.com/v1",
+  retries: 3,
+  timeout: 10_000,
+  headers: { "x-client": "docs" },
+});
+```
+````
+
+Append `expandable` to a long block to show its first lines with a **Show more** toggle under them. Opened, the block shows in full, with no scrolling inside it. A block under 16 lines renders as usual, since there's little to hide.
+
+```ts routes.ts expandable
+import { defineRoutes } from "./router";
+
+export default defineRoutes({
+  home: "/",
+  docs: "/docs",
+  guides: "/docs/guides",
+  reference: "/docs/reference",
+  changelog: "/changelog",
+  blog: "/blog",
+  pricing: "/pricing",
+  about: "/about",
+  careers: "/careers",
+  contact: "/contact",
+  privacy: "/legal/privacy",
+  terms: "/legal/terms",
+  security: "/security",
+  status: "https://status.example.com",
+});
+```
+
+````md
+```ts routes.ts expandable
+import { defineRoutes } from "./router";
+
+export default defineRoutes({
+  // …every route
+});
+```
+````
+
+Both work alongside a title and `lineNumbers`. To wrap every block, set `markdown.code.wrap` instead.
+
 ### Highlighting
 
 Annotate code with GitHub-style comments to draw attention to lines, words, and changes. The comments are stripped from the rendered output, so the code stays copy-paste clean. All four are on by default — no configuration.

@@ -53,6 +53,7 @@ export const ca: UIStringsOverride = {
     preview: "Previsualització",
     prop: "Propietat",
     selectTab: "Selecciona una pestanya",
+    showLess: "Mostra'n menys",
     showMore: "Mostra'n més",
     stars: "Estrelles",
     tab: "Pestanya {n}",

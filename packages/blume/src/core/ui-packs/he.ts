@@ -52,6 +52,7 @@ export const he: UIStringsOverride = {
     preview: "תצוגה מקדימה",
     prop: "מאפיין",
     selectTab: "בחר כרטיסייה",
+    showLess: "הצג פחות",
     showMore: "הצג עוד",
     stars: "כוכבים",
     tab: "כרטיסייה {n}",

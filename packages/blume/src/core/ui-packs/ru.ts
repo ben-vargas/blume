@@ -53,6 +53,7 @@ export const ru: UIStringsOverride = {
     preview: "Предпросмотр",
     prop: "Свойство",
     selectTab: "Выбрать вкладку",
+    showLess: "Показать меньше",
     showMore: "Показать ещё",
     stars: "Звёзды",
     tab: "Вкладка {n}",

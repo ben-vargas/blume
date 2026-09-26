@@ -52,6 +52,7 @@ export const it: UIStringsOverride = {
     preview: "Anteprima",
     prop: "Proprietà",
     selectTab: "Seleziona una scheda",
+    showLess: "Mostra di meno",
     showMore: "Mostra di più",
     stars: "Stelle",
     tab: "Scheda {n}",

@@ -53,6 +53,7 @@ export const ptBR: UIStringsOverride = {
     preview: "Visualização",
     prop: "Propriedade",
     selectTab: "Selecionar aba",
+    showLess: "Mostrar menos",
     showMore: "Mostrar mais",
     stars: "Estrelas",
     tab: "Aba {n}",

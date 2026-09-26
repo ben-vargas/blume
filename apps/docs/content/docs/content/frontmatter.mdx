@@ -55,6 +55,12 @@ Every page accepts the following frontmatter. All fields are optional.
       description:
         "Set to false to leave this page without the Listen to this page player when narration is on.",
     },
+    pagination: {
+      type: "boolean",
+      default: "true",
+      description:
+        "Set to false to drop the previous and next links at the foot of the page. The page stays in the order, so its neighbors still link to it.",
+    },
     icon: {
       type: "string",
       description:

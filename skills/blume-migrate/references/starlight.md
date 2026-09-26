@@ -57,7 +57,8 @@ Starlight's `sidebar` array → prefer letting Blume generate from the filesyste
 | `pagefind: false` | `search.exclude: true` |
 | `lastUpdated` (date/string) | `lastModified` |
 | `lastUpdated: false` (boolean) | **remove** (Blume's `lastModified` takes a date; a boolean is a build error) |
-| `prev` / `next` (booleans or labels) | **drop** (report — no per-page pagination toggle; `hideFooterPagination` does not exist) |
+| `prev: false` **and** `next: false` | `pagination: false` (hides both links) |
+| `prev` / `next` otherwise (one side, or a label/link) | **drop** (report — the links can only be hidden together, and their labels come from the linked pages) |
 | `template: splash` / `hero` | **no equivalent** — rebuild as a custom `.astro` page under `content.pages`; a `hero` on a normal page drops (report) |
 | `banner`, `tableOfContents`, `editUrl`, `head` | drop (report) |
 

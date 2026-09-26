@@ -270,6 +270,89 @@ export const getPagination = (flat: FlatPage[], route: string) => {
   };
 };
 
+/** A group node in the sidebar tree. */
+export type NavGroup = Extract<NavNode, { kind: "group" }>;
+
+/**
+ * The group whose own page `route` is, when that page lists the group's
+ * pages: its `directory` (inherited when the group sets none) is `card` or
+ * `accordion`. `null` on every other page.
+ */
+export const directoryGroupForRoute = (
+  nodes: NavNode[],
+  route: string
+): NavGroup | null => {
+  for (const node of nodes) {
+    if (node.kind !== "group") {
+      continue;
+    }
+    if (
+      node.route === route &&
+      (node.directory === "card" || node.directory === "accordion")
+    ) {
+      return node;
+    }
+    const nested = directoryGroupForRoute(node.children, route);
+    if (nested) {
+      return nested;
+    }
+  }
+  return null;
+};
+
+/** One entry in a group page's directory: a page, or a subgroup and its pages. */
+export interface DirectoryEntry {
+  description?: string;
+  /** The page, or the subgroup's own page (its first page when it has none). */
+  href: string;
+  icon?: string;
+  label: string;
+  /** A subgroup's pages in sidebar order, its own page first; absent for a page. */
+  pages?: FlatPage[];
+}
+
+/**
+ * What a group's page lists: the group's pages and subgroups, in sidebar
+ * order, without the page itself or external links. A subgroup is described
+ * by its own page, and one with no page to link to is left out.
+ */
+export const directoryEntries = (group: NavGroup): DirectoryEntry[] =>
+  group.children.flatMap((child): DirectoryEntry[] => {
+    if (child.kind === "page") {
+      return child.pageId && child.route !== group.route
+        ? [
+            {
+              description: child.description,
+              href: child.route,
+              icon: child.icon,
+              label: child.label,
+            },
+          ]
+        : [];
+    }
+    const listed = flattenPages(child.children);
+    const pages =
+      child.route && !listed.some((page) => page.route === child.route)
+        ? [{ label: child.label, route: child.route }, ...listed]
+        : listed;
+    const [first] = pages;
+    if (!first) {
+      return [];
+    }
+    const own = child.children.find(
+      (node) => node.kind === "page" && node.route === child.route
+    );
+    return [
+      {
+        description: own?.kind === "page" ? own.description : undefined,
+        href: child.route ?? first.route,
+        icon: child.icon,
+        label: child.label,
+        pages,
+      },
+    ];
+  });
+
 /**
  * A stable id for every group in a sidebar — `g<n>` by pre-order position in
  * the full tree. The layout hands `NavTree` a scoped view of that tree (a

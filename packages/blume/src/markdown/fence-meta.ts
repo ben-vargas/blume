@@ -41,9 +41,11 @@ export const metaTokens = (meta: string | null | undefined): string[] =>
  * a block title.
  */
 export const RESERVED_META_KEYWORDS: ReadonlySet<string> = new Set([
+  "expandable",
   "lineNumbers",
   "ts2js",
   "twoslash",
+  "wrap",
 ]);
 
 /** A Shiki `{1,3-5}` line-range token. */

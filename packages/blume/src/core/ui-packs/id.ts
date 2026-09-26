@@ -53,6 +53,7 @@ export const id: UIStringsOverride = {
     preview: "Pratinjau",
     prop: "Properti",
     selectTab: "Pilih tab",
+    showLess: "Tampilkan lebih sedikit",
     showMore: "Tampilkan lebih banyak",
     stars: "Bintang",
     tab: "Tab {n}",

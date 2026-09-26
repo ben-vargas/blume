@@ -53,6 +53,7 @@ export const hu: UIStringsOverride = {
     preview: "Előnézet",
     prop: "Tulajdonság",
     selectTab: "Lap kiválasztása",
+    showLess: "Kevesebb megjelenítése",
     showMore: "Több megjelenítése",
     stars: "Csillagok",
     tab: "{n}. lap",

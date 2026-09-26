@@ -2574,6 +2574,7 @@ const LayoutComponent = resolveSlot(layoutOverrides.Layout, RootLayout);
   canonical={canonical}
   editUrl={editUrl}
   feedback={data.config.feedback}
+  pagination={frontmatter.pagination}
   exportPdf={${options.exportPdf}}
   exportEpub={${options.exportEpub}}${
     options.navFragments

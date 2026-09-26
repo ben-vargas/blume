@@ -2,7 +2,11 @@ import { describe, expect, it } from "bun:test";
 
 import { codeToHtml } from "shiki";
 
-import { codeTitleTransformer } from "../src/markdown/code-title.ts";
+import {
+  codeTitleTransformer,
+  EXPANDABLE_MIN_LINES,
+  lineCount,
+} from "../src/markdown/code-title.ts";
 import {
   calloutTypeFor,
   directiveToCalloutPlugin,
@@ -61,11 +65,21 @@ type MetaPreNode = Parameters<
 >[0];
 
 /** Run the code-meta transformer over a fence's meta and return the <pre> attrs. */
-const metaAttrs = (raw?: string): MetaPreNode["properties"] => {
+const metaAttrs = (
+  raw?: string,
+  source?: string
+): MetaPreNode["properties"] => {
   const node: MetaPreNode = { properties: {} };
-  codeTitleTransformer().pre.call({ options: { meta: { __raw: raw } } }, node);
+  codeTitleTransformer().pre.call(
+    { options: { meta: { __raw: raw } }, source },
+    node
+  );
   return node.properties;
 };
+
+/** A block of `count` numbered lines, ending in a newline like a fence's code. */
+const linesOf = (count: number): string =>
+  Array.from({ length: count }, (_, i) => `line ${i + 1}\n`).join("");
 
 describe(calloutTypeFor, () => {
   it("passes through canonical callout types", () => {
@@ -226,6 +240,17 @@ describe(toPackageCommands, () => {
   });
 });
 
+describe(lineCount, () => {
+  it("counts lines without the trailing newline", () => {
+    expect(lineCount()).toBe(0);
+    expect(lineCount("")).toBe(0);
+    expect(lineCount("one")).toBe(1);
+    expect(lineCount("one\n")).toBe(1);
+    expect(lineCount("one\r\ntwo\r\n")).toBe(2);
+    expect(lineCount("one\n\nthree")).toBe(3);
+  });
+});
+
 describe(codeTitleTransformer, () => {
   it("promotes the first bare token to a title", () => {
     expect(metaAttrs("blume.config.ts").dataTitle).toBe("blume.config.ts");
@@ -259,6 +284,29 @@ describe(codeTitleTransformer, () => {
     const attrs = metaAttrs("lineNumbers");
     expect(attrs.dataTitle).toBeUndefined();
     expect(attrs.dataLineNumbers).toBeTruthy();
+  });
+
+  it("sets data-wrap from the wrap keyword and keeps the title", () => {
+    const attrs = metaAttrs("file.ts wrap");
+    expect(attrs.dataTitle).toBe("file.ts");
+    expect(attrs.dataWrap).toBeTruthy();
+    expect(metaAttrs("wrap").dataTitle).toBeUndefined();
+    expect(metaAttrs('title="wrap it"').dataWrap).toBeUndefined();
+  });
+
+  it("marks a long expandable block, and leaves a short one whole", () => {
+    const long = metaAttrs("file.ts expandable", linesOf(EXPANDABLE_MIN_LINES));
+    expect(long.dataTitle).toBe("file.ts");
+    expect(long.dataExpandable).toBeTruthy();
+    expect(
+      metaAttrs("expandable", linesOf(EXPANDABLE_MIN_LINES - 1)).dataExpandable
+    ).toBeUndefined();
+    expect(metaAttrs("expandable").dataTitle).toBeUndefined();
+    expect(metaAttrs("expandable").dataExpandable).toBeUndefined();
+    // Long code without the keyword stays an ordinary block.
+    expect(
+      metaAttrs("file.ts", linesOf(EXPANDABLE_MIN_LINES)).dataExpandable
+    ).toBeUndefined();
   });
 
   it("does not treat the twoslash keyword as a title", () => {
@@ -1675,6 +1723,25 @@ describe("highlightCode", () => {
     });
 
     expect(html).toContain("--shiki-dark-bg:#010203");
+  });
+});
+
+/** A fence marked `expandable wrap`, highlighted by Shiki with Blume's transformers. */
+const renderExpandable = (code: string) =>
+  codeToHtml(code, {
+    defaultColor: false,
+    lang: "ts",
+    meta: { __raw: "expandable wrap" },
+    themes: { dark: "github-dark", light: "github-light" },
+    transformers: blumeShikiTransformers({ icons: false }),
+  });
+
+describe("fence keywords through Shiki", () => {
+  it("counts an expandable block's lines from the source Shiki passes", async () => {
+    const long = await renderExpandable(linesOf(EXPANDABLE_MIN_LINES));
+    expect(long).toContain("data-expandable");
+    expect(long).toContain("data-wrap");
+    expect(await renderExpandable(linesOf(3))).not.toContain("data-expandable");
   });
 });
 

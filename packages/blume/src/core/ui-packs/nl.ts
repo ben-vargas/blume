@@ -53,6 +53,7 @@ export const nl: UIStringsOverride = {
     preview: "Voorbeeld",
     prop: "Eigenschap",
     selectTab: "Tabblad kiezen",
+    showLess: "Minder weergeven",
     showMore: "Meer weergeven",
     stars: "Sterren",
     tab: "Tabblad {n}",
