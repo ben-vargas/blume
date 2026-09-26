@@ -62,6 +62,11 @@
       "types": "./dist/types/deploy/adapters/index.d.ts",
       "default": "./src/deploy/adapters/index.ts"
     },
+    "./ratelimit": {
+      "types": "./dist/types/ratelimit/index.d.ts",
+      "default": "./src/ratelimit/index.ts"
+    },
+    "./ratelimit/*": "./src/ratelimit/*",
     "./reference": {
       "types": "./dist/types/reference/index.d.ts",
       "default": "./src/reference/index.ts"

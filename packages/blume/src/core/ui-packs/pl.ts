@@ -33,9 +33,12 @@ export const pl: UIStringsOverride = {
     error: "Przepraszamy, coś poszło nie tak.",
     label: "Zadaj pytanie",
     placeholder: "Zadaj pytanie…",
+    rateLimited: "Zadano wiele pytań. Spróbuj ponownie za kilka minut.",
     send: "Wyślij",
     tip: "Wskazówka: czat możesz otwierać i zamykać za pomocą",
     title: "Asystent",
+    verifyFailed:
+      "Nie udało się potwierdzić, że jesteś człowiekiem. Spróbuj ponownie.",
     you: "Ty",
   },
   banner: { dismiss: "Zamknij ogłoszenie" },

@@ -480,6 +480,7 @@ Each of these has its own guide. The config field is the entry point:
 | `markdown` | Markdown rendering options — code blocks, heading anchors, image zoom | [Syntax](/docs/content/syntax) |
 | `agents` | `llms.txt`, Markdown mirrors, the JSON API, the hosted MCP server, skills, and discovery manifests for coding agents | [SEO and AEO](/docs/discoverability) |
 | `ai` | The in-page assistant and the Open in chat action | [Assistant](/docs/configuration/assistant) |
+| `rateLimit` | How often one reader can call the assistant, the playground proxy, and server-side search, with an adapter from `blume/ratelimit` (on by default) | [Rate limiting](/docs/configuration/rate-limiting) |
 | `narration` | The "Listen to this page" player, with browser voices or voices generated at build | [Narration](/docs/configuration/narration) |
 | `reference` | API references: `openapi()`, `asyncapi()`, `graphql()`, and `scalar()` adapters from `blume/reference` | [OpenAPI](/docs/references/openapi), [AsyncAPI](/docs/references/asyncapi), [GraphQL](/docs/references/graphql), [Scalar](/docs/references/scalar) |
 | `api` | The server, auth, and Try it panel of hand-written endpoint pages | [Hand-written API pages](/docs/references/api-pages) |

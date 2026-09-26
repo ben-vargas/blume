@@ -32,9 +32,12 @@ export const vi: UIStringsOverride = {
     error: "Xin lỗi, đã xảy ra sự cố.",
     label: "Đặt câu hỏi",
     placeholder: "Đặt câu hỏi…",
+    rateLimited: "Bạn đã hỏi rất nhiều câu hỏi. Hãy thử lại sau vài phút.",
     send: "Gửi",
     tip: "Mẹo: Bạn có thể mở và đóng trò chuyện bằng",
     title: "Trợ lý",
+    verifyFailed:
+      "Chúng tôi không thể xác minh bạn là người thật. Hãy thử lại.",
     you: "Bạn",
   },
   banner: { dismiss: "Đóng thông báo" },

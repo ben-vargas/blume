@@ -33,9 +33,12 @@ export const ja: UIStringsOverride = {
     error: "申し訳ありません。問題が発生しました。",
     label: "質問する",
     placeholder: "質問を入力…",
+    rateLimited: "質問の回数が多すぎます。数分後にもう一度お試しください。",
     send: "送信",
     tip: "ヒント: 次のキーでチャットを開閉できます",
     title: "アシスタント",
+    verifyFailed:
+      "人間であることを確認できませんでした。もう一度お試しください。",
     you: "あなた",
   },
   banner: { dismiss: "お知らせを閉じる" },

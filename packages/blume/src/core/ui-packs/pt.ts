@@ -33,9 +33,12 @@ export const pt: UIStringsOverride = {
     error: "Lamentamos, algo correu mal.",
     label: "Faça uma pergunta",
     placeholder: "Faça uma pergunta…",
+    rateLimited:
+      "Fez muitas perguntas. Tente novamente dentro de alguns minutos.",
     send: "Enviar",
     tip: "Dica: pode abrir e fechar o chat com",
     title: "Assistente",
+    verifyFailed: "Não foi possível verificar que é humano. Tente novamente.",
     you: "Você",
   },
   banner: { dismiss: "Fechar o anúncio" },

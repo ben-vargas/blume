@@ -33,9 +33,13 @@ export const ptBR: UIStringsOverride = {
     error: "Desculpe, algo deu errado.",
     label: "Faça uma pergunta",
     placeholder: "Faça uma pergunta…",
+    rateLimited:
+      "Você fez muitas perguntas. Tente novamente em alguns minutos.",
     send: "Enviar",
     tip: "Dica: você pode abrir e fechar o chat com",
     title: "Assistente",
+    verifyFailed:
+      "Não foi possível verificar que você é humano. Tente novamente.",
     you: "Você",
   },
   banner: { dismiss: "Fechar o anúncio" },

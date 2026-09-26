@@ -567,9 +567,11 @@ describe("Assistant empty state", () => {
         error: "Broke.",
         label: "Type here",
         placeholder: "Go on…",
+        rateLimited: "Slow down.",
         send: "Fire",
         tip: "Toggle with",
         title: "Robot",
+        verifyFailed: "Beep?",
         you: "Me",
       },
     });

@@ -33,9 +33,12 @@ export const id: UIStringsOverride = {
     error: "Maaf, terjadi kesalahan.",
     label: "Ajukan pertanyaan",
     placeholder: "Ajukan pertanyaan…",
+    rateLimited:
+      "Anda sudah mengajukan banyak pertanyaan. Coba lagi dalam beberapa menit.",
     send: "Kirim",
     tip: "Tips: Anda dapat membuka dan menutup obrolan dengan",
     title: "Asisten",
+    verifyFailed: "Kami tidak dapat memastikan bahwa Anda manusia. Coba lagi.",
     you: "Anda",
   },
   banner: { dismiss: "Tutup pengumuman" },

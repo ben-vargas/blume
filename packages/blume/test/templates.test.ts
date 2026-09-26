@@ -42,6 +42,7 @@ import {
   navFragmentTemplate,
   ogEndpointTemplate,
   playgroundProxyTemplate,
+  rateLimitTemplate,
   rawMarkdownEndpointTemplate,
   rssEndpointTemplate,
   runtimeDependencies,
@@ -59,6 +60,11 @@ import { TOC_HIDDEN_KEY } from "../src/core/heading-markers.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
 import type { ProjectContext } from "../src/core/types.ts";
 import { cloudflare, node, vercel } from "../src/deploy/adapters/index.ts";
+import {
+  cloudflare as cloudflareRateLimit,
+  memory,
+  upstash,
+} from "../src/ratelimit/index.ts";
 import { scalar } from "../src/reference/index.ts";
 import {
   algolia,
@@ -1837,7 +1843,7 @@ describe("askEndpointTemplate", () => {
     expect(out).not.toContain("OPTIONS");
     expect(out).not.toContain("blume/ai/cors.ts");
     expect(out).toContain(
-      "export const POST: APIRoute = async ({ request }) => {"
+      "export const POST: APIRoute = async (context) => {\n  const { request } = context;"
     );
     expect(out).toContain("{ status: 400 }");
     expect(out).toContain(
@@ -1863,7 +1869,7 @@ describe("askEndpointTemplate", () => {
     // errors — carries the headers without each `return` opting in, and a
     // cross-origin caller can read a 400 or 500 instead of an opaque failure.
     expect(out).toContain(
-      "export const POST: APIRoute = withCors(ALLOWED_ORIGINS, async ({ request }) => {"
+      "export const POST: APIRoute = withCors(ALLOWED_ORIGINS, async (context) => {\n  const { request } = context;"
     );
     expect(out).toContain("  }\n});\n");
     expect(out).toContain("{ status: 400 }");
@@ -2601,5 +2607,68 @@ describe("contentAssetsEndpointTemplate", () => {
     // STAGED_DIR broke on Windows, where resolve() answers with backslashes.
     expect(out).toContain("const rel = relative(STAGED_DIR, abs);");
     expect(out).toContain('rel === "" || rel.startsWith("..") || isAbsolute');
+  });
+});
+
+describe(rateLimitTemplate, () => {
+  it("adds nothing when rate limiting is off", () => {
+    expect(rateLimitTemplate(null, "ask")).toStrictEqual({
+      check: "",
+      imports: [],
+      setup: "",
+    });
+    expect(rateLimitTemplate(undefined, "ask").check).toBe("");
+  });
+
+  it("builds a memory limiter and checks it per route", () => {
+    const limit = rateLimitTemplate(memory({ requests: 5 }), "ask");
+    expect(limit.imports).toStrictEqual([
+      'import { createLimiter, rateLimited } from "blume/ratelimit/runtime.ts";',
+    ]);
+    expect(limit.setup).toContain(
+      `const limiter = createLimiter(${JSON.stringify(memory({ requests: 5 }))});`
+    );
+    expect(limit.check).toContain(
+      'const limited = await rateLimited(limiter, context, "ask");'
+    );
+  });
+
+  it("hands Upstash its secrets and Cloudflare its binding", () => {
+    const shared = rateLimitTemplate(upstash(), "search");
+    expect(shared.imports).toContain(
+      'import { getSecret } from "astro:env/server";'
+    );
+    expect(shared.setup).toContain(", { secret: getSecret });");
+    const bound = rateLimitTemplate(cloudflareRateLimit(), "api-proxy");
+    expect(bound.imports).toContain(
+      'import { env } from "cloudflare:workers";'
+    );
+    expect(bound.setup).toContain(
+      ', { binding: Reflect.get(env, "BLUME_RATE_LIMIT") });'
+    );
+  });
+
+  it("checks the limit first in every server route", () => {
+    const ask = askEndpointTemplate(resolveAskBackend(), {
+      rateLimit: upstash(),
+    });
+    // One getSecret import serves the provider key and the limiter.
+    expect(ask.match(/from "astro:env\/server"/gu)).toHaveLength(1);
+    expect(ask).toContain(
+      '  const { request } = context;\n  const limited = await rateLimited(limiter, context, "ask");'
+    );
+    const proxy = playgroundProxyTemplate(["https://api.example"], memory());
+    expect(proxy).toContain(
+      'const limited = await rateLimited(limiter, context, "api-proxy");'
+    );
+    expect(proxy).toContain("return handler(context.request);");
+    const search = mixedbreadSearchEndpointTemplate(
+      { storeId: "s" },
+      upstash()
+    );
+    expect(search.match(/from "astro:env\/server"/gu)).toHaveLength(1);
+    expect(search).toContain(
+      'const limited = await rateLimited(limiter, context, "search");'
+    );
   });
 });

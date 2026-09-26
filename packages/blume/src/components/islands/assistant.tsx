@@ -47,9 +47,11 @@ const DEFAULT_ASK: UIStrings["assistant"] = {
   error: "Sorry, something went wrong.",
   label: "Ask a question",
   placeholder: "Ask a question…",
+  rateLimited: "You've asked a lot of questions. Try again in a few minutes.",
   send: "Send",
   tip: "Tip: You can open and close chat with",
   title: "Assistant",
+  verifyFailed: "We couldn't check that you're human. Try again.",
   you: "You",
 };
 
@@ -164,7 +166,11 @@ const Assistant = ({
     loading: busy,
     messages,
     reset,
-  } = useAssistant({ endpoint, errorMessage: t.error });
+  } = useAssistant({
+    endpoint,
+    errorMessage: t.error,
+    rateLimitMessage: t.rateLimited,
+  });
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);

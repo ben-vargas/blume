@@ -7,6 +7,7 @@ export default defineMeta({
     "customization",
     "search",
     "assistant",
+    "rate-limiting",
     "narration",
     "analytics",
     "consent",

@@ -24,6 +24,8 @@ import { applyBaseToAstroRedirects } from "../deploy/redirects.ts";
 import { API_RAIL_KEY } from "../markdown/api-rail.ts";
 import type { OgCache } from "../og/cache.ts";
 import type { OgFont, OgFontFamilies, OgGoogleFont } from "../og/card.ts";
+import { RATE_LIMIT_BINDING } from "../ratelimit/cloudflare.ts";
+import type { RateLimitAdapter } from "../ratelimit/schema.ts";
 import type { MixedbreadOptions } from "../search/adapters/mixedbread.ts";
 import type {
   ResolvedSearchAdapter,
@@ -1123,6 +1125,8 @@ const ASK_FALLBACK_PROMPT =
 export interface AskEndpointOptions {
   /** `ai.assistant.cors` — origins allowed to call the route from another site. */
   cors?: string[];
+  /** `rateLimit` — the limiter the route checks before any work. */
+  rateLimit?: RateLimitAdapter | null;
   /** `ai.assistant.instructions` — extra system-prompt text. */
   instructions?: string;
   /** `ai.assistant.retrieval` — how much documentation each question carries. */
@@ -1163,7 +1167,7 @@ const askCorsTemplate = (cors: readonly string[] = []): AskCorsTemplate =>
         imports: [
           'import { preflightResponse, withCors } from "blume/ai/cors.ts";',
         ],
-        open: "withCors(ALLOWED_ORIGINS, async ({ request }) => {",
+        open: "withCors(ALLOWED_ORIGINS, async (context) => {",
         setup: `
 const ALLOWED_ORIGINS = ${JSON.stringify(cors)};
 
@@ -1171,7 +1175,57 @@ export const OPTIONS: APIRoute = ({ request }) =>
   preflightResponse(request, ALLOWED_ORIGINS);
 `,
       }
-    : { close: "};", imports: [], open: "async ({ request }) => {", setup: "" };
+    : { close: "};", imports: [], open: "async (context) => {", setup: "" };
+
+/** The pieces a server route splices in to check `rateLimit` first. */
+interface RateLimitTemplate {
+  /** The check at the top of the handler; reads `context`. */
+  check: string;
+  /** The runtime import, plus what the adapter's store needs. */
+  imports: string[];
+  /** The route's limiter, built once at module scope. */
+  setup: string;
+}
+
+/**
+ * `rateLimit` for one server route: a limiter built at module scope from the
+ * configured adapter, checked against every request, keyed by the reader's
+ * address and `scope` so each route keeps its own budget (see
+ * `ratelimit/runtime.ts`). Upstash reads its secrets through `getSecret`;
+ * Cloudflare's binding comes from the Worker's env. Nothing at all when
+ * rate limiting is off.
+ */
+export const rateLimitTemplate = (
+  adapter: RateLimitAdapter | null | undefined,
+  scope: string
+): RateLimitTemplate => {
+  if (!adapter) {
+    return { check: "", imports: [], setup: "" };
+  }
+  const imports = [
+    'import { createLimiter, rateLimited } from "blume/ratelimit/runtime.ts";',
+  ];
+  let runtime = "";
+  if (adapter.kind === "upstash") {
+    imports.push('import { getSecret } from "astro:env/server";');
+    runtime = ", { secret: getSecret }";
+  } else if (adapter.kind === "cloudflare") {
+    imports.push(
+      "// @ts-ignore `cloudflare:workers` is typed once `wrangler types` has run.",
+      'import { env } from "cloudflare:workers";'
+    );
+    runtime = `, { binding: Reflect.get(env, ${JSON.stringify(RATE_LIMIT_BINDING)}) }`;
+  }
+  return {
+    check: `  const limited = await rateLimited(limiter, context, ${JSON.stringify(scope)});
+  if (limited) {
+    return limited;
+  }
+`,
+    imports,
+    setup: `\nconst limiter = createLimiter(${JSON.stringify(adapter)}${runtime});\n`,
+  };
+};
 
 /**
  * Largest request body the assistant route reads: 64 KB, well above the
@@ -1250,6 +1304,13 @@ export const askEndpointTemplate = (
   }
   const cors = askCorsTemplate(options?.cors);
   imports.push(...cors.imports);
+  const limit = rateLimitTemplate(options?.rateLimit, "ask");
+  for (const line of limit.imports) {
+    if (!imports.includes(line)) {
+      imports.push(line);
+    }
+  }
+  setup += limit.setup;
   // Validate the client-supplied body and cap its size. The endpoint is
   // unauthenticated, so bounding message count/length limits how much a caller
   // can spend against the model per request, and restricting roles to
@@ -1258,7 +1319,8 @@ export const askEndpointTemplate = (
   // limiter (or your provider's limits) for stronger protection. The body is
   // read under a 64 KB cap before any parsing, since a self-hosted Node server
   // would otherwise buffer an arbitrarily large POST in memory first.
-  const validate = `  const text = await readCappedText(request, ${ASK_BODY_LIMIT_BYTES});
+  const validate = `  const { request } = context;
+${limit.check}  const text = await readCappedText(request, ${ASK_BODY_LIMIT_BYTES});
   if (text === undefined) {
     return new Response("Request too large: the body must be at most 64 KB.", {
       status: 413,
@@ -1541,13 +1603,19 @@ export const createSearch = () => create({ url });
  * content was synced (see the Mixedbread sync step / \`mxbai vs sync\`).
  */
 export const mixedbreadSearchEndpointTemplate = (
-  options: MixedbreadOptions
-): string =>
-  `// Generated by Blume. Do not edit.
-import type { APIRoute } from "astro";
-import { getSecret } from "astro:env/server";
-import Mixedbread from "@mixedbread/sdk";
-import { readCappedText } from "blume/core/request-body.ts";
+  options: MixedbreadOptions,
+  rateLimit?: RateLimitAdapter | null
+): string => {
+  const limit = rateLimitTemplate(rateLimit, "search");
+  const imports = [
+    'import type { APIRoute } from "astro";',
+    'import { getSecret } from "astro:env/server";',
+    'import Mixedbread from "@mixedbread/sdk";',
+    'import { readCappedText } from "blume/core/request-body.ts";',
+    ...limit.imports.filter((line) => !line.includes('"astro:env/server"')),
+  ];
+  return `// Generated by Blume. Do not edit.
+${imports.join("\n")}
 
 export const prerender = false;
 
@@ -1555,9 +1623,10 @@ const client = new Mixedbread({ apiKey: getSecret("MIXEDBREAD_API_KEY") ?? "" })
 const OPTIONS = ${JSON.stringify(options)};
 // Every option besides the store reaches the search call verbatim.
 const { storeId: STORE_ID, ...SEARCH_OPTIONS } = OPTIONS;
-
-export const POST: APIRoute = async ({ request }) => {
-  // A search body is one short query: read it under a 16 KB cap, so a
+${limit.setup}
+export const POST: APIRoute = async (context) => {
+  const { request } = context;
+${limit.check}  // A search body is one short query: read it under a 16 KB cap, so a
   // self-hosted server never buffers an arbitrarily large POST first.
   const text = await readCappedText(request, 16_384);
   if (text === undefined) {
@@ -1602,6 +1671,7 @@ export const POST: APIRoute = async ({ request }) => {
   });
 };
 `;
+};
 
 /**
  * Generate the raw-Markdown endpoints (`[...slug].md.ts` and `[...slug].mdx.ts`).
@@ -1804,17 +1874,26 @@ export const ALL: APIRoute = ({ request }) => handler(request);
  * client-side data: that is the whole trust boundary keeping the endpoint from
  * being an open proxy onto the deployment's own network.
  */
-export const playgroundProxyTemplate = (origins: string[]): string =>
-  `// Generated by Blume. Do not edit.
-import type { APIRoute } from "astro";
-import { createPlaygroundProxyHandler } from "blume/openapi/proxy.ts";
+export const playgroundProxyTemplate = (
+  origins: string[],
+  rateLimit?: RateLimitAdapter | null
+): string => {
+  const limit = rateLimitTemplate(rateLimit, "api-proxy");
+  const route = limit.check
+    ? `export const ALL: APIRoute = async (context) => {
+${limit.check}  return handler(context.request);
+};`
+    : "export const ALL: APIRoute = ({ request }) => handler(request);";
+  return `// Generated by Blume. Do not edit.
+${['import type { APIRoute } from "astro";', 'import { createPlaygroundProxyHandler } from "blume/openapi/proxy.ts";', ...limit.imports].join("\n")}
 
 export const prerender = false;
 
 const handler = createPlaygroundProxyHandler(${JSON.stringify(origins)});
-
-export const ALL: APIRoute = ({ request }) => handler(request);
+${limit.setup}
+${route}
 `;
+};
 
 /** Generate a prerendered endpoint that serves a fixed JSON payload. */
 export const staticJsonEndpointTemplate = <Payload extends object>(

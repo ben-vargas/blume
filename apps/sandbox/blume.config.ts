@@ -2,6 +2,7 @@ import { defineConfig } from "blume";
 import { script } from "blume/analytics";
 import { native } from "blume/consent";
 import { node } from "blume/deploy";
+import { memory } from "blume/ratelimit";
 import { asyncapi, graphql, openapi } from "blume/reference";
 import { filesystem, githubReleases } from "blume/sources";
 import { z } from "zod";
@@ -11,7 +12,7 @@ import { z } from "zod";
  * exercising the framework end to end — including the native OpenAPI and
  * AsyncAPI renderers, search, the assistant, MCP, i18n, export, OG images,
  * narration, content variables, pattern redirects, the site footer, written
- * feedback, and cookie consent (the `script()` analytics logs to the console,
+ * feedback, rate limiting, and cookie consent (the `script()` analytics logs to the console,
  * with every tracked event, only once a reader accepts).
  */
 export default defineConfig({
@@ -137,6 +138,8 @@ export default defineConfig({
       { label: "Changelog", path: "/changelog" },
     ],
   },
+  // On by default; spelled out here with its default limit.
+  rateLimit: memory({ requests: 30, window: 600 }),
   redirects: [
     { from: "/start", to: "/docs" },
     { from: "/guides/:slug*", to: "/docs/guides/:slug*" },

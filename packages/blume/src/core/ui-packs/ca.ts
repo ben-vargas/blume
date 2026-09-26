@@ -33,9 +33,13 @@ export const ca: UIStringsOverride = {
     error: "Ho sentim, alguna cosa ha anat malament.",
     label: "Fes una pregunta",
     placeholder: "Fes una pregunta…",
+    rateLimited:
+      "Has fet moltes preguntes. Torna-ho a provar d'aquí a uns minuts.",
     send: "Envia",
     tip: "Consell: pots obrir i tancar el xat amb",
     title: "Assistent",
+    verifyFailed:
+      "No hem pogut comprovar que ets una persona. Torna-ho a provar.",
     you: "Tu",
   },
   banner: { dismiss: "Tanca l'anunci" },

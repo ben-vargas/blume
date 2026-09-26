@@ -32,9 +32,12 @@ export const it: UIStringsOverride = {
     error: "Spiacenti, qualcosa è andato storto.",
     label: "Fai una domanda",
     placeholder: "Fai una domanda…",
+    rateLimited: "Hai fatto molte domande. Riprova tra qualche minuto.",
     send: "Invia",
     tip: "Suggerimento: puoi aprire e chiudere la chat con",
     title: "Assistente",
+    verifyFailed:
+      "Non siamo riusciti a verificare che sei una persona. Riprova.",
     you: "Tu",
   },
   banner: { dismiss: "Chiudi l'annuncio" },

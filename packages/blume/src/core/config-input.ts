@@ -8,6 +8,7 @@ import type { AnalyticsAdapter } from "../analytics/schema.ts";
 import type { ConsentAdapter } from "../consent/schema.ts";
 import type { DeploymentInput } from "../deploy/adapters/registry.ts";
 import type { CodeTheme } from "../markdown/themes.ts";
+import type { RateLimitAdapter } from "../ratelimit/schema.ts";
 import type { PlaygroundOptions } from "../reference/options.ts";
 import type { ReferenceAdapter } from "../reference/schema.ts";
 import type { AnySearchAdapter } from "../search/adapters/registry.ts";
@@ -1515,6 +1516,13 @@ export interface BlumeConfig {
   narration?: NarrationConfig;
   /** Header, sidebar, tabs, and switchers. */
   navigation?: NavigationConfig;
+  /**
+   * Limit how often one reader (by IP address) can call the server routes —
+   * the assistant, the API playground proxy, server-side search — with an
+   * adapter from `blume/ratelimit`: `memory()` (the default, 30 requests per
+   * 10 minutes), `upstash()`, or `cloudflare()`. `false` turns it off.
+   */
+  rateLimit?: false | RateLimitAdapter;
   /** React island behavior (compiler auto-memoization). */
   react?: ReactConfig;
   /** URL redirect rules. */

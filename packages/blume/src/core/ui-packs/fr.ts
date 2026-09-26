@@ -33,9 +33,13 @@ export const fr: UIStringsOverride = {
     error: "Désolé, une erreur s'est produite.",
     label: "Poser une question",
     placeholder: "Posez une question…",
+    rateLimited:
+      "Vous avez posé beaucoup de questions. Réessayez dans quelques minutes.",
     send: "Envoyer",
     tip: "Astuce : vous pouvez ouvrir et fermer le chat avec",
     title: "Assistant",
+    verifyFailed:
+      "Nous n'avons pas pu vérifier que vous êtes humain. Réessayez.",
     you: "Vous",
   },
   banner: { dismiss: "Fermer l'annonce" },

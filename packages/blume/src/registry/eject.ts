@@ -164,6 +164,7 @@ const askFiles = async (
       content: askEndpointTemplate(backend, {
         cors: assistant.cors,
         instructions: assistant.instructions,
+        rateLimit: project.config.rateLimit,
         retrieval: assistant.retrieval,
         tools: assistant.tools ?? backend.toolsByDefault,
       }),
@@ -244,7 +245,10 @@ const playgroundProxyFiles = (
   needsPlaygroundProxy(config)
     ? [
         {
-          content: playgroundProxyTemplate(specOrigins(openApiData)),
+          content: playgroundProxyTemplate(
+            specOrigins(openApiData),
+            config.rateLimit
+          ),
           path: join(srcDir, PLAYGROUND_PROXY_ENTRY),
         },
       ]
@@ -900,7 +904,10 @@ export const eject = async (
 
   if (searchAdapter.kind === "mixedbread") {
     files.push({
-      content: mixedbreadSearchEndpointTemplate(searchAdapter.options),
+      content: mixedbreadSearchEndpointTemplate(
+        searchAdapter.options,
+        config.rateLimit
+      ),
       path: join(srcDir, "pages", "api", "search.ts"),
     });
   }

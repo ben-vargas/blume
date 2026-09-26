@@ -395,6 +395,10 @@ describe("useSearch", () => {
   });
 });
 
+/** The assistant hook with a localized rate limit message. */
+const useLocalizedAssistant = () =>
+  useAssistant({ rateLimitMessage: "Langsamer." });
+
 describe("useAssistant", () => {
   const ERROR_MESSAGE =
     "Something went wrong answering that. Please try again.";
@@ -468,6 +472,32 @@ describe("useAssistant", () => {
       questionChars: 7,
       status: 500,
     });
+  });
+
+  it("says the rate limit turned the question away on a 429", async () => {
+    setFetch(() =>
+      Promise.resolve(
+        new Response("Too many requests: try again in 30 seconds.", {
+          status: 429,
+        })
+      )
+    );
+    const { ask } = freshRender(useAssistant);
+    await ask("again?");
+    expect(render(useAssistant).messages.at(-1)).toStrictEqual({
+      content: "You've asked a lot of questions. Try again in a few minutes.",
+      role: "assistant",
+    });
+    expect(tracked[1]).toMatchObject({
+      event: "ask_error",
+      props: { status: 429 },
+    });
+
+    const { ask: askLocalized } = freshRender(useLocalizedAssistant);
+    await askLocalized("noch einmal?");
+    expect(render(useLocalizedAssistant).messages.at(-1)?.content).toBe(
+      "Langsamer."
+    );
   });
 
   it("reports the HTTP status when the stream breaks after a 200", async () => {

@@ -172,10 +172,20 @@ export interface UseAssistantOptions {
    * dictionary string.
    */
   errorMessage?: string;
+  /**
+   * Shown as the assistant's answer when the route's rate limit turns the
+   * question away (`429`). Defaults to an English notice; the built-in
+   * island passes its localized dictionary string.
+   */
+  rateLimitMessage?: string;
 }
 
 /** Shown as the assistant's answer when the request fails or throws. */
 const ASK_ERROR = "Something went wrong answering that. Please try again.";
+
+/** Shown as the assistant's answer when the rate limit turns a question away. */
+const ASK_RATE_LIMITED =
+  "You've asked a lot of questions. Try again in a few minutes.";
 
 /** How the assistant's generated route opens its missing-credential notice. */
 const NOT_CONFIGURED = /^The assistant is not configured/u;
@@ -212,6 +222,7 @@ export const useAssistant = (
 ): UseAssistant => {
   const endpoint = options.endpoint ?? DEFAULT_ASK_ENDPOINT;
   const errorMessage = options.errorMessage ?? ASK_ERROR;
+  const rateLimitMessage = options.rateLimitMessage ?? ASK_RATE_LIMITED;
   const [messages, setMessages] = useState<AskMessage[]>([]);
   const [loading, setLoading] = useState(false);
   // The stream writes into the conversation via state updates, so `reset()`
@@ -294,7 +305,10 @@ export const useAssistant = (
         if (!response.ok) {
           // An error body (JSON, HTML error page) must not stream in as the
           // assistant's answer — only the route's own not-configured notice.
-          const notice = await unavailableNotice(response).catch(() => null);
+          const notice =
+            status === 429
+              ? rateLimitMessage
+              : await unavailableNotice(response).catch(() => null);
           if (live()) {
             outcome("ask_error", { status });
             assistant.content = notice ?? errorMessage;
@@ -353,7 +367,7 @@ export const useAssistant = (
         }
       }
     },
-    [endpoint, errorMessage, loading, messages]
+    [endpoint, errorMessage, loading, messages, rateLimitMessage]
   );
 
   // Retained for the compiler-off opt-out path (`react: { compiler: false }`):

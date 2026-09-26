@@ -14,6 +14,7 @@ import {
 import { normalizeBasePath } from "../../core/base-path.ts";
 import type { BlumeProject } from "../../core/project-graph.ts";
 import type { ProjectContext } from "../../core/types.ts";
+import { withRateLimitBinding } from "../../ratelimit/wrangler.ts";
 import { CLOUDFLARE_ADAPTER_PACKAGE } from "../adapters/cloudflare.ts";
 import {
   injectWorkerNegotiation,
@@ -274,6 +275,36 @@ export const nameCloudflareWorker = async (
 };
 
 /**
+ * Declare the Workers rate limiting binding `rateLimit: cloudflare()` counts
+ * with in the built Worker's config, which `wrangler deploy` reads.
+ */
+export const bindCloudflareRateLimit = async (
+  project: BlumeProject,
+  log: BuildLog
+): Promise<void> => {
+  const { rateLimit } = project.config;
+  if (rateLimit?.kind !== "cloudflare") {
+    return;
+  }
+  const wranglerPath = join(
+    distDir(project.context),
+    "server",
+    "wrangler.json"
+  );
+  const bound = existsSync(wranglerPath)
+    ? withRateLimitBinding(await readFile(wranglerPath, "utf-8"), rateLimit)
+    : null;
+  if (bound === null) {
+    log.warn(
+      "Could not declare the rate limiting binding in dist/server/wrangler.json — the routes count in memory instead."
+    );
+    return;
+  }
+  await writeFile(wranglerPath, bound, "utf-8");
+  log.success("Declared the Workers rate limiting binding");
+};
+
+/**
  * Cloudflare Workers and Pages. A server build emits the Worker into
  * `dist/server` and serves `dist/client` through the ASSETS binding, which
  * honors `_headers` from that directory exactly as Pages does — so the file
@@ -298,6 +329,7 @@ export const cloudflarePlatform: DeployPlatform = {
     if (!isolated) {
       await nameCloudflareWorker(project, log);
       await emitCloudflareNegotiation(project, log);
+      await bindCloudflareRateLimit(project, log);
       await emitCloudflareDeployConfig(project.context);
     }
     return true;

@@ -370,6 +370,6 @@ The question's text never reaches a provider: it is free-form reader input (past
 
 ## Rate limiting
 
-The `POST /api/ask` endpoint is **unauthenticated** — it has to be, so the in-page assistant can call it. Blume validates each request — rejecting malformed bodies, capping it to 1–40 messages, and accepting only `user`/`assistant` roles so a caller can't inject their own system prompt and repurpose the route as a general LLM proxy — to bound how much a single call can spend against your model, but it can't stop someone from calling the endpoint repeatedly. If cost abuse is a concern, put the route behind a rate limiter — your host's (e.g. Vercel's) edge rate limiting, a middleware, or your model provider's per-key spend limits.
+The `POST /api/ask` endpoint is **unauthenticated** — it has to be, so the in-page assistant can call it. Blume validates each request — rejecting malformed bodies, capping it to 1–40 messages, and accepting only `user`/`assistant` roles so a caller can't inject their own system prompt and repurpose the route as a general LLM proxy — to bound how much a single call can spend against your model. [Rate limiting](/docs/configuration/rate-limiting), on by default, then caps how many questions one reader can ask: past it, the panel tells them to try again in a few minutes.
 
 The endpoint is advertised in the [agent readability manifest](/docs/discoverability/agent-discovery#agent-readability) alongside the rest of the site's machine-readable surface.

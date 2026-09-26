@@ -18,6 +18,7 @@ import { resolvedDeploymentSchema } from "../deploy/adapters/registry.ts";
 import type { CodeTheme } from "../markdown/themes.ts";
 import { narrationProviderSchema } from "../narration/provider.ts";
 import { normalizeRoute } from "../openapi/references.ts";
+import { rateLimitConfigSchema } from "../ratelimit/schema.ts";
 import { playgroundSchema } from "../reference/options.ts";
 import {
   referenceConfigSchema,
@@ -2053,6 +2054,8 @@ export const blumeConfigSchema = z
       markdown: markdownConfigSchema.prefault({}),
       narration: narrationConfigSchema.prefault(false),
       navigation: navigationConfigSchema.prefault({}),
+      // An adapter from `blume/ratelimit`, `memory()` by default; `false` is off.
+      rateLimit: rateLimitConfigSchema,
       react: reactConfigSchema.prefault({}),
       redirects: z.array(redirectSchema).default([]),
       /** API references: adapters from `blume/reference`, each a serializable descriptor. */
@@ -2138,6 +2141,19 @@ export const blumeConfigSchema = z
           });
         }
       }
+    }
+    // Cloudflare's rate limiting is a Worker binding, which only a Cloudflare
+    // deployment has.
+    if (
+      config.rateLimit?.kind === "cloudflare" &&
+      config.deployment.kind !== "cloudflare"
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'rateLimit: cloudflare() counts with a Workers binding, so it needs `deployment: cloudflare()` from "blume/deploy". On another host, use upstash() or memory() from "blume/ratelimit".',
+        path: ["rateLimit"],
+      });
     }
   });
 

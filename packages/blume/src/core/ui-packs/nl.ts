@@ -33,9 +33,13 @@ export const nl: UIStringsOverride = {
     error: "Sorry, er is iets misgegaan.",
     label: "Stel een vraag",
     placeholder: "Stel een vraag…",
+    rateLimited:
+      "Je hebt veel vragen gesteld. Probeer het over een paar minuten opnieuw.",
     send: "Verzenden",
     tip: "Tip: Je kunt de chat openen en sluiten met",
     title: "Assistent",
+    verifyFailed:
+      "We konden niet controleren of je een mens bent. Probeer het opnieuw.",
     you: "Jij",
   },
   banner: { dismiss: "Aankondiging sluiten" },

@@ -1,0 +1,67 @@
+---
+title: Rate limiting
+description: Limit how often one reader can call the assistant, the API playground proxy, and server-side search, on by default, with the count kept in memory, Upstash, or Cloudflare.
+---
+
+The server routes a reader can call cost you something each time: the [assistant](/docs/configuration/assistant) spends model tokens, the [API playground](/docs/references/openapi#cors-and-the-proxy) proxy relays requests to your API, and [Mixedbread search](/docs/configuration/search#mixedbread) runs a paid query. Blume limits how often one reader, identified by IP address, can call each of them. A reader over the limit gets `429 Too Many Requests` with a `Retry-After` header, and the assistant tells them to try again in a few minutes.
+
+Rate limiting is on by default, at 30 requests per reader per route every 10 minutes: enough that a person never meets it, low enough to stop a script. It only matters for a server build; a static site has no server routes to limit.
+
+```ts blume.config.ts lineNumbers
+import { defineConfig } from "blume";
+import { upstash } from "blume/ratelimit";
+
+export default defineConfig({
+  rateLimit: upstash({ requests: 30, window: 600 }), // window in seconds
+});
+```
+
+Each route keeps its own count, so a busy playground session doesn't use up the reader's assistant questions.
+
+## Where the count lives
+
+| Adapter | Count kept in | Limit holds |
+| --- | --- | --- |
+| `memory()` | The server's memory (the default) | Exactly on one server; per instance on serverless hosts |
+| `upstash()` | [Upstash Redis](https://upstash.com) | Exactly, on every host |
+| `cloudflare()` | Cloudflare's Workers rate limiting | Per Cloudflare location |
+
+### Memory
+
+`memory()` needs nothing. On a server that runs as one process, like `deployment: node()`, the count is exact. Vercel, Netlify, and Cloudflare run many short-lived instances, and each keeps its own count, so there it stops a burst from one reader rather than enforcing the limit exactly. For an exact limit on those hosts, use one of the shared stores below.
+
+```ts blume.config.ts lineNumbers
+import { memory } from "blume/ratelimit";
+
+rateLimit: memory({ requests: 60, window: 600 }),
+```
+
+### Upstash
+
+`upstash()` keeps the count in Upstash Redis, which every instance shares. Create a database (on Vercel, add Upstash from the Marketplace), then set its REST endpoint and token as `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. Blume talks to Upstash's REST API, so there's nothing to install. Until both are set, the routes count in memory and `blume build` warns.
+
+```ts blume.config.ts lineNumbers
+import { upstash } from "blume/ratelimit";
+
+rateLimit: upstash(),
+```
+
+### Cloudflare
+
+`cloudflare()` counts with [Workers rate limiting](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/), for a site deployed with `deployment: cloudflare()`. Blume declares the binding in the Worker's config when it builds, so there's nothing to set up. Cloudflare counts per location and takes a window of 10 or 60 seconds, so its defaults are 10 requests per 60 seconds.
+
+```ts blume.config.ts lineNumbers
+import { cloudflare } from "blume/deploy";
+import { cloudflare as cloudflareRateLimit } from "blume/ratelimit";
+
+export default defineConfig({
+  deployment: cloudflare(),
+  rateLimit: cloudflareRateLimit({ requests: 10, window: 60 }),
+});
+```
+
+The binding's namespace comes from the Worker's name, so two sites on one account don't share a count. Set `namespaceId` to choose it yourself.
+
+## Turning it off
+
+Set `rateLimit: false` to let every request through, when your host's firewall already limits these routes, say. A request whose address the host can't tell is always let through, and so is one a shared store fails to count: the failure is logged, and readers never get locked out by a store outage.

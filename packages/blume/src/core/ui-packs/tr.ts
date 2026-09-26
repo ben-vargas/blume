@@ -33,9 +33,12 @@ export const tr: UIStringsOverride = {
     error: "Üzgünüz, bir şeyler ters gitti.",
     label: "Bir soru sorun",
     placeholder: "Bir soru sorun…",
+    rateLimited:
+      "Çok sayıda soru sordunuz. Birkaç dakika sonra yeniden deneyin.",
     send: "Gönder",
     tip: "İpucu: Sohbeti şu tuşla açıp kapatabilirsiniz:",
     title: "Asistan",
+    verifyFailed: "İnsan olduğunuzu doğrulayamadık. Yeniden deneyin.",
     you: "Siz",
   },
   banner: { dismiss: "Duyuruyu kapat" },

@@ -33,9 +33,12 @@ export const hr: UIStringsOverride = {
     error: "Žao nam je, nešto je pošlo po zlu.",
     label: "Postavi pitanje",
     placeholder: "Postavite pitanje…",
+    rateLimited:
+      "Postavili ste mnogo pitanja. Pokušajte ponovno za nekoliko minuta.",
     send: "Pošalji",
     tip: "Savjet: Chat možete otvoriti i zatvoriti pomoću",
     title: "Asistent",
+    verifyFailed: "Nismo mogli potvrditi da ste čovjek. Pokušajte ponovno.",
     you: "Vi",
   },
   banner: { dismiss: "Zatvori obavijest" },

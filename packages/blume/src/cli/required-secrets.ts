@@ -2,6 +2,60 @@ import { resolveAskBackend } from "../ai/ask.ts";
 import type { ResolvedConfig } from "../core/schema.ts";
 import type { Diagnostic } from "../core/types.ts";
 
+/** A feature, and the secrets the adapter behind it reads. */
+interface SecretOwner {
+  feature: string;
+  note?: string;
+  secrets: string[];
+}
+
+/**
+ * The adapters that name their own secrets. The built-ins mostly declare
+ * none: analytics ships public tokens in the page, consent managers load
+ * public scripts, reference adapters read public specs, and host adapters
+ * read platform-injected env.
+ */
+const adapterSecretOwners = (config: ResolvedConfig): SecretOwner[] => {
+  const { consent, deployment, rateLimit } = config;
+  const { provider } = config.search;
+  const owners: SecretOwner[] = [
+    // Each search adapter declares the secrets its generated runtime reads.
+    { feature: `Search (${provider.kind})`, secrets: provider.requiredSecrets },
+    ...config.analytics.map((adapter) => ({
+      feature: `Analytics (${adapter.kind})`,
+      secrets: adapter.requiredSecrets,
+    })),
+    // Each content source adapter declares the env vars its fetch reads.
+    ...config.content.sources.map((source) => ({
+      feature: `Content source (${source.kind})`,
+      secrets: source.requiredSecrets,
+    })),
+    ...config.reference.map((adapter) => ({
+      feature: `API reference (${adapter.kind})`,
+      secrets: adapter.requiredSecrets,
+    })),
+    {
+      feature: `Deployment (${deployment.kind})`,
+      secrets: deployment.requiredSecrets,
+    },
+  ];
+  if (consent) {
+    owners.push({
+      feature: `Consent (${consent.kind})`,
+      secrets: consent.requiredSecrets,
+    });
+  }
+  // Upstash's endpoint and token.
+  if (rateLimit) {
+    owners.push({
+      feature: `Rate limiting (${rateLimit.kind})`,
+      note: "read at request time; without it the routes count in memory",
+      secrets: rateLimit.requiredSecrets,
+    });
+  }
+  return owners;
+};
+
 /**
  * Warn early when an enabled feature needs a secret env var that isn't set, so
  * the failure surfaces at `blume dev`/`build` instead of at the first request in
@@ -46,46 +100,10 @@ export const checkRequiredSecrets = (config: ResolvedConfig): Diagnostic[] => {
     }
   }
 
-  // Each search adapter declares the secrets its generated runtime reads.
-  const { provider } = config.search;
-  for (const env of provider.requiredSecrets) {
-    requireSecret(`Search (${provider.kind})`, env);
-  }
-
-  // Adapters name their own secrets; the built-in analytics adapters ship
-  // public tokens in the page and declare none.
-  for (const adapter of config.analytics) {
-    for (const env of adapter.requiredSecrets) {
-      requireSecret(`Analytics (${adapter.kind})`, env);
+  for (const owner of adapterSecretOwners(config)) {
+    for (const env of owner.secrets) {
+      requireSecret(owner.feature, env, owner.note);
     }
-  }
-
-  // The consent adapter names its own secrets; the built-in ones load public
-  // scripts and declare none.
-  const { consent } = config;
-  for (const env of consent?.requiredSecrets ?? []) {
-    requireSecret(`Consent (${consent?.kind})`, env);
-  }
-
-  // Each content source adapter declares the env vars its fetch reads.
-  for (const source of config.content.sources) {
-    for (const env of source.requiredSecrets) {
-      requireSecret(`Content source (${source.kind})`, env);
-    }
-  }
-
-  // Adapters name their own secrets; the built-in reference adapters read
-  // public specs and declare none.
-  for (const adapter of config.reference) {
-    for (const env of adapter.requiredSecrets) {
-      requireSecret(`API reference (${adapter.kind})`, env);
-    }
-  }
-
-  // The deployment adapter names its own secrets; the built-in host adapters
-  // read platform-injected env and declare none.
-  for (const env of config.deployment.requiredSecrets) {
-    requireSecret(`Deployment (${config.deployment.kind})`, env);
   }
 
   return diagnostics;

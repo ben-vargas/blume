@@ -32,9 +32,12 @@ export const fi: UIStringsOverride = {
     error: "Pahoittelut, jokin meni pieleen.",
     label: "Kysy kysymys",
     placeholder: "Kysy kysymys…",
+    rateLimited:
+      "Olet esittänyt paljon kysymyksiä. Yritä uudelleen muutaman minuutin kuluttua.",
     send: "Lähetä",
     tip: "Vinkki: Voit avata ja sulkea keskustelun näppäimillä",
     title: "Avustaja",
+    verifyFailed: "Emme voineet varmistaa, että olet ihminen. Yritä uudelleen.",
     you: "Sinä",
   },
   banner: { dismiss: "Sulje ilmoitus" },

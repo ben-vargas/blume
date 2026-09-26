@@ -32,9 +32,12 @@ export const da: UIStringsOverride = {
     error: "Beklager, noget gik galt.",
     label: "Stil et spørgsmål",
     placeholder: "Stil et spørgsmål…",
+    rateLimited:
+      "Du har stillet mange spørgsmål. Prøv igen om et par minutter.",
     send: "Send",
     tip: "Tip: Du kan åbne og lukke chatten med",
     title: "Assistent",
+    verifyFailed: "Vi kunne ikke bekræfte, at du er et menneske. Prøv igen.",
     you: "Du",
   },
   banner: { dismiss: "Luk meddelelsen" },

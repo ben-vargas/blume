@@ -1733,6 +1733,7 @@ const writeAskFiles = async (
     askEndpointTemplate(backend, {
       cors: assistant.cors,
       instructions: assistant.instructions,
+      rateLimit: project.config.rateLimit,
       retrieval: assistant.retrieval,
       tools: assistant.tools ?? backend.toolsByDefault,
     })

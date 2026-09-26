@@ -22,6 +22,7 @@ import {
   cloudflarePlatform,
   emitCloudflareDeployConfig,
   emitCloudflareNegotiation,
+  bindCloudflareRateLimit,
   nameCloudflareWorker,
 } from "../src/deploy/platforms/cloudflare.ts";
 import {
@@ -35,6 +36,8 @@ import {
   emitVercelNegotiation,
   vercelPlatform,
 } from "../src/deploy/platforms/vercel.ts";
+import { cloudflare as cloudflareRateLimit } from "../src/ratelimit/index.ts";
+import { rateLimitNamespace } from "../src/ratelimit/wrangler.ts";
 
 /**
  * The deployment adapters and the platform behaviors behind them: what the
@@ -546,6 +549,49 @@ const builtWrangler = async (built: BlumeProject) =>
       "utf-8"
     )
   );
+
+describe("bindCloudflareRateLimit", () => {
+  it("declares the binding when rateLimit is cloudflare()", async () => {
+    const built = await project(
+      JSON.stringify(cloudflare()),
+      { "dist/server/wrangler.json": RUNTIME_WRANGLER },
+      `, rateLimit: ${JSON.stringify(cloudflareRateLimit({ requests: 5 }))}`
+    );
+    const { log, recorded } = recorder();
+    await bindCloudflareRateLimit(built, log);
+    const wrangler = await builtWrangler(built);
+    expect(wrangler.ratelimits).toStrictEqual([
+      {
+        name: "BLUME_RATE_LIMIT",
+        namespace_id: rateLimitNamespace("blume-runtime"),
+        simple: { limit: 5, period: 60 },
+      },
+    ]);
+    expect(recorded.success).toStrictEqual([
+      "Declared the Workers rate limiting binding",
+    ]);
+  });
+
+  it("leaves the Worker alone under another rate limiter", async () => {
+    const built = await project(JSON.stringify(cloudflare()), {
+      "dist/server/wrangler.json": RUNTIME_WRANGLER,
+    });
+    await bindCloudflareRateLimit(built, recorder().log);
+    const wrangler = await builtWrangler(built);
+    expect(wrangler.ratelimits).toBeUndefined();
+  });
+
+  it("warns when the built Worker has no config to bind in", async () => {
+    const built = await project(
+      JSON.stringify(cloudflare()),
+      {},
+      `, rateLimit: ${JSON.stringify(cloudflareRateLimit())}`
+    );
+    const { log, recorded } = recorder();
+    await bindCloudflareRateLimit(built, log);
+    expect(recorded.warn[0]).toContain("count in memory instead");
+  });
+});
 
 describe("nameCloudflareWorker", () => {
   it("names the Worker after the project's package, scope folded in", async () => {

@@ -9,6 +9,7 @@ import { inkeep, openrouter, resolveAskBackend } from "../src/ai/ask.ts";
 import { askEndpointTemplate } from "../src/astro/templates.ts";
 import { packageRoot } from "../src/core/package-root.ts";
 import { blumeConfigSchema } from "../src/core/schema.ts";
+import { memory } from "../src/ratelimit/index.ts";
 import { blumeSourceGlob, eject } from "../src/registry/eject.ts";
 import { findItem, packageSrc, registry } from "../src/registry/registry.ts";
 import { rewriteImports } from "../src/registry/rewrite-imports.ts";
@@ -305,6 +306,8 @@ export default defineComponents({
       askEndpointTemplate(askBackend, {
         cors: parsedAsk?.cors,
         instructions: parsedAsk?.instructions,
+        // Rate limiting is on by default.
+        rateLimit: memory(),
         retrieval: parsedAsk?.retrieval,
         tools: parsedAsk?.tools ?? askBackend.toolsByDefault,
       })
@@ -417,7 +420,7 @@ export default defineComponents({
             },
           }).ai.assistant?.provider
         ),
-        {}
+        { rateLimit: memory() }
       )
     );
     expect(ejectedAsk).not.toContain("createAskContext");

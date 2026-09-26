@@ -85,6 +85,7 @@ const integrationSummary = (config: ResolvedConfig): string[] => {
     `References: ${config.reference.map((adapter) => adapter.kind).join(", ") || "none"}`,
     `Analytics: ${config.analytics.map((adapter) => adapter.kind).join(", ") || "none"}`,
     `Consent: ${config.consent?.kind ?? "none"}`,
+    `Rate limiting: ${config.rateLimit?.kind ?? "off"}`,
     `Sources: ${config.content.sources.map((source) => source.kind).join(", ")}`,
     `Assistant: ${assistantSummary}`,
   ];

@@ -61,6 +61,8 @@ export const preflightResponse = (
 
 /** The slice of Astro's `APIContext` the wrapped handler reads. */
 interface RequestContext {
+  /** The reader's address, which the route's rate limit keys on. */
+  readonly clientAddress?: string;
   request: Request;
 }
 

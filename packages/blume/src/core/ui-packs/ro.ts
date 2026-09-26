@@ -33,9 +33,12 @@ export const ro: UIStringsOverride = {
     error: "Ne pare rău, ceva nu a mers bine.",
     label: "Pune o întrebare",
     placeholder: "Pune o întrebare…",
+    rateLimited:
+      "Ai pus multe întrebări. Încearcă din nou peste câteva minute.",
     send: "Trimite",
     tip: "Sfat: Poți deschide și închide chatul cu",
     title: "Asistent",
+    verifyFailed: "Nu am putut verifica faptul că ești om. Încearcă din nou.",
     you: "Tu",
   },
   banner: { dismiss: "Închide anunțul" },

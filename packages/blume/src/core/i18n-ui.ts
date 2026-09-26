@@ -49,9 +49,19 @@ const uiStringsObject = z.object({
       error: z.string().default("Sorry, something went wrong."),
       label: z.string().default("Ask a question"),
       placeholder: z.string().default("Ask a question…"),
+      // The answer when the rate limit (`rateLimit`) turns a question away.
+      rateLimited: z
+        .string()
+        .default(
+          "You've asked a lot of questions. Try again in a few minutes."
+        ),
       send: z.string().default("Send"),
       tip: z.string().default("Tip: You can open and close chat with"),
       title: z.string().default("Assistant"),
+      // The answer when the bot check (`ai.assistant.captcha`) fails.
+      verifyFailed: z
+        .string()
+        .default("We couldn't check that you're human. Try again."),
       you: z.string().default("You"),
     })
     .prefault({}),

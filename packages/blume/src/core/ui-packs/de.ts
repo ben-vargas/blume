@@ -33,9 +33,13 @@ export const de: UIStringsOverride = {
     error: "Entschuldigung, etwas ist schiefgelaufen.",
     label: "Eine Frage stellen",
     placeholder: "Eine Frage stellen…",
+    rateLimited:
+      "Du hast viele Fragen gestellt. Versuch es in ein paar Minuten noch einmal.",
     send: "Senden",
     tip: "Tipp: Du kannst den Chat öffnen und schließen mit",
     title: "Assistent",
+    verifyFailed:
+      "Wir konnten nicht bestätigen, dass du ein Mensch bist. Versuch es noch einmal.",
     you: "Du",
   },
   banner: { dismiss: "Ankündigung schließen" },
