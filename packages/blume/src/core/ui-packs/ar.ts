@@ -68,8 +68,10 @@ export const ar: UIStringsOverride = {
     update: "تحديث",
   },
   feedback: {
+    comment: "أخبرنا بالمزيد (اختياري)",
     no: "لا",
     question: "هل كانت هذه الصفحة مفيدة؟",
+    send: "إرسال",
     thanks: "شكراً على ملاحظاتك!",
     yes: "نعم",
   },

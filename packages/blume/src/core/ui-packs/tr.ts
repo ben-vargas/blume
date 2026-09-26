@@ -70,8 +70,10 @@ export const tr: UIStringsOverride = {
     update: "Güncelleme",
   },
   feedback: {
+    comment: "Bize daha fazlasını anlatın (isteğe bağlı)",
     no: "Hayır",
     question: "Bu sayfa yardımcı oldu mu?",
+    send: "Gönder",
     thanks: "Geri bildiriminiz için teşekkürler!",
     yes: "Evet",
   },

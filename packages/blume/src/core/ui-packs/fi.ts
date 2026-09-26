@@ -69,8 +69,10 @@ export const fi: UIStringsOverride = {
     update: "Päivitys",
   },
   feedback: {
+    comment: "Kerro lisää (valinnainen)",
     no: "Ei",
     question: "Oliko tästä sivusta apua?",
+    send: "Lähetä",
     thanks: "Kiitos palautteestasi!",
     yes: "Kyllä",
   },

@@ -10,9 +10,9 @@ import { z } from "zod";
  * Kitchen-sink sandbox: every Blume feature enabled in one project, for
  * exercising the framework end to end — including the native OpenAPI and
  * AsyncAPI renderers, search, the assistant, MCP, i18n, export, OG images,
- * narration, content variables, pattern redirects, the site footer, and
- * cookie consent (the `script()` analytics logs to the console only once a
- * reader accepts).
+ * narration, content variables, pattern redirects, the site footer, written
+ * feedback, and cookie consent (the `script()` analytics logs to the console,
+ * with every tracked event, only once a reader accepts).
  */
 export default defineConfig({
   agents: {
@@ -31,7 +31,8 @@ export default defineConfig({
   },
   analytics: [
     script({
-      content: 'console.info("[sandbox] analytics ran after consent")',
+      content:
+        'console.info("[sandbox] analytics ran after consent");addEventListener("blume:track",(e)=>console.info("[sandbox] track",e.detail));',
     }),
   ],
   api: {
@@ -62,7 +63,7 @@ export default defineConfig({
   deployment: node({ site: "https://sandbox.useblume.dev" }),
   description: "Every Blume feature, enabled in one place.",
   export: true,
-  feedback: true,
+  feedback: { comments: true },
   footer: {
     links: [
       {

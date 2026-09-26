@@ -1308,6 +1308,18 @@ export type ExportConfig =
       pdf?: boolean;
     };
 
+/** Page feedback: the rating, and an optional written comment after it. */
+export interface FeedbackConfig {
+  /**
+   * After the rating, offer a box to say more. The comment is sent as a
+   * `feedback_comment` event through every analytics adapter with an event
+   * API. Defaults to `false`.
+   */
+  comments?: boolean;
+  /** Show the rating. Defaults to `true`. */
+  enabled?: boolean;
+}
+
 /**
  * "Listen to this page". `true` reads pages aloud with the reader's browser
  * voices (no key, any host). The object form's `provider` generates neural
@@ -1472,8 +1484,12 @@ export interface BlumeConfig {
   examples?: string | ExamplesConfig;
   /** Reader-facing PDF/EPUB export actions. Defaults to `false`. */
   export?: ExportConfig;
-  /** Show the per-page "Was this helpful?" widget. Defaults to `true`. */
-  feedback?: boolean;
+  /**
+   * The "Was this page helpful?" rating at the foot of each page. On by
+   * default; `false` hides it. `{ comments: true }` also asks for a written
+   * comment after the rating, sent through your analytics adapters.
+   */
+  feedback?: boolean | FeedbackConfig;
   /**
    * The site footer: social profile icons and up to four link columns. Unset,
    * the site has no footer.

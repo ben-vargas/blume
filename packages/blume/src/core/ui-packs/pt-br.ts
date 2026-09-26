@@ -70,8 +70,10 @@ export const ptBR: UIStringsOverride = {
     update: "Atualização",
   },
   feedback: {
+    comment: "Conte mais (opcional)",
     no: "Não",
     question: "Esta página foi útil?",
+    send: "Enviar",
     thanks: "Obrigado pelo seu feedback!",
     yes: "Sim",
   },

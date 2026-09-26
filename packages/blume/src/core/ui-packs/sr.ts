@@ -69,8 +69,10 @@ export const sr: UIStringsOverride = {
     update: "Ажурирање",
   },
   feedback: {
+    comment: "Реците нам више (опционо)",
     no: "Не",
     question: "Да ли вам је ова страница помогла?",
+    send: "Пошаљи",
     thanks: "Хвала на вашој повратној информацији!",
     yes: "Да",
   },

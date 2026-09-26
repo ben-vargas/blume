@@ -70,8 +70,10 @@ export const hu: UIStringsOverride = {
     update: "Frissítés",
   },
   feedback: {
+    comment: "Mondjon többet (nem kötelező)",
     no: "Nem",
     question: "Hasznos volt ez az oldal?",
+    send: "Küldés",
     thanks: "Köszönjük a visszajelzésed!",
     yes: "Igen",
   },

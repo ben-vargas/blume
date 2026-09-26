@@ -70,8 +70,10 @@ export const sv: UIStringsOverride = {
     update: "Uppdatering",
   },
   feedback: {
+    comment: "Berätta mer (valfritt)",
     no: "Nej",
     question: "Var den här sidan till hjälp?",
+    send: "Skicka",
     thanks: "Tack för din feedback!",
     yes: "Ja",
   },

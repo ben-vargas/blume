@@ -68,8 +68,10 @@ export const zh: UIStringsOverride = {
     update: "更新",
   },
   feedback: {
+    comment: "告诉我们更多（选填）",
     no: "没有帮助",
     question: "这个页面有帮助吗？",
+    send: "发送",
     thanks: "感谢你的反馈！",
     yes: "有帮助",
   },

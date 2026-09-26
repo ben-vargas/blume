@@ -68,8 +68,10 @@ export const bn: UIStringsOverride = {
     update: "আপডেট",
   },
   feedback: {
+    comment: "আরও বলুন (ঐচ্ছিক)",
     no: "না",
     question: "এই পৃষ্ঠাটি কি সহায়ক ছিল?",
+    send: "পাঠান",
     thanks: "আপনার মতামতের জন্য ধন্যবাদ!",
     yes: "হ্যাঁ",
   },

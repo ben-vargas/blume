@@ -137,6 +137,8 @@ interface Props {
   assistantEnabled?: boolean;
   /** Show the "Was this page helpful?" rating below the content. */
   feedback?: boolean;
+  /** Ask for a written comment after the rating. */
+  feedbackComments?: boolean;
   /** Show the previous/next links at the foot of the page. */
   pagination?: boolean;
   exportPdf?: boolean;
@@ -270,6 +272,7 @@ const {
   editUrl,
   assistantEnabled,
   feedback = false,
+  feedbackComments = false,
   pagination = true,
   exportPdf,
   exportEpub,
@@ -850,7 +853,12 @@ createIconSprite(Astro.locals);
                   {strings.page.lastUpdated} {formattedLastModified}
                 </p>
               )}
-              {feedback && <FeedbackSlot strings={strings.feedback} />}
+              {feedback && (
+                <FeedbackSlot
+                  comments={feedbackComments}
+                  strings={strings.feedback}
+                />
+              )}
               {pagination && (
                 <PaginationSlot next={next} prev={prev} strings={strings.page} />
               )}

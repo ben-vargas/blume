@@ -70,8 +70,10 @@ export const ko: UIStringsOverride = {
     update: "업데이트",
   },
   feedback: {
+    comment: "자세히 알려 주세요 (선택 사항)",
     no: "아니요",
     question: "이 페이지가 도움이 되었나요?",
+    send: "보내기",
     thanks: "의견 주셔서 감사합니다!",
     yes: "예",
   },

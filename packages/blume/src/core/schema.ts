@@ -1114,6 +1114,25 @@ const exportConfigSchema = z
     isBoolean(value) ? { epub: value, pdf: value } : value
   );
 
+// The "Was this page helpful?" rating, on by default. `comments: true` adds a
+// box after the rating where the reader can say more, sent through the
+// analytics adapters as a `feedback_comment` event. Both forms normalize to
+// `{ enabled, comments }`.
+const feedbackConfigSchema = z
+  .union([
+    z.boolean(),
+    z.strictObject({
+      comments: z.boolean().default(false),
+      enabled: z.boolean().default(true),
+    }),
+  ])
+  // With the rating off there is nothing to comment on.
+  .transform((value) =>
+    isBoolean(value)
+      ? { comments: false, enabled: value }
+      : { comments: value.enabled && value.comments, enabled: value.enabled }
+  );
+
 // "Listen to this page". Off by default. `true` reads pages aloud with the
 // reader's browser voices, which needs no key and works on any host; an object
 // with a `provider` (`gateway()` from `blume/ai`) generates neural audio at
@@ -2021,7 +2040,7 @@ export const blumeConfigSchema = z
        */
       examples: examplesConfigSchema.prefault("examples"),
       export: exportConfigSchema.prefault(false),
-      feedback: z.boolean().default(true),
+      feedback: feedbackConfigSchema.prefault(true),
       footer: footerConfigSchema.optional(),
       /** Opt-in custom frontmatter keys, validated by user-supplied schemas. */
       frontmatter: frontmatterConfigSchema.prefault({}),

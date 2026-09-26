@@ -67,7 +67,10 @@ describe("loadConfig", () => {
     const result = await loadConfig(await makeDir());
     expect(result.configFile).toBeNull();
     expect(result.config.title).toBe("Documentation");
-    expect(result.config.feedback).toBe(true);
+    expect(result.config.feedback).toStrictEqual({
+      comments: false,
+      enabled: true,
+    });
     expect(result.config.integrations).toEqual([]);
     expect(result.diagnostics).toStrictEqual([]);
   });
@@ -165,7 +168,30 @@ describe("loadConfig", () => {
   it("lets the page-feedback rating be disabled", async () => {
     const dir = await makeDir("export default { feedback: false };");
     const result = await loadConfig(dir);
-    expect(result.config.feedback).toBe(false);
+    expect(result.config.feedback).toStrictEqual({
+      comments: false,
+      enabled: false,
+    });
+  });
+
+  it("asks for written comments with the object form", async () => {
+    const dir = await makeDir(
+      "export default { feedback: { comments: true } };"
+    );
+    const result = await loadConfig(dir);
+    expect(result.config.feedback).toStrictEqual({
+      comments: true,
+      enabled: true,
+    });
+    const off = await loadConfig(
+      await makeDir(
+        "export default { feedback: { comments: true, enabled: false } };"
+      )
+    );
+    expect(off.config.feedback).toStrictEqual({
+      comments: false,
+      enabled: false,
+    });
   });
 
   it("enables the React Compiler by default and lets it be opted out", async () => {

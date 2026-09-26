@@ -454,6 +454,20 @@ export default defineConfig({
 
 A reader's answer is sent as a `feedback` [custom event](/docs/configuration/analytics#custom-events) — with `helpful` (`"yes"` or `"no"`), `path`, and `title` — through every configured analytics adapter that has an event API, and as a `blume:track` event on `window`. Without an analytics adapter, the answer isn't recorded anywhere. The question and thank-you text are UI strings you can translate with [`i18n.ui`](/docs/content/i18n#translated-ui).
 
+### Written feedback
+
+To hear more than yes or no, turn on comments. After rating a page, the reader gets a box to say what worked or what's missing:
+
+```ts blume.config.ts
+export default defineConfig({
+  feedback: { comments: true },
+});
+```
+
+A comment is sent as a `feedback_comment` event with the same `helpful`, `path`, and `title` as the rating, plus the reader's `comment` (up to 1,000 characters). It goes through the same adapters as the rating, so read comments where you read events. Providers cap how long a property value can be, so a long comment may arrive cut short: Google Analytics keeps 100 characters and Mixpanel 255, while PostHog and Segment pass comments whole. Plausible groups identical values rather than listing each comment, so it suits ratings better than comments. Readers can write anything in the box, so treat comments as they might contain personal details. With [cookie consent](/docs/configuration/consent) on, a comment reaches your analytics only from readers who allowed it.
+
+The box's label and button are UI strings too (`feedback.comment` and `feedback.send`).
+
 ## Feature options
 
 Each of these has its own guide. The config field is the entry point:
@@ -482,7 +496,7 @@ Each of these has its own guide. The config field is the entry point:
 | `examples` | Where `<Component path>` example previews live, and the CSS injected into their frames | [Component](/docs/content/components#component) |
 | `react` | React island behavior — the React Compiler's auto-memoization | [Islands](/docs/content/islands#frameworks) |
 | `variables` | Values `{{name}}` reads in any page | [Variables](/docs/content/variables) |
-| `feedback` | The "Was this page helpful?" rating at the foot of each page (default `true`) | [Page feedback](#page-feedback) |
+| `feedback` | The "Was this page helpful?" rating at the foot of each page (default `true`), and optional written comments after it | [Page feedback](#page-feedback) |
 
 ## Precedence
 

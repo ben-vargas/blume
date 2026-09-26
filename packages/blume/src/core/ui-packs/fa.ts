@@ -69,8 +69,10 @@ export const fa: UIStringsOverride = {
     update: "به‌روزرسانی",
   },
   feedback: {
+    comment: "بیشتر بگویید (اختیاری)",
     no: "خیر",
     question: "آیا این صفحه مفید بود؟",
+    send: "ارسال",
     thanks: "از بازخورد شما سپاسگزاریم!",
     yes: "بله",
   },

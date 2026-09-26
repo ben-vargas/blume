@@ -122,8 +122,11 @@ const uiStringsObject = z.object({
     .prefault({}),
   feedback: z
     .object({
+      // The written comment box after the rating (`feedback.comments`).
+      comment: z.string().default("Tell us more (optional)"),
       no: z.string().default("No"),
       question: z.string().default("Was this page helpful?"),
+      send: z.string().default("Send"),
       thanks: z.string().default("Thanks for your feedback!"),
       yes: z.string().default("Yes"),
     })

@@ -1184,7 +1184,8 @@ export const buildRuntimeData = (project: BlumeProject): string => {
         sitemap: config.seo.sitemap && Boolean(config.deployment.options.site),
       },
       favicon: resolveFavicon(project),
-      feedback: config.feedback,
+      feedback: config.feedback.enabled,
+      feedbackComments: config.feedback.comments,
       footer: resolveFooter(config),
       github: resolveGithubData(github),
       i18n: i18n

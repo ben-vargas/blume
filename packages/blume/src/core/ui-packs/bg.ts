@@ -70,8 +70,10 @@ export const bg: UIStringsOverride = {
     update: "Актуализация",
   },
   feedback: {
+    comment: "Разкажете ни повече (по избор)",
     no: "Не",
     question: "Беше ли полезна тази страница?",
+    send: "Изпрати",
     thanks: "Благодарим за обратната връзка!",
     yes: "Да",
   },

@@ -70,8 +70,10 @@ export const de: UIStringsOverride = {
     update: "Update",
   },
   feedback: {
+    comment: "Erzähl uns mehr (optional)",
     no: "Nein",
     question: "War diese Seite hilfreich?",
+    send: "Senden",
     thanks: "Danke für dein Feedback!",
     yes: "Ja",
   },

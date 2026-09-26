@@ -68,8 +68,10 @@ export const th: UIStringsOverride = {
     update: "อัปเดต",
   },
   feedback: {
+    comment: "บอกเราเพิ่มเติม (ไม่บังคับ)",
     no: "ไม่",
     question: "หน้านี้มีประโยชน์หรือไม่?",
+    send: "ส่ง",
     thanks: "ขอบคุณสำหรับความคิดเห็นของคุณ!",
     yes: "ใช่",
   },

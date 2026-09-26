@@ -68,8 +68,10 @@ export const zhTW: UIStringsOverride = {
     update: "更新",
   },
   feedback: {
+    comment: "告訴我們更多（選填）",
     no: "沒有幫助",
     question: "這個頁面有幫助嗎？",
+    send: "送出",
     thanks: "感謝你的意見回饋！",
     yes: "有幫助",
   },

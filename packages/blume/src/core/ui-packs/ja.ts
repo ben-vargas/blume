@@ -70,8 +70,10 @@ export const ja: UIStringsOverride = {
     update: "アップデート",
   },
   feedback: {
+    comment: "詳しく教えてください（任意）",
     no: "いいえ",
     question: "このページは役に立ちましたか？",
+    send: "送信",
     thanks: "フィードバックありがとうございます！",
     yes: "はい",
   },

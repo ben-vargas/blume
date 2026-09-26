@@ -70,8 +70,10 @@ export const uk: UIStringsOverride = {
     update: "Оновлення",
   },
   feedback: {
+    comment: "Розкажіть докладніше (необов'язково)",
     no: "Ні",
     question: "Чи була ця сторінка корисною?",
+    send: "Надіслати",
     thanks: "Дякуємо за ваш відгук!",
     yes: "Так",
   },

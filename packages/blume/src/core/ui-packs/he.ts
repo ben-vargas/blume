@@ -68,8 +68,10 @@ export const he: UIStringsOverride = {
     update: "עדכון",
   },
   feedback: {
+    comment: "ספרו לנו עוד (אופציונלי)",
     no: "לא",
     question: "האם העמוד הזה היה מועיל?",
+    send: "שליחה",
     thanks: "תודה על המשוב שלך!",
     yes: "כן",
   },

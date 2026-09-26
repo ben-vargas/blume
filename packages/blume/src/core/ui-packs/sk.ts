@@ -69,8 +69,10 @@ export const sk: UIStringsOverride = {
     update: "Aktualizácia",
   },
   feedback: {
+    comment: "Povedzte nám viac (nepovinné)",
     no: "Nie",
     question: "Bola táto stránka užitočná?",
+    send: "Odoslať",
     thanks: "Ďakujeme za vašu spätnú väzbu!",
     yes: "Áno",
   },

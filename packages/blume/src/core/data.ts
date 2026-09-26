@@ -172,7 +172,10 @@ export interface BlumeDataConfig {
     sitemap: boolean;
   };
   favicon: BlumeFavicon;
+  /** Whether pages end with the "Was this page helpful?" rating. */
   feedback: boolean;
+  /** Whether the rating asks for a written comment after it (`feedback.comments`). */
+  feedbackComments: boolean;
   /** `footer`: social profile icons and link columns, or `null` when unset. */
   footer: ResolvedConfig["footer"] | null;
   /**

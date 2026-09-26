@@ -70,8 +70,10 @@ export const el: UIStringsOverride = {
     update: "Ενημέρωση",
   },
   feedback: {
+    comment: "Πείτε μας περισσότερα (προαιρετικό)",
     no: "Όχι",
     question: "Σας φάνηκε χρήσιμη αυτή η σελίδα;",
+    send: "Αποστολή",
     thanks: "Ευχαριστούμε για τα σχόλιά σας!",
     yes: "Ναι",
   },

@@ -69,8 +69,10 @@ export const hi: UIStringsOverride = {
     update: "अपडेट",
   },
   feedback: {
+    comment: "हमें और बताएँ (वैकल्पिक)",
     no: "नहीं",
     question: "क्या यह पेज सहायक था?",
+    send: "भेजें",
     thanks: "आपकी प्रतिक्रिया के लिए धन्यवाद!",
     yes: "हाँ",
   },

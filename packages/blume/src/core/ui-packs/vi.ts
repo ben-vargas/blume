@@ -69,8 +69,10 @@ export const vi: UIStringsOverride = {
     update: "Cập nhật",
   },
   feedback: {
+    comment: "Cho chúng tôi biết thêm (không bắt buộc)",
     no: "Không",
     question: "Trang này có hữu ích không?",
+    send: "Gửi",
     thanks: "Cảm ơn phản hồi của bạn!",
     yes: "Có",
   },

@@ -70,8 +70,10 @@ export const ro: UIStringsOverride = {
     update: "Actualizare",
   },
   feedback: {
+    comment: "Spune-ne mai multe (opțional)",
     no: "Nu",
     question: "Ți-a fost utilă această pagină?",
+    send: "Trimite",
     thanks: "Mulțumim pentru feedback!",
     yes: "Da",
   },

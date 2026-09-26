@@ -70,8 +70,10 @@ export const hr: UIStringsOverride = {
     update: "Ažuriranje",
   },
   feedback: {
+    comment: "Recite nam više (neobavezno)",
     no: "Ne",
     question: "Je li vam ova stranica bila korisna?",
+    send: "Pošalji",
     thanks: "Hvala na povratnoj informaciji!",
     yes: "Da",
   },
