@@ -5,6 +5,7 @@ import {
   newThreadId,
   supportHref,
 } from "../src/components/islands/support-link.ts";
+import { blumeConfigSchema } from "../src/core/schema.ts";
 
 const context = {
   ai: "AI",
@@ -63,5 +64,18 @@ describe(newThreadId, () => {
     const id = newThreadId();
     expect(id).toMatch(/^[\da-f]{16}$/u);
     expect(newThreadId()).not.toBe(id);
+  });
+});
+
+/** Whether the config schema accepts `support` as the assistant's link. */
+const accepts = (support: string): boolean =>
+  blumeConfigSchema.safeParse({ ai: { assistant: { support } } }).success;
+
+describe("ai.assistant.support", () => {
+  it("takes a mailto: address, a URL, or a root-relative page", () => {
+    expect(accepts("mailto:help@example.com")).toBe(true);
+    expect(accepts("https://example.com/help")).toBe(true);
+    expect(accepts("/support")).toBe(true);
+    expect(accepts("support")).toBe(false);
   });
 });
